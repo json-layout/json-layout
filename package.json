@@ -1,0 +1,29 @@
+{
+  "name": "@json-layout/json-layout",
+  "version": "0.0.0",
+  "description": "draft",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/json-layout/json-layout.git"
+  },
+  "keywords": [
+    "json",
+    "schema",
+    "forms",
+    "layout"
+  ],
+  "author": "Alban Mouton <alban.mouton@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/json-layout/json-layout/issues"
+  },
+  "homepage": "https://github.com/json-layout/json-layout#readme",
+  "workspaces": [
+    "core",
+    "ajv"
+  ]
+}
