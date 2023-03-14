@@ -1,10 +1,10 @@
 import {
   validateLayoutKeyword, isComponentName, isPartialCompObject, isChildren,
   type LayoutKeyword, type PartialCompObject, isResponsive, isReadWrite
-} from './layout-keyword'
-import { validateNormalizedLayout, type NormalizedLayout, type NormalizedResponsive, type CompObject } from './normalized-layout'
+} from '../layout-keyword'
+import { validateNormalizedLayout, type NormalizedLayout, type NormalizedResponsive, type CompObject } from '.'
 
-interface SchemaFragment {
+export interface SchemaFragment {
   layout?: LayoutKeyword
   type: string
   properties?: Record<string, any>
@@ -56,7 +56,7 @@ function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: C
   }
 }
 
-export default function (schemaFragment: SchemaFragment, schemaPath: string): NormalizedLayout {
+export function normalizeSchemaFragment (schemaFragment: SchemaFragment, schemaPath: string): NormalizedLayout {
   const layoutKeyword = schemaFragment.layout || {}
   if (!validateLayoutKeyword(layoutKeyword)) {
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })

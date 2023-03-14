@@ -46,7 +46,7 @@ export interface PartialCompObject {
 }
 
 // raw schema
-export const schema = {
+export const layoutKeywordSchema = {
   "$id": "https://json-layout.github.io/layout-keyword",
   "title": "layout keyword",
   "oneOf": [

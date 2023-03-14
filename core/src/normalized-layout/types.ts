@@ -42,7 +42,7 @@ export interface Checkbox {
 }
 
 // raw schema
-export const schema = {
+export const normalizedLayoutSchema = {
   "$id": "https://json-layout.github.io/normalized-layout-keyword",
   "title": "normalized layout",
   "type": "object",

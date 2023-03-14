@@ -3,7 +3,7 @@ import { validateLayoutKeyword as validate } from '../src/layout-keyword'
 
 const assertValid = (data: any) => { assert.ok(validate(data), JSON.stringify(validate.errors)) }
 
-describe('layout keyword', () => {
+describe('layout keyword validation', () => {
   it('should accept various forms of layout keyword values', async () => {
     assertValid('text-field')
     assert.ok(!validate('textfield'))

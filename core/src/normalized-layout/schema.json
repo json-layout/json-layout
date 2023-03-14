@@ -21,17 +21,17 @@
         "xl": {"$ref": "#/$defs/comp-object"}
       }
     },
-    "layout-comp-object": {
+    "comp-object": {
       "type": "object",
       "discriminator": {"propertyName": "comp"},
       "required": ["comp"],
       "oneOf": [
-        {"$ref": "#/$defs/layout-text-field"},
+        {"$ref": "#/$defs/text-field"},
         {"$ref": "#/$defs/textarea"},
         {"$ref": "#/$defs/checkbox"}
       ]
     },
-    "laout-text-field": {
+    "text-field": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

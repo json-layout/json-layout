@@ -1,7 +1,7 @@
 import { strict as assert } from 'assert'
-import normalize from '../src/normalize'
+import { normalizeSchemaFragment as normalize } from '../src/normalized-layout/normalize'
 
-describe('normalize function', () => {
+describe('normalize schema fragment function', () => {
   it('should transform schema fragments with optional layout keywords in normalized layout information', () => {
     assert.deepEqual(normalize({ type: 'string' }, '/'), {
       read: {

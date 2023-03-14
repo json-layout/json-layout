@@ -4,7 +4,6 @@
     "module": "CommonJS",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "rootDir": "./",
-    "outDir": "./cjs",
     "declaration": true,
     "strict": true,
     "moduleResolution": "node",

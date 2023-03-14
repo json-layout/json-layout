@@ -1,17 +1,5 @@
-import mitt, { type Emitter } from 'mitt'
 import { type CompObject, type NormalizedLayout } from '../normalized-layout'
 import { type CompiledLayout, type StatefulLayoutSkeleton } from './compile'
-
-export * from './compile'
-
-export class StatefulLayout {
-  readonly events: Emitter<StatefulLayoutEvents>
-  readonly root: StatefulLayoutNode
-  constructor (compiledLayout: CompiledLayout) {
-    this.events = mitt<StatefulLayoutEvents>()
-    this.root = new StatefulLayoutNode(compiledLayout, compiledLayout.skeleton, 'write')
-  }
-}
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type StatefulLayoutEvents = {
@@ -20,22 +8,12 @@ export type StatefulLayoutEvents = {
   change: undefined
 }
 
-interface StatefulLayoutNodeInspect {
-  key: string
-  mode: string
-  display: string
-  layout: CompObject
-  children?: StatefulLayoutNodeInspect[]
-}
-
 export class StatefulLayoutNode {
   key: string
 
   private readonly mode: 'read' | 'write'
 
   private readonly normalizedLayout: NormalizedLayout
-
-  private readonly children?: StatefulLayoutNode[]
 
   get layout (): CompObject { return this.normalizedLayout[this.mode][this.display] }
 
@@ -69,25 +47,9 @@ export class StatefulLayoutNode {
     // TODO: emit change event
   }
 
-  inspect (): StatefulLayoutNodeInspect {
-    const inspectObject: StatefulLayoutNodeInspect = {
-      key: this.key,
-      mode: this.key,
-      display: this.display,
-      layout: this.layout
-    }
-    if (this.children) {
-      inspectObject.children = this.children.map(c => c.inspect())
-    }
-    return inspectObject
-  }
-
   constructor (compiledLayout: CompiledLayout, skeleton: StatefulLayoutSkeleton, mode: 'read' | 'write') {
-    this.key = skeleton.key
+    this.key = key
     this.normalizedLayout = compiledLayout.normalizedLayouts[skeleton.layout]
     this.mode = mode
-    if (skeleton.children) {
-      this.children = skeleton.children.map(childSkeleton => new StatefulLayoutNode(compiledLayout, childSkeleton, mode))
-    }
   }
 }

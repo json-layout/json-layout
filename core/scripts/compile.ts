@@ -4,6 +4,7 @@
 
 import Ajv from 'ajv'
 import * as fs from 'fs'
+import camelcase from 'camelcase'
 const { compile: compileTs } = require('json-schema-to-typescript')
 const path = require('node:path')
 const standaloneCode = require('ajv/dist/standalone').default
@@ -38,7 +39,7 @@ const main = async () => {
     // the raw schema
     code += `
 // raw schema
-export const schema = ${JSON.stringify(schema, null, 2)}
+export const ${camelcase(key)}Schema = ${JSON.stringify(schema, null, 2)}
 `
 
     fs.writeFileSync(path.join(dir, key, 'types.ts'), code)
