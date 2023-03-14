@@ -72,7 +72,7 @@ export class StatefulLayoutNode {
   inspect (): StatefulLayoutNodeInspect {
     const inspectObject: StatefulLayoutNodeInspect = {
       key: this.key,
-      mode: this.key,
+      mode: this.mode,
       display: this.display,
       layout: this.layout
     }

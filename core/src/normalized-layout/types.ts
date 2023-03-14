@@ -2,7 +2,7 @@
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
  * via the `definition` "comp-object".
  */
-export type CompObject = TextField | Textarea | Checkbox;
+export type CompObject = Section | TextField | Textarea | Checkbox;
 
 export interface NormalizedLayout {
   read: NormalizedResponsive;
@@ -18,6 +18,13 @@ export interface NormalizedResponsive {
   md: CompObject;
   lg: CompObject;
   xl: CompObject;
+}
+/**
+ * This interface was referenced by `NormalizedLayout`'s JSON-Schema
+ * via the `definition` "section".
+ */
+export interface Section {
+  comp?: "section";
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
@@ -98,6 +105,9 @@ export const normalizedLayoutSchema = {
       ],
       "oneOf": [
         {
+          "$ref": "#/$defs/section"
+        },
+        {
           "$ref": "#/$defs/text-field"
         },
         {
@@ -107,6 +117,15 @@ export const normalizedLayoutSchema = {
           "$ref": "#/$defs/checkbox"
         }
       ]
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "comp": {
+          "const": "section"
+        }
+      }
     },
     "text-field": {
       "type": "object",

@@ -26,10 +26,18 @@
       "discriminator": {"propertyName": "comp"},
       "required": ["comp"],
       "oneOf": [
+        {"$ref": "#/$defs/section"},
         {"$ref": "#/$defs/text-field"},
         {"$ref": "#/$defs/textarea"},
         {"$ref": "#/$defs/checkbox"}
       ]
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "comp": {"const": "section"}
+      }
     },
     "text-field": {
       "type": "object",

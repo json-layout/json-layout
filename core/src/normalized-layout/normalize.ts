@@ -14,6 +14,7 @@ export interface SchemaFragment {
 }
 
 function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: string): CompObject {
+  if (schemaFragment.type === 'object') return { comp: 'section' }
   if (schemaFragment.type === 'string') return { comp: 'text-field' }
   throw new Error(`failed to calculate default layout for schema ${schemaPath}`)
 }

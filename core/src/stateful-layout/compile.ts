@@ -75,7 +75,12 @@ function makeSkeleton (
       post: (fragment, pointer, rootSchema, parentPointer, parentKeyword, parentFragment, key) => {
         // TODO: put current skeleton as child in parent
         skeleton = skeletonsStack.pop() as StatefulLayoutSkeleton
-        debug('skeleton finished for schema fragment', pointer)
+        const parent = skeletonsStack[skeletonsStack.length - 1]
+        if (parent) {
+          parent.children = parent.children ?? []
+          parent.children.push(skeleton)
+        }
+        debug('skeleton finished for schema fragment', key)
       }
     }
   })
