@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert'
-import { normalizeSchemaFragment as normalize } from '../src/normalized-layout/normalize'
+import { normalizeLayoutFragment as normalize } from '../src/normalized-layout/normalize'
 
 describe('normalize schema fragment function', () => {
   it('should transform schema fragments with optional layout keywords in normalized layout information', () => {

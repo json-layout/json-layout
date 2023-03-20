@@ -57,7 +57,7 @@ function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: C
   }
 }
 
-export function normalizeSchemaFragment (schemaFragment: SchemaFragment, schemaPath: string): NormalizedLayout {
+export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string): NormalizedLayout {
   const layoutKeyword = schemaFragment.layout || {}
   if (!validateLayoutKeyword(layoutKeyword)) {
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })

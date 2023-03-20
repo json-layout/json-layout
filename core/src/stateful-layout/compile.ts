@@ -7,18 +7,20 @@ TODO:
   - optionally suggest serializing the result to js, serialization would include (serialization could also include types compiled from the schema)
 */
 
-import traverse from 'json-schema-traverse'
+import { type SchemaObject } from 'json-schema-traverse'
+import type traverse from 'json-schema-traverse'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addFormats from 'ajv-formats'
-// import rfdc from 'rfdc'
-import Debug from 'debug'
-import { normalizeSchemaFragment, type NormalizedLayout, type SchemaFragment } from '../normalized-layout'
+import rfdc from 'rfdc'
+// import Debug from 'debug'
+import { type NormalizedLayout } from '../normalized-layout'
+import { compileRaw } from './compile-raw'
 
-// const clone = rfdc()
+const clone = rfdc()
 
-const debug = Debug('json-layout:compile')
+// const debug = Debug('json-layout:compile')
 
-export interface CompileSchemaOptions {
+export interface CompileOptions {
   ajv?: Ajv
 }
 
@@ -32,57 +34,35 @@ export interface StatefulLayoutSkeleton {
 
 export interface CompiledLayout {
   skeleton: StatefulLayoutSkeleton
-  skeletons: Record<string, StatefulLayoutSkeleton>
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
 }
 
-export function compileSchema (schema: any, options: CompileSchemaOptions = {}): CompiledLayout {
-  const validates: Record<string, ValidateFunction> = {}
-  const normalizedLayouts: Record<string, NormalizedLayout> = {}
-  const skeletons: Record<string, StatefulLayoutSkeleton> = {}
+export function compile (_schema: object, options: CompileOptions = {}): CompiledLayout {
+  const schema = <SchemaObject>clone(_schema)
 
-  schema = schema as traverse.SchemaObject
   let ajv = options.ajv
   if (!ajv) {
     ajv = new Ajv({ strict: false })
     addFormats(ajv)
   }
-  const skeleton = makeSkeleton(schema, ajv, validates, normalizedLayouts)
+  const uriResolver = ajv.opts.uriResolver
 
-  return { skeleton, skeletons, validates, normalizedLayouts }
-}
+  const compiledRaw = compileRaw(schema, { ajv })
+  if (!('$id' in schema)) {
+    schema.$id = '_json_layout_main'
+  }
+  ajv.addSchema(schema)
 
-function makeSkeleton (
-  schema: any,
-  ajv: Ajv,
-  validates: Record<string, ValidateFunction>,
-  normalizedLayouts: Record<string, NormalizedLayout>
-): StatefulLayoutSkeleton {
-  // const uriResolver = ajv.opts.uriResolver
-  const skeletonsStack: StatefulLayoutSkeleton[] = []
-  let skeleton: StatefulLayoutSkeleton = { key: '', layout: '' }
-  traverse(schema, {
-    cb: {
-      // pre is called before the children are traversed
-      pre: (fragment, pointer, rootSchema, parentPointer, parentKeyword, parentFragment, key) => {
-        // TODO: fragment might be missing type here ?
-        normalizedLayouts[pointer] = normalizedLayouts[pointer] || normalizeSchemaFragment(fragment as SchemaFragment, pointer)
-        const skeleton: StatefulLayoutSkeleton = { key: `${key ?? ''}`, layout: pointer }
-        skeletonsStack.push(skeleton)
-      },
-      // post is called after the children are traversed
-      post: (fragment, pointer, rootSchema, parentPointer, parentKeyword, parentFragment, key) => {
-        // TODO: put current skeleton as child in parent
-        skeleton = skeletonsStack.pop() as StatefulLayoutSkeleton
-        const parent = skeletonsStack[skeletonsStack.length - 1]
-        if (parent) {
-          parent.children = parent.children ?? []
-          parent.children.push(skeleton)
-        }
-        debug('skeleton finished for schema fragment', key)
-      }
-    }
-  })
-  return skeleton
+  const validates: Record<string, ValidateFunction> = {}
+  for (const pointer of compiledRaw.validates) {
+    const fullPointer = uriResolver.resolve(schema.$id as string, pointer)
+    validates[pointer] = ajv.compile({ $ref: fullPointer })
+  }
+
+  return {
+    skeleton: compiledRaw.skeleton,
+    normalizedLayouts: compiledRaw.normalizedLayouts,
+    validates
+  }
 }
