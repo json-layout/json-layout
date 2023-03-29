@@ -1,7 +1,7 @@
 import {
   validateLayoutKeyword, isComponentName, isPartialCompObject, isChildren,
   type LayoutKeyword, type PartialCompObject, isResponsive, isReadWrite
-} from '../layout-keyword'
+} from './layout-keyword'
 import { validateNormalizedLayout, type NormalizedLayout, type NormalizedResponsive, type CompObject } from '.'
 
 export interface SchemaFragment {

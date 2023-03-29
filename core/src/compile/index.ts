@@ -1,20 +1,17 @@
-/*
-TODO:
-  - traverse json schema
-  - create a normalized layout keyword for each level based on schema and optional layout annotation
-  - validate the normalized layout (json schema + custom assertion like the fact the the children keys match reality)
-  - compile all partial schemas necessary for the stateful layout
-  - optionally suggest serializing the result to js, serialization would include (serialization could also include types compiled from the schema)
-*/
+// compile is a soft wrapper around compileRaw
+// the difference being that the result of compile is meant to be usable
+// while the result of compileRaw is serializable
 
 import { type SchemaObject } from 'json-schema-traverse'
-import type traverse from 'json-schema-traverse'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addFormats from 'ajv-formats'
 import rfdc from 'rfdc'
 // import Debug from 'debug'
-import { type NormalizedLayout } from '../normalized-layout'
-import { compileRaw } from './compile-raw'
+import { type NormalizedLayout } from '@json-layout/vocabulary'
+import { compileRaw, type LayoutTree } from './raw'
+
+export * from './raw'
+export * from './serialize'
 
 const clone = rfdc()
 
@@ -24,16 +21,8 @@ export interface CompileOptions {
   ajv?: Ajv
 }
 
-export interface StatefulLayoutSkeleton {
-  key: string
-  layout: string // reference to a layout object in the normalizedLayouts store
-  validate?: string // optional reference to a validate function in the validates store
-  children?: StatefulLayoutSkeleton[]
-  item?: StatefulLayoutSkeleton
-}
-
 export interface CompiledLayout {
-  skeleton: StatefulLayoutSkeleton
+  tree: LayoutTree
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
 }
@@ -61,7 +50,7 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
   }
 
   return {
-    skeleton: compiledRaw.skeleton,
+    tree: compiledRaw.tree,
     normalizedLayouts: compiledRaw.normalizedLayouts,
     validates
   }

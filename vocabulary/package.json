@@ -1,7 +1,7 @@
 {
-  "name": "@json-layout/core",
+  "name": "@json-layout/vocabulary",
   "version": "0.0.0",
-  "description": "Compilation and state management utilities for json-layout.",
+  "description": "Main JSON Layout vocabulary as JSON schemas and Typescript types. Also contains some small utility functions without any dependency.",
   "exports": {
     ".": {
       "require": {
@@ -19,7 +19,8 @@
   "scripts": {
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
     "build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
-    "lint": "eslint . --fix"
+    "lint": "eslint . --fix",
+    "compile": "ts-node scripts/compile.ts"
   },
   "repository": {
     "type": "git",
@@ -38,7 +39,6 @@
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "dependencies": {
-    "@json-layout/vocabulary": "^0.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "debug": "^4.3.4",

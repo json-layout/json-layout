@@ -9,47 +9,64 @@ TODO:
 
 import type traverse from 'json-schema-traverse'
 import type Ajv from 'ajv'
-import Debug from 'debug'
-import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment } from '../normalized-layout'
+// import Debug from 'debug'
+import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment } from '@json-layout/vocabulary'
 
-const debug = Debug('json-layout:compile-raw')
+// const debug = Debug('json-layout:compile-raw')
 
-export interface CompileSchemaOptions {
+export interface CompileRawOptions {
   ajv: Ajv
 }
 
-export interface StatefulLayoutSkeleton {
-  key: string
-  layout: string // reference to a layout object in the normalizedLayouts store
-  validate?: string // optional reference to a validate function in the validates store
-  children?: StatefulLayoutSkeleton[]
-  item?: StatefulLayoutSkeleton
-}
-
 export interface CompiledRaw {
-  skeleton: StatefulLayoutSkeleton
+  tree: LayoutTree
   validates: string[]
   normalizedLayouts: Record<string, NormalizedLayout>
 }
 
-export function compileRaw (schema: object, options: CompileSchemaOptions): CompiledRaw {
+// a tree is a root node and a validation function
+// it will be used to instantiate a StatefulLayoutTree with 1 validation context
+export interface LayoutTree {
+  root: LayoutNode
+  validate: string // reference to a validate function in the validates store
+}
+
+// a node is a light recursive structure
+// each one will be instantiated as a StatefulLayoutNode with a value and an associated component instance
+export interface LayoutNode {
+  key: string
+  layout: string // reference to a layout object in the normalizedLayouts store
+  children?: LayoutNode[] // optional children in the case of arrays and object nodes
+  item?: LayoutTree // another tree that can be instantiated with separate validation (for example in the case of new array items)
+}
+
+export function compileRaw (schema: object, options: CompileRawOptions): CompiledRaw {
   const validates: string[] = []
   const normalizedLayouts: Record<string, NormalizedLayout> = {}
 
   schema = schema as traverse.SchemaObject
-  const skeleton = makeSkeleton(schema, options.ajv, validates, normalizedLayouts, '', '#')
+  const tree = makeTree(schema, options.ajv, validates, normalizedLayouts, '#')
 
-  return { skeleton, validates, normalizedLayouts }
+  return { tree, validates, normalizedLayouts }
 }
 
-function makeSkeleton (
-  schema: any,
+function makeTree (schema: any,
   ajv: Ajv,
   validates: string[],
   normalizedLayouts: Record<string, NormalizedLayout>,
-  key: string,
-  pointer: string
-): StatefulLayoutSkeleton {
+  schemaPointer: string
+): LayoutTree {
+  const root = makeNode(schema, ajv, normalizedLayouts, schemaPointer, '')
+  return { root, validate: schemaPointer }
+}
+
+function makeNode (
+  schema: any,
+  ajv: Ajv,
+  normalizedLayouts: Record<string, NormalizedLayout>,
+  schemaPointer: string,
+  key: string
+): LayoutNode {
   /*
   // const uriResolver = ajv.opts.uriResolver
   const skeletonsStack: StatefulLayoutSkeleton[] = []
@@ -76,17 +93,16 @@ function makeSkeleton (
       }
     }
   }) */
-  normalizedLayouts[pointer] = normalizedLayouts[pointer] || normalizeLayoutFragment(schema as SchemaFragment, pointer)
-  validates.push(pointer)
-  const skeleton: StatefulLayoutSkeleton = { key: `${key ?? ''}`, layout: pointer, validate: pointer }
-  const childrenCandidates: Array<{ key: string, pointer: string, schema: any }> = []
+  normalizedLayouts[schemaPointer] = normalizedLayouts[schemaPointer] || normalizeLayoutFragment(schema as SchemaFragment, schemaPointer)
+  const node: LayoutNode = { key: `${key ?? ''}`, layout: schemaPointer }
+  const childrenCandidates: Array<{ key: string, schemaPointer: string, schema: any }> = []
   if (schema.properties) {
     for (const propertyKey of Object.keys(schema.properties)) {
-      childrenCandidates.push({ key: propertyKey, pointer: `${pointer}/properties/${propertyKey}`, schema: schema.properties[propertyKey] })
+      childrenCandidates.push({ key: propertyKey, schemaPointer: `${schemaPointer}/properties/${propertyKey}`, schema: schema.properties[propertyKey] })
     }
   }
   if (childrenCandidates.length) {
-    skeleton.children = childrenCandidates.map(cc => makeSkeleton(cc.schema, ajv, validates, normalizedLayouts, cc.key, cc.pointer))
+    node.children = childrenCandidates.map(cc => makeNode(cc.schema, ajv, normalizedLayouts, cc.schemaPointer, cc.key))
   }
-  return skeleton
+  return node
 }

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "CommonJS",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "rootDir": "./",
+    "declaration": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "esModuleInterop": true
+  },
+  "include": ["src", "scripts", "test"],
+  "exclude": ["node_modules", "mjs", "cjs"]
+}
