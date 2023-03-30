@@ -3,7 +3,9 @@
   "main": "index.js",
   "scripts": {
     "test": "npm -w vocabulary test && npm -w core test",
-    "build": "npm -w vocabulary run build && npm -w core run build"
+    "build": "npm -w vocabulary run build && npm -w core run build",
+    "lint": "npm -w vocabulary run lint && npm -w core run lint",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
@@ -25,5 +27,10 @@
     "vocabulary",
     "core",
     "ajv"
-  ]
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "^17.5.1",
+    "@commitlint/config-conventional": "^17.4.4",
+    "husky": "^8.0.3"
+  }
 }

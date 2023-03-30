@@ -33,11 +33,11 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
 
 function getResponsive (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): NormalizedResponsive {
   if (isResponsive(layoutKeyword)) {
-    const xs = getCompObject(layoutKeyword.xs || {}, defaultCompObject)
-    const sm = getCompObject(layoutKeyword.sm || {}, xs)
-    const md = getCompObject(layoutKeyword.sm || {}, sm)
-    const lg = getCompObject(layoutKeyword.sm || {}, md)
-    const xl = getCompObject(layoutKeyword.sm || {}, lg)
+    const xs = getCompObject(layoutKeyword.xs ?? {}, defaultCompObject)
+    const sm = getCompObject(layoutKeyword.sm ?? {}, xs)
+    const md = getCompObject(layoutKeyword.sm ?? {}, sm)
+    const lg = getCompObject(layoutKeyword.sm ?? {}, md)
+    const xl = getCompObject(layoutKeyword.sm ?? {}, lg)
     return { xs, sm, md, lg, xl }
   } else {
     const compObject = getCompObject(layoutKeyword, defaultCompObject)
@@ -48,8 +48,8 @@ function getResponsive (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
 function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): NormalizedLayout {
   if (isReadWrite(layoutKeyword)) {
     return {
-      read: getResponsive(layoutKeyword.read || {}, defaultCompObject),
-      write: getResponsive(layoutKeyword.write || {}, defaultCompObject)
+      read: getResponsive(layoutKeyword.read ?? {}, defaultCompObject),
+      write: getResponsive(layoutKeyword.write ?? {}, defaultCompObject)
     }
   } else {
     const responsive = getResponsive(layoutKeyword, defaultCompObject)
@@ -58,7 +58,7 @@ function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: C
 }
 
 export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string): NormalizedLayout {
-  const layoutKeyword = schemaFragment.layout || {}
+  const layoutKeyword = schemaFragment.layout ?? {}
   if (!validateLayoutKeyword(layoutKeyword)) {
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
