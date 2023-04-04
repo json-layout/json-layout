@@ -11,5 +11,5 @@
     "esModuleInterop": true
   },
   "include": ["src", "scripts", "test"],
-  "exclude": ["node_modules", "mjs", "cjs"]
+  "exclude": ["node_modules", "dist"]
 }

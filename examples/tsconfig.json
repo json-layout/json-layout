@@ -9,6 +9,6 @@
     "moduleResolution": "node",
     "esModuleInterop": true
   },
-  "include": ["src", "scripts", "test"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist", "../vocabulary"]
 }

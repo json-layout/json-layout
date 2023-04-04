@@ -1,7 +1,7 @@
 {
-  "name": "@json-layout/vocabulary",
+  "name": "@json-layout/examples",
   "version": "0.0.0",
-  "description": "Main JSON Layout vocabulary as JSON schemas and Typescript types. Also contains some small utility functions without any dependency.",
+  "description": "Examples to be used by implementations for documentation and testing.",
   "exports": {
     ".": {
       "require": {
@@ -20,8 +20,7 @@
   "scripts": {
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
     "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
-    "lint": "eslint . --fix",
-    "compile": "ts-node scripts/compile.ts"
+    "lint": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -39,25 +38,15 @@
     "url": "https://github.com/json-layout/json-layout/issues"
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
-  "dependencies": {
-    "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1",
-    "debug": "^4.3.4",
-    "json-schema-traverse": "^1.0.0",
-    "mitt": "^3.0.0",
-    "rfdc": "^1.3.0"
+  "dependencies": {},
+  "peerDependencies": {
+    "@json-layout/core": "0.0.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",
-    "@types/mocha": "^10.0.1",
-    "camelcase": "^6.3.0",
     "eslint": "^8.35.0",
     "eslint-config-standard-with-typescript": "^34.0.0",
     "eslint-plugin-no-only-tests": "^3.1.0",
-    "json-schema-to-typescript": "^12.0.0",
-    "mocha": "^10.2.0",
-    "ts-mocha": "^10.0.0",
-    "ts-node": "^10.9.1",
     "typescript": "^4.9.5"
   }
 }
