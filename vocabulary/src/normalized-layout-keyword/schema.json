@@ -35,6 +35,7 @@
     "section": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["comp"],
       "properties": {
         "comp": {"const": "section"}
       }
@@ -42,6 +43,7 @@
     "text-field": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["comp"],
       "properties": {
         "comp": {"const": "text-field"}
       }
@@ -49,6 +51,7 @@
     "textarea": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["comp"],
       "properties": {
         "comp": {"const": "textarea"}
       }
@@ -56,6 +59,7 @@
     "checkbox": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["comp"],
       "properties": {
         "comp": {"const": "checkbox"}
       }

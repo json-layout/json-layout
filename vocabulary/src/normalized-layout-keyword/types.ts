@@ -24,28 +24,28 @@ export interface NormalizedResponsive {
  * via the `definition` "section".
  */
 export interface Section {
-  comp?: "section";
+  comp: "section";
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
  * via the `definition` "text-field".
  */
 export interface TextField {
-  comp?: "text-field";
+  comp: "text-field";
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
  * via the `definition` "textarea".
  */
 export interface Textarea {
-  comp?: "textarea";
+  comp: "textarea";
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
  * via the `definition` "checkbox".
  */
 export interface Checkbox {
-  comp?: "checkbox";
+  comp: "checkbox";
 }
 
 // raw schema
@@ -121,6 +121,9 @@ export const normalizedLayoutKeywordSchema = {
     "section": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "comp"
+      ],
       "properties": {
         "comp": {
           "const": "section"
@@ -130,6 +133,9 @@ export const normalizedLayoutKeywordSchema = {
     "text-field": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "comp"
+      ],
       "properties": {
         "comp": {
           "const": "text-field"
@@ -139,6 +145,9 @@ export const normalizedLayoutKeywordSchema = {
     "textarea": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "comp"
+      ],
       "properties": {
         "comp": {
           "const": "textarea"
@@ -148,6 +157,9 @@ export const normalizedLayoutKeywordSchema = {
     "checkbox": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "comp"
+      ],
       "properties": {
         "comp": {
           "const": "checkbox"

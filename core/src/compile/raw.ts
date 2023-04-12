@@ -25,14 +25,14 @@ export interface CompiledRaw {
 }
 
 // a tree is a root node and a validation function
-// it will be used to instantiate a StatefulLayoutTree with 1 validation context
+// it will be used to instantiate a StateLayoutTree with 1 validation context
 export interface LayoutTree {
   root: LayoutNode
   validate: string // reference to a validate function in the validates store
 }
 
 // a node is a light recursive structure
-// each one will be instantiated as a StatefulLayoutNode with a value and an associated component instance
+// each one will be instantiated as a StateLayoutNode with a value and an associated component instance
 export interface LayoutNode {
   key: string
   layout: string // reference to a layout object in the normalizedLayouts store
