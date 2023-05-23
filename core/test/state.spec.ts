@@ -29,4 +29,23 @@ describe('stateful layout', () => {
     assert.deepEqual(statefulLayout.root.value, { str1: 'test2', str2: 'test3' })
     assert.equal(statefulLayout.root.children[0].value, 'test2')
   })
+
+  it('should manage simple validation of value', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      required: ['str1'],
+      properties: {
+        str1: { type: 'string' },
+        str2: { type: 'string', pattern: '^$[A-Z]+$' }
+      }
+      /* allOf: [{
+        // required: ['str1'],
+        properties: {
+          str3: { type: 'string', pattern: '^$[A-Z]+$' }
+        }
+      }] */
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000, { str2: 'test' })
+    console.log(statefulLayout)
+  })
 })

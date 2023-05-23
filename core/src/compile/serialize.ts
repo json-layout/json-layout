@@ -6,7 +6,7 @@ import addFormats from 'ajv-formats'
 export interface SerializeCompiledLayoutOptions {}
 
 export function compileAndSerialize (schema: object, options: SerializeCompiledLayoutOptions = {}): string {
-  const ajv = new Ajv({ strict: false, code: { source: true, optimize: true, lines: true } })
+  const ajv = new Ajv({ strict: false, allErrors: true, code: { source: true, optimize: true, lines: true } })
   addFormats(ajv)
   // const compiledRaw = compile(schema, { ajv })
 

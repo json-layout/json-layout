@@ -35,7 +35,7 @@ export interface LayoutTree {
 // each one will be instantiated as a StateLayoutNode with a value and an associated component instance
 export interface LayoutNode {
   key: string
-  layout: string // reference to a layout object in the normalizedLayouts store
+  schemaPointer: string
   children?: LayoutNode[] // optional children in the case of arrays and object nodes
   item?: LayoutTree // another tree that can be instantiated with separate validation (for example in the case of new array items)
 }
@@ -45,6 +45,8 @@ export function compileRaw (schema: object, options: CompileRawOptions): Compile
   const normalizedLayouts: Record<string, NormalizedLayout> = {}
 
   schema = schema as traverse.SchemaObject
+  // TODO: produce a resolved/normalized version of the schema
+  // useful to get predictable schemaPath properties in errors and to have proper handling of default values
   const tree = makeTree(schema, options.ajv, validates, normalizedLayouts, '#')
 
   return { tree, validates, normalizedLayouts }
@@ -57,6 +59,7 @@ function makeTree (schema: any,
   schemaPointer: string
 ): LayoutTree {
   const root = makeNode(schema, ajv, normalizedLayouts, schemaPointer, '')
+  validates.push(schemaPointer)
   return { root, validate: schemaPointer }
 }
 
@@ -94,7 +97,7 @@ function makeNode (
     }
   }) */
   normalizedLayouts[schemaPointer] = normalizedLayouts[schemaPointer] || normalizeLayoutFragment(schema as SchemaFragment, schemaPointer)
-  const node: LayoutNode = { key: `${key ?? ''}`, layout: schemaPointer }
+  const node: LayoutNode = { key: `${key ?? ''}`, schemaPointer }
   const childrenCandidates: Array<{ key: string, schemaPointer: string, schema: any }> = []
   if (schema.properties) {
     for (const propertyKey of Object.keys(schema.properties)) {

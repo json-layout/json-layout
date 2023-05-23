@@ -21,9 +21,9 @@ export type SectionNode = StateNode & { layout: Section, value: Record<string, u
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'
 
 // use Immer for efficient updating with immutability and no-op detection
-const updateStateNode = produce<StateNode, [CompObject, string, string | null, Mode, unknown, StateNode[]?]>((draft, layout, key, parentKey, mode, value, children?) => {
-  draft.layout = layout
+const updateStateNode = produce<StateNode, [string, CompObject, string | null, Mode, unknown, StateNode[]?]>((draft, key, layout, parentKey, mode, value, children?) => {
   draft.key = key
+  draft.layout = layout
   draft.parentKey = parentKey
   draft.mode = mode
   draft.value = value
@@ -33,7 +33,6 @@ const updateStateNode = produce<StateNode, [CompObject, string, string | null, M
 export function produceStateNode (
   compiledLayout: CompiledLayout,
   nodesByKeys: Record<string, StateNode>,
-  // events: Emitter<Record<string, any>>,
   parentKey: string | null,
   skeleton: LayoutNode,
   mode: Mode,
@@ -41,7 +40,7 @@ export function produceStateNode (
   value: unknown,
   reusedNode?: StateNode
 ): StateNode {
-  const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.layout]
+  const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.schemaPointer]
   const display = getDisplay(containerWidth)
   const layout = normalizedLayout[mode][display]
   const fullKey = parentKey ? (parentKey + '.' + skeleton.key) : skeleton.key
@@ -60,7 +59,9 @@ export function produceStateNode (
     value = value ?? ''
   }
 
-  nodesByKeys[fullKey] = reusedNode ? updateStateNode(reusedNode, layout, skeleton.key, parentKey, mode, value, children) : freeze({ layout, key: skeleton.key, parentKey, mode, value, children })
+  nodesByKeys[fullKey] = reusedNode
+    ? updateStateNode(reusedNode, skeleton.key, layout, parentKey, mode, value, children)
+    : freeze({ key: skeleton.key, layout, parentKey, mode, value, children })
   return nodesByKeys[fullKey]
 
   /* switch (layout.comp) {

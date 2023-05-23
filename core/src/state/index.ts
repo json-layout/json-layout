@@ -16,6 +16,7 @@ export type Mode = 'read' | 'write'
 export class StatefulLayout {
   readonly events: Emitter<StatefulLayoutEvents>
   private readonly compiledLayout: CompiledLayout
+  private readonly tree: LayoutTree
 
   private _root: StateNode
   get root () { return this._root }
@@ -34,9 +35,9 @@ export class StatefulLayout {
     this._root = this.produceRoot()
   }
 
-  private _value: any
+  private _value: unknown
   get value () { return this._value }
-  set value (value: any) {
+  set value (value: unknown) {
     this._value = value
     this._root = this.produceRoot()
   }
@@ -45,23 +46,28 @@ export class StatefulLayout {
 
   private nodesByKeys: Record<string, StateNode> = {}
 
-  constructor (compiledLayout: CompiledLayout, tree: LayoutTree, mode: Mode, width: number) {
+  constructor (compiledLayout: CompiledLayout, tree: LayoutTree, mode: Mode, width: number, value: unknown = {}) {
     this.compiledLayout = compiledLayout
+    this.tree = tree
     this.events = mitt<StatefulLayoutEvents>()
     this._mode = mode
     this._width = width
+    this._value = value
     this.validate = compiledLayout.validates[compiledLayout.tree.validate]
     this._root = this.produceRoot()
   }
 
   private produceRoot () {
     this.nodesByKeys = {}
-    return produceStateNode(this.compiledLayout, this.nodesByKeys, null, this.compiledLayout.tree.root, this._mode, this._width, this._value, this._root)
+    this.validate(this._value)
+    console.log('errors ?', this.validate.errors)
+    return produceStateNode(this.compiledLayout, this.nodesByKeys, null, this.tree.root, this._mode, this._width, this._value, this._root)
   }
 
   input (node: StateNode, value: unknown) {
     if (node.parentKey === null) {
       this.value = value
+      this.events.emit('input', value)
       return
     }
     const parentNode = this.nodesByKeys[node.parentKey]

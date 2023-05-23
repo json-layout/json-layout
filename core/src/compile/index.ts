@@ -32,7 +32,7 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
 
   let ajv = options.ajv
   if (!ajv) {
-    ajv = new Ajv({ strict: false })
+    ajv = new Ajv({ strict: false, allErrors: true })
     addFormats(ajv)
   }
   const uriResolver = ajv.opts.uriResolver
