@@ -4,6 +4,7 @@ import { type Mode } from '..'
 import { getDisplay } from '../utils'
 import { type TextField, type CompObject, type Section } from '@json-layout/vocabulary'
 import produce, { freeze } from 'immer'
+import { type ErrorObject } from 'ajv'
 
 export interface StateNode {
   layout: CompObject
@@ -11,6 +12,7 @@ export interface StateNode {
   parentKey: string | null
   mode: Mode
   value: unknown
+  error: string | undefined
   children?: StateNode[]
 }
 
@@ -21,14 +23,17 @@ export type SectionNode = StateNode & { layout: Section, value: Record<string, u
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'
 
 // use Immer for efficient updating with immutability and no-op detection
-const updateStateNode = produce<StateNode, [string, CompObject, string | null, Mode, unknown, StateNode[]?]>((draft, key, layout, parentKey, mode, value, children?) => {
-  draft.key = key
-  draft.layout = layout
-  draft.parentKey = parentKey
-  draft.mode = mode
-  draft.value = value
-  draft.children = children
-})
+const updateStateNode = produce<StateNode, [string, CompObject, string | null, Mode, unknown, string | undefined, StateNode[]?]>(
+  (draft, key, layout, parentKey, mode, value, error, children?) => {
+    draft.key = key
+    draft.layout = layout
+    draft.parentKey = parentKey
+    draft.mode = mode
+    draft.value = value
+    draft.error = error
+    draft.children = children
+  }
+)
 
 export function produceStateNode (
   compiledLayout: CompiledLayout,
@@ -38,12 +43,13 @@ export function produceStateNode (
   mode: Mode,
   containerWidth: number,
   value: unknown,
+  errors: ErrorObject[],
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.schemaPointer]
   const display = getDisplay(containerWidth)
   const layout = normalizedLayout[mode][display]
-  const fullKey = parentKey ? (parentKey + '.' + skeleton.key) : skeleton.key
+  const fullKey = parentKey ? (parentKey + '/' + skeleton.key) : skeleton.key
 
   let children
   if (layout.comp === 'section') {
@@ -51,7 +57,7 @@ export function produceStateNode (
     // TODO: make this type casting safe using prior validation
     const objectValue = (value ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
-      return produceStateNode(compiledLayout, nodesByKeys, fullKey, child, mode, containerWidth, objectValue[child.key], reusedNode?.children?.[i])
+      return produceStateNode(compiledLayout, nodesByKeys, fullKey, child, mode, containerWidth, objectValue[child.key], errors, reusedNode?.children?.[i])
     })
   }
 
@@ -59,9 +65,13 @@ export function produceStateNode (
     value = value ?? ''
   }
 
+  const error = errors.find(e => {
+    return true
+  })
+
   nodesByKeys[fullKey] = reusedNode
-    ? updateStateNode(reusedNode, skeleton.key, layout, parentKey, mode, value, children)
-    : freeze({ key: skeleton.key, layout, parentKey, mode, value, children })
+    ? updateStateNode(reusedNode, skeleton.key, layout, parentKey, mode, value, error?.message, children)
+    : freeze({ key: skeleton.key, layout, parentKey, mode, value, error: error?.message, children })
   return nodesByKeys[fullKey]
 
   /* switch (layout.comp) {

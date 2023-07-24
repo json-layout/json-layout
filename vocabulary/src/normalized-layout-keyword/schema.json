@@ -37,31 +37,39 @@
       "additionalProperties": false,
       "required": ["comp"],
       "properties": {
-        "comp": {"const": "section"}
+        "comp": {"const": "section"},
+        "title": {"type": "string"},
+        "children": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
       }
     },
     "text-field": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comp"],
+      "required": ["comp", "label"],
       "properties": {
-        "comp": {"const": "text-field"}
+        "comp": {"const": "text-field"},
+        "label": {"type": "string"}
       }
     },
     "textarea": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comp"],
+      "required": ["comp", "label"],
       "properties": {
-        "comp": {"const": "textarea"}
+        "comp": {"const": "textarea"},
+        "label": {"type": "string"}
       }
     },
     "checkbox": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comp"],
+      "required": ["comp", "label"],
       "properties": {
-        "comp": {"const": "checkbox"}
+        "comp": {"const": "checkbox"},
+        "label": {"type": "string"}
       }
     }
   }

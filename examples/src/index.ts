@@ -1,6 +1,7 @@
-import basic from './basic'
+import simple from './simple'
+import dev from './_dev'
 
-export const examples: JSONLayoutExamplesCategory[] = [basic]
+export const examples: JSONLayoutExamplesCategory[] = [simple, dev]
 
 export interface JSONLayoutExamplesCategory {
   title: string

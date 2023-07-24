@@ -1,10 +1,10 @@
 import type { JSONLayoutExamplesCategory } from '../'
-import basic from './basic'
+import manyProps from './many-props'
 
 const category: JSONLayoutExamplesCategory = {
-  title: 'Basic',
-  id: 'basic',
-  examples: [basic]
+  title: 'Development',
+  id: '_dev',
+  examples: [manyProps]
 }
 
 export default category

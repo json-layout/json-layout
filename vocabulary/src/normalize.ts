@@ -7,6 +7,7 @@ import { validateNormalizedLayout, type NormalizedLayout, type NormalizedRespons
 export interface SchemaFragment {
   layout?: LayoutKeyword
   type: string
+  title?: string
   properties?: Record<string, any>
   oneOf?: any[]
   anyOf?: any[]
@@ -14,8 +15,10 @@ export interface SchemaFragment {
 }
 
 function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: string): CompObject {
+  const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
   if (schemaFragment.type === 'object') return { comp: 'section' }
-  if (schemaFragment.type === 'string') return { comp: 'text-field' }
+  if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
+  if (schemaFragment.type === 'boolean') return { comp: 'checkbox', label: schemaFragment.title ?? key }
   throw new Error(`failed to calculate default layout for schema ${schemaPath}`)
 }
 

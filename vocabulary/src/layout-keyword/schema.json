@@ -28,7 +28,9 @@
       "additionalProperties": false,
       "properties": {
         "comp": {"$ref": "#/$defs/comp"},
-        "children": {"$ref": "#/$defs/children"}
+        "children": {"$ref": "#/$defs/children"},
+        "label": {"type": "string"},
+        "title": {"type": "string"}
       }
     },
     "responsive": {

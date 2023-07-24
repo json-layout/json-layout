@@ -43,6 +43,8 @@ export type ReadWrite1 = {
 export interface PartialCompObject {
   comp?: ComponentName;
   children?: Children;
+  label?: string;
+  title?: string;
 }
 
 // raw schema
@@ -92,6 +94,12 @@ export const layoutKeywordSchema = {
         },
         "children": {
           "$ref": "#/$defs/children"
+        },
+        "label": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
         }
       }
     },

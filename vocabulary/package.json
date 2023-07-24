@@ -21,7 +21,10 @@
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
     "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
-    "compile": "ts-node scripts/compile.ts"
+    "compile": "ts-node scripts/compile.ts",
+    "watch:schemas": "onchange 'src/**/*.json' -- npm run compile",
+    "watch:src": "onchange 'src/**/*.ts' 'test/**' -- run-s test build",
+    "dev": "run-p watch:schemas watch:src"
   },
   "repository": {
     "type": "git",

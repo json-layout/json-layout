@@ -16,11 +16,15 @@
   },
   "main": "./dist/cjs/index.js",
   "types": "./dist/cjs/index.d.ts",
-  "files": ["src", "dist"],
+  "files": [
+    "src",
+    "dist"
+  ],
   "scripts": {
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
     "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
-    "lint": "eslint . --fix"
+    "lint": "eslint . --fix",
+    "dev": "onchange src/** -- npm run build"
   },
   "repository": {
     "type": "git",
@@ -38,7 +42,6 @@
     "url": "https://github.com/json-layout/json-layout/issues"
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
-  "dependencies": {},
   "peerDependencies": {
     "@json-layout/core": "0.0.0"
   },
@@ -47,6 +50,8 @@
     "eslint": "^8.35.0",
     "eslint-config-standard-with-typescript": "^34.0.0",
     "eslint-plugin-no-only-tests": "^3.1.0",
+    "npm-run-all": "^4.1.5",
+    "onchange": "^7.1.0",
     "typescript": "^4.9.5"
   }
 }

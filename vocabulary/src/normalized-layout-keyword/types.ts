@@ -25,6 +25,8 @@ export interface NormalizedResponsive {
  */
 export interface Section {
   comp: "section";
+  title?: string;
+  children?: string[];
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
@@ -32,6 +34,7 @@ export interface Section {
  */
 export interface TextField {
   comp: "text-field";
+  label: string;
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
@@ -39,6 +42,7 @@ export interface TextField {
  */
 export interface Textarea {
   comp: "textarea";
+  label: string;
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
@@ -46,6 +50,7 @@ export interface Textarea {
  */
 export interface Checkbox {
   comp: "checkbox";
+  label: string;
 }
 
 // raw schema
@@ -127,6 +132,15 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "section"
+        },
+        "title": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -134,11 +148,15 @@ export const normalizedLayoutKeywordSchema = {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "comp"
+        "comp",
+        "label"
       ],
       "properties": {
         "comp": {
           "const": "text-field"
+        },
+        "label": {
+          "type": "string"
         }
       }
     },
@@ -146,11 +164,15 @@ export const normalizedLayoutKeywordSchema = {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "comp"
+        "comp",
+        "label"
       ],
       "properties": {
         "comp": {
           "const": "textarea"
+        },
+        "label": {
+          "type": "string"
         }
       }
     },
@@ -158,11 +180,15 @@ export const normalizedLayoutKeywordSchema = {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "comp"
+        "comp",
+        "label"
       ],
       "properties": {
         "comp": {
           "const": "checkbox"
+        },
+        "label": {
+          "type": "string"
         }
       }
     }

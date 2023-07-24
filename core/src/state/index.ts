@@ -1,4 +1,4 @@
-import { type ValidateFunction } from 'ajv'
+import { type ErrorObject, type ValidateFunction } from 'ajv'
 import mitt, { type Emitter } from 'mitt'
 import { type CompiledLayout, type LayoutTree } from '../compile'
 import { produceStateNode, produceStateNodeValue, type StateNode } from './nodes'
@@ -15,8 +15,8 @@ export type Mode = 'read' | 'write'
 
 export class StatefulLayout {
   readonly events: Emitter<StatefulLayoutEvents>
-  private readonly compiledLayout: CompiledLayout
-  private readonly tree: LayoutTree
+  private readonly _compiledLayout: CompiledLayout
+  private readonly _tree: LayoutTree
 
   private _root: StateNode
   get root () { return this._root }
@@ -35,6 +35,9 @@ export class StatefulLayout {
     this._root = this.produceRoot()
   }
 
+  private _errors: ErrorObject[]
+  get errors () { return this._errors }
+
   private _value: unknown
   get value () { return this._value }
   set value (value: unknown) {
@@ -44,24 +47,36 @@ export class StatefulLayout {
 
   private readonly validate: ValidateFunction
 
-  private nodesByKeys: Record<string, StateNode> = {}
+  private _nodesByKeys: Record<string, StateNode> = {}
 
   constructor (compiledLayout: CompiledLayout, tree: LayoutTree, mode: Mode, width: number, value: unknown = {}) {
-    this.compiledLayout = compiledLayout
-    this.tree = tree
+    this._compiledLayout = compiledLayout
+    this._tree = tree
     this.events = mitt<StatefulLayoutEvents>()
     this._mode = mode
     this._width = width
+    this._errors = []
     this._value = value
     this.validate = compiledLayout.validates[compiledLayout.tree.validate]
     this._root = this.produceRoot()
   }
 
   private produceRoot () {
-    this.nodesByKeys = {}
+    this._nodesByKeys = {}
     this.validate(this._value)
     console.log('errors ?', this.validate.errors)
-    return produceStateNode(this.compiledLayout, this.nodesByKeys, null, this.tree.root, this._mode, this._width, this._value, this._root)
+    this._errors = this.validate.errors ?? []
+    return produceStateNode(
+      this._compiledLayout,
+      this._nodesByKeys,
+      null,
+      this._tree.root,
+      this._mode,
+      this._width,
+      this._value,
+      this._errors,
+      this._root
+    )
   }
 
   input (node: StateNode, value: unknown) {
@@ -70,7 +85,7 @@ export class StatefulLayout {
       this.events.emit('input', value)
       return
     }
-    const parentNode = this.nodesByKeys[node.parentKey]
+    const parentNode = this._nodesByKeys[node.parentKey]
     if (!parentNode) throw new Error(`parent with key "${node.parentKey}" not found`)
     const newParentValue = produceStateNodeValue(parentNode.value, node.key, value)
     this.input(parentNode, newParentValue)

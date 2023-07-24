@@ -36,7 +36,14 @@ describe('stateful layout', () => {
       required: ['str1'],
       properties: {
         str1: { type: 'string' },
-        str2: { type: 'string', pattern: '^$[A-Z]+$' }
+        str2: { type: 'string', pattern: '^$[A-Z]+$' },
+        obj1: {
+          type: 'object',
+          required: ['str1'],
+          properties: {
+            str1: { type: 'string' }
+          }
+        }
       }
       /* allOf: [{
         // required: ['str1'],
@@ -46,6 +53,7 @@ describe('stateful layout', () => {
       }] */
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000, { str2: 'test' })
+    // console.log(statefulLayout)
     console.log(statefulLayout)
   })
 })

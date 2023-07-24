@@ -3,39 +3,47 @@ import { normalizeLayoutFragment as normalize } from '../src/normalize'
 
 describe('normalize schema fragment function', () => {
   it('should transform schema fragments with optional layout keywords in normalized layout information', () => {
-    assert.deepEqual(normalize({ type: 'string' }, '/'), {
+    const defaultTextFieldComp = { comp: 'text-field', label: 'prop' }
+    assert.deepEqual(normalize({ type: 'string' }, '/prop'), {
       read: {
-        xs: { comp: 'text-field' },
-        sm: { comp: 'text-field' },
-        md: { comp: 'text-field' },
-        lg: { comp: 'text-field' },
-        xl: { comp: 'text-field' }
+        xs: defaultTextFieldComp,
+        sm: defaultTextFieldComp,
+        md: defaultTextFieldComp,
+        lg: defaultTextFieldComp,
+        xl: defaultTextFieldComp
       },
       write: {
-        xs: { comp: 'text-field' },
-        sm: { comp: 'text-field' },
-        md: { comp: 'text-field' },
-        lg: { comp: 'text-field' },
-        xl: { comp: 'text-field' }
+        xs: defaultTextFieldComp,
+        sm: defaultTextFieldComp,
+        md: defaultTextFieldComp,
+        lg: defaultTextFieldComp,
+        xl: defaultTextFieldComp
       }
     })
 
-    assert.deepEqual(normalize({ type: 'string', layout: 'textarea' }, '/'), {
+    const defaultTextareaComp = { comp: 'textarea', label: 'prop' }
+    assert.deepEqual(normalize({ type: 'string', layout: 'textarea' }, '/prop'), {
       read: {
-        xs: { comp: 'textarea' },
-        sm: { comp: 'textarea' },
-        md: { comp: 'textarea' },
-        lg: { comp: 'textarea' },
-        xl: { comp: 'textarea' }
+        xs: defaultTextareaComp,
+        sm: defaultTextareaComp,
+        md: defaultTextareaComp,
+        lg: defaultTextareaComp,
+        xl: defaultTextareaComp
       },
       write: {
-        xs: { comp: 'textarea' },
-        sm: { comp: 'textarea' },
-        md: { comp: 'textarea' },
-        lg: { comp: 'textarea' },
-        xl: { comp: 'textarea' }
+        xs: defaultTextareaComp,
+        sm: defaultTextareaComp,
+        md: defaultTextareaComp,
+        lg: defaultTextareaComp,
+        xl: defaultTextareaComp
       }
     }
     )
+  })
+
+  it('should calculate a label for a field', () => {
+    assert.deepEqual(normalize({ type: 'string' }, '/prop').write.xs, { comp: 'text-field', label: 'prop' })
+    assert.deepEqual(normalize({ type: 'string', title: 'Prop' }, '/prop').write.xs, { comp: 'text-field', label: 'Prop' })
+    assert.deepEqual(normalize({ type: 'string', title: 'Prop', layout: { label: 'Prop label' } }, '/prop').write.xs, { comp: 'text-field', label: 'Prop label' })
   })
 })
