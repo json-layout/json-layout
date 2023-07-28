@@ -24,7 +24,7 @@ describe('stateful layout', () => {
     assert.deepEqual(statefulLayout.root.value, { str1: 'test' })
     assert.equal(statefulLayout.root.children[0].value, 'test')
 
-    // simply set the value to hydrate the from the root to the leaves
+    // simply set the value to hydratefrom the root to the leaves
     statefulLayout.value = { str1: 'test2', str2: 'test3' }
     assert.deepEqual(statefulLayout.root.value, { str1: 'test2', str2: 'test3' })
     assert.equal(statefulLayout.root.children[0].value, 'test2')
@@ -33,7 +33,7 @@ describe('stateful layout', () => {
   it('should manage simple validation of value', () => {
     const compiledLayout = compile({
       type: 'object',
-      required: ['str1'],
+      required: ['str1', 'missingProp'],
       properties: {
         str1: { type: 'string' },
         str2: { type: 'string', pattern: '^$[A-Z]+$' },
@@ -53,7 +53,9 @@ describe('stateful layout', () => {
       }] */
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000, { str2: 'test' })
-    // console.log(statefulLayout)
-    console.log(statefulLayout)
+    assert.equal(statefulLayout.errors.length, 3)
+    assert.equal(statefulLayout.root.error, 'must have required property \'missingProp\'')
+    assert.equal(statefulLayout.root.children?.[0].error, 'required')
+    assert.equal(statefulLayout.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
   })
 })

@@ -96,12 +96,19 @@ function makeNode (
       }
     }
   }) */
+
+  // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
+  schema.errorMessage = schema.errorMessage ?? {}
   normalizedLayouts[schemaPointer] = normalizedLayouts[schemaPointer] || normalizeLayoutFragment(schema as SchemaFragment, schemaPointer)
   const node: LayoutNode = { key: `${key ?? ''}`, schemaPointer }
   const childrenCandidates: Array<{ key: string, schemaPointer: string, schema: any }> = []
   if (schema.properties) {
     for (const propertyKey of Object.keys(schema.properties)) {
       childrenCandidates.push({ key: propertyKey, schemaPointer: `${schemaPointer}/properties/${propertyKey}`, schema: schema.properties[propertyKey] })
+      if (schema?.required?.includes(propertyKey)) {
+        schema.errorMessage.required = schema.errorMessage.required ?? {}
+        schema.errorMessage.required[propertyKey] = 'required'
+      }
     }
   }
   if (childrenCandidates.length) {

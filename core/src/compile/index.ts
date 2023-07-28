@@ -5,6 +5,7 @@
 import { type SchemaObject } from 'json-schema-traverse'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addFormats from 'ajv-formats'
+import ajvErrors from 'ajv-errors'
 import rfdc from 'rfdc'
 // import Debug from 'debug'
 import { type NormalizedLayout } from '@json-layout/vocabulary'
@@ -34,12 +35,13 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
   if (!ajv) {
     ajv = new Ajv({ strict: false, allErrors: true })
     addFormats(ajv)
+    ajvErrors(ajv)
   }
   const uriResolver = ajv.opts.uriResolver
 
   const compiledRaw = compileRaw(schema, { ajv })
   if (!('$id' in schema)) {
-    schema.$id = '_json_layout_main'
+    schema.$id = '_jl'
   }
   ajv.addSchema(schema)
 

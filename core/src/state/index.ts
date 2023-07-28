@@ -45,7 +45,7 @@ export class StatefulLayout {
     this._root = this.produceRoot()
   }
 
-  private readonly validate: ValidateFunction
+  private readonly _validate: ValidateFunction
 
   private _nodesByKeys: Record<string, StateNode> = {}
 
@@ -57,15 +57,14 @@ export class StatefulLayout {
     this._width = width
     this._errors = []
     this._value = value
-    this.validate = compiledLayout.validates[compiledLayout.tree.validate]
+    this._validate = compiledLayout.validates[compiledLayout.tree.validate]
     this._root = this.produceRoot()
   }
 
   private produceRoot () {
     this._nodesByKeys = {}
-    this.validate(this._value)
-    console.log('errors ?', this.validate.errors)
-    this._errors = this.validate.errors ?? []
+    this._validate(this._value)
+    this._errors = this._validate.errors ?? []
     return produceStateNode(
       this._compiledLayout,
       this._nodesByKeys,

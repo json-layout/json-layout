@@ -5,6 +5,7 @@ import { getDisplay } from '../utils'
 import { type TextField, type CompObject, type Section } from '@json-layout/vocabulary'
 import produce, { freeze } from 'immer'
 import { type ErrorObject } from 'ajv'
+// import { type ErrorObject } from 'ajv-errors'
 
 export interface StateNode {
   layout: CompObject
@@ -49,7 +50,7 @@ export function produceStateNode (
   const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.schemaPointer]
   const display = getDisplay(containerWidth)
   const layout = normalizedLayout[mode][display]
-  const fullKey = parentKey ? (parentKey + '/' + skeleton.key) : skeleton.key
+  const fullKey = parentKey === null ? skeleton.key : (parentKey + '/' + skeleton.key)
 
   let children
   if (layout.comp === 'section') {
@@ -66,7 +67,10 @@ export function produceStateNode (
   }
 
   const error = errors.find(e => {
-    return true
+    const error = e.params?.errors?.[0] ?? e
+    if (parentKey === error.instancePath && error.params?.missingProperty === skeleton.key) return true
+    if (fullKey === error.instancePath) return true
+    return false
   })
 
   nodesByKeys[fullKey] = reusedNode
