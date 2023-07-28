@@ -28,6 +28,7 @@
       "oneOf": [
         {"$ref": "#/$defs/section"},
         {"$ref": "#/$defs/text-field"},
+        {"$ref": "#/$defs/number-field"},
         {"$ref": "#/$defs/textarea"},
         {"$ref": "#/$defs/checkbox"}
       ]
@@ -52,6 +53,16 @@
       "properties": {
         "comp": {"const": "text-field"},
         "label": {"type": "string"}
+      }
+    },
+    "number-field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "number-field"},
+        "label": {"type": "string"},
+        "step": {"type": "number"}
       }
     },
     "textarea": {

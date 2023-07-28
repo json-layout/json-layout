@@ -18,6 +18,8 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
   if (schemaFragment.type === 'object') return { comp: 'section' }
   if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
+  if (schemaFragment.type === 'integer') return { comp: 'number-field', label: schemaFragment.title ?? key, step: 1 }
+  if (schemaFragment.type === 'number') return { comp: 'number-field', label: schemaFragment.title ?? key }
   if (schemaFragment.type === 'boolean') return { comp: 'checkbox', label: schemaFragment.title ?? key }
   throw new Error(`failed to calculate default layout for schema ${schemaPath}`)
 }
@@ -38,9 +40,9 @@ function getResponsive (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   if (isResponsive(layoutKeyword)) {
     const xs = getCompObject(layoutKeyword.xs ?? {}, defaultCompObject)
     const sm = getCompObject(layoutKeyword.sm ?? {}, xs)
-    const md = getCompObject(layoutKeyword.sm ?? {}, sm)
-    const lg = getCompObject(layoutKeyword.sm ?? {}, md)
-    const xl = getCompObject(layoutKeyword.sm ?? {}, lg)
+    const md = getCompObject(layoutKeyword.md ?? {}, sm)
+    const lg = getCompObject(layoutKeyword.lg ?? {}, md)
+    const xl = getCompObject(layoutKeyword.xl ?? {}, lg)
     return { xs, sm, md, lg, xl }
   } else {
     const compObject = getCompObject(layoutKeyword, defaultCompObject)

@@ -2,7 +2,7 @@
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
  * via the `definition` "comp-object".
  */
-export type CompObject = Section | TextField | Textarea | Checkbox;
+export type CompObject = Section | TextField | NumberField | Textarea | Checkbox;
 
 export interface NormalizedLayout {
   read: NormalizedResponsive;
@@ -35,6 +35,15 @@ export interface Section {
 export interface TextField {
   comp: "text-field";
   label: string;
+}
+/**
+ * This interface was referenced by `NormalizedLayout`'s JSON-Schema
+ * via the `definition` "number-field".
+ */
+export interface NumberField {
+  comp: "number-field";
+  label: string;
+  step?: number;
 }
 /**
  * This interface was referenced by `NormalizedLayout`'s JSON-Schema
@@ -116,6 +125,9 @@ export const normalizedLayoutKeywordSchema = {
           "$ref": "#/$defs/text-field"
         },
         {
+          "$ref": "#/$defs/number-field"
+        },
+        {
           "$ref": "#/$defs/textarea"
         },
         {
@@ -157,6 +169,25 @@ export const normalizedLayoutKeywordSchema = {
         },
         "label": {
           "type": "string"
+        }
+      }
+    },
+    "number-field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comp",
+        "label"
+      ],
+      "properties": {
+        "comp": {
+          "const": "number-field"
+        },
+        "label": {
+          "type": "string"
+        },
+        "step": {
+          "type": "number"
         }
       }
     },

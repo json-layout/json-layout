@@ -14,6 +14,7 @@
       "type": "string",
       "enum": [
         "text-field",
+        "number-field",
         "textarea",
         "checkbox"
       ]
@@ -30,7 +31,8 @@
         "comp": {"$ref": "#/$defs/comp"},
         "children": {"$ref": "#/$defs/children"},
         "label": {"type": "string"},
-        "title": {"type": "string"}
+        "title": {"type": "string"},
+        "step": {"type": "number"}
       }
     },
     "responsive": {

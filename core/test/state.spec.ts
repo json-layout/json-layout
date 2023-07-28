@@ -7,14 +7,16 @@ describe('stateful layout', () => {
       type: 'object',
       properties: {
         str1: { type: 'string' },
-        str2: { type: 'string' }
+        str2: { type: 'string' },
+        int1: { type: 'integer' },
+        nb1: { type: 'number' }
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000)
     assert.deepEqual(statefulLayout.root.layout, { comp: 'section' })
     assert.deepEqual(statefulLayout.root.value, {})
     assert.ok(statefulLayout.root.children)
-    assert.equal(statefulLayout.root.children.length, 2)
+    assert.equal(statefulLayout.root.children.length, 4)
     assert.ok(statefulLayout.root.children[0].key, 'str1')
     assert.equal(statefulLayout.root.children[0].value, '')
 
@@ -24,9 +26,9 @@ describe('stateful layout', () => {
     assert.deepEqual(statefulLayout.root.value, { str1: 'test' })
     assert.equal(statefulLayout.root.children[0].value, 'test')
 
-    // simply set the value to hydratefrom the root to the leaves
-    statefulLayout.value = { str1: 'test2', str2: 'test3' }
-    assert.deepEqual(statefulLayout.root.value, { str1: 'test2', str2: 'test3' })
+    // simply set the value to hydrate from the root to the leaves
+    statefulLayout.value = { str1: 'test2', str2: 'test3', int1: 11, nb1: 11.11 }
+    assert.deepEqual(statefulLayout.root.value, { str1: 'test2', str2: 'test3', int1: 11, nb1: 11.11 })
     assert.equal(statefulLayout.root.children[0].value, 'test2')
   })
 

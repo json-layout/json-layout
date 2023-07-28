@@ -27,7 +27,7 @@ export function isResponsive (layoutKeyword: LayoutKeyword): layoutKeyword is Re
     !!(layoutKeyword as Responsive).sm || 
     !!(layoutKeyword as Responsive).md || 
     !!(layoutKeyword as Responsive).lg ||
-    !!(layoutKeyword as Responsive).wl
+    !!(layoutKeyword as Responsive).xl
   )
 }
 
