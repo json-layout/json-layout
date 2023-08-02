@@ -5,6 +5,8 @@ import { type Mode } from '..'
 import { type TextField, type CompObject, type Section, isSwitch } from '@json-layout/vocabulary'
 import produce, { freeze } from 'immer'
 import { type ErrorObject } from 'ajv'
+import { type Display } from '../utils/display'
+import { shallowCompareArrays } from '../utils/immutable'
 // import { type ErrorObject } from 'ajv-errors'
 
 export interface StateNode {
@@ -44,7 +46,7 @@ export function produceStateNode (
   parentKey: string | null,
   skeleton: LayoutNode,
   mode: Mode,
-  containerWidth: number,
+  display: Display,
   value: unknown,
   errors: ErrorObject[],
   reusedNode?: StateNode
@@ -56,7 +58,7 @@ export function produceStateNode (
     layout = normalizedLayout.find(compObject => {
       if (!compObject.if) return true
       const compiledExpression = compiledLayout.expressions[compObject.if.type][compObject.if.expr]
-      return !!compiledExpression(mode)
+      return !!compiledExpression(mode, display)
     }) ?? nodeCompObject
   } else {
     layout = normalizedLayout
@@ -69,7 +71,7 @@ export function produceStateNode (
     // TODO: make this type casting safe using prior validation
     const objectValue = (value ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
-      return produceStateNode(compiledLayout, nodesByKeys, fullKey, child, mode, containerWidth, objectValue[child.key], errors, reusedNode?.children?.[i])
+      return produceStateNode(compiledLayout, nodesByKeys, fullKey, child, mode, display, objectValue[child.key], errors, reusedNode?.children?.[i])
     }).filter(child => child?.layout.comp !== 'none')
   }
 
@@ -85,7 +87,7 @@ export function produceStateNode (
   })
 
   nodesByKeys[fullKey] = reusedNode
-    ? updateStateNode(reusedNode, skeleton.key, layout, parentKey, mode, value, error?.message, children)
+    ? updateStateNode(reusedNode, skeleton.key, layout, parentKey, mode, value, error?.message, shallowCompareArrays(reusedNode.children, children))
     : freeze({ key: skeleton.key, layout, parentKey, mode, value, error: error?.message, children })
   return nodesByKeys[fullKey]
 

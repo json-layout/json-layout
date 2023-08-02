@@ -32,6 +32,42 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.root.children[0].value, 'test2')
   })
 
+  it('should preserve immutability of nodes', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string' },
+        str2: { type: 'string' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000)
+    const root1 = statefulLayout.root
+    assert.ok(root1.children)
+
+    // a property is changed
+    statefulLayout.input(root1.children[0], 'test')
+    const root2 = statefulLayout.root
+    assert.deepEqual(root2.value, { str1: 'test' })
+    assert.notEqual(root1, root2)
+    assert.notEqual(root1.value, root2.value)
+    assert.notEqual(root1.children[0], root2.children?.[0])
+    assert.equal(root1.children[1], root2.children?.[1])
+
+    // the root model is changed with only 1 actual property change
+    statefulLayout.value = { str1: 'test', str2: 'test2' }
+    const root3 = statefulLayout.root
+    assert.deepEqual(root3.value, { str1: 'test', str2: 'test2' })
+    assert.notEqual(root3, root2)
+    assert.equal(root2.children?.[0], root3.children?.[0])
+    assert.notEqual(root2.children?.[1], root3.children?.[1])
+
+    // no actual change
+    statefulLayout.input(root1.children[0], 'test')
+    const root4 = statefulLayout.root
+    assert.equal(root3, root4)
+    assert.equal(root3.value, root4.value)
+  })
+
   it('should ignore a property with "none" layout', () => {
     const compiledLayout = compile({
       type: 'object',
@@ -85,5 +121,23 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.root.children?.length, 1)
     assert.equal(statefulLayout.root.children[0].key, 'str1')
     assert.equal(statefulLayout.root.children[0].layout.comp, 'textarea')
+  })
+
+  it('should use a switch on display width', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string', layout: [{ if: 'display.mobile', comp: 'text-field' }, { comp: 'textarea' }] }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 2000)
+    assert.equal(statefulLayout.root.children?.length, 1)
+    assert.equal(statefulLayout.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.root.children[0].layout.comp, 'textarea')
+
+    statefulLayout.width = 1000
+    assert.equal(statefulLayout.root.children?.length, 1)
+    assert.equal(statefulLayout.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.root.children[0].layout.comp, 'text-field')
   })
 })

@@ -13,6 +13,7 @@ import { freeze } from 'immer'
 // import Debug from 'debug'
 import { type NormalizedLayout } from '@json-layout/vocabulary'
 import { compileRaw, type LayoutTree } from './raw'
+import { type Display } from '../state/utils/display'
 
 export * from './raw'
 export * from './serialize'
@@ -39,8 +40,8 @@ export interface CompiledLayout {
   expressions: CompiledExpressions
 }
 
-export type CompiledExpression = (mode: string) => any
-const expressionsParams = ['mode']
+export type CompiledExpression = (mode: string, display: Display) => any
+const expressionsParams = ['mode', 'display']
 
 export function compile (_schema: object, options: CompileOptions = {}): CompiledLayout {
   const schema = <SchemaObject>clone(_schema)

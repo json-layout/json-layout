@@ -2,6 +2,7 @@ import { type ErrorObject, type ValidateFunction } from 'ajv'
 import mitt, { type Emitter } from 'mitt'
 import { type CompiledLayout, type LayoutTree } from '../compile'
 import { produceStateNode, produceStateNodeValue, type StateNode } from './nodes'
+import { Display } from './utils/display'
 
 export * from './nodes'
 
@@ -29,9 +30,11 @@ export class StatefulLayout {
   }
 
   private _width: number
+  private _display: Display
   get width () { return this._width }
   set width (width) {
     this._width = width
+    this._display = this._display && this._display.width === width ? this._display : new Display(width)
     this._root = this.produceRoot()
   }
 
@@ -55,6 +58,7 @@ export class StatefulLayout {
     this.events = mitt<StatefulLayoutEvents>()
     this._mode = mode
     this._width = width
+    this._display = new Display(width)
     this._errors = []
     this._value = value
     this._validate = compiledLayout.validates[compiledLayout.tree.validate]
@@ -71,7 +75,7 @@ export class StatefulLayout {
       null,
       this._tree.root,
       this._mode,
-      this._width,
+      this._display,
       this._value,
       this._errors,
       this._root
