@@ -32,6 +32,19 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.root.children[0].value, 'test2')
   })
 
+  it('should ignore a property with "none" layout', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string' },
+        str2: { type: 'string', layout: 'none' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000)
+    assert.equal(statefulLayout.root.children?.length, 1)
+    assert.equal(statefulLayout.root.children[0].key, 'str1')
+  })
+
   it('should manage simple validation of value', () => {
     const compiledLayout = compile({
       type: 'object',

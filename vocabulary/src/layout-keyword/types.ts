@@ -1,5 +1,5 @@
 export type LayoutKeyword = ComponentName | Children | PartialCompObject | Responsive | ReadWrite;
-export type ComponentName = "text-field" | "number-field" | "textarea" | "checkbox";
+export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox";
 export type Children = string[];
 export type Responsive = Responsive1 & {
   /**
@@ -74,6 +74,7 @@ export const layoutKeywordSchema = {
       "title": "component name",
       "type": "string",
       "enum": [
+        "none",
         "text-field",
         "number-field",
         "textarea",

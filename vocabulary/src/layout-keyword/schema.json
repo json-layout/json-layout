@@ -13,6 +13,7 @@
       "title": "component name",
       "type": "string",
       "enum": [
+        "none",
         "text-field",
         "number-field",
         "textarea",

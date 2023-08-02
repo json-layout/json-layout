@@ -59,7 +59,7 @@ export function produceStateNode (
     const objectValue = (value ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
       return produceStateNode(compiledLayout, nodesByKeys, fullKey, child, mode, containerWidth, objectValue[child.key], errors, reusedNode?.children?.[i])
-    })
+    }).filter(child => child?.layout.comp !== 'none')
   }
 
   if (layout.comp === 'text-field') {

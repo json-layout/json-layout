@@ -90,4 +90,8 @@ describe('normalize schema fragment function', () => {
     assert.deepEqual(normalize({ type: 'number', layout: { step: 0.1 } }, '/prop').write.xs, { comp: 'number-field', label: 'prop', step: 0.1 })
     assert.deepEqual(normalize({ type: 'integer' }, '/prop').write.xs, { comp: 'number-field', label: 'prop', step: 1 })
   })
+
+  it('should handle "none" display', () => {
+    assert.deepEqual(normalize({ type: 'number', layout: 'none' }, '/prop').write.xs, { comp: 'none' })
+  })
 })
