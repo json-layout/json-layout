@@ -1,44 +1,14 @@
-export type LayoutKeyword = ComponentName | Children | PartialCompObject | Responsive | ReadWrite;
+export type LayoutKeyword = ComponentName | Children | PartialCompObject | PartialSwitch;
 export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox";
 export type Children = string[];
-export type Responsive = Responsive1 & {
-  /**
-   * < 600px
-   */
-  xs?: ComponentName | Children | PartialCompObject;
-  /**
-   * >= 600px, < 960
-   */
-  sm?: ComponentName | Children | PartialCompObject;
-  /**
-   * >= 960px, < 1264
-   */
-  md?: ComponentName | Children | PartialCompObject;
-  /**
-   * >= 1264px, < 1904
-   */
-  lg?: ComponentName | Children | PartialCompObject;
-  /**
-   * >= 1904
-   */
-  xl?: ComponentName | Children | PartialCompObject;
-};
-export type Responsive1 = {
-  [k: string]: unknown;
-};
-export type ReadWrite = ReadWrite1 & {
-  /**
-   * apply this layout if data is rendered read only
-   */
-  read?: ComponentName | Children | PartialCompObject | Responsive1;
-  /**
-   * apply this layout if data is rendered for writes
-   */
-  write?: ComponentName | Children | PartialCompObject | Responsive1;
-};
-export type ReadWrite1 = {
-  [k: string]: unknown;
-};
+export type PartialExpression =
+  | string
+  | {
+      type?: "expr-eval" | "js-fn";
+      expr: string;
+      [k: string]: unknown;
+    };
+export type PartialSwitch = PartialCompObject[];
 
 export interface PartialCompObject {
   comp?: ComponentName;
@@ -46,6 +16,7 @@ export interface PartialCompObject {
   label?: string;
   title?: string;
   step?: number;
+  if?: PartialExpression;
 }
 
 // raw schema
@@ -54,23 +25,51 @@ export const layoutKeywordSchema = {
   "title": "layout keyword",
   "oneOf": [
     {
-      "$ref": "#/$defs/comp"
+      "$ref": "#/$defs/comp-name"
     },
     {
       "$ref": "#/$defs/children"
     },
     {
-      "$ref": "#/$defs/partial"
+      "$ref": "#/$defs/partial-comp-object"
     },
     {
-      "$ref": "#/$defs/responsive"
-    },
-    {
-      "$ref": "#/$defs/read-write"
+      "$ref": "#/$defs/partial-switch"
     }
   ],
   "$defs": {
-    "comp": {
+    "partial-switch": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/partial-comp-object"
+      }
+    },
+    "partial-comp-object": {
+      "title": "partial comp object",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "comp": {
+          "$ref": "#/$defs/comp-name"
+        },
+        "children": {
+          "$ref": "#/$defs/children"
+        },
+        "label": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "step": {
+          "type": "number"
+        },
+        "if": {
+          "$ref": "#/$defs/partial-expression"
+        }
+      }
+    },
+    "comp-name": {
       "title": "component name",
       "type": "string",
       "enum": [
@@ -87,180 +86,29 @@ export const layoutKeywordSchema = {
         "type": "string"
       }
     },
-    "partial": {
-      "title": "partial comp object",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "comp": {
-          "$ref": "#/$defs/comp"
-        },
-        "children": {
-          "$ref": "#/$defs/children"
-        },
-        "label": {
+    "partial-expression": {
+      "oneOf": [
+        {
           "type": "string"
         },
-        "title": {
-          "type": "string"
-        },
-        "step": {
-          "type": "number"
-        }
-      }
-    },
-    "responsive": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "xs": {
-          "description": "< 600px",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
-            },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            }
-          ]
-        },
-        "sm": {
-          "description": ">= 600px, < 960",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
-            },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            }
-          ]
-        },
-        "md": {
-          "description": ">= 960px, < 1264",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
-            },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            }
-          ]
-        },
-        "lg": {
-          "description": ">= 1264px, < 1904",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
-            },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            }
-          ]
-        },
-        "xl": {
-          "description": ">= 1904",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
-            },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            }
-          ]
-        }
-      },
-      "anyOf": [
         {
+          "type": "object",
           "required": [
-            "xs"
-          ]
-        },
-        {
-          "required": [
-            "sm"
-          ]
-        },
-        {
-          "required": [
-            "md"
-          ]
-        },
-        {
-          "required": [
-            "lg"
-          ]
-        },
-        {
-          "required": [
-            "xl"
-          ]
-        }
-      ]
-    },
-    "read-write": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "read": {
-          "description": "apply this layout if data is rendered read only",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
+            "expr"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "expr-eval",
+                "js-fn"
+              ],
+              "default": "expr-eval"
             },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            },
-            {
-              "$ref": "#/$defs/responsive"
+            "expr": {
+              "type": "string"
             }
-          ]
-        },
-        "write": {
-          "description": "apply this layout if data is rendered for writes",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/comp"
-            },
-            {
-              "$ref": "#/$defs/children"
-            },
-            {
-              "$ref": "#/$defs/partial"
-            },
-            {
-              "$ref": "#/$defs/responsive"
-            }
-          ]
-        }
-      },
-      "anyOf": [
-        {
-          "required": [
-            "read"
-          ]
-        },
-        {
-          "required": [
-            "write"
-          ]
+          }
         }
       ]
     }

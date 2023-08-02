@@ -1,4 +1,4 @@
-import {LayoutKeyword, ComponentName, Children, ReadWrite, Responsive, PartialCompObject} from './types'
+import {LayoutKeyword, ComponentName, Children, PartialSwitch, PartialCompObject} from './types'
 import validate from './validate'
 
 export * from './types'
@@ -13,24 +13,14 @@ export function isComponentName (layoutKeyword: LayoutKeyword): layoutKeyword is
   return typeof layoutKeyword === 'string'
 }
 
+export function isPartialSwitch (layoutKeyword: LayoutKeyword): layoutKeyword is PartialSwitch {
+  return Array.isArray(layoutKeyword) && layoutKeyword.length > 0 && typeof layoutKeyword[0] === 'object'
+}
+
 export function isChildren (layoutKeyword: LayoutKeyword): layoutKeyword is Children {
-  return Array.isArray(layoutKeyword)
-}
-
-export function isReadWrite (layoutKeyword: LayoutKeyword): layoutKeyword is ReadWrite {
-  return typeof layoutKeyword === 'object' && (!!(layoutKeyword as ReadWrite).read || !!(layoutKeyword as ReadWrite).write)
-}
-
-export function isResponsive (layoutKeyword: LayoutKeyword): layoutKeyword is Responsive {
-  return typeof layoutKeyword === 'object' && (
-    !!(layoutKeyword as Responsive).xs ||
-    !!(layoutKeyword as Responsive).sm || 
-    !!(layoutKeyword as Responsive).md || 
-    !!(layoutKeyword as Responsive).lg ||
-    !!(layoutKeyword as Responsive).xl
-  )
+  return Array.isArray(layoutKeyword) && (layoutKeyword.length === 0 || typeof layoutKeyword[0] === 'string')
 }
 
 export function isPartialCompObject (layoutKeyword: LayoutKeyword): layoutKeyword is PartialCompObject {
-  return typeof layoutKeyword === 'object' && !isReadWrite(layoutKeyword) && !isResponsive(layoutKeyword)
+  return typeof layoutKeyword === 'object'
 }

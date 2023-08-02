@@ -22,8 +22,8 @@
     "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
     "compile": "ts-node scripts/compile.ts",
-    "watch:schemas": "onchange 'src/**/*.json' -- npm run compile",
-    "watch:src": "onchange 'src/**/*.ts' 'test/**' -- run-s test build",
+    "watch:schemas": "onchange --await-write-finish 500 'src/**/*.json' -- npm run compile",
+    "watch:src": "onchange --await-write-finish 500 'src/**/*.ts' 'test/**' -- run-s test build",
     "dev": "run-p watch:schemas watch:src"
   },
   "repository": {

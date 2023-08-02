@@ -24,7 +24,7 @@
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
     "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
-    "dev": "onchange 'src/**' 'test/**/*' -- run-s test build"
+    "dev": "onchange --await-write-finish 500 'src/**' 'test/**/*' -- run-s test build"
   },
   "repository": {
     "type": "git",
@@ -48,6 +48,7 @@
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^2.1.1",
     "debug": "^4.3.4",
+    "expr-eval": "^2.0.2",
     "immer": "^9.0.21",
     "json-schema-traverse": "^1.0.0",
     "mitt": "^3.0.0",

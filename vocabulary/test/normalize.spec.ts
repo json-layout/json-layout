@@ -6,92 +6,30 @@ describe('normalize schema fragment function', () => {
   const defaultTextareaComp = { comp: 'textarea', label: 'prop' }
 
   it('should transform schema fragments with optional layout keywords in normalized layout information', () => {
-    assert.deepEqual(normalize({ type: 'string' }, '/prop'), {
-      read: {
-        xs: defaultTextFieldComp,
-        sm: defaultTextFieldComp,
-        md: defaultTextFieldComp,
-        lg: defaultTextFieldComp,
-        xl: defaultTextFieldComp
-      },
-      write: {
-        xs: defaultTextFieldComp,
-        sm: defaultTextFieldComp,
-        md: defaultTextFieldComp,
-        lg: defaultTextFieldComp,
-        xl: defaultTextFieldComp
-      }
-    })
-
-    assert.deepEqual(normalize({ type: 'string', layout: 'textarea' }, '/prop'), {
-      read: {
-        xs: defaultTextareaComp,
-        sm: defaultTextareaComp,
-        md: defaultTextareaComp,
-        lg: defaultTextareaComp,
-        xl: defaultTextareaComp
-      },
-      write: {
-        xs: defaultTextareaComp,
-        sm: defaultTextareaComp,
-        md: defaultTextareaComp,
-        lg: defaultTextareaComp,
-        xl: defaultTextareaComp
-      }
-    })
+    assert.deepEqual(normalize({ type: 'string' }, '/prop'), defaultTextFieldComp)
+    assert.deepEqual(normalize({ type: 'string', layout: 'textarea' }, '/prop'), defaultTextareaComp)
   })
 
-  it('should apply different layout for read and write modes', () => {
-    assert.deepEqual(normalize({ type: 'string', layout: { read: 'textarea' } }, '/prop'), {
-      read: {
-        xs: defaultTextareaComp,
-        sm: defaultTextareaComp,
-        md: defaultTextareaComp,
-        lg: defaultTextareaComp,
-        xl: defaultTextareaComp
-      },
-      write: {
-        xs: defaultTextFieldComp,
-        sm: defaultTextFieldComp,
-        md: defaultTextFieldComp,
-        lg: defaultTextFieldComp,
-        xl: defaultTextFieldComp
-      }
-    })
-  })
-
-  it('should apply different layout for responsive breakpoints', () => {
-    assert.deepEqual(normalize({ type: 'string', layout: { md: 'textarea' } }, '/prop'), {
-      read: {
-        xs: defaultTextFieldComp,
-        sm: defaultTextFieldComp,
-        md: defaultTextareaComp,
-        lg: defaultTextareaComp,
-        xl: defaultTextareaComp
-      },
-      write: {
-        xs: defaultTextFieldComp,
-        sm: defaultTextFieldComp,
-        md: defaultTextareaComp,
-        lg: defaultTextareaComp,
-        xl: defaultTextareaComp
-      }
-    })
+  it('should manage a layout expressed as a switch', () => {
+    assert.deepEqual(
+      normalize({ type: 'string', layout: [{ if: 'read', comp: 'text-field' }, { if: 'write', comp: 'textarea' }] }, '/prop'),
+      [{ ...defaultTextFieldComp, if: { type: 'expr-eval', expr: 'read' } }, { ...defaultTextareaComp, if: { type: 'expr-eval', expr: 'write' } }]
+    )
   })
 
   it('should calculate a label for a field', () => {
-    assert.deepEqual(normalize({ type: 'string' }, '/prop').write.xs, { comp: 'text-field', label: 'prop' })
-    assert.deepEqual(normalize({ type: 'string', title: 'Prop' }, '/prop').write.xs, { comp: 'text-field', label: 'Prop' })
-    assert.deepEqual(normalize({ type: 'string', title: 'Prop', layout: { label: 'Prop label' } }, '/prop').write.xs, { comp: 'text-field', label: 'Prop label' })
+    assert.deepEqual(normalize({ type: 'string' }, '/prop'), { comp: 'text-field', label: 'prop' })
+    assert.deepEqual(normalize({ type: 'string', title: 'Prop' }, '/prop'), { comp: 'text-field', label: 'Prop' })
+    assert.deepEqual(normalize({ type: 'string', title: 'Prop', layout: { label: 'Prop label' } }, '/prop'), { comp: 'text-field', label: 'Prop label' })
   })
 
   it('should handle number types', () => {
-    assert.deepEqual(normalize({ type: 'number' }, '/prop').write.xs, { comp: 'number-field', label: 'prop' })
-    assert.deepEqual(normalize({ type: 'number', layout: { step: 0.1 } }, '/prop').write.xs, { comp: 'number-field', label: 'prop', step: 0.1 })
-    assert.deepEqual(normalize({ type: 'integer' }, '/prop').write.xs, { comp: 'number-field', label: 'prop', step: 1 })
+    assert.deepEqual(normalize({ type: 'number' }, '/prop'), { comp: 'number-field', label: 'prop' })
+    assert.deepEqual(normalize({ type: 'number', layout: { step: 0.1 } }, '/prop'), { comp: 'number-field', label: 'prop', step: 0.1 })
+    assert.deepEqual(normalize({ type: 'integer' }, '/prop'), { comp: 'number-field', label: 'prop', step: 1 })
   })
 
   it('should handle "none" display', () => {
-    assert.deepEqual(normalize({ type: 'number', layout: 'none' }, '/prop').write.xs, { comp: 'none' })
+    assert.deepEqual(normalize({ type: 'number', layout: 'none' }, '/prop'), { comp: 'none' })
   })
 })

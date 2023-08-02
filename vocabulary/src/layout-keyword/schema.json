@@ -2,14 +2,30 @@
   "$id": "https://json-layout.github.io/layout-keyword",
   "title": "layout keyword",
   "oneOf": [
-    {"$ref": "#/$defs/comp"},
+    {"$ref": "#/$defs/comp-name"},
     {"$ref": "#/$defs/children"},
-    {"$ref": "#/$defs/partial"},
-    {"$ref": "#/$defs/responsive"},
-    {"$ref": "#/$defs/read-write"}
+    {"$ref": "#/$defs/partial-comp-object"},
+    {"$ref": "#/$defs/partial-switch"}
   ],
   "$defs": {
-    "comp": {
+    "partial-switch": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/partial-comp-object"}
+    },
+    "partial-comp-object": {
+      "title": "partial comp object",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "comp": {"$ref": "#/$defs/comp-name"},
+        "children": {"$ref": "#/$defs/children"},
+        "label": {"type": "string"},
+        "title": {"type": "string"},
+        "step": {"type": "number"},
+        "if": {"$ref": "#/$defs/partial-expression"}
+      }
+    },
+    "comp-name": {
       "title": "component name",
       "type": "string",
       "enum": [
@@ -24,97 +40,23 @@
       "type": "array",
       "items": {"type": "string"}
     },
-    "partial": {
-      "title": "partial comp object",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "comp": {"$ref": "#/$defs/comp"},
-        "children": {"$ref": "#/$defs/children"},
-        "label": {"type": "string"},
-        "title": {"type": "string"},
-        "step": {"type": "number"}
-      }
-    },
-    "responsive": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "xs": {
-          "description": "< 600px",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"}
-          ]
-        },
-        "sm": {
-          "description": ">= 600px, < 960",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"}
-          ]
-        },
-        "md": {
-          "description": ">= 960px, < 1264",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"}
-          ]
-        },
-        "lg": {
-          "description": ">= 1264px, < 1904",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"}
-          ]
-        },
-        "xl": {
-          "description": ">= 1904",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"}
-          ]
+    "partial-expression": {
+      "oneOf": [
+        {"type": "string"},
+        {
+          "type": "object",
+          "required": ["expr"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["expr-eval", "js-fn"],
+              "default": "expr-eval"
+            },
+            "expr": {
+              "type": "string"
+            }
+          }
         }
-      },
-      "anyOf": [
-        {"required": ["xs"]},
-        {"required": ["sm"]},
-        {"required": ["md"]},
-        {"required": ["lg"]},
-        {"required": ["xl"]}
-      ]
-    },
-    "read-write": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "read": {
-          "description": "apply this layout if data is rendered read only",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"},
-            {"$ref": "#/$defs/responsive"}
-          ]
-        },
-        "write": {
-          "description": "apply this layout if data is rendered for writes",
-          "oneOf": [
-            {"$ref": "#/$defs/comp"},
-            {"$ref": "#/$defs/children"},
-            {"$ref": "#/$defs/partial"},
-            {"$ref": "#/$defs/responsive"}
-          ]
-        }
-      },
-      "anyOf": [
-        {"required": ["read"]},
-        {"required": ["write"]}
       ]
     }
   }

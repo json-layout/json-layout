@@ -1,25 +1,14 @@
 {
   "$id": "https://json-layout.github.io/normalized-layout-keyword",
   "title": "normalized layout",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["read", "write"],
-  "properties": {
-    "read": {"$ref": "#/$defs/normalized-responsive"},
-    "write": {"$ref": "#/$defs/normalized-responsive"}
-  },
+  "oneOf": [
+    {"$ref": "#/$defs/switch"},
+    {"$ref": "#/$defs/comp-object"}
+  ],
   "$defs": {
-    "normalized-responsive": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["xs", "sm", "md", "lg", "xl"],
-      "properties": {
-        "xs": {"$ref": "#/$defs/comp-object"},
-        "sm": {"$ref": "#/$defs/comp-object"},
-        "md": {"$ref": "#/$defs/comp-object"},
-        "lg": {"$ref": "#/$defs/comp-object"},
-        "xl": {"$ref": "#/$defs/comp-object"}
-      }
+    "switch": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/comp-object"}
     },
     "comp-object": {
       "type": "object",
@@ -39,7 +28,8 @@
       "additionalProperties": false,
       "required": ["comp"],
       "properties": {
-        "comp": {"const": "none"}
+        "comp": {"const": "none"},
+        "if": {"$ref": "#/$defs/expression"}
       }
     },
     "section": {
@@ -48,6 +38,7 @@
       "required": ["comp"],
       "properties": {
         "comp": {"const": "section"},
+        "if": {"$ref": "#/$defs/expression"},
         "title": {"type": "string"},
         "children": {
           "type": "array",
@@ -61,6 +52,7 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "text-field"},
+        "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"}
       }
     },
@@ -70,6 +62,7 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "number-field"},
+        "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"},
         "step": {"type": "number"}
       }
@@ -80,6 +73,7 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "textarea"},
+        "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"}
       }
     },
@@ -89,7 +83,22 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "checkbox"},
+        "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"}
+      }
+    },
+    "expression": {
+      "type": "object",
+      "required": ["type", "expr"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["expr-eval", "js-fn"],
+          "default": "expr-eval"
+        },
+        "expr": {
+          "type": "string"
+        }
       }
     }
   }

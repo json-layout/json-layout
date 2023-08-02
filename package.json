@@ -3,7 +3,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm -w vocabulary test && npm -w core test",
-    "build": "npm -w vocabulary run build && npm -w core run build && npm -w examples run build",
+    "build": "npm -w vocabulary run compile && npm -w vocabulary run build && npm -w core run build && npm -w examples run build",
     "lint": "npm -w vocabulary run lint && npm -w core run lint && npm -w examples run build",
     "prepare": "husky install",
     "dev": "run-p 'dev -w core' 'dev -w examples' 'dev -w vocabulary'"

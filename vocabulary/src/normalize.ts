@@ -1,8 +1,5 @@
-import {
-  validateLayoutKeyword, isComponentName, isPartialCompObject, isChildren,
-  type LayoutKeyword, type PartialCompObject, isResponsive, isReadWrite
-} from './layout-keyword'
-import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type NormalizedResponsive, type CompObject } from '.'
+import { validateLayoutKeyword, isComponentName, isPartialCompObject, isChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject } from './layout-keyword'
+import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject } from '.'
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
@@ -25,7 +22,7 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
 }
 
 function getPartialCompObject (layoutKeyword: LayoutKeyword): PartialCompObject | null {
-  if (isPartialCompObject(layoutKeyword)) return layoutKeyword
+  if (isPartialCompObject(layoutKeyword)) return { ...layoutKeyword }
   else if (isComponentName(layoutKeyword)) return { comp: layoutKeyword }
   else if (isChildren(layoutKeyword)) return { children: layoutKeyword }
   return null
@@ -34,12 +31,17 @@ function getPartialCompObject (layoutKeyword: LayoutKeyword): PartialCompObject 
 function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): CompObject {
   const partial = getPartialCompObject(layoutKeyword)
   if (!partial) return defaultCompObject
+
+  if (partial.if && typeof partial.if === 'string') {
+    partial.if = { type: 'expr-eval', expr: partial.if }
+  }
+
   if (partial.comp && defaultCompObject.comp !== partial.comp) {
     const compProperties = normalizedLayoutKeywordSchema.$defs[partial.comp]?.properties
-    const mergedCompObject: CompObject = {} as CompObject
+    const mergedCompObject: Record<string, any> = {}
     if (typeof compProperties === 'object') {
       for (const key of Object.keys(compProperties)) {
-        if (key in defaultCompObject) mergedCompObject[key as keyof CompObject] = defaultCompObject[key as keyof CompObject]
+        if (key in defaultCompObject) mergedCompObject[key] = defaultCompObject[key as keyof CompObject]
       }
     }
     return Object.assign(mergedCompObject, partial) as CompObject
@@ -47,29 +49,11 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   return Object.assign({}, defaultCompObject, partial) as CompObject
 }
 
-function getResponsive (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): NormalizedResponsive {
-  if (isResponsive(layoutKeyword)) {
-    const xs = getCompObject(layoutKeyword.xs ?? {}, defaultCompObject)
-    const sm = getCompObject(layoutKeyword.sm ?? {}, xs)
-    const md = getCompObject(layoutKeyword.md ?? {}, sm)
-    const lg = getCompObject(layoutKeyword.lg ?? {}, md)
-    const xl = getCompObject(layoutKeyword.xl ?? {}, lg)
-    return { xs, sm, md, lg, xl }
-  } else {
-    const compObject = getCompObject(layoutKeyword, defaultCompObject)
-    return { xs: compObject, sm: compObject, md: compObject, lg: compObject, xl: compObject }
-  }
-}
-
 function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): NormalizedLayout {
-  if (isReadWrite(layoutKeyword)) {
-    return {
-      read: getResponsive(layoutKeyword.read ?? {}, defaultCompObject),
-      write: getResponsive(layoutKeyword.write ?? {}, defaultCompObject)
-    }
+  if (isPartialSwitch(layoutKeyword)) {
+    return layoutKeyword.map(layout => getCompObject(layout, defaultCompObject))
   } else {
-    const responsive = getResponsive(layoutKeyword, defaultCompObject)
-    return { read: responsive, write: responsive }
+    return getCompObject(layoutKeyword, defaultCompObject)
   }
 }
 

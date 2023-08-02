@@ -1,8 +1,8 @@
 // import { type Emitter } from 'mitt'
 import { type LayoutNode, type CompiledLayout } from '../../compile'
 import { type Mode } from '..'
-import { getDisplay } from '../utils'
-import { type TextField, type CompObject, type Section } from '@json-layout/vocabulary'
+// import { getDisplay } from '../utils'
+import { type TextField, type CompObject, type Section, isSwitch } from '@json-layout/vocabulary'
 import produce, { freeze } from 'immer'
 import { type ErrorObject } from 'ajv'
 // import { type ErrorObject } from 'ajv-errors'
@@ -36,6 +36,8 @@ const updateStateNode = produce<StateNode, [string, CompObject, string | null, M
   }
 )
 
+const nodeCompObject: CompObject = { comp: 'none' }
+
 export function produceStateNode (
   compiledLayout: CompiledLayout,
   nodesByKeys: Record<string, StateNode>,
@@ -48,8 +50,17 @@ export function produceStateNode (
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.schemaPointer]
-  const display = getDisplay(containerWidth)
-  const layout = normalizedLayout[mode][display]
+  // const display = getDisplay(containerWidth)
+  let layout: CompObject
+  if (isSwitch(normalizedLayout)) {
+    layout = normalizedLayout.find(compObject => {
+      if (!compObject.if) return true
+      const compiledExpression = compiledLayout.expressions[compObject.if.type][compObject.if.expr]
+      return !!compiledExpression(mode)
+    }) ?? nodeCompObject
+  } else {
+    layout = normalizedLayout
+  }
   const fullKey = parentKey === null ? skeleton.key : (parentKey + '/' + skeleton.key)
 
   let children

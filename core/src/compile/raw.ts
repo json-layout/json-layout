@@ -10,7 +10,7 @@ TODO:
 import type traverse from 'json-schema-traverse'
 import type Ajv from 'ajv'
 // import Debug from 'debug'
-import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitch } from '@json-layout/vocabulary'
 
 // const debug = Debug('json-layout:compile-raw')
 
@@ -22,6 +22,7 @@ export interface CompiledRaw {
   tree: LayoutTree
   validates: string[]
   normalizedLayouts: Record<string, NormalizedLayout>
+  expressions: Expression[]
 }
 
 // a tree is a root node and a validation function
@@ -43,22 +44,24 @@ export interface LayoutNode {
 export function compileRaw (schema: object, options: CompileRawOptions): CompiledRaw {
   const validates: string[] = []
   const normalizedLayouts: Record<string, NormalizedLayout> = {}
+  const expressions: Expression[] = []
 
   schema = schema as traverse.SchemaObject
   // TODO: produce a resolved/normalized version of the schema
   // useful to get predictable schemaPath properties in errors and to have proper handling of default values
-  const tree = makeTree(schema, options.ajv, validates, normalizedLayouts, '#')
+  const tree = makeTree(schema, options.ajv, validates, normalizedLayouts, expressions, '#')
 
-  return { tree, validates, normalizedLayouts }
+  return { tree, validates, normalizedLayouts, expressions }
 }
 
 function makeTree (schema: any,
   ajv: Ajv,
   validates: string[],
   normalizedLayouts: Record<string, NormalizedLayout>,
+  expressions: Expression[],
   schemaPointer: string
 ): LayoutTree {
-  const root = makeNode(schema, ajv, normalizedLayouts, schemaPointer, '')
+  const root = makeNode(schema, ajv, normalizedLayouts, expressions, schemaPointer, '')
   validates.push(schemaPointer)
   return { root, validate: schemaPointer }
 }
@@ -67,6 +70,7 @@ function makeNode (
   schema: any,
   ajv: Ajv,
   normalizedLayouts: Record<string, NormalizedLayout>,
+  expressions: Expression[],
   schemaPointer: string,
   key: string
 ): LayoutNode {
@@ -99,7 +103,14 @@ function makeNode (
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   schema.errorMessage = schema.errorMessage ?? {}
-  normalizedLayouts[schemaPointer] = normalizedLayouts[schemaPointer] || normalizeLayoutFragment(schema as SchemaFragment, schemaPointer)
+  const normalizedLayout: NormalizedLayout = normalizedLayouts[schemaPointer] ?? normalizeLayoutFragment(schema as SchemaFragment, schemaPointer)
+  normalizedLayouts[schemaPointer] = normalizedLayout
+
+  const compObjects = isSwitch(normalizedLayout) ? normalizedLayout : [normalizedLayout]
+  for (const compObject of compObjects) {
+    if (compObject.if) expressions.push(compObject.if)
+  }
+
   const node: LayoutNode = { key: `${key ?? ''}`, schemaPointer }
   const childrenCandidates: Array<{ key: string, schemaPointer: string, schema: any }> = []
   if (schema.properties) {
@@ -112,7 +123,7 @@ function makeNode (
     }
   }
   if (childrenCandidates.length) {
-    node.children = childrenCandidates.map(cc => makeNode(cc.schema, ajv, normalizedLayouts, cc.schemaPointer, cc.key))
+    node.children = childrenCandidates.map(cc => makeNode(cc.schema, ajv, normalizedLayouts, expressions, cc.schemaPointer, cc.key))
   }
   return node
 }

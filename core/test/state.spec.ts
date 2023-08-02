@@ -73,4 +73,17 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.root.children?.[0].error, 'required')
     assert.equal(statefulLayout.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
   })
+
+  it('should use a switch on read/write mode', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string', layout: [{ if: "mode == 'read'", comp: 'text-field' }, { if: "mode == 'write'", comp: 'textarea' }] }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000)
+    assert.equal(statefulLayout.root.children?.length, 1)
+    assert.equal(statefulLayout.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.root.children[0].layout.comp, 'textarea')
+  })
 })

@@ -1,71 +1,41 @@
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "comp-object".
- */
+export type NormalizedLayout = Switch | CompObject;
 export type CompObject = None | Section | TextField | NumberField | Textarea | Checkbox;
+export type Switch = CompObject[];
 
-export interface NormalizedLayout {
-  read: NormalizedResponsive;
-  write: NormalizedResponsive;
-}
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "normalized-responsive".
- */
-export interface NormalizedResponsive {
-  xs: CompObject;
-  sm: CompObject;
-  md: CompObject;
-  lg: CompObject;
-  xl: CompObject;
-}
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "none".
- */
 export interface None {
   comp: "none";
+  if?: Expression;
 }
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "section".
- */
+export interface Expression {
+  type: "expr-eval" | "js-fn";
+  expr: string;
+  [k: string]: unknown;
+}
 export interface Section {
   comp: "section";
+  if?: Expression;
   title?: string;
   children?: string[];
 }
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "text-field".
- */
 export interface TextField {
   comp: "text-field";
+  if?: Expression;
   label: string;
 }
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "number-field".
- */
 export interface NumberField {
   comp: "number-field";
+  if?: Expression;
   label: string;
   step?: number;
 }
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "textarea".
- */
 export interface Textarea {
   comp: "textarea";
+  if?: Expression;
   label: string;
 }
-/**
- * This interface was referenced by `NormalizedLayout`'s JSON-Schema
- * via the `definition` "checkbox".
- */
 export interface Checkbox {
   comp: "checkbox";
+  if?: Expression;
   label: string;
 }
 
@@ -73,47 +43,19 @@ export interface Checkbox {
 export const normalizedLayoutKeywordSchema = {
   "$id": "https://json-layout.github.io/normalized-layout-keyword",
   "title": "normalized layout",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "read",
-    "write"
-  ],
-  "properties": {
-    "read": {
-      "$ref": "#/$defs/normalized-responsive"
+  "oneOf": [
+    {
+      "$ref": "#/$defs/switch"
     },
-    "write": {
-      "$ref": "#/$defs/normalized-responsive"
+    {
+      "$ref": "#/$defs/comp-object"
     }
-  },
+  ],
   "$defs": {
-    "normalized-responsive": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "xs",
-        "sm",
-        "md",
-        "lg",
-        "xl"
-      ],
-      "properties": {
-        "xs": {
-          "$ref": "#/$defs/comp-object"
-        },
-        "sm": {
-          "$ref": "#/$defs/comp-object"
-        },
-        "md": {
-          "$ref": "#/$defs/comp-object"
-        },
-        "lg": {
-          "$ref": "#/$defs/comp-object"
-        },
-        "xl": {
-          "$ref": "#/$defs/comp-object"
-        }
+    "switch": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/comp-object"
       }
     },
     "comp-object": {
@@ -154,6 +96,9 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "none"
+        },
+        "if": {
+          "$ref": "#/$defs/expression"
         }
       }
     },
@@ -166,6 +111,9 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "section"
+        },
+        "if": {
+          "$ref": "#/$defs/expression"
         },
         "title": {
           "type": "string"
@@ -189,6 +137,9 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "text-field"
         },
+        "if": {
+          "$ref": "#/$defs/expression"
+        },
         "label": {
           "type": "string"
         }
@@ -204,6 +155,9 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "number-field"
+        },
+        "if": {
+          "$ref": "#/$defs/expression"
         },
         "label": {
           "type": "string"
@@ -224,6 +178,9 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "textarea"
         },
+        "if": {
+          "$ref": "#/$defs/expression"
+        },
         "label": {
           "type": "string"
         }
@@ -240,7 +197,30 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "checkbox"
         },
+        "if": {
+          "$ref": "#/$defs/expression"
+        },
         "label": {
+          "type": "string"
+        }
+      }
+    },
+    "expression": {
+      "type": "object",
+      "required": [
+        "type",
+        "expr"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "expr-eval",
+            "js-fn"
+          ],
+          "default": "expr-eval"
+        },
+        "expr": {
           "type": "string"
         }
       }
