@@ -2,7 +2,7 @@
 import { type LayoutNode, type CompiledLayout } from '../../compile'
 import { type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type TextField, type CompObject, type Section, isSwitch } from '@json-layout/vocabulary'
+import { type TextField, type CompObject, type Section, isSwitch, type NumberField } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from '../utils/display'
@@ -24,6 +24,9 @@ export interface StateNode {
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, value: string }
 export const isTextField = (node: StateNode | undefined): node is TextFieldNode => !!node && node.layout.comp === 'text-field'
+
+export type NumberFieldNode = Omit<StateNode, 'children'> & { layout: NumberField, value: number }
+export const isNumberField = (node: StateNode | undefined): node is NumberFieldNode => !!node && node.layout.comp === 'number-field'
 
 export type SectionNode = StateNode & { layout: Section, value: Record<string, unknown>, children: StateNode[] }
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'

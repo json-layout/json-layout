@@ -10,6 +10,7 @@ export * from './nodes'
 export type StatefulLayoutEvents = {
   // input: { value: unknown, child: { pointer: string, dataPointer: string, value: unknown } }
   input: unknown
+  'update': StatefulLayout
 }
 
 export type Mode = 'read' | 'write'
@@ -17,16 +18,18 @@ export type Mode = 'read' | 'write'
 export class StatefulLayout {
   readonly events: Emitter<StatefulLayoutEvents>
   private readonly _compiledLayout: CompiledLayout
+  get compiledLayout () { return this._compiledLayout }
+
   private readonly _tree: LayoutTree
 
-  private _root: StateNode
+  private _root!: StateNode
   get root () { return this._root }
 
   private _mode: Mode
   get mode () { return this._mode }
   set mode (mode) {
     this._mode = mode
-    this._root = this.produceRoot()
+    this.produceRoot()
   }
 
   private _width: number
@@ -35,7 +38,7 @@ export class StatefulLayout {
   set width (width) {
     this._width = width
     this._display = this._display && this._display.width === width ? this._display : new Display(width)
-    this._root = this.produceRoot()
+    this.produceRoot()
   }
 
   private _valid: boolean
@@ -45,7 +48,7 @@ export class StatefulLayout {
   get value () { return this._value }
   set value (value: unknown) {
     this._value = value
-    this._root = this.produceRoot()
+    this.produceRoot()
   }
 
   private readonly _validate: ValidateFunction
@@ -62,13 +65,13 @@ export class StatefulLayout {
     this._valid = true
     this._value = value
     this._validate = compiledLayout.validates[compiledLayout.tree.validate]
-    this._root = this.produceRoot()
+    this.produceRoot()
   }
 
   private produceRoot () {
     this._nodesByPointers = {}
     this._valid = this._validate(this._value)
-    return produceStateNode(
+    this._root = produceStateNode(
       this._compiledLayout,
       this._nodesByPointers,
       this._tree.root,
@@ -78,6 +81,7 @@ export class StatefulLayout {
       this._validate.errors ?? [],
       this._root
     )
+    this.events.emit('update', this)
   }
 
   input (node: StateNode, value: unknown) {
