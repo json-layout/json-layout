@@ -12,11 +12,13 @@ import { freeze } from 'immer'
 
 // import Debug from 'debug'
 import { type NormalizedLayout } from '@json-layout/vocabulary'
-import { compileRaw, type LayoutTree } from './raw'
+import { type SkeletonTree } from './skeleton-tree'
 import { type Display } from '../state/utils/display'
+import { compileStatic } from './compile-static'
 
-export * from './raw'
-export * from './serialize'
+export type { SkeletonTree } from './skeleton-tree'
+export type { SkeletonNode } from './skeleton-node'
+// export * from './serialize'
 
 const clone = rfdc()
 
@@ -34,7 +36,7 @@ export interface CompiledExpressions {
 }
 
 export interface CompiledLayout {
-  tree: LayoutTree
+  skeletonTree: SkeletonTree
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
   expressions: CompiledExpressions
@@ -57,7 +59,7 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
   if (!('$id' in schema)) {
     schema.$id = '_jl'
   }
-  const compiledRaw = compileRaw(schema, { ajv })
+  const compiledRaw = compileStatic(schema, { ajv })
   ajv.addSchema(schema)
 
   const validates: Record<string, ValidateFunction> = {}
@@ -79,7 +81,7 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
   }
 
   return freeze({
-    tree: compiledRaw.tree,
+    skeletonTree: compiledRaw.tree,
     normalizedLayouts: compiledRaw.normalizedLayouts,
     validates,
     expressions

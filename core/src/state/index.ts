@@ -1,10 +1,11 @@
 import { type ValidateFunction } from 'ajv'
 import mitt, { type Emitter } from 'mitt'
-import { type CompiledLayout, type LayoutTree } from '../compile'
-import { produceStateNode, produceStateNodeValue, type StateNode } from './nodes'
+import { type CompiledLayout, type SkeletonTree } from '../compile'
+import { createStateNode, produceStateNodeValue, type StateNode } from './state-node'
+import { produceStateTree, type StateTree } from './state-tree'
 import { Display } from './utils/display'
 
-export * from './nodes'
+// export * from './nodes'
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type StatefulLayoutEvents = {
@@ -20,16 +21,14 @@ export class StatefulLayout {
   private readonly _compiledLayout: CompiledLayout
   get compiledLayout () { return this._compiledLayout }
 
-  private readonly _tree: LayoutTree
-
-  private _root!: StateNode
-  get root () { return this._root }
+  private _stateTree!: StateTree
+  get stateTree () { return this._stateTree }
 
   private _mode: Mode
   get mode () { return this._mode }
   set mode (mode) {
     this._mode = mode
-    this.produceRoot()
+    this.createStateTree()
   }
 
   private _width: number
@@ -38,7 +37,7 @@ export class StatefulLayout {
   set width (width) {
     this._width = width
     this._display = this._display && this._display.width === width ? this._display : new Display(width)
-    this.produceRoot()
+    this.createStateTree()
   }
 
   private _valid: boolean
@@ -48,16 +47,15 @@ export class StatefulLayout {
   get value () { return this._value }
   set value (value: unknown) {
     this._value = value
-    this.produceRoot()
+    this.createStateTree()
   }
 
   private readonly _validate: ValidateFunction
 
   private _nodesByPointers: Record<string, StateNode> = {}
 
-  constructor (compiledLayout: CompiledLayout, tree: LayoutTree, mode: Mode, width: number, value: unknown = {}) {
+  constructor (compiledLayout: CompiledLayout, tree: SkeletonTree, mode: Mode, width: number, value: unknown = {}) {
     this._compiledLayout = compiledLayout
-    this._tree = tree
     this.events = mitt<StatefulLayoutEvents>()
     this._mode = mode
     this._width = width
@@ -65,22 +63,23 @@ export class StatefulLayout {
     this._valid = true
     this._value = value
     this._validate = compiledLayout.validates[tree.validate]
-    this.produceRoot()
+    this.createStateTree()
   }
 
-  private produceRoot () {
+  private createStateTree () {
     this._nodesByPointers = {}
     this._valid = this._validate(this._value)
-    this._root = produceStateNode(
+    const root = createStateNode(
       this._compiledLayout,
       this._nodesByPointers,
-      this._tree.root,
+      this._compiledLayout.skeletonTree.root,
       this._mode,
       this._display,
       this._value,
       this._validate.errors ?? [],
-      this._root
+      this._stateTree?.root
     )
+    this._stateTree = produceStateTree(this._stateTree ?? ({} as StateTree), root, this._mode, this._valid, 'main')
     this.events.emit('update', this)
   }
 

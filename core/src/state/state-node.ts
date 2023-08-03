@@ -1,12 +1,13 @@
 // import { type Emitter } from 'mitt'
-import { type LayoutNode, type CompiledLayout, type LayoutTree } from '../../compile'
+import { type SkeletonNode, type CompiledLayout, type SkeletonTree } from '../compile'
 import { type Mode } from '..'
 // import { getDisplay } from '../utils'
 import { type TextField, type CompObject, type Section, isSwitch, type NumberField, type OneOfSelect } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
-import { type Display } from '../utils/display'
-import { shallowCompareArrays } from '../utils/immutable'
+import { type Display } from './utils/display'
+import { shallowCompareArrays } from './utils/immutable'
+import { produceStateTree, type StateTree } from './state-tree'
 // import { type ErrorObject } from 'ajv-errors'
 
 export interface StateNode {
@@ -20,7 +21,7 @@ export interface StateNode {
   value: unknown
   error: string | undefined
   children?: StateNode[]
-  childrenTrees?: Array<{ title: string, tree: LayoutTree }>
+  childrenTrees?: StateTree[]
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, value: string }
@@ -32,12 +33,12 @@ export const isNumberField = (node: StateNode | undefined): node is NumberFieldN
 export type SectionNode = StateNode & { layout: Section, value: Record<string, unknown>, children: StateNode[] }
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'
 
-export type OneOfSelectNode = StateNode & { layout: OneOfSelect, value: Record<string, unknown>, trees: LayoutTree[] }
+export type OneOfSelectNode = StateNode & { layout: OneOfSelect, value: Record<string, unknown>, trees: SkeletonTree[] }
 export const isOneOfSelect = (node: StateNode | undefined): node is OneOfSelectNode => !!node && node.layout.comp === 'one-of-select'
 
 // use Immer for efficient updating with immutability and no-op detection
-const updateStateNode = produce<StateNode, [LayoutNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
-  (draft, skeleton, layout, mode, value, error, children?) => {
+const produceStateNode = produce<StateNode, [SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?, StateTree[]?]>(
+  (draft, skeleton, layout, mode, value, error, children?, childrenTrees?) => {
     draft.key = skeleton.key
     draft.pointer = skeleton.pointer
     draft.parentPointer = skeleton.parentPointer
@@ -48,23 +49,22 @@ const updateStateNode = produce<StateNode, [LayoutNode, CompObject, Mode, unknow
     draft.value = value
     draft.error = error
     draft.children = children
-
-    if (skeleton.childrenTrees) draft.childrenTrees = skeleton.childrenTrees
+    draft.childrenTrees = childrenTrees
   }
 )
 
 const nodeCompObject: CompObject = { comp: 'none' }
 
-const matchError = (error: ErrorObject, skeleton: LayoutNode): boolean => {
+const matchError = (error: ErrorObject, skeleton: SkeletonNode): boolean => {
   if (skeleton.parentDataPath === error.instancePath && error.params?.missingProperty === skeleton.key) return true
   if (skeleton.dataPath === error.instancePath) return true
   return false
 }
 
-export function produceStateNode (
+export function createStateNode (
   compiledLayout: CompiledLayout,
   nodesByPointers: Record<string, StateNode>,
-  skeleton: LayoutNode,
+  skeleton: SkeletonNode,
   mode: Mode,
   display: Display,
   value: unknown,
@@ -91,9 +91,16 @@ export function produceStateNode (
     // TODO: make this type casting safe using prior validation
     const objectValue = (value ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
-      return produceStateNode(compiledLayout, nodesByPointers, child, mode, display, objectValue[child.key], errors, reusedNode?.children?.[i])
+      return createStateNode(compiledLayout, nodesByPointers, child, mode, display, objectValue[child.key], errors, reusedNode?.children?.[i])
     }).filter(child => child?.layout.comp !== 'none')
   }
+
+  const childrenTrees: StateTree[] | undefined = skeleton.childrenTrees?.map((skeletonTree, i) => {
+    const validateChild = compiledLayout.validates[skeletonTree.validate]
+    const validChild = validateChild(value)
+    const childRoot = createStateNode(compiledLayout, nodesByPointers, skeletonTree.root, mode, display, value, validateChild.errors ?? [], reusedNode?.childrenTrees?.[i].root)
+    return produceStateTree(reusedNode?.childrenTrees?.[i] ?? ({} as StateTree), childRoot, mode, validChild, skeletonTree.title)
+  })
 
   if (layout.comp === 'text-field') {
     value = value ?? ''
@@ -113,7 +120,7 @@ export function produceStateNode (
   }
   errors.splice(nbRemainingErrors)
 
-  nodesByPointers[skeleton.pointer] = updateStateNode(reusedNode ?? ({} as StateNode), skeleton, layout, mode, value, error?.message, shallowCompareArrays(reusedNode?.children, children))
+  nodesByPointers[skeleton.pointer] = produceStateNode(reusedNode ?? ({} as StateNode), skeleton, layout, mode, value, error?.message, shallowCompareArrays(reusedNode?.children, children), shallowCompareArrays(reusedNode?.childrenTrees, childrenTrees))
   return nodesByPointers[skeleton.pointer]
 }
 
