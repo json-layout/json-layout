@@ -104,7 +104,7 @@ describe('stateful layout', () => {
       }] */
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000, { str2: 'test' })
-    assert.equal(statefulLayout.errors.length, 3)
+    assert.equal(statefulLayout.valid, false)
     assert.equal(statefulLayout.root.error, 'must have required property \'missingProp\'')
     assert.equal(statefulLayout.root.children?.[0].error, 'required')
     assert.equal(statefulLayout.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
@@ -139,5 +139,22 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.root.children?.length, 1)
     assert.equal(statefulLayout.root.children[0].key, 'str1')
     assert.equal(statefulLayout.root.children[0].layout.comp, 'text-field')
+  })
+
+  it('should manage a oneOf in an object', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: { str1: { type: 'string' } },
+      oneOf: [
+        { properties: { str2: { type: 'string' } }, required: ['str2'] },
+        { properties: { str3: { type: 'string' } }, required: ['str3'] }
+      ]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.tree, 'write', 1000)
+    assert.ok(!statefulLayout.valid)
+    assert.ok(!statefulLayout.root.error)
+    assert.equal(statefulLayout.root.children?.length, 2)
+    assert.equal(statefulLayout.root.children[1].key, '$oneOf')
+    assert.equal(statefulLayout.root.children[1].error, 'chose one')
   })
 })

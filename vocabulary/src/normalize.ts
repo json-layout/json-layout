@@ -3,6 +3,7 @@ import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type Normalize
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
+  oneOfLayout?: LayoutKeyword
   type: string
   title?: string
   properties?: Record<string, any>
@@ -57,13 +58,19 @@ function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: C
   }
 }
 
-export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string): NormalizedLayout {
-  const layoutKeyword = schemaFragment.layout ?? {}
+export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string, arrayChild?: 'oneOf'): NormalizedLayout {
+  let layoutKeyword, defaultCompObject: CompObject
+  if (arrayChild === 'oneOf') {
+    layoutKeyword = schemaFragment.oneOfLayout ?? {}
+    defaultCompObject = { comp: 'one-of-select' } // TODO: default label ?
+  } else {
+    layoutKeyword = schemaFragment.layout ?? {}
+    defaultCompObject = getDefaultCompObject(schemaFragment, schemaPath)
+  }
   if (!validateLayoutKeyword(layoutKeyword)) {
-    console.log(`layout keyword validation errors at path ${schemaPath}`, validateNormalizedLayout.errors)
+    console.log(`layout keyword validation errors at path ${schemaPath}`, validateLayoutKeyword.errors)
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
-  const defaultCompObject = getDefaultCompObject(schemaFragment, schemaPath)
   const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject)
   if (!validateNormalizedLayout(normalizedLayout)) {
     console.log(`normalized layout validation errors at path ${schemaPath}`, validateNormalizedLayout.errors)

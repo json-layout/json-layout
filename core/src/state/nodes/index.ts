@@ -3,7 +3,7 @@ import { type LayoutNode, type CompiledLayout } from '../../compile'
 import { type Mode } from '..'
 // import { getDisplay } from '../utils'
 import { type TextField, type CompObject, type Section, isSwitch } from '@json-layout/vocabulary'
-import produce, { freeze } from 'immer'
+import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from '../utils/display'
 import { shallowCompareArrays } from '../utils/immutable'
@@ -12,7 +12,10 @@ import { shallowCompareArrays } from '../utils/immutable'
 export interface StateNode {
   layout: CompObject
   key: string
-  parentKey: string | null
+  pointer: string
+  parentPointer: string | null
+  dataPath: string
+  parentDataPath: string | null
   mode: Mode
   value: unknown
   error: string | undefined
@@ -26,11 +29,14 @@ export type SectionNode = StateNode & { layout: Section, value: Record<string, u
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'
 
 // use Immer for efficient updating with immutability and no-op detection
-const updateStateNode = produce<StateNode, [string, CompObject, string | null, Mode, unknown, string | undefined, StateNode[]?]>(
-  (draft, key, layout, parentKey, mode, value, error, children?) => {
-    draft.key = key
+const updateStateNode = produce<StateNode, [LayoutNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
+  (draft, skeleton, layout, mode, value, error, children?) => {
+    draft.key = skeleton.key
+    draft.pointer = skeleton.pointer
+    draft.parentPointer = skeleton.parentPointer
+    draft.dataPath = skeleton.dataPath
+    draft.parentDataPath = skeleton.parentDataPath
     draft.layout = layout
-    draft.parentKey = parentKey
     draft.mode = mode
     draft.value = value
     draft.error = error
@@ -40,10 +46,15 @@ const updateStateNode = produce<StateNode, [string, CompObject, string | null, M
 
 const nodeCompObject: CompObject = { comp: 'none' }
 
+const matchError = (error: ErrorObject, skeleton: LayoutNode): boolean => {
+  if (skeleton.parentDataPath === error.instancePath && error.params?.missingProperty === skeleton.key) return true
+  if (skeleton.dataPath === error.instancePath) return true
+  return false
+}
+
 export function produceStateNode (
   compiledLayout: CompiledLayout,
-  nodesByKeys: Record<string, StateNode>,
-  parentKey: string | null,
+  nodesByPointers: Record<string, StateNode>,
   skeleton: LayoutNode,
   mode: Mode,
   display: Display,
@@ -51,7 +62,7 @@ export function produceStateNode (
   errors: ErrorObject[],
   reusedNode?: StateNode
 ): StateNode {
-  const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.schemaPointer]
+  const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.pointer]
   // const display = getDisplay(containerWidth)
   let layout: CompObject
   if (isSwitch(normalizedLayout)) {
@@ -63,15 +74,15 @@ export function produceStateNode (
   } else {
     layout = normalizedLayout
   }
-  const fullKey = parentKey === null ? skeleton.key : (parentKey + '/' + skeleton.key)
+  // const fullKey = parentKey === null ? skeleton.key : (parentKey + '/' + skeleton.key)
 
-  let children
+  let children: StateNode[] | undefined
   if (layout.comp === 'section') {
     value = value ?? {}
     // TODO: make this type casting safe using prior validation
     const objectValue = (value ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
-      return produceStateNode(compiledLayout, nodesByKeys, fullKey, child, mode, display, objectValue[child.key], errors, reusedNode?.children?.[i])
+      return produceStateNode(compiledLayout, nodesByPointers, child, mode, display, objectValue[child.key], errors, reusedNode?.children?.[i])
     }).filter(child => child?.layout.comp !== 'none')
   }
 
@@ -79,27 +90,22 @@ export function produceStateNode (
     value = value ?? ''
   }
 
-  const error = errors.find(e => {
-    const error = e.params?.errors?.[0] ?? e
-    if (parentKey === error.instancePath && error.params?.missingProperty === skeleton.key) return true
-    if (fullKey === error.instancePath) return true
-    return false
-  })
+  // filter errors array in-place
+  // cf https://stackoverflow.com/questions/37318808/what-is-the-in-place-alternative-to-array-prototype-filter
+  let error
+  let nbRemainingErrors = 0
+  for (const e of errors) {
+    const originalError = e.params?.errors?.[0] ?? e
+    if (matchError(originalError, skeleton)) {
+      error = e
+    } else {
+      errors[nbRemainingErrors++] = e
+    }
+  }
+  errors.splice(nbRemainingErrors)
 
-  nodesByKeys[fullKey] = reusedNode
-    ? updateStateNode(reusedNode, skeleton.key, layout, parentKey, mode, value, error?.message, shallowCompareArrays(reusedNode.children, children))
-    : freeze({ key: skeleton.key, layout, parentKey, mode, value, error: error?.message, children })
-  return nodesByKeys[fullKey]
-
-  /* switch (layout.comp) {
-    case 'section':
-      // return new SectionNode(compiledLayout, skeleton, layout, mode, containerWidth)
-      return produceSectionNode(reusedNode, { key: skeleton.key, skeleton, mode, value, containerWidth })
-    case 'text-field':
-      return produceTextFieldNode(reusedNode, { key: skeleton.key, mode, value })
-    default:
-      throw new Error(`Unknown component ${layout.comp}`)
-  } */
+  nodesByPointers[skeleton.pointer] = updateStateNode(reusedNode ?? ({} as StateNode), skeleton, layout, mode, value, error?.message, shallowCompareArrays(reusedNode?.children, children))
+  return nodesByPointers[skeleton.pointer]
 }
 
 export const produceStateNodeValue = produce((draft, key, value) => {

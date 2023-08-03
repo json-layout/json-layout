@@ -54,10 +54,10 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
   }
   const uriResolver = ajv.opts.uriResolver
 
-  const compiledRaw = compileRaw(schema, { ajv })
   if (!('$id' in schema)) {
     schema.$id = '_jl'
   }
+  const compiledRaw = compileRaw(schema, { ajv })
   ajv.addSchema(schema)
 
   const validates: Record<string, ValidateFunction> = {}

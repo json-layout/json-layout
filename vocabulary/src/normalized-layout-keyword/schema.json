@@ -20,7 +20,8 @@
         {"$ref": "#/$defs/text-field"},
         {"$ref": "#/$defs/number-field"},
         {"$ref": "#/$defs/textarea"},
-        {"$ref": "#/$defs/checkbox"}
+        {"$ref": "#/$defs/checkbox"},
+        {"$ref": "#/$defs/one-of-select"}
       ]
     },
     "none": {
@@ -83,6 +84,16 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "checkbox"},
+        "if": {"$ref": "#/$defs/expression"},
+        "label": {"type": "string"}
+      }
+    },
+    "one-of-select": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comp"],
+      "properties": {
+        "comp": {"const": "one-of-select"},
         "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"}
       }

@@ -1,5 +1,5 @@
 export type NormalizedLayout = Switch | CompObject;
-export type CompObject = None | Section | TextField | NumberField | Textarea | Checkbox;
+export type CompObject = None | Section | TextField | NumberField | Textarea | Checkbox | OneOfSelect;
 export type Switch = CompObject[];
 
 export interface None {
@@ -37,6 +37,11 @@ export interface Checkbox {
   comp: "checkbox";
   if?: Expression;
   label: string;
+}
+export interface OneOfSelect {
+  comp: "one-of-select";
+  if?: Expression;
+  label?: string;
 }
 
 // raw schema
@@ -84,6 +89,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         {
           "$ref": "#/$defs/checkbox"
+        },
+        {
+          "$ref": "#/$defs/one-of-select"
         }
       ]
     },
@@ -196,6 +204,24 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "checkbox"
+        },
+        "if": {
+          "$ref": "#/$defs/expression"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "one-of-select": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comp"
+      ],
+      "properties": {
+        "comp": {
+          "const": "one-of-select"
         },
         "if": {
           "$ref": "#/$defs/expression"

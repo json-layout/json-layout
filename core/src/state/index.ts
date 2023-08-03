@@ -1,4 +1,4 @@
-import { type ErrorObject, type ValidateFunction } from 'ajv'
+import { type ValidateFunction } from 'ajv'
 import mitt, { type Emitter } from 'mitt'
 import { type CompiledLayout, type LayoutTree } from '../compile'
 import { produceStateNode, produceStateNodeValue, type StateNode } from './nodes'
@@ -8,7 +8,7 @@ export * from './nodes'
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type StatefulLayoutEvents = {
-  // input: { value: unknown, child: { schemaPointer: string, dataPointer: string, value: unknown } }
+  // input: { value: unknown, child: { pointer: string, dataPointer: string, value: unknown } }
   input: unknown
 }
 
@@ -38,8 +38,8 @@ export class StatefulLayout {
     this._root = this.produceRoot()
   }
 
-  private _errors: ErrorObject[]
-  get errors () { return this._errors }
+  private _valid: boolean
+  get valid () { return this._valid }
 
   private _value: unknown
   get value () { return this._value }
@@ -50,7 +50,7 @@ export class StatefulLayout {
 
   private readonly _validate: ValidateFunction
 
-  private _nodesByKeys: Record<string, StateNode> = {}
+  private _nodesByPointers: Record<string, StateNode> = {}
 
   constructor (compiledLayout: CompiledLayout, tree: LayoutTree, mode: Mode, width: number, value: unknown = {}) {
     this._compiledLayout = compiledLayout
@@ -59,37 +59,35 @@ export class StatefulLayout {
     this._mode = mode
     this._width = width
     this._display = new Display(width)
-    this._errors = []
+    this._valid = true
     this._value = value
     this._validate = compiledLayout.validates[compiledLayout.tree.validate]
     this._root = this.produceRoot()
   }
 
   private produceRoot () {
-    this._nodesByKeys = {}
-    this._validate(this._value)
-    this._errors = this._validate.errors ?? []
+    this._nodesByPointers = {}
+    this._valid = this._validate(this._value)
     return produceStateNode(
       this._compiledLayout,
-      this._nodesByKeys,
-      null,
+      this._nodesByPointers,
       this._tree.root,
       this._mode,
       this._display,
       this._value,
-      this._errors,
+      this._validate.errors ?? [],
       this._root
     )
   }
 
   input (node: StateNode, value: unknown) {
-    if (node.parentKey === null) {
+    if (node.parentPointer === null) {
       this.value = value
       this.events.emit('input', value)
       return
     }
-    const parentNode = this._nodesByKeys[node.parentKey]
-    if (!parentNode) throw new Error(`parent with key "${node.parentKey}" not found`)
+    const parentNode = this._nodesByPointers[node.parentPointer]
+    if (!parentNode) throw new Error(`parent with key "${node.parentPointer}" not found`)
     const newParentValue = produceStateNodeValue(parentNode.value, node.key, value)
     this.input(parentNode, newParentValue)
   }
