@@ -1,8 +1,8 @@
 // import { type Emitter } from 'mitt'
-import { type LayoutNode, type CompiledLayout } from '../../compile'
+import { type LayoutNode, type CompiledLayout, type LayoutTree } from '../../compile'
 import { type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type TextField, type CompObject, type Section, isSwitch, type NumberField } from '@json-layout/vocabulary'
+import { type TextField, type CompObject, type Section, isSwitch, type NumberField, type OneOfSelect } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from '../utils/display'
@@ -20,6 +20,7 @@ export interface StateNode {
   value: unknown
   error: string | undefined
   children?: StateNode[]
+  childrenTrees?: Array<{ title: string, tree: LayoutTree }>
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, value: string }
@@ -30,6 +31,9 @@ export const isNumberField = (node: StateNode | undefined): node is NumberFieldN
 
 export type SectionNode = StateNode & { layout: Section, value: Record<string, unknown>, children: StateNode[] }
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'
+
+export type OneOfSelectNode = StateNode & { layout: OneOfSelect, value: Record<string, unknown>, trees: LayoutTree[] }
+export const isOneOfSelect = (node: StateNode | undefined): node is OneOfSelectNode => !!node && node.layout.comp === 'one-of-select'
 
 // use Immer for efficient updating with immutability and no-op detection
 const updateStateNode = produce<StateNode, [LayoutNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
@@ -44,6 +48,8 @@ const updateStateNode = produce<StateNode, [LayoutNode, CompObject, Mode, unknow
     draft.value = value
     draft.error = error
     draft.children = children
+
+    if (skeleton.childrenTrees) draft.childrenTrees = skeleton.childrenTrees
   }
 )
 

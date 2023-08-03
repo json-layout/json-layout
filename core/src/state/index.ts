@@ -64,7 +64,7 @@ export class StatefulLayout {
     this._display = new Display(width)
     this._valid = true
     this._value = value
-    this._validate = compiledLayout.validates[compiledLayout.tree.validate]
+    this._validate = compiledLayout.validates[tree.validate]
     this.produceRoot()
   }
 

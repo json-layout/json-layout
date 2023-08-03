@@ -40,7 +40,7 @@ export interface LayoutNode {
   dataPath: string
   parentDataPath: string | null
   children?: LayoutNode[] // optional children in the case of arrays and object nodes
-  trees?: LayoutTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
+  childrenTrees?: Array<{ title: string, tree: LayoutTree }> // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
 }
 
 export function compileRaw (schema: any, options: CompileRawOptions): CompiledRaw {
@@ -141,13 +141,18 @@ function makeNode (
   if (schema.oneOf) {
     const oneOfPointer = `${pointer}/oneOf`
     normalizedLayouts[oneOfPointer] = normalizedLayouts[oneOfPointer] ?? normalizeLayoutFragment(schema as SchemaFragment, oneOfPointer, 'oneOf')
-    const trees: LayoutTree[] = []
+    const childrenTrees: Array<{ title: string, tree: LayoutTree }> = []
     for (let i = 0; i < schema.oneOf.length; i++) {
       if (!schema.oneOf[i].type) schema.oneOf[i].type = schema.type
-      trees.push(makeTree(schema.oneOf[i], ajv, validates, normalizedLayouts, expressions, `${oneOfPointer}/${i}`))
+      const title = schema.oneOf[i].title ?? `option ${i}`
+      delete schema.oneOf[i].title
+      childrenTrees.push({
+        title,
+        tree: makeTree(schema.oneOf[i], ajv, validates, normalizedLayouts, expressions, `${oneOfPointer}/${i}`)
+      })
     }
     node.children = node.children ?? []
-    node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, dataPath, parentDataPath, trees })
+    node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, dataPath, parentDataPath, childrenTrees })
 
     schema.errorMessage.oneOf = 'chose one'
   }
