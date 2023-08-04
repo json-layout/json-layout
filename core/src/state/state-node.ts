@@ -7,21 +7,18 @@ import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from './utils/display'
 import { shallowCompareArrays } from './utils/immutable'
-import { produceStateTree, type StateTree } from './state-tree'
+import { type CreateStateTreeContext } from './state-tree'
 // import { type ErrorObject } from 'ajv-errors'
 
 export interface StateNode {
+  fullKey: string
+  parentFullKey: string | null
+  skeleton: SkeletonNode
   layout: CompObject
-  key: string
-  pointer: string
-  parentPointer: string | null
-  dataPath: string
-  parentDataPath: string | null
   mode: Mode
   value: unknown
   error: string | undefined
   children?: StateNode[]
-  childrenTrees?: StateTree[]
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, value: string }
@@ -37,38 +34,41 @@ export type OneOfSelectNode = StateNode & { layout: OneOfSelect, value: Record<s
 export const isOneOfSelect = (node: StateNode | undefined): node is OneOfSelectNode => !!node && node.layout.comp === 'one-of-select'
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateNode = produce<StateNode, [SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?, StateTree[]?]>(
-  (draft, skeleton, layout, mode, value, error, children?, childrenTrees?) => {
-    draft.key = skeleton.key
-    draft.pointer = skeleton.pointer
-    draft.parentPointer = skeleton.parentPointer
-    draft.dataPath = skeleton.dataPath
-    draft.parentDataPath = skeleton.parentDataPath
+const produceStateNode = produce<StateNode, [string, string | null, SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
+  (draft, fullKey, parentFullKey, skeleton, layout, mode, value, error, children?) => {
+    draft.fullKey = fullKey
+    draft.parentFullKey = parentFullKey
+    draft.skeleton = skeleton
     draft.layout = layout
     draft.mode = mode
     draft.value = value
     draft.error = error
     draft.children = children
-    draft.childrenTrees = childrenTrees
   }
 )
 
 const nodeCompObject: CompObject = { comp: 'none' }
 
 const matchError = (error: ErrorObject, skeleton: SkeletonNode): boolean => {
-  if (skeleton.parentDataPath === error.instancePath && error.params?.missingProperty === skeleton.key) return true
-  if (skeleton.dataPath === error.instancePath) return true
+  const originalError = error.params?.errors?.[0] ?? error
+  if (skeleton.parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
+  if (originalError.instancePath === skeleton.dataPath && originalError.schemaPath === skeleton.pointer) return true
+  return false
+}
+const matchChildError = (error: ErrorObject, skeleton: SkeletonNode): boolean => {
+  if (error.instancePath.startsWith(skeleton.dataPath)) return true
   return false
 }
 
 export function createStateNode (
+  context: CreateStateTreeContext,
   compiledLayout: CompiledLayout,
-  nodesByPointers: Record<string, StateNode>,
+  fullKey: string,
+  parentFullKey: string | null,
   skeleton: SkeletonNode,
   mode: Mode,
   display: Display,
   value: unknown,
-  errors: ErrorObject[],
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.pointer]
@@ -91,39 +91,44 @@ export function createStateNode (
     // TODO: make this type casting safe using prior validation
     const objectValue = (value ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
-      return createStateNode(compiledLayout, nodesByPointers, child, mode, display, objectValue[child.key], errors, reusedNode?.children?.[i])
+      return createStateNode(
+        context,
+        compiledLayout,
+        fullKey + '/' + child.key,
+        fullKey,
+        child,
+        mode,
+        display,
+        objectValue[child.key], reusedNode?.children?.[i]
+      )
     }).filter(child => child?.layout.comp !== 'none')
   }
-
-  const childrenTrees: StateTree[] | undefined = skeleton.childrenTrees?.map((skeletonTree, i) => {
-    const validateChild = compiledLayout.validates[skeletonTree.validate]
-    const validChild = validateChild(value)
-    const childRoot = createStateNode(compiledLayout, nodesByPointers, skeletonTree.root, mode, display, value, validateChild.errors ?? [], reusedNode?.childrenTrees?.[i].root)
-    return produceStateTree(reusedNode?.childrenTrees?.[i] ?? ({} as StateTree), childRoot, mode, validChild, skeletonTree.title)
-  })
 
   if (layout.comp === 'text-field') {
     value = value ?? ''
   }
 
-  // filter errors array in-place
-  // cf https://stackoverflow.com/questions/37318808/what-is-the-in-place-alternative-to-array-prototype-filter
-  let error
-  let nbRemainingErrors = 0
-  for (const e of errors) {
-    const originalError = e.params?.errors?.[0] ?? e
-    if (matchError(originalError, skeleton)) {
-      error = e
-    } else {
-      errors[nbRemainingErrors++] = e
-    }
-  }
-  errors.splice(nbRemainingErrors)
+  const error = context.errors?.find(error => matchError(error, skeleton)) ?? context.errors?.find(error => matchChildError(error, skeleton))
 
-  nodesByPointers[skeleton.pointer] = produceStateNode(reusedNode ?? ({} as StateNode), skeleton, layout, mode, value, error?.message, shallowCompareArrays(reusedNode?.children, children), shallowCompareArrays(reusedNode?.childrenTrees, childrenTrees))
-  return nodesByPointers[skeleton.pointer]
+  // capture errors so that they are not repeated in parent nodes
+  if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton) && !matchChildError(error, skeleton))
+  const node = produceStateNode(
+    reusedNode ?? ({} as StateNode),
+    fullKey,
+    parentFullKey,
+    skeleton,
+    layout,
+    mode,
+    value,
+    error?.message,
+    shallowCompareArrays(reusedNode?.children, children)
+  )
+  context.nodes.push(node)
+  return node
 }
 
-export const produceStateNodeValue = produce((draft, key, value) => {
-  draft[key] = value
-})
+export const produceStateNodeValue = produce<any, [StateNode, StateNode, unknown]>(
+  (draft, parentNode, node, value) => {
+    draft[node.skeleton.key] = value
+  }
+)

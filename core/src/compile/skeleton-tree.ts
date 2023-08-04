@@ -10,7 +10,6 @@ import { type SkeletonNode, makeSkeletonNode } from './skeleton-node'
 export interface SkeletonTree {
   title: string
   root: SkeletonNode
-  validate: string // reference to a validate function in the validates store
 }
 
 export function makeSkeletonTree (
@@ -24,5 +23,5 @@ export function makeSkeletonTree (
 ): SkeletonTree {
   const root = makeSkeletonNode(schema, ajv, validates, normalizedLayouts, expressions, '', pointer, '', null, null)
   validates.push(pointer)
-  return { title, root, validate: pointer }
+  return { title, root }
 }

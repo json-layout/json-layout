@@ -1,8 +1,7 @@
-import { type ValidateFunction } from 'ajv'
 import mitt, { type Emitter } from 'mitt'
 import { type CompiledLayout, type SkeletonTree } from '../compile'
-import { createStateNode, produceStateNodeValue, type StateNode } from './state-node'
-import { produceStateTree, type StateTree } from './state-tree'
+import { produceStateNodeValue, type StateNode } from './state-node'
+import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
 import { Display } from './utils/display'
 
 // export * from './nodes'
@@ -28,7 +27,7 @@ export class StatefulLayout {
   get mode () { return this._mode }
   set mode (mode) {
     this._mode = mode
-    this.createStateTree()
+    this.updateState()
   }
 
   private _width: number
@@ -37,22 +36,17 @@ export class StatefulLayout {
   set width (width) {
     this._width = width
     this._display = this._display && this._display.width === width ? this._display : new Display(width)
-    this.createStateTree()
+    this.updateState()
   }
-
-  private _valid: boolean
-  get valid () { return this._valid }
 
   private _value: unknown
   get value () { return this._value }
   set value (value: unknown) {
     this._value = value
-    this.createStateTree()
+    this.updateState()
   }
 
-  private readonly _validate: ValidateFunction
-
-  private _nodesByPointers: Record<string, StateNode> = {}
+  private _lastCreateStateTreeContext!: CreateStateTreeContext
 
   constructor (compiledLayout: CompiledLayout, tree: SkeletonTree, mode: Mode, width: number, value: unknown = {}) {
     this._compiledLayout = compiledLayout
@@ -60,38 +54,34 @@ export class StatefulLayout {
     this._mode = mode
     this._width = width
     this._display = new Display(width)
-    this._valid = true
     this._value = value
-    this._validate = compiledLayout.validates[tree.validate]
-    this.createStateTree()
+    this.updateState()
   }
 
-  private createStateTree () {
-    this._nodesByPointers = {}
-    this._valid = this._validate(this._value)
-    const root = createStateNode(
+  private updateState () {
+    const createStateTreeContext: CreateStateTreeContext = { nodes: [] }
+    this._stateTree = createStateTree(
+      createStateTreeContext,
       this._compiledLayout,
-      this._nodesByPointers,
-      this._compiledLayout.skeletonTree.root,
+      this._compiledLayout.skeletonTree,
       this._mode,
       this._display,
       this._value,
-      this._validate.errors ?? [],
-      this._stateTree?.root
+      this._stateTree
     )
-    this._stateTree = produceStateTree(this._stateTree ?? ({} as StateTree), root, this._mode, this._valid, 'main')
+    this._lastCreateStateTreeContext = createStateTreeContext
     this.events.emit('update', this)
   }
 
   input (node: StateNode, value: unknown) {
-    if (node.parentPointer === null) {
+    if (node.parentFullKey === null) {
       this.value = value
       this.events.emit('input', value)
       return
     }
-    const parentNode = this._nodesByPointers[node.parentPointer]
-    if (!parentNode) throw new Error(`parent with key "${node.parentPointer}" not found`)
-    const newParentValue = produceStateNodeValue(parentNode.value, node.key, value)
+    const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
+    if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
+    const newParentValue = produceStateNodeValue(parentNode.value, parentNode, node, value)
     this.input(parentNode, newParentValue)
   }
 }

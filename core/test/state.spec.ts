@@ -17,7 +17,7 @@ describe('stateful layout', () => {
     assert.deepEqual(statefulLayout.stateTree.root.value, {})
     assert.ok(statefulLayout.stateTree.root.children)
     assert.equal(statefulLayout.stateTree.root.children.length, 4)
-    assert.ok(statefulLayout.stateTree.root.children[0].key, 'str1')
+    assert.ok(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].value, '')
 
     // input is meant to be triggered by a UI component on a leaf node
@@ -78,7 +78,7 @@ describe('stateful layout', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
   })
 
   it('should manage simple validation of value', () => {
@@ -104,8 +104,9 @@ describe('stateful layout', () => {
       }] */
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, { str2: 'test' })
-    assert.equal(statefulLayout.valid, false)
+    assert.equal(statefulLayout.stateTree.valid, false)
     assert.equal(statefulLayout.stateTree.root.error, 'must have required property \'missingProp\'')
+    console.log(statefulLayout.stateTree.root.children?.[0].skeleton)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required')
     assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
   })
@@ -119,7 +120,7 @@ describe('stateful layout', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'textarea')
   })
 
@@ -132,12 +133,12 @@ describe('stateful layout', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 2000)
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'textarea')
 
     statefulLayout.width = 1000
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
+    assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
   })
 
@@ -151,10 +152,10 @@ describe('stateful layout', () => {
       ]
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
-    assert.ok(!statefulLayout.valid)
+    assert.ok(!statefulLayout.stateTree.valid)
     assert.ok(!statefulLayout.stateTree.root.error)
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
-    assert.equal(statefulLayout.stateTree.root.children[1].key, '$oneOf')
+    assert.equal(statefulLayout.stateTree.root.children[1].skeleton.key, '$oneOf')
     assert.equal(statefulLayout.stateTree.root.children[1].error, 'chose one')
   })
 })
