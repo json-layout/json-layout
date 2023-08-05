@@ -4,7 +4,9 @@ import { produceStateNodeValue, type StateNode } from './state-node'
 import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
 import { Display } from './utils/display'
 
-// export * from './nodes'
+export * from './nodes'
+export type { StateTree } from './state-tree'
+export type { StateNode } from './state-node'
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type StatefulLayoutEvents = {
@@ -22,6 +24,8 @@ export class StatefulLayout {
 
   private _stateTree!: StateTree
   get stateTree () { return this._stateTree }
+
+  private readonly skeletonTree: SkeletonTree
 
   private _mode: Mode
   get mode () { return this._mode }
@@ -48,8 +52,9 @@ export class StatefulLayout {
 
   private _lastCreateStateTreeContext!: CreateStateTreeContext
 
-  constructor (compiledLayout: CompiledLayout, tree: SkeletonTree, mode: Mode, width: number, value: unknown = {}) {
+  constructor (compiledLayout: CompiledLayout, skeletonTree: SkeletonTree, mode: Mode, width: number, value: unknown = {}) {
     this._compiledLayout = compiledLayout
+    this.skeletonTree = skeletonTree
     this.events = mitt<StatefulLayoutEvents>()
     this._mode = mode
     this._width = width
@@ -63,7 +68,7 @@ export class StatefulLayout {
     this._stateTree = createStateTree(
       createStateTreeContext,
       this._compiledLayout,
-      this._compiledLayout.skeletonTree,
+      this.skeletonTree,
       this._mode,
       this._display,
       this._value,

@@ -1,8 +1,8 @@
 // import { type Emitter } from 'mitt'
-import { type SkeletonNode, type CompiledLayout, type SkeletonTree } from '../compile'
+import { type SkeletonNode, type CompiledLayout } from '../compile'
 import { type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type TextField, type CompObject, type Section, isSwitch, type NumberField, type OneOfSelect } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from './utils/display'
@@ -20,18 +20,6 @@ export interface StateNode {
   error: string | undefined
   children?: StateNode[]
 }
-
-export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, value: string }
-export const isTextField = (node: StateNode | undefined): node is TextFieldNode => !!node && node.layout.comp === 'text-field'
-
-export type NumberFieldNode = Omit<StateNode, 'children'> & { layout: NumberField, value: number }
-export const isNumberField = (node: StateNode | undefined): node is NumberFieldNode => !!node && node.layout.comp === 'number-field'
-
-export type SectionNode = StateNode & { layout: Section, value: Record<string, unknown>, children: StateNode[] }
-export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'
-
-export type OneOfSelectNode = StateNode & { layout: OneOfSelect, value: Record<string, unknown>, trees: SkeletonTree[] }
-export const isOneOfSelect = (node: StateNode | undefined): node is OneOfSelectNode => !!node && node.layout.comp === 'one-of-select'
 
 // use Immer for efficient updating with immutability and no-op detection
 const produceStateNode = produce<StateNode, [string, string | null, SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
@@ -129,6 +117,10 @@ export function createStateNode (
 
 export const produceStateNodeValue = produce<any, [StateNode, StateNode, unknown]>(
   (draft, parentNode, node, value) => {
-    draft[node.skeleton.key] = value
+    if (parentNode.skeleton.dataPath === node.skeleton.dataPath) {
+      Object.assign(draft, value)
+    } else {
+      draft[node.skeleton.key] = value
+    }
   }
 )
