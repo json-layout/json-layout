@@ -158,6 +158,36 @@ describe('stateful layout', () => {
     })
     const arrNode = statefulLayout.stateTree.root.children?.[0]
     assert.ok(arrNode)
+    assert.equal(arrNode.layout.comp, 'list')
+    assert.deepEqual(arrNode.data, ['Str 1', 'Str 2'])
+    assert.equal(arrNode.children?.length, 2)
+    assert.equal(arrNode.children?.[0].key, 0)
+    assert.equal(arrNode.children?.[0].data, 'Str 1')
+    assert.equal(arrNode.children?.[0].layout.comp, 'text-field')
+    assert.equal(arrNode.children?.[1].key, 1)
+    assert.equal(arrNode.children?.[1].data, 'Str 2')
+
+    statefulLayout.input(arrNode.children[0], 'test')
+    const arrNode2 = statefulLayout.stateTree.root.children?.[0]
+    assert.ok(arrNode2)
+    assert.notEqual(arrNode, arrNode2)
+    assert.equal(arrNode2.children?.[0].data, 'test')
+  })
+
+  it('should manage tuples', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: { arr1: { type: 'array', items: [{ title: 'Str 1', type: 'string' }, { title: 'Str2', type: 'string' }] } }
+    })
+    assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
+    assert.equal(compiledLayout.skeletonTree.root.children[0].children?.length, 2)
+    console.log(compiledLayout.skeletonTree.root.children[0].children)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, {
+      arr1: ['Str 1', 'Str 2']
+    })
+    const arrNode = statefulLayout.stateTree.root.children?.[0]
+    assert.ok(arrNode)
+    assert.equal(arrNode.layout.comp, 'section')
     assert.deepEqual(arrNode.data, ['Str 1', 'Str 2'])
     assert.equal(arrNode.children?.length, 2)
     assert.equal(arrNode.children?.[0].key, 0)

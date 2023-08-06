@@ -102,7 +102,7 @@ export function createStateNode (
         child,
         mode,
         display,
-        child.key.startsWith('$') ? objectData : objectData[child.key],
+        (typeof child.key === 'string' && child.key.startsWith('$')) ? objectData : objectData[child.key],
         reusedNode?.children?.[i]
       )
     })

@@ -6,7 +6,7 @@ import { type SkeletonTree, makeSkeletonTree } from './skeleton-tree'
 // a skeleton node is a light recursive structure
 // at runtime each one will be instantiated as a StateNode with a value and an associated component instance
 export interface SkeletonNode {
-  key: string
+  key: string | number
   pointer: string
   parentPointer: string | null
   dataPath: string
@@ -22,7 +22,7 @@ export function makeSkeletonNode (
   validates: string[],
   normalizedLayouts: Record<string, NormalizedLayout>,
   expressions: Expression[],
-  key: string,
+  key: string | number,
   pointer: string,
   dataPath: string,
   parentPointer: string | null,
@@ -47,16 +47,22 @@ export function makeSkeletonNode (
   if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
   if (schema.type === 'array') defaultData = []
 
-  const node: SkeletonNode = { key: `${key ?? ''}`, pointer, parentPointer, dataPath, parentDataPath, defaultData }
-  const childrenCandidates: Array<{ key: string, pointer: string, dataPath: string, schema: any }> = []
+  const node: SkeletonNode = { key: key ?? '', pointer, parentPointer, dataPath, parentDataPath, defaultData }
   if (schema.properties) {
+    node.children = []
     for (const propertyKey of Object.keys(schema.properties)) {
-      childrenCandidates.push({
-        key: propertyKey,
-        pointer: `${pointer}/properties/${propertyKey}`,
-        dataPath: `${dataPath}/${propertyKey}`,
-        schema: schema.properties[propertyKey]
-      })
+      node.children.push(makeSkeletonNode(
+        schema.properties[propertyKey],
+        ajv,
+        validates,
+        normalizedLayouts,
+        expressions,
+        propertyKey,
+        `${pointer}/properties/${propertyKey}`,
+        `${dataPath}/${propertyKey}`,
+        pointer,
+        dataPath
+      ))
       if (schema?.required?.includes(propertyKey)) {
         schema.errorMessage.required = schema.errorMessage.required ?? {}
         schema.errorMessage.required[propertyKey] = 'required'
@@ -64,25 +70,16 @@ export function makeSkeletonNode (
     }
   }
 
-  if (childrenCandidates.length) {
-    node.children = childrenCandidates.map(cc => makeSkeletonNode(
-      cc.schema,
-      ajv,
-      validates,
-      normalizedLayouts,
-      expressions,
-      cc.key,
-      cc.pointer,
-      cc.dataPath,
-      pointer,
-      dataPath
-    ))
-  }
-
-  if (schema.type === 'array') {
-    node.childrenTrees = [
-      makeSkeletonTree(schema.items, ajv, validates, normalizedLayouts, expressions, `${pointer}/items`, schema.items.title)
-    ]
+  if (schema.type === 'array' && schema.items) {
+    if (Array.isArray(schema.items)) {
+      node.children = schema.items.map((itemSchema: any, i: number) => {
+        return makeSkeletonNode(itemSchema, ajv, validates, normalizedLayouts, expressions, i, `${pointer}/items/${i}`, `${dataPath}/${i}`, pointer, dataPath)
+      })
+    } else {
+      node.childrenTrees = [
+        makeSkeletonTree(schema.items, ajv, validates, normalizedLayouts, expressions, `${pointer}/items`, schema.items.title)
+      ]
+    }
   }
 
   if (schema.oneOf) {
