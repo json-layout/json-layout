@@ -16,24 +16,35 @@ export interface StateNode {
   skeleton: SkeletonNode
   layout: CompObject
   mode: Mode
-  value: unknown
+  data: unknown
   error: string | undefined
   children?: StateNode[]
 }
 
 // use Immer for efficient updating with immutability and no-op detection
 const produceStateNode = produce<StateNode, [string, string | null, SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
-  (draft, fullKey, parentFullKey, skeleton, layout, mode, value, error, children?) => {
+  (draft, fullKey, parentFullKey, skeleton, layout, mode, data, error, children?) => {
     draft.fullKey = fullKey
     draft.parentFullKey = parentFullKey
     draft.skeleton = skeleton
     draft.layout = layout
     draft.mode = mode
-    draft.value = value
+    draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, skeleton, children) : data
     draft.error = error
     draft.children = children
   }
 )
+
+const produceStateNodeData = produce<Record<string, unknown>, [SkeletonNode, StateNode[]]>((draft, skeleton, children) => {
+  for (const child of children) {
+    if (child.data === undefined) continue
+    if (skeleton.dataPath === child.skeleton.dataPath) {
+      Object.assign(draft, child.data)
+    } else {
+      draft[child.skeleton.key] = child.data
+    }
+  }
+})
 
 const nodeCompObject: CompObject = { comp: 'none' }
 
@@ -56,7 +67,7 @@ export function createStateNode (
   skeleton: SkeletonNode,
   mode: Mode,
   display: Display,
-  value: unknown,
+  data: unknown,
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.pointer]
@@ -71,13 +82,13 @@ export function createStateNode (
   } else {
     layout = normalizedLayout
   }
-  // const fullKey = parentKey === null ? skeleton.key : (parentKey + '/' + skeleton.key)
+
+  data = data ?? skeleton.defaultData
 
   let children: StateNode[] | undefined
   if (layout.comp === 'section') {
-    value = value ?? {}
     // TODO: make this type casting safe using prior validation
-    const objectValue = (value ?? {}) as Record<string, unknown>
+    const objectValue = (data ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
       return createStateNode(
         context,
@@ -87,19 +98,18 @@ export function createStateNode (
         child,
         mode,
         display,
-        objectValue[child.key], reusedNode?.children?.[i]
+        child.key.startsWith('$') ? objectValue : objectValue[child.key],
+        reusedNode?.children?.[i]
       )
-    }).filter(child => child?.layout.comp !== 'none')
-  }
-
-  if (layout.comp === 'text-field') {
-    value = value ?? ''
+    })
   }
 
   const error = context.errors?.find(error => matchError(error, skeleton)) ?? context.errors?.find(error => matchChildError(error, skeleton))
-
   // capture errors so that they are not repeated in parent nodes
-  if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton) && !matchChildError(error, skeleton))
+  if (layout.comp !== 'none') {
+    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton) && !matchChildError(error, skeleton))
+  }
+
   const node = produceStateNode(
     reusedNode ?? ({} as StateNode),
     fullKey,
@@ -107,7 +117,7 @@ export function createStateNode (
     skeleton,
     layout,
     mode,
-    value,
+    data,
     error?.message,
     shallowCompareArrays(reusedNode?.children, children)
   )
@@ -115,12 +125,12 @@ export function createStateNode (
   return node
 }
 
-export const produceStateNodeValue = produce<any, [StateNode, StateNode, unknown]>(
-  (draft, parentNode, node, value) => {
+export const producePatchedData = produce<any, [StateNode, StateNode, unknown]>(
+  (draft, parentNode, node, data) => {
     if (parentNode.skeleton.dataPath === node.skeleton.dataPath) {
-      Object.assign(draft, value)
+      Object.assign(draft, data)
     } else {
-      draft[node.skeleton.key] = value
+      draft[node.skeleton.key] = data
     }
   }
 )

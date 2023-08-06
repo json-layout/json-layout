@@ -1,6 +1,6 @@
 import mitt, { type Emitter } from 'mitt'
 import { type CompiledLayout, type SkeletonTree } from '../compile'
-import { produceStateNodeValue, type StateNode } from './state-node'
+import { producePatchedData, type StateNode } from './state-node'
 import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
 import { Display } from './utils/display'
 
@@ -43,10 +43,10 @@ export class StatefulLayout {
     this.updateState()
   }
 
-  private _value: unknown
-  get value () { return this._value }
-  set value (value: unknown) {
-    this._value = value
+  private _data: unknown
+  get data () { return this._data }
+  set data (data: unknown) {
+    this._data = data
     this.updateState()
   }
 
@@ -59,7 +59,7 @@ export class StatefulLayout {
     this._mode = mode
     this._width = width
     this._display = new Display(width)
-    this._value = value
+    this._data = value
     this.updateState()
   }
 
@@ -71,22 +71,23 @@ export class StatefulLayout {
       this.skeletonTree,
       this._mode,
       this._display,
-      this._value,
+      this._data,
       this._stateTree
     )
+    this._data = this._stateTree.root.data
     this._lastCreateStateTreeContext = createStateTreeContext
     this.events.emit('update', this)
   }
 
-  input (node: StateNode, value: unknown) {
+  input (node: StateNode, data: unknown) {
     if (node.parentFullKey === null) {
-      this.value = value
-      this.events.emit('input', value)
+      this.data = data
+      this.events.emit('input', this.data)
       return
     }
     const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
-    const newParentValue = produceStateNodeValue(parentNode.value, parentNode, node, value)
+    const newParentValue = producePatchedData(parentNode.data, parentNode, node, data)
     this.input(parentNode, newParentValue)
   }
 }

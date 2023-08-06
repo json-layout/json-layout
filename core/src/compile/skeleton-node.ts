@@ -11,6 +11,7 @@ export interface SkeletonNode {
   parentPointer: string | null
   dataPath: string
   parentDataPath: string | null
+  defaultData?: unknown
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
 }
@@ -40,7 +41,12 @@ export function makeSkeletonNode (
     if (compObject.if) expressions.push(compObject.if)
   }
 
-  const node: SkeletonNode = { key: `${key ?? ''}`, pointer, parentPointer, dataPath, parentDataPath }
+  let defaultData
+  if (schema.const) defaultData = schema.const
+  else if (schema.default) defaultData = schema.default
+  if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
+
+  const node: SkeletonNode = { key: `${key ?? ''}`, pointer, parentPointer, dataPath, parentDataPath, defaultData }
   const childrenCandidates: Array<{ key: string, pointer: string, dataPath: string, schema: any }> = []
   if (schema.properties) {
     for (const propertyKey of Object.keys(schema.properties)) {
@@ -56,8 +62,20 @@ export function makeSkeletonNode (
       }
     }
   }
+
   if (childrenCandidates.length) {
-    node.children = childrenCandidates.map(cc => makeSkeletonNode(cc.schema, ajv, validates, normalizedLayouts, expressions, cc.key, cc.pointer, cc.dataPath, pointer, dataPath))
+    node.children = childrenCandidates.map(cc => makeSkeletonNode(
+      cc.schema,
+      ajv,
+      validates,
+      normalizedLayouts,
+      expressions,
+      cc.key,
+      cc.pointer,
+      cc.dataPath,
+      pointer,
+      dataPath
+    ))
   }
   if (schema.oneOf) {
     const oneOfPointer = `${pointer}/oneOf`
