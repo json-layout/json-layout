@@ -33,7 +33,8 @@
         "text-field",
         "number-field",
         "textarea",
-        "checkbox"
+        "checkbox",
+        "list"
       ]
     },
     "children": {

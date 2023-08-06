@@ -13,7 +13,7 @@ describe('stateful layout', () => {
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
-    assert.deepEqual(statefulLayout.stateTree.root.layout, { comp: 'section' })
+    assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.deepEqual(statefulLayout.stateTree.root.data, {})
     assert.ok(statefulLayout.stateTree.root.children)
     assert.equal(statefulLayout.stateTree.root.children.length, 4)
@@ -143,6 +143,34 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
     assert.equal(statefulLayout.stateTree.root.children[1].skeleton.key, '$oneOf')
     assert.equal(statefulLayout.stateTree.root.children[1].error, 'chose one')
+  })
+
+  it('should manage arrays', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: { arr1: { type: 'array', items: { type: 'string' } } }
+    })
+    assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
+    assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
+    assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, {
+      arr1: ['Str 1', 'Str 2']
+    })
+    const arrNode = statefulLayout.stateTree.root.children?.[0]
+    assert.ok(arrNode)
+    assert.deepEqual(arrNode.data, ['Str 1', 'Str 2'])
+    assert.equal(arrNode.children?.length, 2)
+    assert.equal(arrNode.children?.[0].key, 0)
+    assert.equal(arrNode.children?.[0].data, 'Str 1')
+    assert.equal(arrNode.children?.[0].layout.comp, 'text-field')
+    assert.equal(arrNode.children?.[1].key, 1)
+    assert.equal(arrNode.children?.[1].data, 'Str 2')
+
+    statefulLayout.input(arrNode.children[0], 'test')
+    const arrNode2 = statefulLayout.stateTree.root.children?.[0]
+    assert.ok(arrNode2)
+    assert.notEqual(arrNode, arrNode2)
+    assert.equal(arrNode2.children?.[0].data, 'test')
   })
 
   it('should fill default values', () => {

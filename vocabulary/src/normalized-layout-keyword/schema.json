@@ -17,6 +17,7 @@
       "oneOf": [
         {"$ref": "#/$defs/none"},
         {"$ref": "#/$defs/section"},
+        {"$ref": "#/$defs/list"},
         {"$ref": "#/$defs/text-field"},
         {"$ref": "#/$defs/number-field"},
         {"$ref": "#/$defs/textarea"},
@@ -45,6 +46,16 @@
           "type": "array",
           "items": {"type": "string"}
         }
+      }
+    },
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comp"],
+      "properties": {
+        "comp": {"const": "list"},
+        "if": {"$ref": "#/$defs/expression"},
+        "title": {"type": "string"}
       }
     },
     "text-field": {

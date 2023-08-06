@@ -15,7 +15,8 @@ export interface SchemaFragment {
 function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: string): CompObject {
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
   if ('const' in schemaFragment) return { comp: 'none' }
-  if (schemaFragment.type === 'object') return { comp: 'section' }
+  if (schemaFragment.type === 'object') return { comp: 'section', title: schemaFragment.title }
+  if (schemaFragment.type === 'array') return { comp: 'list', title: schemaFragment.title ?? key }
   if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
   if (schemaFragment.type === 'integer') return { comp: 'number-field', label: schemaFragment.title ?? key, step: 1 }
   if (schemaFragment.type === 'number') return { comp: 'number-field', label: schemaFragment.title ?? key }

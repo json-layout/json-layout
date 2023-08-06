@@ -45,6 +45,7 @@ export function makeSkeletonNode (
   if (schema.const) defaultData = schema.const
   else if (schema.default) defaultData = schema.default
   if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
+  if (schema.type === 'array') defaultData = []
 
   const node: SkeletonNode = { key: `${key ?? ''}`, pointer, parentPointer, dataPath, parentDataPath, defaultData }
   const childrenCandidates: Array<{ key: string, pointer: string, dataPath: string, schema: any }> = []
@@ -77,6 +78,13 @@ export function makeSkeletonNode (
       dataPath
     ))
   }
+
+  if (schema.type === 'array') {
+    node.childrenTrees = [
+      makeSkeletonTree(schema.items, ajv, validates, normalizedLayouts, expressions, `${pointer}/items`, schema.items.title)
+    ]
+  }
+
   if (schema.oneOf) {
     const oneOfPointer = `${pointer}/oneOf`
     normalizedLayouts[oneOfPointer] = normalizedLayouts[oneOfPointer] ?? normalizeLayoutFragment(schema as SchemaFragment, oneOfPointer, 'oneOf')

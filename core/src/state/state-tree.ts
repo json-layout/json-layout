@@ -42,6 +42,7 @@ export function createStateTree (
     context,
     compiledLayout,
     '',
+    '',
     null,
     skeleton.root,
     mode,

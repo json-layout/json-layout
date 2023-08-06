@@ -1,5 +1,5 @@
 export type LayoutKeyword = ComponentName | Children | PartialCompObject | PartialSwitch;
-export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox";
+export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox" | "list";
 export type Children = string[];
 export type PartialExpression =
   | string
@@ -77,7 +77,8 @@ export const layoutKeywordSchema = {
         "text-field",
         "number-field",
         "textarea",
-        "checkbox"
+        "checkbox",
+        "list"
       ]
     },
     "children": {

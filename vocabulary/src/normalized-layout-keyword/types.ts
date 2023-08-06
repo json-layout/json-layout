@@ -1,5 +1,5 @@
 export type NormalizedLayout = Switch | CompObject;
-export type CompObject = None | Section | TextField | NumberField | Textarea | Checkbox | OneOfSelect;
+export type CompObject = None | Section | List | TextField | NumberField | Textarea | Checkbox | OneOfSelect;
 export type Switch = CompObject[];
 
 export interface None {
@@ -16,6 +16,11 @@ export interface Section {
   if?: Expression;
   title?: string;
   children?: string[];
+}
+export interface List {
+  comp: "list";
+  if?: Expression;
+  title?: string;
 }
 export interface TextField {
   comp: "text-field";
@@ -79,6 +84,9 @@ export const normalizedLayoutKeywordSchema = {
           "$ref": "#/$defs/section"
         },
         {
+          "$ref": "#/$defs/list"
+        },
+        {
           "$ref": "#/$defs/text-field"
         },
         {
@@ -131,6 +139,24 @@ export const normalizedLayoutKeywordSchema = {
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comp"
+      ],
+      "properties": {
+        "comp": {
+          "const": "list"
+        },
+        "if": {
+          "$ref": "#/$defs/expression"
+        },
+        "title": {
+          "type": "string"
         }
       }
     },
