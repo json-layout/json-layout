@@ -9,8 +9,6 @@ export interface SkeletonNode {
   key: string | number
   pointer: string
   parentPointer: string | null
-  dataPath: string
-  parentDataPath: string | null
   defaultData?: unknown
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
@@ -24,9 +22,7 @@ export function makeSkeletonNode (
   expressions: Expression[],
   key: string | number,
   pointer: string,
-  dataPath: string,
-  parentPointer: string | null,
-  parentDataPath: string | null
+  parentPointer: string | null
 ): SkeletonNode {
   // consolidate schema
   if (!schema.type && schema.properties) schema.type = 'object'
@@ -47,7 +43,7 @@ export function makeSkeletonNode (
   if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
   if (schema.type === 'array') defaultData = []
 
-  const node: SkeletonNode = { key: key ?? '', pointer, parentPointer, dataPath, parentDataPath, defaultData }
+  const node: SkeletonNode = { key: key ?? '', pointer, parentPointer, defaultData }
   if (schema.properties) {
     node.children = []
     for (const propertyKey of Object.keys(schema.properties)) {
@@ -59,9 +55,7 @@ export function makeSkeletonNode (
         expressions,
         propertyKey,
         `${pointer}/properties/${propertyKey}`,
-        `${dataPath}/${propertyKey}`,
-        pointer,
-        dataPath
+        pointer
       ))
       if (schema?.required?.includes(propertyKey)) {
         schema.errorMessage.required = schema.errorMessage.required ?? {}
@@ -73,7 +67,7 @@ export function makeSkeletonNode (
   if (schema.type === 'array' && schema.items) {
     if (Array.isArray(schema.items)) {
       node.children = schema.items.map((itemSchema: any, i: number) => {
-        return makeSkeletonNode(itemSchema, ajv, validates, normalizedLayouts, expressions, i, `${pointer}/items/${i}`, `${dataPath}/${i}`, pointer, dataPath)
+        return makeSkeletonNode(itemSchema, ajv, validates, normalizedLayouts, expressions, i, `${pointer}/items/${i}`, pointer)
       })
     } else {
       node.childrenTrees = [
@@ -93,7 +87,7 @@ export function makeSkeletonNode (
       childrenTrees.push(makeSkeletonTree(schema.oneOf[i], ajv, validates, normalizedLayouts, expressions, `${oneOfPointer}/${i}`, title))
     }
     node.children = node.children ?? []
-    node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, dataPath, parentDataPath, childrenTrees })
+    node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees })
 
     schema.errorMessage.oneOf = 'chose one'
   }

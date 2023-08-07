@@ -14,6 +14,8 @@ export interface StateNode {
   key: string | number
   fullKey: string
   parentFullKey: string | null
+  dataPath: string
+  parentDataPath: string | null
   skeleton: SkeletonNode
   layout: CompObject
   mode: Mode
@@ -23,24 +25,26 @@ export interface StateNode {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateNode = produce<StateNode, [string | number, string, string | null, SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
-  (draft, key, fullKey, parentFullKey, skeleton, layout, mode, data, error, children?) => {
+const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
+  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, data, error, children?) => {
     draft.key = key
     draft.fullKey = fullKey
     draft.parentFullKey = parentFullKey
+    draft.dataPath = dataPath
+    draft.parentDataPath = parentDataPath
     draft.skeleton = skeleton
     draft.layout = layout
     draft.mode = mode
-    draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, skeleton, children) : data
+    draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
     draft.error = error
     draft.children = children
   }
 )
 
-const produceStateNodeData = produce<Record<string, unknown>, [SkeletonNode, StateNode[]]>((draft, skeleton, children) => {
+const produceStateNodeData = produce<Record<string, unknown>, [string, StateNode[]]>((draft, parentDataPath, children) => {
   for (const child of children) {
     if (child.data === undefined) continue
-    if (skeleton.dataPath === child.skeleton.dataPath) {
+    if (parentDataPath === child.dataPath) {
       Object.assign(draft, child.data)
     } else {
       draft[child.key] = child.data
@@ -50,14 +54,14 @@ const produceStateNodeData = produce<Record<string, unknown>, [SkeletonNode, Sta
 
 const nodeCompObject: CompObject = { comp: 'none' }
 
-const matchError = (error: ErrorObject, skeleton: SkeletonNode): boolean => {
+const matchError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: string, parentDataPath: string | null): boolean => {
   const originalError = error.params?.errors?.[0] ?? error
-  if (skeleton.parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
-  if (originalError.instancePath === skeleton.dataPath && originalError.schemaPath === skeleton.pointer) return true
+  if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
+  if (originalError.instancePath === dataPath && originalError.schemaPath === skeleton.pointer) return true
   return false
 }
-const matchChildError = (error: ErrorObject, skeleton: SkeletonNode): boolean => {
-  if (error.instancePath.startsWith(skeleton.dataPath)) return true
+const matchChildError = (error: ErrorObject, dataPath: string): boolean => {
+  if (error.instancePath.startsWith(dataPath)) return true
   return false
 }
 
@@ -67,6 +71,8 @@ export function createStateNode (
   key: string | number,
   fullKey: string,
   parentFullKey: string | null,
+  dataPath: string,
+  parentDataPath: string | null,
   skeleton: SkeletonNode,
   mode: Mode,
   display: Display,
@@ -93,16 +99,19 @@ export function createStateNode (
     // TODO: make this type casting safe using prior validation
     const objectData = (data ?? {}) as Record<string, unknown>
     children = skeleton.children?.map((child, i) => {
+      const isSameData = typeof child.key === 'string' && child.key.startsWith('$')
       return createStateNode(
         context,
         compiledLayout,
         child.key,
         `${fullKey}/${child.key}`,
         fullKey,
+        isSameData ? dataPath : `${dataPath}/${child.key}`,
+        dataPath,
         child,
         mode,
         display,
-        (typeof child.key === 'string' && child.key.startsWith('$')) ? objectData : objectData[child.key],
+        isSameData ? objectData : objectData[child.key],
         reusedNode?.children?.[i]
       )
     })
@@ -118,6 +127,8 @@ export function createStateNode (
         i,
         `${fullKey}/${i}`,
         fullKey,
+        `${dataPath}/${i}`,
+        dataPath,
         childSkeletonNode,
         mode,
         display,
@@ -127,10 +138,10 @@ export function createStateNode (
     })
   }
 
-  const error = context.errors?.find(error => matchError(error, skeleton)) ?? context.errors?.find(error => matchChildError(error, skeleton))
+  const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, dataPath))
   // capture errors so that they are not repeated in parent nodes
   if (layout.comp !== 'none') {
-    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton) && !matchChildError(error, skeleton))
+    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, dataPath))
   }
 
   const node = produceStateNode(
@@ -138,6 +149,8 @@ export function createStateNode (
     key,
     fullKey,
     parentFullKey,
+    dataPath,
+    parentDataPath,
     skeleton,
     layout,
     mode,
@@ -149,9 +162,9 @@ export function createStateNode (
   return node
 }
 
-export const producePatchedData = produce<any, [StateNode, StateNode, unknown]>(
-  (draft, parentNode, node, data) => {
-    if (parentNode.skeleton.dataPath === node.skeleton.dataPath) {
+export const producePatchedData = produce<any, [StateNode, unknown]>(
+  (draft, node, data) => {
+    if (node.dataPath === node.parentDataPath) {
       Object.assign(draft, data)
     } else {
       draft[node.key] = data

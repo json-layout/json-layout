@@ -87,7 +87,7 @@ export class StatefulLayout {
     }
     const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
-    const newParentValue = producePatchedData(parentNode.data, parentNode, node, data)
+    const newParentValue = producePatchedData(parentNode.data, node, data)
     this.input(parentNode, newParentValue)
   }
 }
