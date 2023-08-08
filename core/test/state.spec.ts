@@ -145,6 +145,29 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.stateTree.root.children[1].error, 'chose one')
   })
 
+  it('should manage a allOf in an object', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: { str1: { type: 'string' } },
+      allOf: [
+        { title: 'allOf 1', properties: { str2: { type: 'string' } }, required: ['str2'] },
+        { title: 'allOf 2', properties: { str3: { type: 'string' } }, required: ['str3'] }
+      ]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    assert.ok(!statefulLayout.stateTree.valid)
+    assert.ok(!statefulLayout.stateTree.root.error)
+    assert.equal(statefulLayout.stateTree.root.children?.length, 3)
+    assert.equal(statefulLayout.stateTree.root.children[1].skeleton.key, '$allOf-0')
+    assert.ok(!statefulLayout.stateTree.root.children[1].error)
+    assert.equal(statefulLayout.stateTree.root.children[1]?.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].error, 'required')
+    assert.equal(statefulLayout.stateTree.root.children[2].skeleton.key, '$allOf-1')
+    assert.ok(!statefulLayout.stateTree.root.children[2].error)
+    assert.equal(statefulLayout.stateTree.root.children[2]?.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[2].children[0].error, 'required')
+  })
+
   it('should manage arrays', () => {
     const compiledLayout = compile({
       type: 'object',
@@ -185,7 +208,6 @@ describe('stateful layout', () => {
     })
     assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
     assert.equal(compiledLayout.skeletonTree.root.children[0].children?.length, 2)
-    console.log(compiledLayout.skeletonTree.root.children[0].children)
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, {
       arr1: ['Str 1', 'Str 2']
     })

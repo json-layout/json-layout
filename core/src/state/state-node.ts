@@ -60,8 +60,8 @@ const matchError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: string
   if (originalError.instancePath === dataPath && originalError.schemaPath === skeleton.pointer) return true
   return false
 }
-const matchChildError = (error: ErrorObject, dataPath: string): boolean => {
-  if (error.instancePath.startsWith(dataPath)) return true
+const matchChildError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: string): boolean => {
+  if (error.instancePath.startsWith(dataPath) && !(typeof skeleton.key === 'string' && skeleton.key.startsWith('$allOf'))) return true
   return false
 }
 
@@ -138,10 +138,10 @@ export function createStateNode (
     })
   }
 
-  const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, dataPath))
+  const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, skeleton, dataPath))
   // capture errors so that they are not repeated in parent nodes
   if (layout.comp !== 'none') {
-    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, dataPath))
+    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath))
   }
 
   const node = produceStateNode(

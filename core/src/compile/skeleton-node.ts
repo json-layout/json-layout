@@ -45,7 +45,7 @@ export function makeSkeletonNode (
 
   const node: SkeletonNode = { key: key ?? '', pointer, parentPointer, defaultData }
   if (schema.properties) {
-    node.children = []
+    node.children = node.children ?? []
     for (const propertyKey of Object.keys(schema.properties)) {
       node.children.push(makeSkeletonNode(
         schema.properties[propertyKey],
@@ -61,6 +61,21 @@ export function makeSkeletonNode (
         schema.errorMessage.required = schema.errorMessage.required ?? {}
         schema.errorMessage.required[propertyKey] = 'required'
       }
+    }
+  }
+  if (schema.allOf) {
+    node.children = node.children ?? []
+    for (let i = 0; i < schema.allOf.length; i++) {
+      node.children.push(makeSkeletonNode(
+        schema.allOf[i],
+        ajv,
+        validates,
+        normalizedLayouts,
+        expressions,
+        `$allOf-${i}`,
+        `${pointer}/allOf/${i}`,
+        pointer
+      ))
     }
   }
 
