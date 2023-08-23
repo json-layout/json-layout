@@ -6,8 +6,10 @@ export type CompObject =
   | NumberField
   | Textarea
   | Checkbox
+  | Select
   | OneOfSelect
   | CompositeCompObject;
+export type SelectItems = SelectItem[];
 export type CompositeCompObject = Section;
 export type Child = Child1 & {
   key: string | number;
@@ -59,6 +61,19 @@ export interface Checkbox {
   comp: "checkbox";
   if?: Expression;
   label: string;
+  [k: string]: unknown;
+}
+export interface Select {
+  comp: "select";
+  if?: Expression;
+  label: string;
+  items: SelectItems;
+  [k: string]: unknown;
+}
+export interface SelectItem {
+  title: string;
+  key: string;
+  value: unknown;
   [k: string]: unknown;
 }
 export interface OneOfSelect {
@@ -127,6 +142,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         {
           "$ref": "#/$defs/checkbox"
+        },
+        {
+          "$ref": "#/$defs/select"
         },
         {
           "$ref": "#/$defs/one-of-select"
@@ -304,6 +322,51 @@ export const normalizedLayoutKeywordSchema = {
         "label": {
           "type": "string"
         }
+      }
+    },
+    "select": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label",
+        "items"
+      ],
+      "properties": {
+        "comp": {
+          "const": "select"
+        },
+        "if": {
+          "$ref": "#/$defs/expression"
+        },
+        "label": {
+          "type": "string"
+        },
+        "items": {
+          "$ref": "#/$defs/select-items"
+        }
+      }
+    },
+    "select-items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/select-item"
+      }
+    },
+    "select-item": {
+      "type": "object",
+      "required": [
+        "title",
+        "key",
+        "value"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {}
       }
     },
     "one-of-select": {

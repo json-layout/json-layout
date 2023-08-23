@@ -29,7 +29,8 @@
         "label": {"type": "string"},
         "title": {"type": "string"},
         "step": {"type": "number"},
-        "if": {"$ref": "#/$defs/partial-expression"}
+        "if": {"$ref": "#/$defs/partial-expression"},
+        "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}}
       }
     },
     "comp-name": {
@@ -42,7 +43,8 @@
         "textarea",
         "checkbox",
         "section",
-        "list"
+        "list",
+        "select"
       ]
     },
     "partial-child": {
@@ -82,6 +84,19 @@
             "expr": {
               "type": "string"
             }
+          }
+        }
+      ]
+    },
+    "partial-select-item": {
+      "oneOf": [
+        {"type": "string"},
+        {
+          "type": "object",
+          "properties": {
+            "key": {"type": "string"},
+            "title": {"type": "string"},
+            "value": {}
           }
         }
       ]

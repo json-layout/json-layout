@@ -11,6 +11,7 @@ export interface SchemaFragment {
   anyOf?: any[]
   allOf?: any[]
   items?: any
+  enum?: any[]
 }
 
 function getDefaultChildren (schemaFragment: SchemaFragment): Children {
@@ -78,6 +79,22 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
     }
     return { comp: 'list', title: schemaFragment.title ?? key }
   }
+  const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
+  if (schemaFragment.enum && hasSimpleType) {
+    const selectCompObject: CompObject = {
+      comp: 'select',
+      label: schemaFragment.title ?? key,
+      items: schemaFragment.enum.map(value => ({ key: (value as 'string') + '', title: (value as 'string') + '', value }))
+    }
+    return selectCompObject
+  }
+  if (schemaFragment.oneOf && !(schemaFragment.oneOf.find(oneOfItem => !('const' in oneOfItem))) && hasSimpleType) {
+    return {
+      comp: 'select',
+      label: schemaFragment.title ?? key,
+      items: schemaFragment.oneOf.map(oneOfItem => ({ key: (oneOfItem.const as 'string') + '', title: ((oneOfItem.title ?? oneOfItem.const) as 'string') + '', value: oneOfItem.const }))
+    }
+  }
   if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
   if (schemaFragment.type === 'integer') return { comp: 'number-field', label: schemaFragment.title ?? key, step: 1 }
   if (schemaFragment.type === 'number') return { comp: 'number-field', label: schemaFragment.title ?? key }
@@ -100,16 +117,33 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
     partial.if = { type: 'expr-eval', expr: partial.if }
   }
 
+  if (partial.items) {
+    partial.items = partial.items.map(item => {
+      if (['string', 'integer', 'number'].includes(typeof item)) {
+        return { title: (item as string) + '', key: (item as string) + '', value: item }
+      } else if (typeof item === 'object') {
+        return {
+          key: ((item.key ?? item.value) as string) + '',
+          title: ((item.title ?? item.key ?? item.value) as string) + '',
+          value: item.value ?? item.key
+        }
+      } else {
+        throw new Error(`bad item for select: ${JSON.stringify(item)}`)
+      }
+    })
+
+    if (!partial.comp) partial.comp = 'select'
+  }
+
   const compObject: any = {}
   if (partial.comp && defaultCompObject.comp !== partial.comp) {
     const compProperties = normalizedLayoutKeywordSchema.$defs[partial.comp]?.properties
-    const adaptedDefaultCompObject: Record<string, any> = {}
     if (typeof compProperties === 'object') {
       for (const key of Object.keys(compProperties)) {
-        if (key in defaultCompObject) adaptedDefaultCompObject[key] = defaultCompObject[key as keyof CompObject]
+        if (key in defaultCompObject) compObject[key] = defaultCompObject[key as keyof CompObject]
+        if (key in partial) compObject[key] = partial[key as keyof PartialCompObject]
       }
     }
-    Object.assign(compObject, adaptedDefaultCompObject, partial) as CompObject
   } else {
     Object.assign(compObject, defaultCompObject, partial) as CompObject
   }

@@ -1,5 +1,13 @@
 export type LayoutKeyword = ComponentName | PartialChildren | PartialCompObject | PartialSwitch;
-export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox" | "section" | "list";
+export type ComponentName =
+  | "none"
+  | "text-field"
+  | "number-field"
+  | "textarea"
+  | "checkbox"
+  | "section"
+  | "list"
+  | "select";
 export type PartialChild = PartialCompObject & {
   key?: string | number;
   width?: number;
@@ -12,6 +20,14 @@ export type PartialExpression =
       expr: string;
       [k: string]: unknown;
     };
+export type PartialSelectItem =
+  | string
+  | {
+      key?: string;
+      title?: string;
+      value?: unknown;
+      [k: string]: unknown;
+    };
 export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
@@ -21,6 +37,7 @@ export interface PartialCompObject {
   title?: string;
   step?: number;
   if?: PartialExpression;
+  items?: PartialSelectItem[];
 }
 export interface PartialSwitch {
   switch: PartialCompObject[];
@@ -82,6 +99,12 @@ export const layoutKeywordSchema = {
         },
         "if": {
           "$ref": "#/$defs/partial-expression"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/partial-select-item"
+          }
         }
       }
     },
@@ -95,7 +118,8 @@ export const layoutKeywordSchema = {
         "textarea",
         "checkbox",
         "section",
-        "list"
+        "list",
+        "select"
       ]
     },
     "partial-child": {
@@ -155,6 +179,25 @@ export const layoutKeywordSchema = {
             "expr": {
               "type": "string"
             }
+          }
+        }
+      ]
+    },
+    "partial-select-item": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "value": {}
           }
         }
       ]

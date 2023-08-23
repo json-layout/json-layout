@@ -28,6 +28,7 @@
         {"$ref": "#/$defs/number-field"},
         {"$ref": "#/$defs/textarea"},
         {"$ref": "#/$defs/checkbox"},
+        {"$ref": "#/$defs/select"},
         {"$ref": "#/$defs/one-of-select"},
         {"$ref": "#/$defs/composite-comp-object"}
       ]
@@ -117,6 +118,29 @@
         "comp": {"const": "checkbox"},
         "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"}
+      }
+    },
+    "select": {
+      "type": "object",
+      "required": ["comp", "label", "items"],
+      "properties": {
+        "comp": {"const": "select"},
+        "if": {"$ref": "#/$defs/expression"},
+        "label": {"type": "string"},
+        "items": {"$ref": "#/$defs/select-items"}
+      }
+    },
+    "select-items": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/select-item"}
+    },
+    "select-item": {
+      "type": "object",
+      "required": ["title", "key", "value"],
+      "properties": {
+        "title": {"type": "string"},
+        "key": {"type": "string"},
+        "value": {}
       }
     },
     "one-of-select": {
