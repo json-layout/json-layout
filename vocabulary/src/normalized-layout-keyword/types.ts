@@ -10,6 +10,12 @@ export type CompObject =
   | OneOfSelect
   | CompositeCompObject;
 export type SelectItems = SelectItem[];
+export type GetItems =
+  | Expression
+  | {
+      url: string;
+      [k: string]: unknown;
+    };
 export type CompositeCompObject = Section;
 export type Child = Child1 & {
   key: string | number;
@@ -67,7 +73,8 @@ export interface Select {
   comp: "select";
   if?: Expression;
   label: string;
-  items: SelectItems;
+  items?: SelectItems;
+  getItems?: GetItems;
   [k: string]: unknown;
 }
 export interface SelectItem {
@@ -328,8 +335,7 @@ export const normalizedLayoutKeywordSchema = {
       "type": "object",
       "required": [
         "comp",
-        "label",
-        "items"
+        "label"
       ],
       "properties": {
         "comp": {
@@ -343,6 +349,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         "items": {
           "$ref": "#/$defs/select-items"
+        },
+        "getItems": {
+          "$ref": "#/$defs/get-items"
         }
       }
     },
@@ -368,6 +377,24 @@ export const normalizedLayoutKeywordSchema = {
         },
         "value": {}
       }
+    },
+    "get-items": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/expression"
+        },
+        {
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      ]
     },
     "one-of-select": {
       "type": "object",

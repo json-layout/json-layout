@@ -28,6 +28,12 @@ export type PartialSelectItem =
       value?: unknown;
       [k: string]: unknown;
     };
+export type PartialGetItems =
+  | PartialExpression
+  | {
+      url?: string;
+      [k: string]: unknown;
+    };
 export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
@@ -38,6 +44,7 @@ export interface PartialCompObject {
   step?: number;
   if?: PartialExpression;
   items?: PartialSelectItem[];
+  getItems?: PartialGetItems;
 }
 export interface PartialSwitch {
   switch: PartialCompObject[];
@@ -105,6 +112,9 @@ export const layoutKeywordSchema = {
           "items": {
             "$ref": "#/$defs/partial-select-item"
           }
+        },
+        "getItems": {
+          "$ref": "#/$defs/partial-get-items"
         }
       }
     },
@@ -198,6 +208,21 @@ export const layoutKeywordSchema = {
               "type": "string"
             },
             "value": {}
+          }
+        }
+      ]
+    },
+    "partial-get-items": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/partial-expression"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            }
           }
         }
       ]

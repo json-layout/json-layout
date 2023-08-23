@@ -1,4 +1,4 @@
-import { type TextField, type Section, type NumberField, type OneOfSelect } from '@json-layout/vocabulary'
+import { type TextField, type Section, type NumberField, type OneOfSelect, type Select } from '@json-layout/vocabulary'
 import { type StateNode } from './state-node'
 import { type SkeletonTree } from '../compile'
 
@@ -13,3 +13,6 @@ export const isSection = (node: StateNode | undefined): node is SectionNode => !
 
 export type OneOfSelectNode = StateNode & { layout: OneOfSelect, value: Record<string, unknown>, childrenTrees: SkeletonTree[] }
 export const isOneOfSelect = (node: StateNode | undefined): node is OneOfSelectNode => !!node && node.layout.comp === 'one-of-select'
+
+export type SelectNode = Omit<StateNode, 'children'> & { layout: Select, value: any }
+export const isSelect = (node: StateNode | undefined): node is SelectNode => !!node && node.layout.comp === 'select'

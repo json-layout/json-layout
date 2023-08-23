@@ -116,6 +116,9 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   if (partial.if && typeof partial.if === 'string') {
     partial.if = { type: 'expr-eval', expr: partial.if }
   }
+  if (partial.getItems && typeof partial.getItems === 'string') {
+    partial.getItems = { type: 'expr-eval', expr: partial.getItems }
+  }
 
   if (partial.items) {
     partial.items = partial.items.map(item => {
@@ -131,8 +134,10 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
         throw new Error(`bad item for select: ${JSON.stringify(item)}`)
       }
     })
+  }
 
-    if (!partial.comp) partial.comp = 'select'
+  if (!partial.comp && (partial.items ?? partial.getItems)) {
+    partial.comp = 'select'
   }
 
   const compObject: any = {}

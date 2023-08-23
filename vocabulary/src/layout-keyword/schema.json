@@ -30,7 +30,8 @@
         "title": {"type": "string"},
         "step": {"type": "number"},
         "if": {"$ref": "#/$defs/partial-expression"},
-        "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}}
+        "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}},
+        "getItems": {"$ref": "#/$defs/partial-get-items"}
       }
     },
     "comp-name": {
@@ -97,6 +98,17 @@
             "key": {"type": "string"},
             "title": {"type": "string"},
             "value": {}
+          }
+        }
+      ]
+    },
+    "partial-get-items": {
+      "oneOf": [
+        {"$ref": "#/$defs/partial-expression"},
+        {
+          "type": "object",
+          "properties": {
+            "url": {"type": "string"}
           }
         }
       ]

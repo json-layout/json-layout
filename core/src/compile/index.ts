@@ -42,8 +42,8 @@ export interface CompiledLayout {
   expressions: CompiledExpressions
 }
 
-export type CompiledExpression = (mode: string, display: Display) => any
-const expressionsParams = ['mode', 'display']
+export type CompiledExpression = (context: Record<string, any>, mode: string, display: Display) => any
+const expressionsParams = ['context', 'mode', 'display']
 
 export function compile (_schema: object, options: CompileOptions = {}): CompiledLayout {
   const schema = <SchemaObject>clone(_schema)

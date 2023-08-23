@@ -122,12 +122,13 @@
     },
     "select": {
       "type": "object",
-      "required": ["comp", "label", "items"],
+      "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "select"},
         "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"},
-        "items": {"$ref": "#/$defs/select-items"}
+        "items": {"$ref": "#/$defs/select-items"},
+        "getItems": {"$ref": "#/$defs/get-items"}
       }
     },
     "select-items": {
@@ -142,6 +143,18 @@
         "key": {"type": "string"},
         "value": {}
       }
+    },
+    "get-items": {
+      "oneOf": [
+        {"$ref": "#/$defs/expression"},
+        {
+          "type": "object",
+          "required": ["url"],
+          "properties": {
+            "url": {"type": "string"}
+          }
+        }
+      ]
     },
     "one-of-select": {
       "type": "object",

@@ -80,4 +80,11 @@ describe('normalize schema fragment function', () => {
       { comp: 'select', label: 'prop', items: [{ key: 'val1', title: 'Val 1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }] }
     )
   })
+
+  it('should manage select with getItems', () => {
+    assert.deepEqual(
+      normalize({ type: 'string', layout: { getItems: 'context.items' } }, '/prop'),
+      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'expr-eval' } }
+    )
+  })
 })

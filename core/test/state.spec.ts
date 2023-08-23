@@ -13,7 +13,7 @@ describe('stateful layout', () => {
         nb1: { type: 'number' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
     assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.deepEqual(statefulLayout.stateTree.root.data, {})
     assert.ok(statefulLayout.stateTree.root.children)
@@ -41,7 +41,7 @@ describe('stateful layout', () => {
         str2: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
     const root1 = statefulLayout.stateTree.root
     assert.ok(root1.children)
 
@@ -91,7 +91,7 @@ describe('stateful layout', () => {
         }
       }] */
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, { str2: 'test' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { str2: 'test' })
     assert.equal(statefulLayout.stateTree.valid, false)
     assert.equal(statefulLayout.stateTree.root.error, 'must have required property \'missingProp\'')
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required')
@@ -105,7 +105,7 @@ describe('stateful layout', () => {
         str1: { type: 'string', layout: { switch: [{ if: "mode == 'read'", comp: 'text-field' }, { if: "mode == 'write'", comp: 'textarea' }] } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'textarea')
@@ -118,12 +118,12 @@ describe('stateful layout', () => {
         str1: { type: 'string', layout: { switch: [{ if: 'display.mobile', comp: 'text-field' }, { comp: 'textarea' }] } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 2000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 2000 })
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'textarea')
 
-    statefulLayout.width = 1000
+    statefulLayout.options = { width: 1000 }
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
@@ -138,7 +138,7 @@ describe('stateful layout', () => {
         { properties: { str3: { type: 'string' } }, required: ['str3'] }
       ]
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
     assert.ok(!statefulLayout.stateTree.valid)
     assert.ok(!statefulLayout.stateTree.root.error)
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
@@ -155,7 +155,7 @@ describe('stateful layout', () => {
         { title: 'allOf 2', properties: { str3: { type: 'string' } }, required: ['str3'] }
       ]
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
     assert.ok(!statefulLayout.stateTree.valid)
     assert.ok(!statefulLayout.stateTree.root.error)
     assert.equal(statefulLayout.stateTree.root.children?.length, 3)
@@ -177,7 +177,7 @@ describe('stateful layout', () => {
     assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
     assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
     assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, {
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {
       arr1: ['Str 1', 'Str 2', 'a']
     })
     const arrNode = statefulLayout.stateTree.root.children?.[0]
@@ -209,7 +209,7 @@ describe('stateful layout', () => {
     })
     assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
     assert.equal(compiledLayout.skeletonTree.root.children[0].children?.length, 2)
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000, {
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {
       arr1: ['Str 1', 'Str 2']
     })
     const arrNode = statefulLayout.stateTree.root.children?.[0]
@@ -240,7 +240,7 @@ describe('stateful layout', () => {
         str4: { type: 'string', const: 'String 4' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
 
     // console.log(JSON.stringify(statefulLayout.data, null, 2))
     assert.deepEqual(statefulLayout.data, {
@@ -250,8 +250,7 @@ describe('stateful layout', () => {
       },
       obj2: {},
       str4: 'String 4'
-    }
-    )
+    })
   })
 
   it('should use children info for ordering', () => {
@@ -263,7 +262,7 @@ describe('stateful layout', () => {
         str2: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
     assert.equal(statefulLayout.stateTree.root.children?.[0]?.key, 'str2')
     assert.equal(statefulLayout.stateTree.root.children?.[1]?.key, 'str1')
   })
@@ -275,7 +274,7 @@ describe('stateful layout', () => {
       layout,
       properties: { nb1: { type: 'number' }, nb2: { type: 'number' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
     assert.equal(statefulLayout.stateTree.root.children[0].key, '$comp-0')
     assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
@@ -287,5 +286,30 @@ describe('stateful layout', () => {
     statefulLayout.input(statefulLayout.stateTree.root.children[0].children[0], 10)
     assert.deepEqual(statefulLayout.data, { nb1: 10 })
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].data, 10)
+  })
+
+  it('should manage a select with items', () => {
+    const compiledLayout = compile({
+      type: 'string',
+      layout: { items: ['val1', 'val2'] }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const items = statefulLayout.getSelectItems(statefulLayout.stateTree.root)
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
+
+  it('should manage a select with getItems', () => {
+    const compiledLayout = compile({
+      type: 'string',
+      layout: { getItems: 'context.items' }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { items: ['val1', 'val2'] } }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const items = statefulLayout.getSelectItems(statefulLayout.stateTree.root)
+    console.log(items)
   })
 })

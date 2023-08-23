@@ -1,8 +1,8 @@
 // import { type Emitter } from 'mitt'
-import { type SkeletonNode, type CompiledLayout } from '../compile'
-import { type Mode } from '..'
+import { type SkeletonNode, type CompiledLayout, type CompiledExpressions } from '../compile'
+import { type StatefulLayoutOptions, type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type NormalizedLayout } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type NormalizedLayout, type Expression } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from './utils/display'
@@ -19,14 +19,15 @@ export interface StateNode {
   skeleton: SkeletonNode
   layout: CompObject
   mode: Mode
+  width: number
   data: unknown
   error: string | undefined
   children?: StateNode[]
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, unknown, string | undefined, StateNode[]?]>(
-  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, data, error, children?) => {
+const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, unknown, string | undefined, StateNode[]?]>(
+  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, data, error, children?) => {
     draft.key = key
     draft.fullKey = fullKey
     draft.parentFullKey = parentFullKey
@@ -35,6 +36,7 @@ const produceStateNode = produce<StateNode, [string | number, string, string | n
     draft.skeleton = skeleton
     draft.layout = layout
     draft.mode = mode
+    draft.width = width
     draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
     draft.error = error
     draft.children = children
@@ -65,8 +67,15 @@ const matchChildError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: s
   return false
 }
 
+export function evalExpression (expressions: CompiledExpressions, expression: Expression, context: Record<string, any>, mode: Mode, display: Display): any {
+  const compiledExpression = expressions[expression.type][expression.expr]
+  // console.log(expression.expr, context, mode, display)
+  return compiledExpression(context, mode, display)
+}
+
 export function createStateNode (
   context: CreateStateTreeContext,
+  options: StatefulLayoutOptions,
   compiledLayout: CompiledLayout,
   key: string | number,
   fullKey: string,
@@ -86,8 +95,7 @@ export function createStateNode (
   if (isSwitch(normalizedLayout)) {
     layout = normalizedLayout.switch.find(compObject => {
       if (!compObject.if) return true
-      const compiledExpression = compiledLayout.expressions[compObject.if.type][compObject.if.expr]
-      return !!compiledExpression(mode, display)
+      return !!evalExpression(compiledLayout.expressions, compObject.if, options.context, mode, display)
     }) ?? nodeCompObject
   } else {
     layout = normalizedLayout
@@ -104,6 +112,7 @@ export function createStateNode (
       const isSameData = typeof child.key === 'string' && child.key.startsWith('$')
       return createStateNode(
         context,
+        options,
         compiledLayout,
         child.key,
         `${fullKey}/${child.key}`,
@@ -126,6 +135,7 @@ export function createStateNode (
     children = arrayData.map((itemData, i) => {
       return createStateNode(
         context,
+        options,
         compiledLayout,
         i,
         `${fullKey}/${i}`,
@@ -158,6 +168,7 @@ export function createStateNode (
     skeleton,
     layout,
     mode,
+    display.width,
     data,
     error?.message,
     shallowCompareArrays(reusedNode?.children, children)

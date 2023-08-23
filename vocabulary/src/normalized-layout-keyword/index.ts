@@ -1,4 +1,4 @@
-import { type NormalizedLayout, Switch, CompObject, Section } from './types'
+import { type NormalizedLayout, Switch, CompObject, Section, GetItems, Expression, Select } from './types'
 import validate from './validate'
 
 export * from './types'
@@ -19,4 +19,12 @@ export function isCompObject (layout: NormalizedLayout): layout is CompObject {
 
 export function isSectionLayout (layout: CompObject): layout is Section {
   return layout.comp === 'section'
+}
+
+export function isSelectLayout (layout: CompObject): layout is Select {
+  return layout.comp === 'select'
+}
+
+export function isGetItemsExpression (getItems: GetItems): getItems is Expression {
+  return !!getItems.expr
 }

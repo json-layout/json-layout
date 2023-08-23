@@ -1,5 +1,5 @@
 import produce from 'immer'
-import { type Mode } from '.'
+import { type StatefulLayoutOptions, type Mode } from '.'
 import { createStateNode, type StateNode } from './state-node'
 import { type CompiledLayout, type SkeletonTree } from '../compile'
 import { type ErrorObject } from 'ajv'
@@ -28,9 +28,9 @@ const produceStateTree = produce<StateTree, [StateNode, Mode, boolean]>(
 
 export function createStateTree (
   context: CreateStateTreeContext,
+  options: StatefulLayoutOptions,
   compiledLayout: CompiledLayout,
   skeleton: SkeletonTree,
-  mode: Mode,
   display: Display,
   value: unknown,
   reusedStateTree?: StateTree
@@ -40,6 +40,7 @@ export function createStateTree (
   if (validate.errors) context.errors = validate.errors
   const root = createStateNode(
     context,
+    options,
     compiledLayout,
     '',
     '',
@@ -48,11 +49,11 @@ export function createStateTree (
     null,
     skeleton.root,
     null,
-    mode,
+    options.mode,
     display,
     value,
     reusedStateTree?.root
   )
 
-  return produceStateTree(reusedStateTree ?? ({} as StateTree), root, mode, valid)
+  return produceStateTree(reusedStateTree ?? ({} as StateTree), root, options.mode, valid)
 }

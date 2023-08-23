@@ -1,6 +1,6 @@
 import type Ajv from 'ajv'
 // import Debug from 'debug'
-import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitch } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitch, isGetItemsExpression, isSelectLayout } from '@json-layout/vocabulary'
 import { type SkeletonTree, makeSkeletonTree } from './skeleton-tree'
 
 // a skeleton node is a light recursive structure
@@ -35,6 +35,9 @@ export function makeSkeletonNode (
   const compObjects = isSwitch(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
     if (compObject.if) expressions.push(compObject.if)
+    if (isSelectLayout(compObject) && compObject.getItems && isGetItemsExpression(compObject.getItems)) {
+      expressions.push(compObject.getItems)
+    }
   }
 
   let defaultData
