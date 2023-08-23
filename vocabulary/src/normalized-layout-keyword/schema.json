@@ -7,27 +7,39 @@
   ],
   "$defs": {
     "switch": {
-      "type": "array",
-      "items": {"$ref": "#/$defs/comp-object"}
+      "type": "object",
+      "required": ["switch"],
+      "additionalProperties": false,
+      "properties": {
+        "switch": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/comp-object"}
+        }
+      }
     },
     "comp-object": {
       "type": "object",
-      "discriminator": {"propertyName": "comp"},
       "required": ["comp"],
+      "unevaluatedProperties": false,
       "oneOf": [
         {"$ref": "#/$defs/none"},
-        {"$ref": "#/$defs/section"},
         {"$ref": "#/$defs/list"},
         {"$ref": "#/$defs/text-field"},
         {"$ref": "#/$defs/number-field"},
         {"$ref": "#/$defs/textarea"},
         {"$ref": "#/$defs/checkbox"},
-        {"$ref": "#/$defs/one-of-select"}
+        {"$ref": "#/$defs/one-of-select"},
+        {"$ref": "#/$defs/composite-comp-object"}
+      ]
+    },
+    "composite-comp-object": {
+      "type": "object",
+      "oneOf": [
+        {"$ref": "#/$defs/section"}
       ]
     },
     "none": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp"],
       "properties": {
         "comp": {"const": "none"},
@@ -36,21 +48,33 @@
     },
     "section": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["comp"],
+      "required": ["comp", "children"],
       "properties": {
         "comp": {"const": "section"},
         "if": {"$ref": "#/$defs/expression"},
-        "title": {"type": "string"},
-        "children": {
-          "type": "array",
-          "items": {"type": "string"}
-        }
+        "title": {"type": ["string", "null"]},
+        "children": {"$ref": "#/$defs/children"}
       }
+    },
+    "child": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["key"],
+      "properties": {
+        "key": {"type": ["string", "integer"]},
+        "width": {"type": "number", "minimum": 0, "maximum": 100}
+      },
+      "anyOf": [
+        {},
+        {"$ref": "#/$defs/composite-comp-object"}
+      ]
+    },
+    "children": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/child"}
     },
     "list": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp"],
       "properties": {
         "comp": {"const": "list"},
@@ -60,7 +84,6 @@
     },
     "text-field": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "text-field"},
@@ -70,7 +93,6 @@
     },
     "number-field": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "number-field"},
@@ -81,7 +103,6 @@
     },
     "textarea": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "textarea"},
@@ -91,7 +112,6 @@
     },
     "checkbox": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "checkbox"},
@@ -101,7 +121,6 @@
     },
     "one-of-select": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["comp"],
       "properties": {
         "comp": {"const": "one-of-select"},

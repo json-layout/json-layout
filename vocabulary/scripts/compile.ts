@@ -2,14 +2,14 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-import Ajv from 'ajv'
+import Ajv2019 from 'ajv/dist/2019'
 import * as fs from 'fs'
 import camelcase from 'camelcase'
 const { compile: compileTs } = require('json-schema-to-typescript')
 const path = require('node:path')
 const standaloneCode = require('ajv/dist/standalone').default
 
-const ajv = new Ajv({
+const ajv = new Ajv2019({
   code: {
     source: true,
     esm: true

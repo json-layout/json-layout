@@ -1,5 +1,6 @@
 import { strict as assert } from 'assert'
 import { normalizeLayoutFragment as normalize } from '../src/normalize'
+import { type PartialChildren } from '../src'
 
 describe('normalize schema fragment function', () => {
   const defaultTextFieldComp = { comp: 'text-field', label: 'prop' }
@@ -12,8 +13,8 @@ describe('normalize schema fragment function', () => {
 
   it('should manage a layout expressed as a switch', () => {
     assert.deepEqual(
-      normalize({ type: 'string', layout: [{ if: 'read', comp: 'text-field' }, { if: 'write', comp: 'textarea' }] }, '/prop'),
-      [{ ...defaultTextFieldComp, if: { type: 'expr-eval', expr: 'read' } }, { ...defaultTextareaComp, if: { type: 'expr-eval', expr: 'write' } }]
+      normalize({ type: 'string', layout: { switch: [{ if: 'read', comp: 'text-field' }, { if: 'write', comp: 'textarea' }] } }, '/prop'),
+      { switch: [{ ...defaultTextFieldComp, if: { type: 'expr-eval', expr: 'read' } }, { ...defaultTextareaComp, if: { type: 'expr-eval', expr: 'write' } }] }
     )
   })
 
@@ -31,5 +32,35 @@ describe('normalize schema fragment function', () => {
 
   it('should handle "none" display', () => {
     assert.deepEqual(normalize({ type: 'number', layout: 'none' }, '/prop'), { comp: 'none' })
+  })
+
+  it('should manage children array', () => {
+    assert.deepEqual(
+      normalize({ type: 'object', properties: { nb1: { type: 'number' }, nb2: { type: 'number' } } }, '/prop'),
+      { comp: 'section', title: null, children: [{ key: 'nb1' }, { key: 'nb2' }] }
+    )
+    assert.deepEqual(
+      normalize({ layout: ['nb1'], type: 'object', properties: { nb1: { type: 'number' }, nb2: { type: 'number' } } }, '/prop'),
+      { comp: 'section', title: null, children: [{ key: 'nb1' }] }
+    )
+  })
+
+  it('should accept wrapper composite children', () => {
+    const layout: PartialChildren = [{ comp: 'section', title: 'Sec 1', children: ['nb1'] }, { comp: 'section', title: 'Sec 2', children: ['nb2'] }]
+    assert.deepEqual(
+      normalize({
+        layout,
+        type: 'object',
+        properties: { nb1: { type: 'number' }, nb2: { type: 'number' } }
+      }, '/prop'),
+      {
+        comp: 'section',
+        title: null,
+        children: [
+          { key: '$comp-0', comp: 'section', title: 'Sec 1', children: [{ key: 'nb1' }] },
+          { key: '$comp-1', comp: 'section', title: 'Sec 2', children: [{ key: 'nb2' }] }
+        ]
+      }
+    )
   })
 })

@@ -1,5 +1,6 @@
 import { strict as assert } from 'assert'
 import { compile, StatefulLayout } from '../src'
+import { type PartialChildren } from '@json-layout/vocabulary'
 
 describe('stateful layout', () => {
   it('should manage a simple schema with bi-directional data-binding', () => {
@@ -101,7 +102,7 @@ describe('stateful layout', () => {
     const compiledLayout = compile({
       type: 'object',
       properties: {
-        str1: { type: 'string', layout: [{ if: "mode == 'read'", comp: 'text-field' }, { if: "mode == 'write'", comp: 'textarea' }] }
+        str1: { type: 'string', layout: { switch: [{ if: "mode == 'read'", comp: 'text-field' }, { if: "mode == 'write'", comp: 'textarea' }] } }
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
@@ -114,7 +115,7 @@ describe('stateful layout', () => {
     const compiledLayout = compile({
       type: 'object',
       properties: {
-        str1: { type: 'string', layout: [{ if: 'display.mobile', comp: 'text-field' }, { comp: 'textarea' }] }
+        str1: { type: 'string', layout: { switch: [{ if: 'display.mobile', comp: 'text-field' }, { comp: 'textarea' }] } }
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 2000)
@@ -251,5 +252,40 @@ describe('stateful layout', () => {
       str4: 'String 4'
     }
     )
+  })
+
+  it('should use children info for ordering', () => {
+    const compiledLayout = compile({
+      type: 'object',
+      layout: ['str2', 'str1'],
+      properties: {
+        str1: { type: 'string' },
+        str2: { type: 'string' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    assert.equal(statefulLayout.stateTree.root.children?.[0]?.key, 'str2')
+    assert.equal(statefulLayout.stateTree.root.children?.[1]?.key, 'str1')
+  })
+
+  it('should accept wrapper composite children', () => {
+    const layout: PartialChildren = [{ comp: 'section', title: 'Sec 1', children: ['nb1'] }, { comp: 'section', title: 'Sec 2', children: ['nb2'] }]
+    const compiledLayout = compile({
+      type: 'object',
+      layout,
+      properties: { nb1: { type: 'number' }, nb2: { type: 'number' } }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, 'write', 1000)
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+    assert.equal(statefulLayout.stateTree.root.children[0].key, '$comp-0')
+    assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[0].children[0].key, 'nb1')
+    assert.equal(statefulLayout.stateTree.root.children[1].key, '$comp-1')
+    assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].key, 'nb2')
+
+    statefulLayout.input(statefulLayout.stateTree.root.children[0].children[0], 10)
+    assert.deepEqual(statefulLayout.data, { nb1: 10 })
+    assert.equal(statefulLayout.stateTree.root.children[0].children[0].data, 10)
   })
 })

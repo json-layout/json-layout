@@ -1,6 +1,10 @@
-export type LayoutKeyword = ComponentName | Children | PartialCompObject | PartialSwitch;
-export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox" | "list";
-export type Children = string[];
+export type LayoutKeyword = ComponentName | PartialChildren | PartialCompObject | PartialSwitch;
+export type ComponentName = "none" | "text-field" | "number-field" | "textarea" | "checkbox" | "section" | "list";
+export type PartialChild = PartialCompObject & {
+  key?: string | number;
+  width?: number;
+  [k: string]: unknown;
+};
 export type PartialExpression =
   | string
   | {
@@ -8,15 +12,18 @@ export type PartialExpression =
       expr: string;
       [k: string]: unknown;
     };
-export type PartialSwitch = PartialCompObject[];
+export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
   comp?: ComponentName;
-  children?: Children;
+  children?: PartialChildren;
   label?: string;
   title?: string;
   step?: number;
   if?: PartialExpression;
+}
+export interface PartialSwitch {
+  switch: PartialCompObject[];
 }
 
 // raw schema
@@ -28,7 +35,7 @@ export const layoutKeywordSchema = {
       "$ref": "#/$defs/comp-name"
     },
     {
-      "$ref": "#/$defs/children"
+      "$ref": "#/$defs/partial-children"
     },
     {
       "$ref": "#/$defs/partial-comp-object"
@@ -39,9 +46,18 @@ export const layoutKeywordSchema = {
   ],
   "$defs": {
     "partial-switch": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/partial-comp-object"
+      "type": "object",
+      "required": [
+        "switch"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "switch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/partial-comp-object"
+          }
+        }
       }
     },
     "partial-comp-object": {
@@ -53,7 +69,7 @@ export const layoutKeywordSchema = {
           "$ref": "#/$defs/comp-name"
         },
         "children": {
-          "$ref": "#/$defs/children"
+          "$ref": "#/$defs/partial-children"
         },
         "label": {
           "type": "string"
@@ -78,13 +94,43 @@ export const layoutKeywordSchema = {
         "number-field",
         "textarea",
         "checkbox",
+        "section",
         "list"
       ]
     },
-    "children": {
+    "partial-child": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/partial-comp-object"
+        },
+        {
+          "properties": {
+            "key": {
+              "type": [
+                "string",
+                "integer"
+              ]
+            },
+            "width": {
+              "type": "number"
+            }
+          }
+        }
+      ]
+    },
+    "partial-children": {
       "type": "array",
       "items": {
-        "type": "string"
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/$defs/partial-child"
+          }
+        ]
       }
     },
     "partial-expression": {

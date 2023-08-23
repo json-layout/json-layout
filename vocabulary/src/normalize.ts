@@ -1,5 +1,5 @@
-import { validateLayoutKeyword, isComponentName, isPartialCompObject, isChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject } from './layout-keyword'
-import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject } from '.'
+import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren } from './layout-keyword'
+import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child } from '.'
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
@@ -13,14 +13,69 @@ export interface SchemaFragment {
   items?: any
 }
 
+function getDefaultChildren (schemaFragment: SchemaFragment): Children {
+  const children: Children = []
+  if (schemaFragment.type === 'object') {
+    if (schemaFragment.properties) {
+      for (const key of Object.keys(schemaFragment.properties)) {
+        children.push({ key })
+      }
+    }
+    if (schemaFragment.allOf?.length) {
+      for (let i = 0; i < schemaFragment.allOf.length; i++) {
+        children.push({ key: `$allOf-${i}` })
+      }
+    }
+    if (schemaFragment.oneOf) {
+      children.push({ key: '$oneOf' })
+    }
+  }
+  if (schemaFragment.type === 'array' && Array.isArray(schemaFragment.items)) {
+    for (let i = 0; i < schemaFragment.items.length; i++) {
+      children.push({ key: i })
+    }
+  }
+  return children
+}
+
+function getChildren (defaultChildren: Children, partialChildren?: PartialChildren): Children {
+  if (!partialChildren) return defaultChildren
+  let compI = 0
+  return partialChildren.map(partialChild => {
+    if (typeof partialChild === 'string') {
+      const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild)
+      if (!matchingDefaultChild) throw new Error(`child unknown ${partialChild}`)
+      return matchingDefaultChild
+    } else {
+      if (partialChild.key) {
+        const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild.key)
+        if (!matchingDefaultChild) throw new Error(`child unknown ${partialChild.key}`)
+      }
+      const child = partialChild as Child
+      if (partialChild.children) {
+        child.children = getChildren(defaultChildren, partialChild.children)
+      }
+      if (!('key' in partialChild)) {
+        child.key = `$comp-${compI}`
+        compI++
+      }
+      return child
+    }
+  })
+}
+
 function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: string): CompObject {
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
   if ('const' in schemaFragment) return { comp: 'none' }
   if (!schemaFragment.type) return { comp: 'none' }
-  if (schemaFragment.type === 'object') return { comp: 'section', title: schemaFragment.title }
+  if (schemaFragment.type === 'object') {
+    return { comp: 'section', title: schemaFragment.title ?? null, children: getDefaultChildren(schemaFragment) }
+  }
   if (schemaFragment.type === 'array') {
     if (!schemaFragment.items) return { comp: 'none' }
-    if (Array.isArray(schemaFragment.items)) return { comp: 'section', title: schemaFragment.title } // tuples
+    if (Array.isArray(schemaFragment.items)) {
+      return { comp: 'section', title: schemaFragment.title ?? null, children: getDefaultChildren(schemaFragment) } // tuples
+    }
     return { comp: 'list', title: schemaFragment.title ?? key }
   }
   if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
@@ -33,7 +88,7 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
 function getPartialCompObject (layoutKeyword: LayoutKeyword): PartialCompObject | null {
   if (isPartialCompObject(layoutKeyword)) return { ...layoutKeyword }
   else if (isComponentName(layoutKeyword)) return { comp: layoutKeyword }
-  else if (isChildren(layoutKeyword)) return { children: layoutKeyword }
+  else if (isPartialChildren(layoutKeyword)) return { children: layoutKeyword }
   return null
 }
 
@@ -45,22 +100,32 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
     partial.if = { type: 'expr-eval', expr: partial.if }
   }
 
+  const compObject: any = {}
   if (partial.comp && defaultCompObject.comp !== partial.comp) {
     const compProperties = normalizedLayoutKeywordSchema.$defs[partial.comp]?.properties
-    const mergedCompObject: Record<string, any> = {}
+    const adaptedDefaultCompObject: Record<string, any> = {}
     if (typeof compProperties === 'object') {
       for (const key of Object.keys(compProperties)) {
-        if (key in defaultCompObject) mergedCompObject[key] = defaultCompObject[key as keyof CompObject]
+        if (key in defaultCompObject) adaptedDefaultCompObject[key] = defaultCompObject[key as keyof CompObject]
       }
     }
-    return Object.assign(mergedCompObject, partial) as CompObject
+    Object.assign(compObject, adaptedDefaultCompObject, partial) as CompObject
+  } else {
+    Object.assign(compObject, defaultCompObject, partial) as CompObject
   }
-  return Object.assign({}, defaultCompObject, partial) as CompObject
+
+  if (isSectionLayout(defaultCompObject) && isSectionLayout(compObject)) {
+    compObject.children = getChildren((defaultCompObject).children, partial.children)
+  }
+
+  return compObject
 }
 
 function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): NormalizedLayout {
   if (isPartialSwitch(layoutKeyword)) {
-    return layoutKeyword.map(layout => getCompObject(layout, defaultCompObject))
+    return {
+      switch: layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject))
+    }
   } else {
     return getCompObject(layoutKeyword, defaultCompObject)
   }
@@ -81,7 +146,7 @@ export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaP
   }
   const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject)
   if (!validateNormalizedLayout(normalizedLayout)) {
-    console.log(`normalized layout validation errors at path ${schemaPath}`, validateNormalizedLayout.errors)
+    console.log(`normalized layout validation errors at path ${schemaPath}`, JSON.stringify(normalizedLayout, null, 2), validateNormalizedLayout.errors)
     throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })
   }
   return normalizedLayout

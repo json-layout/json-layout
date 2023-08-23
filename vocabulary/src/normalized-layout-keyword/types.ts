@@ -1,52 +1,78 @@
 export type NormalizedLayout = Switch | CompObject;
-export type CompObject = None | Section | List | TextField | NumberField | Textarea | Checkbox | OneOfSelect;
-export type Switch = CompObject[];
+export type CompObject =
+  | None
+  | List
+  | TextField
+  | NumberField
+  | Textarea
+  | Checkbox
+  | OneOfSelect
+  | CompositeCompObject;
+export type CompositeCompObject = Section;
+export type Child = Child1 & {
+  key: string | number;
+  width?: number;
+  [k: string]: unknown;
+};
+export type Child1 = unknown | CompositeCompObject;
+export type Children = Child[];
 
+export interface Switch {
+  switch: CompObject[];
+}
 export interface None {
   comp: "none";
   if?: Expression;
+  [k: string]: unknown;
 }
 export interface Expression {
   type: "expr-eval" | "js-fn";
   expr: string;
   [k: string]: unknown;
 }
-export interface Section {
-  comp: "section";
-  if?: Expression;
-  title?: string;
-  children?: string[];
-}
 export interface List {
   comp: "list";
   if?: Expression;
   title?: string;
+  [k: string]: unknown;
 }
 export interface TextField {
   comp: "text-field";
   if?: Expression;
   label: string;
+  [k: string]: unknown;
 }
 export interface NumberField {
   comp: "number-field";
   if?: Expression;
   label: string;
   step?: number;
+  [k: string]: unknown;
 }
 export interface Textarea {
   comp: "textarea";
   if?: Expression;
   label: string;
+  [k: string]: unknown;
 }
 export interface Checkbox {
   comp: "checkbox";
   if?: Expression;
   label: string;
+  [k: string]: unknown;
 }
 export interface OneOfSelect {
   comp: "one-of-select";
   if?: Expression;
   label?: string;
+  [k: string]: unknown;
+}
+export interface Section {
+  comp: "section";
+  if?: Expression;
+  title?: string | null;
+  children: Children;
+  [k: string]: unknown;
 }
 
 // raw schema
@@ -63,25 +89,29 @@ export const normalizedLayoutKeywordSchema = {
   ],
   "$defs": {
     "switch": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/comp-object"
+      "type": "object",
+      "required": [
+        "switch"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "switch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/comp-object"
+          }
+        }
       }
     },
     "comp-object": {
       "type": "object",
-      "discriminator": {
-        "propertyName": "comp"
-      },
       "required": [
         "comp"
       ],
+      "unevaluatedProperties": false,
       "oneOf": [
         {
           "$ref": "#/$defs/none"
-        },
-        {
-          "$ref": "#/$defs/section"
         },
         {
           "$ref": "#/$defs/list"
@@ -100,12 +130,22 @@ export const normalizedLayoutKeywordSchema = {
         },
         {
           "$ref": "#/$defs/one-of-select"
+        },
+        {
+          "$ref": "#/$defs/composite-comp-object"
+        }
+      ]
+    },
+    "composite-comp-object": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/section"
         }
       ]
     },
     "none": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp"
       ],
@@ -120,9 +160,9 @@ export const normalizedLayoutKeywordSchema = {
     },
     "section": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
-        "comp"
+        "comp",
+        "children"
       ],
       "properties": {
         "comp": {
@@ -132,19 +172,50 @@ export const normalizedLayoutKeywordSchema = {
           "$ref": "#/$defs/expression"
         },
         "title": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "children": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "$ref": "#/$defs/children"
         }
+      }
+    },
+    "child": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": [
+        "key"
+      ],
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "anyOf": [
+        {},
+        {
+          "$ref": "#/$defs/composite-comp-object"
+        }
+      ]
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/child"
       }
     },
     "list": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp"
       ],
@@ -162,7 +233,6 @@ export const normalizedLayoutKeywordSchema = {
     },
     "text-field": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp",
         "label"
@@ -181,7 +251,6 @@ export const normalizedLayoutKeywordSchema = {
     },
     "number-field": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp",
         "label"
@@ -203,7 +272,6 @@ export const normalizedLayoutKeywordSchema = {
     },
     "textarea": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp",
         "label"
@@ -222,7 +290,6 @@ export const normalizedLayoutKeywordSchema = {
     },
     "checkbox": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp",
         "label"
@@ -241,7 +308,6 @@ export const normalizedLayoutKeywordSchema = {
     },
     "one-of-select": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "comp"
       ],

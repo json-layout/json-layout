@@ -2,7 +2,7 @@
 import { type SkeletonNode, type CompiledLayout } from '../compile'
 import { type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type NormalizedLayout } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { type Display } from './utils/display'
@@ -74,16 +74,17 @@ export function createStateNode (
   dataPath: string,
   parentDataPath: string | null,
   skeleton: SkeletonNode,
+  contextualLayout: NormalizedLayout | null,
   mode: Mode,
   display: Display,
   data: unknown,
   reusedNode?: StateNode
 ): StateNode {
-  const normalizedLayout = compiledLayout.normalizedLayouts[skeleton.pointer]
+  const normalizedLayout = contextualLayout ?? compiledLayout.normalizedLayouts[skeleton.pointer]
   // const display = getDisplay(containerWidth)
   let layout: CompObject
   if (isSwitch(normalizedLayout)) {
-    layout = normalizedLayout.find(compObject => {
+    layout = normalizedLayout.switch.find(compObject => {
       if (!compObject.if) return true
       const compiledExpression = compiledLayout.expressions[compObject.if.type][compObject.if.expr]
       return !!compiledExpression(mode, display)
@@ -98,7 +99,8 @@ export function createStateNode (
   if (layout.comp === 'section') {
     // TODO: make this type casting safe using prior validation
     const objectData = (data ?? {}) as Record<string, unknown>
-    children = skeleton.children?.map((child, i) => {
+    children = layout.children.map((child, i) => {
+      const childSkeleton = skeleton.children?.find(c => c.key === child.key) ?? skeleton
       const isSameData = typeof child.key === 'string' && child.key.startsWith('$')
       return createStateNode(
         context,
@@ -108,7 +110,8 @@ export function createStateNode (
         fullKey,
         isSameData ? dataPath : `${dataPath}/${child.key}`,
         dataPath,
-        child,
+        childSkeleton,
+        child.comp ? (child as unknown as NormalizedLayout) : null,
         mode,
         display,
         isSameData ? objectData : objectData[child.key],
@@ -119,7 +122,7 @@ export function createStateNode (
 
   if (layout.comp === 'list') {
     const arrayData = (data ?? []) as unknown[]
-    const childSkeletonNode = skeleton?.childrenTrees?.[0]?.root as SkeletonNode
+    const childSkeleton = skeleton?.childrenTrees?.[0]?.root as SkeletonNode
     children = arrayData.map((itemData, i) => {
       return createStateNode(
         context,
@@ -129,7 +132,8 @@ export function createStateNode (
         fullKey,
         `${dataPath}/${i}`,
         dataPath,
-        childSkeletonNode,
+        childSkeleton,
+        null,
         mode,
         display,
         itemData,

@@ -47,6 +47,7 @@ export function createStateTree (
     '',
     null,
     skeleton.root,
+    null,
     mode,
     display,
     value,
