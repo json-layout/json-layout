@@ -9,7 +9,7 @@ module.exports = {
   env: {
     node: true // Enable Node.js global variables
   },
-  ignorePatterns: ['/node_modules', '/dist', '/.eslintrc.cjs'],
+  ignorePatterns: ['/node_modules', '/dist', '/.eslintrc.cjs', '/tmp'],
   plugins: ['no-only-tests'],
   rules: {
     '@typescript-eslint/explicit-function-return-type': 0,

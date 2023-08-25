@@ -14,7 +14,9 @@ export function serialize (compiledLayout: CompiledLayout): string {
   let i = 0
   for (const pointer of Object.keys(compiledLayout.validates)) {
     const fullPointer = ajv.opts.uriResolver.resolve(compiledLayout.schema.$id as string, pointer)
-    validatesExports[`export${i++}`] = fullPointer
+    const exportKey = `export${i++}`
+    ajv.addSchema({ $id: exportKey, $ref: fullPointer })
+    validatesExports[exportKey] = exportKey
   }
   let code = standaloneCode(ajv, validatesExports)
 
@@ -22,7 +24,7 @@ export function serialize (compiledLayout: CompiledLayout): string {
   const expressionsNodes = []
   for (const expression of compiledLayout.expressions) {
     const fn = parse(expression.toString()).program.body[0]
-    fn.id = `expression${i}`
+    fn.id = `expression${i++}`
     code += `\n${print(fn)}\n`
     expressionsNodes.push(builders.raw(fn.id))
   }

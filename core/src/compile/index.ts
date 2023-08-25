@@ -12,6 +12,7 @@ import { type Display } from '../state/utils/display'
 
 export type { SkeletonTree } from './skeleton-tree'
 export type { SkeletonNode } from './skeleton-node'
+export { serialize } from './serialize'
 
 export type CompiledExpression = (data: any, context: Record<string, any>, mode: string, display: Display) => any
 
