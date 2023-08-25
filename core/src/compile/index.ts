@@ -1,71 +1,74 @@
-// compile is a soft wrapper around compileRaw
-// the difference being that the result of compile is meant to be usable
-// while the result of compileRaw is serializable
+// compileStatic is meant to produce a serializable result
 
-import { type SchemaObject } from 'json-schema-traverse'
-import Ajv, { type ValidateFunction } from 'ajv'
-import addFormats from 'ajv-formats'
-import ajvErrors from 'ajv-errors'
 import rfdc from 'rfdc'
 import { Parser as ExprEvalParser } from 'expr-eval'
-import { freeze } from 'immer'
-
-// import Debug from 'debug'
-import { type NormalizedLayout } from '@json-layout/vocabulary'
-import { type SkeletonTree } from './skeleton-tree'
+import { type SchemaObject } from 'json-schema-traverse'
+import Ajv, { type ValidateFunction, type Options as AjvOptions } from 'ajv'
+import addFormats from 'ajv-formats'
+import ajvErrors from 'ajv-errors'
+import { type Expression, type NormalizedLayout } from '@json-layout/vocabulary'
+import { makeSkeletonTree, type SkeletonTree } from './skeleton-tree'
 import { type Display } from '../state/utils/display'
-import { compileStatic } from './compile-static'
 
 export type { SkeletonTree } from './skeleton-tree'
 export type { SkeletonNode } from './skeleton-node'
-// export * from './serialize'
 
-const clone = rfdc()
-
-const exprEvalParser = new ExprEvalParser()
-
-// const debug = Debug('json-layout:compile')
+export type CompiledExpression = (data: any, context: Record<string, any>, mode: string, display: Display) => any
 
 export interface CompileOptions {
   ajv?: Ajv
+  code?: boolean
 }
 
 export interface CompiledLayout {
+  ajv?: Ajv
+  schema?: SchemaObject
   skeletonTree: SkeletonTree
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
   expressions: CompiledExpression[]
 }
 
-export type CompiledExpression = (data: any, context: Record<string, any>, mode: string, display: Display) => any
 const expressionsParams = ['data', 'context', 'mode', 'display']
+
+const clone = rfdc()
+const exprEvalParser = new ExprEvalParser()
 
 export function compile (_schema: object, options: CompileOptions = {}): CompiledLayout {
   const schema = <SchemaObject>clone(_schema)
 
   let ajv = options.ajv
   if (!ajv) {
-    ajv = new Ajv({ strict: false, allErrors: true })
+    const ajvOpts: AjvOptions = { strict: false, allErrors: true }
+    if (options.code) ajvOpts.code = { source: true, esm: true }
+    ajv = new Ajv(ajvOpts)
     addFormats(ajv)
     ajvErrors(ajv)
   }
-  const uriResolver = ajv.opts.uriResolver
-
   if (!('$id' in schema)) {
     schema.$id = '_jl'
   }
-  const compiledRaw = compileStatic(schema, { ajv })
+
+  const validatePointers: string[] = []
+  const normalizedLayouts: Record<string, NormalizedLayout> = {}
+  const expressionsDefinitions: Expression[] = []
+
+  // TODO: produce a resolved/normalized version of the schema
+  // useful to get predictable schemaPath properties in errors and to have proper handling of default values
+  const skeletonTree = makeSkeletonTree(schema, ajv, validatePointers, normalizedLayouts, expressionsDefinitions, `${schema.$id}#`, 'main')
+
   ajv.addSchema(schema)
 
+  const uriResolver = ajv.opts.uriResolver
   const validates: Record<string, ValidateFunction> = {}
-  for (const pointer of compiledRaw.validates) {
+  for (const pointer of validatePointers) {
     const fullPointer = uriResolver.resolve(schema.$id as string, pointer)
     validates[pointer] = ajv.compile({ $ref: fullPointer })
   }
 
   const expressions: CompiledExpression[] = []
 
-  for (const expression of compiledRaw.expressions) {
+  for (const expression of expressionsDefinitions) {
     if (expression.type === 'expr-eval') {
       expressions.push(exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')) as CompiledExpression)
     }
@@ -83,10 +86,5 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
     }
   }
 
-  return freeze({
-    skeletonTree: compiledRaw.tree,
-    normalizedLayouts: compiledRaw.normalizedLayouts,
-    validates,
-    expressions
-  })
+  return { ajv, schema, skeletonTree, validates, normalizedLayouts, expressions }
 }
