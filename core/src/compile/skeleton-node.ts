@@ -2,6 +2,7 @@ import type Ajv from 'ajv'
 // import Debug from 'debug'
 import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitch, isGetItemsExpression, isSelectLayout } from '@json-layout/vocabulary'
 import { type SkeletonTree, makeSkeletonTree } from './skeleton-tree'
+import { isGetItemsFetch } from '@json-layout/vocabulary'
 
 // a skeleton node is a light recursive structure
 // at runtime each one will be instantiated as a StateNode with a value and an associated component instance
@@ -12,6 +13,16 @@ export interface SkeletonNode {
   defaultData?: unknown
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
+}
+
+const pushExpression = (expressions: Expression[], expression: Expression) => {
+  const index = expressions.findIndex(e => e.type === expression.type && e.expr === expression.expr)
+  if (index !== -1) {
+    expression.ref = index
+  } else {
+    expression.ref = expressions.length
+    expressions.push(expression)
+  }
 }
 
 export function makeSkeletonNode (
@@ -34,9 +45,14 @@ export function makeSkeletonNode (
 
   const compObjects = isSwitch(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
-    if (compObject.if) expressions.push(compObject.if)
-    if (isSelectLayout(compObject) && compObject.getItems && isGetItemsExpression(compObject.getItems)) {
-      expressions.push(compObject.getItems)
+    if (compObject.if) pushExpression(expressions, compObject.if)
+    if (isSelectLayout(compObject) && compObject.getItems) {
+      if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
+      if (isGetItemsFetch(compObject.getItems)) pushExpression(expressions, compObject.getItems.url)
+      if (compObject.getItems.itemTitle) pushExpression(expressions, compObject.getItems.itemTitle)
+      if (compObject.getItems.itemKey) pushExpression(expressions, compObject.getItems.itemKey)
+      if (compObject.getItems.itemValue) pushExpression(expressions, compObject.getItems.itemValue)
+      if (compObject.getItems.itemsResults) pushExpression(expressions, compObject.getItems.itemsResults)
     }
   }
 

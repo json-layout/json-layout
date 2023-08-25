@@ -14,7 +14,7 @@ describe('normalize schema fragment function', () => {
   it('should manage a layout expressed as a switch', () => {
     assert.deepEqual(
       normalize({ type: 'string', layout: { switch: [{ if: 'read', comp: 'text-field' }, { if: 'write', comp: 'textarea' }] } }, '/prop'),
-      { switch: [{ ...defaultTextFieldComp, if: { type: 'expr-eval', expr: 'read' } }, { ...defaultTextareaComp, if: { type: 'expr-eval', expr: 'write' } }] }
+      { switch: [{ ...defaultTextFieldComp, if: { type: 'js-eval', expr: 'read' } }, { ...defaultTextareaComp, if: { type: 'js-eval', expr: 'write' } }] }
     )
   })
 
@@ -84,7 +84,7 @@ describe('normalize schema fragment function', () => {
   it('should manage select with getItems', () => {
     assert.deepEqual(
       normalize({ type: 'string', layout: { getItems: 'context.items' } }, '/prop'),
-      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'expr-eval' } }
+      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval' } }
     )
   })
 })

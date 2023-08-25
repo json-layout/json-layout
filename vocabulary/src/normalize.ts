@@ -1,5 +1,5 @@
-import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren } from './layout-keyword'
-import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child } from '.'
+import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren, isPartialGetItemsFetch, type PartialExpression, isPartialGetItemsExpr, isPartialGetItemsObj } from './layout-keyword'
+import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child, type Expression } from '.'
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
@@ -109,15 +109,26 @@ function getPartialCompObject (layoutKeyword: LayoutKeyword): PartialCompObject 
   return null
 }
 
-function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): CompObject {
+const normalizeExpression = (expression: PartialExpression, defaultType: Expression['type'] = 'js-eval'): Expression => {
+  if (typeof expression === 'string') return { type: defaultType, expr: expression }
+  else return { ...expression, type: expression.type ?? defaultType }
+}
+
+function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment): CompObject {
   const partial = getPartialCompObject(layoutKeyword)
   if (!partial) return defaultCompObject
 
-  if (partial.if && typeof partial.if === 'string') {
-    partial.if = { type: 'expr-eval', expr: partial.if }
+  if (partial.if) partial.if = normalizeExpression(partial.if)
+  if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
+  if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
+    if (schemaFragment.type === 'object') partial.getItems.returnObjects = true
+    if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle)
+    if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey)
+    if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue)
+    if (partial.getItems.itemsResults) partial.getItems.itemsResults = normalizeExpression(partial.getItems.itemsResults)
   }
-  if (partial.getItems && typeof partial.getItems === 'string') {
-    partial.getItems = { type: 'expr-eval', expr: partial.getItems }
+  if (partial.getItems && isPartialGetItemsFetch(partial.getItems)) {
+    partial.getItems.url = normalizeExpression(partial.getItems.url, 'js-tpl')
   }
 
   if (partial.items) {
@@ -160,13 +171,13 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   return compObject
 }
 
-function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject): NormalizedLayout {
+function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment): NormalizedLayout {
   if (isPartialSwitch(layoutKeyword)) {
     return {
-      switch: layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject))
+      switch: layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject, schemaFragment))
     }
   } else {
-    return getCompObject(layoutKeyword, defaultCompObject)
+    return getCompObject(layoutKeyword, defaultCompObject, schemaFragment)
   }
 }
 
@@ -183,7 +194,7 @@ export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaP
     console.log(`layout keyword validation errors at path ${schemaPath}`, validateLayoutKeyword.errors)
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
-  const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject)
+  const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject, schemaFragment)
   if (!validateNormalizedLayout(normalizedLayout)) {
     console.log(`normalized layout validation errors at path ${schemaPath}`, JSON.stringify(normalizedLayout, null, 2), validateNormalizedLayout.errors)
     throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })

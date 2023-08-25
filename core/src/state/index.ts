@@ -4,7 +4,7 @@ import { evalExpression, producePatchedData, type StateNode } from './state-node
 import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
 import { Display } from './utils/display'
 import { isSelect } from './nodes'
-import { isGetItemsExpression, type SelectItems } from '@json-layout/vocabulary'
+import { isGetItemsExpression, isGetItemsFetch, type SelectItem, type SelectItems, type Expression } from '@json-layout/vocabulary'
 
 export * from './nodes'
 export type { StateTree } from './state-tree'
@@ -100,11 +100,43 @@ export class StatefulLayout {
     this.input(parentNode, newParentValue)
   }
 
-  getSelectItems (node: StateNode): SelectItems {
+  async getSelectItems (node: StateNode): Promise<SelectItems> {
     if (!isSelect(node)) throw new Error('node is not a select component')
     if (node.layout.items) return node.layout.items
+
+    const evalSelectExpression = (expression: Expression, data: any) => evalExpression(this.compiledLayout.expressions, expression, data, this._options.context, node.mode, new Display(node.width))
+
+    let rawItems
     if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {
-      return evalExpression(this.compiledLayout.expressions, node.layout.getItems, this._options.context, node.mode, new Display(node.width))
+      rawItems = evalSelectExpression(node.layout.getItems, null)
+    }
+    if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
+      const url = evalSelectExpression(node.layout.getItems.url, null)
+      rawItems = await (await fetch(url)).json()
+    }
+
+    if (rawItems) {
+      if (node.layout.getItems?.itemsResults) {
+        rawItems = evalSelectExpression(node.layout.getItems.itemsResults, rawItems)
+      }
+      return rawItems.map((rawItem: any) => {
+        if (typeof rawItem === 'object') {
+          const item: Partial<SelectItem> = {}
+          item.value = node.layout.getItems?.itemValue ? evalSelectExpression(node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
+          item.key = node.layout.getItems?.itemKey ? evalSelectExpression(node.layout.getItems.itemKey, rawItem) : rawItem.key
+          item.title = node.layout.getItems?.itemTitle ? evalSelectExpression(node.layout.getItems.itemTitle, rawItem) : rawItem.title
+          item.value = item.value ?? item.key
+          item.key = item.key ?? (item.value as string) + ''
+          item.title = item.title ?? item.key
+          return item
+        } else {
+          const item: Partial<SelectItem> = {}
+          item.value = node.layout.getItems?.itemValue ? evalSelectExpression(node.layout.getItems.itemValue, rawItem) : rawItem
+          item.key = node.layout.getItems?.itemKey ? evalSelectExpression(node.layout.getItems.itemKey, rawItem) : item.value
+          item.title = node.layout.getItems?.itemTitle ? evalSelectExpression(node.layout.getItems.itemTitle, rawItem) : item.value
+          return item
+        }
+      })
     }
     throw new Error('node is missing items or getItems parameters')
   }

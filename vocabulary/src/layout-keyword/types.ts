@@ -13,13 +13,7 @@ export type PartialChild = PartialCompObject & {
   width?: number;
   [k: string]: unknown;
 };
-export type PartialExpression =
-  | string
-  | {
-      type?: "expr-eval" | "js-fn";
-      expr: string;
-      [k: string]: unknown;
-    };
+export type PartialExpression = string | PartialExpressionObj;
 export type PartialSelectItem =
   | string
   | {
@@ -28,12 +22,15 @@ export type PartialSelectItem =
       value?: unknown;
       [k: string]: unknown;
     };
-export type PartialGetItems =
-  | PartialExpression
-  | {
-      url?: string;
-      [k: string]: unknown;
-    };
+export type PartialGetItems = string | PartialGetItemsObj;
+export type PartialGetItemsObj = {
+  itemTitle?: PartialExpression;
+  itemKey?: PartialExpression;
+  itemValue?: PartialExpression;
+  itemsResults?: PartialExpression;
+  [k: string]: unknown;
+} & PartialGetItemsObj1;
+export type PartialGetItemsObj1 = PartialExpression | PartialGetItemsFetch;
 export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
@@ -45,6 +42,15 @@ export interface PartialCompObject {
   if?: PartialExpression;
   items?: PartialSelectItem[];
   getItems?: PartialGetItems;
+}
+export interface PartialExpressionObj {
+  type?: "expr-eval" | "js-fn" | "js-eval" | "js-tpl";
+  expr: string;
+  [k: string]: unknown;
+}
+export interface PartialGetItemsFetch {
+  url: PartialExpression;
+  [k: string]: unknown;
 }
 export interface PartialSwitch {
   switch: PartialCompObject[];
@@ -173,25 +179,29 @@ export const layoutKeywordSchema = {
           "type": "string"
         },
         {
-          "type": "object",
-          "required": [
-            "expr"
-          ],
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": [
-                "expr-eval",
-                "js-fn"
-              ],
-              "default": "expr-eval"
-            },
-            "expr": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/$defs/partial-expression-obj"
         }
       ]
+    },
+    "partial-expression-obj": {
+      "type": "object",
+      "required": [
+        "expr"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "expr-eval",
+            "js-fn",
+            "js-eval",
+            "js-tpl"
+          ]
+        },
+        "expr": {
+          "type": "string"
+        }
+      }
     },
     "partial-select-item": {
       "oneOf": [
@@ -215,17 +225,48 @@ export const layoutKeywordSchema = {
     "partial-get-items": {
       "oneOf": [
         {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/partial-get-items-obj"
+        }
+      ]
+    },
+    "partial-get-items-obj": {
+      "type": "object",
+      "properties": {
+        "itemTitle": {
+          "$ref": "#/$defs/partial-expression"
+        },
+        "itemKey": {
+          "$ref": "#/$defs/partial-expression"
+        },
+        "itemValue": {
+          "$ref": "#/$defs/partial-expression"
+        },
+        "itemsResults": {
+          "$ref": "#/$defs/partial-expression"
+        }
+      },
+      "oneOf": [
+        {
           "$ref": "#/$defs/partial-expression"
         },
         {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/$defs/partial-get-items-fetch"
         }
       ]
+    },
+    "partial-get-items-fetch": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/partial-expression"
+        }
+      }
     }
   }
 }

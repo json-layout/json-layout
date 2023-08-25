@@ -1,5 +1,5 @@
 // import { type Emitter } from 'mitt'
-import { type SkeletonNode, type CompiledLayout, type CompiledExpressions } from '../compile'
+import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions, type Mode } from '..'
 // import { getDisplay } from '../utils'
 import { type CompObject, isSwitch, type NormalizedLayout, type Expression } from '@json-layout/vocabulary'
@@ -67,10 +67,11 @@ const matchChildError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: s
   return false
 }
 
-export function evalExpression (expressions: CompiledExpressions, expression: Expression, context: Record<string, any>, mode: Mode, display: Display): any {
-  const compiledExpression = expressions[expression.type][expression.expr]
+export function evalExpression (expressions: CompiledExpression[], expression: Expression, data: any, context: Record<string, any>, mode: Mode, display: Display): any {
+  if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
+  const compiledExpression = expressions[expression.ref]
   // console.log(expression.expr, context, mode, display)
-  return compiledExpression(context, mode, display)
+  return compiledExpression(data, context, mode, display)
 }
 
 export function createStateNode (
@@ -95,7 +96,7 @@ export function createStateNode (
   if (isSwitch(normalizedLayout)) {
     layout = normalizedLayout.switch.find(compObject => {
       if (!compObject.if) return true
-      return !!evalExpression(compiledLayout.expressions, compObject.if, options.context, mode, display)
+      return !!evalExpression(compiledLayout.expressions, compObject.if, data, options.context, mode, display)
     }) ?? nodeCompObject
   } else {
     layout = normalizedLayout

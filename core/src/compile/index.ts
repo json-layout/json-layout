@@ -30,20 +30,15 @@ export interface CompileOptions {
   ajv?: Ajv
 }
 
-export interface CompiledExpressions {
-  'expr-eval': Record<string, CompiledExpression>
-  'js-fn': Record<string, CompiledExpression>
-}
-
 export interface CompiledLayout {
   skeletonTree: SkeletonTree
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
-  expressions: CompiledExpressions
+  expressions: CompiledExpression[]
 }
 
-export type CompiledExpression = (context: Record<string, any>, mode: string, display: Display) => any
-const expressionsParams = ['context', 'mode', 'display']
+export type CompiledExpression = (data: any, context: Record<string, any>, mode: string, display: Display) => any
+const expressionsParams = ['data', 'context', 'mode', 'display']
 
 export function compile (_schema: object, options: CompileOptions = {}): CompiledLayout {
   const schema = <SchemaObject>clone(_schema)
@@ -68,15 +63,23 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
     validates[pointer] = ajv.compile({ $ref: fullPointer })
   }
 
-  const expressions: CompiledExpressions = { 'expr-eval': {}, 'js-fn': {} }
+  const expressions: CompiledExpression[] = []
 
   for (const expression of compiledRaw.expressions) {
     if (expression.type === 'expr-eval') {
-      expressions['expr-eval'][expression.expr] = exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')) as CompiledExpression
+      expressions.push(exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')) as CompiledExpression)
     }
     if (expression.type === 'js-fn') {
       // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
-      expressions['js-fn'][expression.expr] = new Function(...expressionsParams, expression.expr) as CompiledExpression
+      expressions.push(new Function(...expressionsParams, expression.expr) as CompiledExpression)
+    }
+    if (expression.type === 'js-eval') {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      expressions.push(new Function(...expressionsParams, 'return (' + expression.expr + ')') as CompiledExpression)
+    }
+    if (expression.type === 'js-tpl') {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      expressions.push(new Function(...expressionsParams, 'return `' + expression.expr + '`') as CompiledExpression)
     }
   }
 

@@ -1,6 +1,10 @@
 import { strict as assert } from 'assert'
+import nock from 'nock'
 import { compile, StatefulLayout } from '../src'
 import { type PartialChildren } from '@json-layout/vocabulary'
+import fetch from 'node-fetch'
+
+global.fetch = fetch as any
 
 describe('stateful layout', () => {
   it('should manage a simple schema with bi-directional data-binding', () => {
@@ -288,28 +292,55 @@ describe('stateful layout', () => {
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].data, 10)
   })
 
-  it('should manage a select with items', () => {
+  it('should manage a select with items', async () => {
     const compiledLayout = compile({
       type: 'string',
       layout: { items: ['val1', 'val2'] }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
-    const items = statefulLayout.getSelectItems(statefulLayout.stateTree.root)
+    const items = await statefulLayout.getSelectItems(statefulLayout.stateTree.root)
     assert.deepEqual(items, [
       { title: 'val1', key: 'val1', value: 'val1' },
       { title: 'val2', key: 'val2', value: 'val2' }
     ])
   })
 
-  it('should manage a select with getItems', () => {
-    const compiledLayout = compile({
-      type: 'string',
-      layout: { getItems: 'context.items' }
-    })
+  it('should manage a select with getItems as a simple expression', async () => {
+    const compiledLayout = compile({ type: 'string', layout: { getItems: 'context.items' } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { items: ['val1', 'val2'] } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
-    const items = statefulLayout.getSelectItems(statefulLayout.stateTree.root)
-    console.log(items)
+    const items = await statefulLayout.getSelectItems(statefulLayout.stateTree.root)
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
+
+  it('should manage a select with getItems as a more complex expression', async () => {
+    const compiledLayout = compile({ type: 'string', layout: { getItems: 'context.items.map(item => ({title: item.toUpperCase(), key: item, value: item}))' } })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { items: ['val1', 'val2'] } }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const items = await statefulLayout.getSelectItems(statefulLayout.stateTree.root)
+    assert.deepEqual(items, [
+      { title: 'VAL1', key: 'val1', value: 'val1' },
+      { title: 'VAL2', key: 'val2', value: 'val2' }
+    ])
+  })
+
+  it('should manage a select with getItems as fetch instruction', async () => {
+    // eslint-disable-next-line no-template-curly-in-string
+    const compiledLayout = compile({ type: 'string', layout: { getItems: { url: 'http://${context.domain}/test', itemsResults: 'data.results', itemTitle: 'data.toUpperCase()' } } })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { domain: 'test.com' } }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const nockScope = nock('http://test.com')
+      .get('/test')
+      .reply(200, { results: ['val1', 'val2'] })
+    const items = await statefulLayout.getSelectItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'VAL1', key: 'val1', value: 'val1' },
+      { title: 'VAL2', key: 'val2', value: 'val2' }
+    ])
   })
 })

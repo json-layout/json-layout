@@ -73,21 +73,21 @@
     "partial-expression": {
       "oneOf": [
         {"type": "string"},
-        {
-          "type": "object",
-          "required": ["expr"],
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["expr-eval", "js-fn"],
-              "default": "expr-eval"
-            },
-            "expr": {
-              "type": "string"
-            }
-          }
-        }
+        {"$ref": "#/$defs/partial-expression-obj"}
       ]
+    },
+    "partial-expression-obj": {
+      "type": "object",
+      "required": ["expr"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["expr-eval", "js-fn", "js-eval", "js-tpl"]
+        },
+        "expr": {
+          "type": "string"
+        }
+      }
     },
     "partial-select-item": {
       "oneOf": [
@@ -104,14 +104,29 @@
     },
     "partial-get-items": {
       "oneOf": [
-        {"$ref": "#/$defs/partial-expression"},
-        {
-          "type": "object",
-          "properties": {
-            "url": {"type": "string"}
-          }
-        }
+        {"type": "string"},
+        {"$ref": "#/$defs/partial-get-items-obj"}
       ]
+    },
+    "partial-get-items-obj": {
+      "type": "object",
+      "properties": {
+        "itemTitle": {"$ref": "#/$defs/partial-expression"},
+        "itemKey": {"$ref": "#/$defs/partial-expression"},
+        "itemValue": {"$ref": "#/$defs/partial-expression"},
+        "itemsResults": {"$ref": "#/$defs/partial-expression"}
+      },
+      "oneOf": [
+        {"$ref": "#/$defs/partial-expression"},
+        {"$ref": "#/$defs/partial-get-items-fetch"}
+      ]
+    },
+    "partial-get-items-fetch": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {"$ref": "#/$defs/partial-expression"}
+      }
     }
   }
 }

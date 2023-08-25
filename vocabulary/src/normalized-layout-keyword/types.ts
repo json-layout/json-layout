@@ -10,12 +10,15 @@ export type CompObject =
   | OneOfSelect
   | CompositeCompObject;
 export type SelectItems = SelectItem[];
-export type GetItems =
-  | Expression
-  | {
-      url: string;
-      [k: string]: unknown;
-    };
+export type GetItems = {
+  returnObjects?: boolean;
+  itemsResults?: Expression;
+  itemTitle?: Expression;
+  itemKey?: Expression;
+  itemValue?: Expression;
+  [k: string]: unknown;
+} & GetItems1;
+export type GetItems1 = Expression | GetItemsFetch;
 export type CompositeCompObject = Section;
 export type Child = Child1 & {
   key: string | number;
@@ -34,8 +37,9 @@ export interface None {
   [k: string]: unknown;
 }
 export interface Expression {
-  type: "expr-eval" | "js-fn";
+  type: "expr-eval" | "js-fn" | "js-eval" | "js-tpl";
   expr: string;
+  ref?: number;
   [k: string]: unknown;
 }
 export interface List {
@@ -81,6 +85,10 @@ export interface SelectItem {
   title: string;
   key: string;
   value: unknown;
+  [k: string]: unknown;
+}
+export interface GetItemsFetch {
+  url: Expression;
   [k: string]: unknown;
 }
 export interface OneOfSelect {
@@ -379,22 +387,44 @@ export const normalizedLayoutKeywordSchema = {
       }
     },
     "get-items": {
+      "type": "object",
+      "properties": {
+        "returnObjects": {
+          "type": "boolean",
+          "readOnly": true
+        },
+        "itemsResults": {
+          "$ref": "#/$defs/expression"
+        },
+        "itemTitle": {
+          "$ref": "#/$defs/expression"
+        },
+        "itemKey": {
+          "$ref": "#/$defs/expression"
+        },
+        "itemValue": {
+          "$ref": "#/$defs/expression"
+        }
+      },
       "oneOf": [
         {
           "$ref": "#/$defs/expression"
         },
         {
-          "type": "object",
-          "required": [
-            "url"
-          ],
-          "properties": {
-            "url": {
-              "type": "string"
-            }
-          }
+          "$ref": "#/$defs/get-items-fetch"
         }
       ]
+    },
+    "get-items-fetch": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/expression"
+        }
+      }
     },
     "one-of-select": {
       "type": "object",
@@ -424,12 +454,17 @@ export const normalizedLayoutKeywordSchema = {
           "type": "string",
           "enum": [
             "expr-eval",
-            "js-fn"
-          ],
-          "default": "expr-eval"
+            "js-fn",
+            "js-eval",
+            "js-tpl"
+          ]
         },
         "expr": {
           "type": "string"
+        },
+        "ref": {
+          "type": "integer",
+          "readOnly": true
         }
       }
     }

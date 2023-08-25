@@ -145,16 +145,25 @@
       }
     },
     "get-items": {
+      "type": "object",
+      "properties": {
+        "returnObjects": {"type": "boolean", "readOnly": true},
+        "itemsResults": {"$ref": "#/$defs/expression"},
+        "itemTitle": {"$ref": "#/$defs/expression"},
+        "itemKey": {"$ref": "#/$defs/expression"},
+        "itemValue": {"$ref": "#/$defs/expression"}
+      },
       "oneOf": [
         {"$ref": "#/$defs/expression"},
-        {
-          "type": "object",
-          "required": ["url"],
-          "properties": {
-            "url": {"type": "string"}
-          }
-        }
+        {"$ref": "#/$defs/get-items-fetch"}
       ]
+    },
+    "get-items-fetch": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {"$ref": "#/$defs/expression"}
+      }
     },
     "one-of-select": {
       "type": "object",
@@ -171,11 +180,14 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["expr-eval", "js-fn"],
-          "default": "expr-eval"
+          "enum": ["expr-eval", "js-fn", "js-eval", "js-tpl"]
         },
         "expr": {
           "type": "string"
+        },
+        "ref": {
+          "type": "integer",
+          "readOnly": true
         }
       }
     }
