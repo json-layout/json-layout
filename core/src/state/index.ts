@@ -1,4 +1,5 @@
 import mitt, { type Emitter } from 'mitt'
+import debug from 'debug'
 import { type CompiledLayout, type SkeletonTree } from '../compile'
 import { evalExpression, producePatchedData, type StateNode } from './state-node'
 import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
@@ -24,6 +25,8 @@ export interface StatefulLayoutOptions {
   mode: Mode
   width: number
 }
+
+const logDataBinding = debug('jl:data-binding')
 
 const fillOptions = (partialOptions: Partial<StatefulLayoutOptions>): StatefulLayoutOptions => {
   return {
@@ -57,6 +60,7 @@ export class StatefulLayout {
   private _data: unknown
   get data () { return this._data }
   set data (data: unknown) {
+    logDataBinding('apply main data setter', data)
     this._data = data
     this.updateState()
   }
@@ -83,12 +87,17 @@ export class StatefulLayout {
       this._data,
       this._stateTree
     )
-    this._data = this._stateTree.root.data
+    if (this._data !== this._stateTree.root.data) {
+      logDataBinding('update data after hydrating state tree', this._data, this._stateTree.root.data)
+      this._data = this._stateTree.root.data
+    }
     this._lastCreateStateTreeContext = createStateTreeContext
+    logDataBinding('emit update event', this._data, this._stateTree)
     this.events.emit('update', this)
   }
 
   input (node: StateNode, data: unknown) {
+    logDataBinding('received input from node', node, data)
     if (node.parentFullKey === null) {
       this.data = data
       this.events.emit('input', this.data)
