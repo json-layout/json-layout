@@ -24,7 +24,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         const code = serialize(compiledLayout)
         const filePath = resolve(__dirname, `../tmp/${currentTest?.replace(/\W/g, '_')}.js`)
         // dynamic loading of file in our context requires the commonjs syntax
-        writeFileSync(filePath, code.replace('export default {', 'module.exports = {'))
+        writeFileSync(filePath, code + '\nmodule.exports = compiledLayout;')
         return require(filePath)
       }
     }

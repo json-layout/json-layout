@@ -10,18 +10,21 @@ describe('compile schema function', () => {
     const compiled = compile({ type: 'string' })
     assert.ok(compiled)
   })
+
   it('should support serializing the compiled layout', async () => {
     const compiledLayout = compile({ type: 'string', layout: { if: "mode == 'read'" } }, { code: true })
     const code = serialize(compiledLayout)
     assert.ok(code)
+    console.log(code)
 
     const filePath = resolve(__dirname, '../tmp/compiled.js')
     // dynamic loading of file in our context requires the commonjs syntax
-    await writeFile(filePath, code.replace('export default {', 'module.exports = {'))
+    await writeFile(filePath, code + '\nmodule.exports = compiledLayout;')
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const serializedLayout = require(filePath)
     assert.deepEqual(serializedLayout.skeletonTree, compiledLayout.skeletonTree)
     assert.deepEqual(serializedLayout.normalizedLayouts, compiledLayout.normalizedLayouts)
+    console.log(serializedLayout)
   })
 })

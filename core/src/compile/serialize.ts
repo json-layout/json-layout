@@ -45,5 +45,11 @@ export function serialize (compiledLayout: CompiledLayout): string {
     delete ast.exports[exportKey]
   }
 
-  return generateCode(ast).code
+  // const compiledLayoutExpression = builders.literal(ast.exports.default)
+  const compiledLayoutCode = print(ast.exports.default.$ast)
+  delete ast.exports.default
+
+  const generatedCode = `${generateCode(ast).code}\nconst compiledLayout = ${compiledLayoutCode}`
+
+  return generatedCode
 }
