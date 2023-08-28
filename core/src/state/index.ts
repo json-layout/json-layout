@@ -42,7 +42,7 @@ export class StatefulLayout {
   private _stateTree!: StateTree
   get stateTree () { return this._stateTree }
 
-  private readonly skeletonTree: SkeletonTree
+  readonly skeletonTree: SkeletonTree
 
   private _display!: Display
 

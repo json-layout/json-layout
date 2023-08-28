@@ -2,7 +2,8 @@ import { strict as assert } from 'assert'
 import { writeFile } from 'fs/promises'
 import { resolve } from 'path'
 
-import { compile, serialize } from '../src/'
+import { compile } from '../src/'
+import { serialize } from '../src/compile/serialize'
 
 describe('compile schema function', () => {
   it('should compile simple schemas', () => {

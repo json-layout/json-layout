@@ -1,6 +1,7 @@
 import { strict as assert } from 'assert'
 import nock from 'nock'
-import { type CompiledLayout, type CompileOptions, compile as compileSrc, serialize, StatefulLayout } from '../src'
+import { type CompiledLayout, type CompileOptions, compile as compileSrc, StatefulLayout } from '../src'
+import { serialize } from '../src/compile/serialize'
 import { type PartialChildren } from '@json-layout/vocabulary'
 import fetch from 'node-fetch'
 import { writeFileSync } from 'fs'
