@@ -54,7 +54,8 @@
         "comp": {"const": "section"},
         "if": {"$ref": "#/$defs/expression"},
         "title": {"type": ["string", "null"]},
-        "children": {"$ref": "#/$defs/children"}
+        "children": {"$ref": "#/$defs/children"},
+        "help": {"type": "string"}
       }
     },
     "child": {
@@ -80,7 +81,8 @@
       "properties": {
         "comp": {"const": "list"},
         "if": {"$ref": "#/$defs/expression"},
-        "title": {"type": "string"}
+        "title": {"type": "string"},
+        "help": {"type": "string"}
       }
     },
     "text-field": {
@@ -89,7 +91,8 @@
       "properties": {
         "comp": {"const": "text-field"},
         "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "help": {"type": "string"}
       }
     },
     "number-field": {
@@ -99,7 +102,8 @@
         "comp": {"const": "number-field"},
         "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"},
-        "step": {"type": "number"}
+        "step": {"type": "number"},
+        "help": {"type": "string"}
       }
     },
     "textarea": {
@@ -108,7 +112,8 @@
       "properties": {
         "comp": {"const": "textarea"},
         "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "help": {"type": "string"}
       }
     },
     "checkbox": {
@@ -117,7 +122,8 @@
       "properties": {
         "comp": {"const": "checkbox"},
         "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "help": {"type": "string"}
       }
     },
     "select": {
@@ -128,7 +134,8 @@
         "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"},
         "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"}
+        "getItems": {"$ref": "#/$defs/get-items"},
+        "help": {"type": "string"}
       }
     },
     "select-items": {
@@ -171,7 +178,8 @@
       "properties": {
         "comp": {"const": "one-of-select"},
         "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "help": {"type": "string"}
       }
     },
     "expression": {

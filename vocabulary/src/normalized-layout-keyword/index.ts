@@ -1,4 +1,4 @@
-import { type NormalizedLayout, Switch, CompObject, Section, GetItems, Expression, Select, GetItemsFetch } from './types'
+import { type NormalizedLayout, Switch, CompObject, Section, GetItems, Expression, Select, GetItemsFetch, TextField } from './types'
 import validate from './validate'
 
 export * from './types'
@@ -19,6 +19,10 @@ export function isCompObject (layout: NormalizedLayout): layout is CompObject {
 
 export function isSectionLayout (layout: CompObject): layout is Section {
   return layout.comp === 'section'
+}
+
+export function isTextFieldLayout (layout: CompObject): layout is TextField {
+  return layout.comp === 'text-field'
 }
 
 export function isSelectLayout (layout: CompObject): layout is Select {

@@ -1,7 +1,7 @@
-import type Ajv from 'ajv'
 // import Debug from 'debug'
 import { type NormalizedLayout, type Expression } from '@json-layout/vocabulary'
 import { type SkeletonNode, makeSkeletonNode } from './skeleton-node'
+import { type CompileOptions } from '.'
 
 // const debug = Debug('json-layout:compile-raw')
 
@@ -14,14 +14,14 @@ export interface SkeletonTree {
 
 export function makeSkeletonTree (
   schema: any,
-  ajv: Ajv,
+  options: CompileOptions,
   validates: string[],
   normalizedLayouts: Record<string, NormalizedLayout>,
   expressions: Expression[],
   pointer: string,
   title: string
 ): SkeletonTree {
-  const root = makeSkeletonNode(schema, ajv, validates, normalizedLayouts, expressions, '', pointer, null)
+  const root = makeSkeletonNode(schema, options, validates, normalizedLayouts, expressions, '', pointer, null)
   validates.push(pointer)
   return { title, root }
 }

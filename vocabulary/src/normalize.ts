@@ -14,6 +14,8 @@ export interface SchemaFragment {
   enum?: any[]
 }
 
+export type Markdown = (src: string) => string
+
 function getDefaultChildren (schemaFragment: SchemaFragment): Children {
   const children: Children = []
   if (schemaFragment.type === 'object') {
@@ -114,7 +116,7 @@ const normalizeExpression = (expression: PartialExpression, defaultType: Express
   else return { ...expression, type: expression.type ?? defaultType }
 }
 
-function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment): CompObject {
+function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment, markdown: Markdown): CompObject {
   const partial = getPartialCompObject(layoutKeyword)
   if (!partial) return defaultCompObject
 
@@ -168,20 +170,23 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
     compObject.children = getChildren((defaultCompObject).children, partial.children)
   }
 
+  if (compObject.description && !compObject.help) compObject.help = compObject.description
+  if (compObject.help) compObject.help = markdown(compObject.help).trim()
+
   return compObject
 }
 
-function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment): NormalizedLayout {
+function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment, markdown: Markdown): NormalizedLayout {
   if (isPartialSwitch(layoutKeyword)) {
     return {
-      switch: layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject, schemaFragment))
+      switch: layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject, schemaFragment, markdown))
     }
   } else {
-    return getCompObject(layoutKeyword, defaultCompObject, schemaFragment)
+    return getCompObject(layoutKeyword, defaultCompObject, schemaFragment, markdown)
   }
 }
 
-export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string, arrayChild?: 'oneOf'): NormalizedLayout {
+export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string, markdown: Markdown, arrayChild?: 'oneOf'): NormalizedLayout {
   let layoutKeyword, defaultCompObject: CompObject
   if (arrayChild === 'oneOf') {
     layoutKeyword = schemaFragment.oneOfLayout ?? {}
@@ -194,7 +199,7 @@ export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaP
     console.log(`layout keyword validation errors at path ${schemaPath}`, validateLayoutKeyword.errors)
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
-  const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject, schemaFragment)
+  const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject, schemaFragment, markdown)
   if (!validateNormalizedLayout(normalizedLayout)) {
     console.log(`normalized layout validation errors at path ${schemaPath}`, JSON.stringify(normalizedLayout, null, 2), validateNormalizedLayout.errors)
     throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })

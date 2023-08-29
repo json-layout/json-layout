@@ -6,7 +6,8 @@ import { type SchemaObject } from 'json-schema-traverse'
 import Ajv, { type ValidateFunction, type Options as AjvOptions } from 'ajv'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
-import { type Expression, type NormalizedLayout } from '@json-layout/vocabulary'
+import MarkdownIt from 'markdown-it'
+import { type Markdown, type Expression, type NormalizedLayout } from '@json-layout/vocabulary'
 import { makeSkeletonTree, type SkeletonTree } from './skeleton-tree'
 import { type Display } from '../state/utils/display'
 
@@ -16,12 +17,14 @@ export type { SkeletonNode } from './skeleton-node'
 export type CompiledExpression = (data: any, context: Record<string, any>, mode: string, display: Display) => any
 
 export interface CompileOptions {
-  ajv?: Ajv
-  code?: boolean
+  ajv: Ajv
+  code: boolean
+  markdown: Markdown
+  markdownIt?: MarkdownIt.Options
 }
 
 export interface CompiledLayout {
-  ajv?: Ajv
+  options: CompileOptions
   schema?: SchemaObject
   skeletonTree: SkeletonTree
   validates: Record<string, ValidateFunction>
@@ -34,17 +37,35 @@ const expressionsParams = ['data', 'context', 'mode', 'display']
 const clone = rfdc()
 const exprEvalParser = new ExprEvalParser()
 
-export function compile (_schema: object, options: CompileOptions = {}): CompiledLayout {
-  const schema = <SchemaObject>clone(_schema)
-
-  let ajv = options.ajv
+const fillOptions = (partialOptions: Partial<CompileOptions>): CompileOptions => {
+  let ajv = partialOptions.ajv
   if (!ajv) {
     const ajvOpts: AjvOptions = { strict: false, allErrors: true }
-    if (options.code) ajvOpts.code = { source: true, esm: true }
+    if (partialOptions.code) ajvOpts.code = { source: true, esm: true }
     ajv = new Ajv(ajvOpts)
     addFormats(ajv)
     ajvErrors(ajv)
   }
+
+  let markdown = partialOptions.markdown
+  if (!markdown) {
+    const markdownIt = new MarkdownIt(partialOptions.markdownIt ?? {})
+    markdown = markdownIt.render.bind(markdownIt)
+  }
+
+  return {
+    ajv,
+    code: false,
+    markdown,
+    ...partialOptions
+  }
+}
+
+export function compile (_schema: object, partialOptions: Partial<CompileOptions> = {}): CompiledLayout {
+  const schema = <SchemaObject>clone(_schema)
+
+  const options = fillOptions(partialOptions)
+
   if (!('$id' in schema)) {
     schema.$id = '_jl'
   }
@@ -55,15 +76,15 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
 
   // TODO: produce a resolved/normalized version of the schema
   // useful to get predictable schemaPath properties in errors and to have proper handling of default values
-  const skeletonTree = makeSkeletonTree(schema, ajv, validatePointers, normalizedLayouts, expressionsDefinitions, `${schema.$id}#`, 'main')
+  const skeletonTree = makeSkeletonTree(schema, options, validatePointers, normalizedLayouts, expressionsDefinitions, `${schema.$id}#`, 'main')
 
-  ajv.addSchema(schema)
+  options.ajv.addSchema(schema)
 
-  const uriResolver = ajv.opts.uriResolver
+  const uriResolver = options.ajv.opts.uriResolver
   const validates: Record<string, ValidateFunction> = {}
   for (const pointer of validatePointers) {
     const fullPointer = uriResolver.resolve(schema.$id as string, pointer)
-    validates[pointer] = ajv.compile({ $ref: fullPointer })
+    validates[pointer] = options.ajv.compile({ $ref: fullPointer })
   }
 
   const expressions: CompiledExpression[] = []
@@ -86,5 +107,5 @@ export function compile (_schema: object, options: CompileOptions = {}): Compile
     }
   }
 
-  return { ajv, schema, skeletonTree, validates, normalizedLayouts, expressions }
+  return { options, schema, skeletonTree, validates, normalizedLayouts, expressions }
 }

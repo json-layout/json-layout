@@ -46,12 +46,14 @@ export interface List {
   comp: "list";
   if?: Expression;
   title?: string;
+  help?: string;
   [k: string]: unknown;
 }
 export interface TextField {
   comp: "text-field";
   if?: Expression;
   label: string;
+  help?: string;
   [k: string]: unknown;
 }
 export interface NumberField {
@@ -59,18 +61,21 @@ export interface NumberField {
   if?: Expression;
   label: string;
   step?: number;
+  help?: string;
   [k: string]: unknown;
 }
 export interface Textarea {
   comp: "textarea";
   if?: Expression;
   label: string;
+  help?: string;
   [k: string]: unknown;
 }
 export interface Checkbox {
   comp: "checkbox";
   if?: Expression;
   label: string;
+  help?: string;
   [k: string]: unknown;
 }
 export interface Select {
@@ -79,6 +84,7 @@ export interface Select {
   label: string;
   items?: SelectItems;
   getItems?: GetItems;
+  help?: string;
   [k: string]: unknown;
 }
 export interface SelectItem {
@@ -95,6 +101,7 @@ export interface OneOfSelect {
   comp: "one-of-select";
   if?: Expression;
   label?: string;
+  help?: string;
   [k: string]: unknown;
 }
 export interface Section {
@@ -102,6 +109,7 @@ export interface Section {
   if?: Expression;
   title?: string | null;
   children: Children;
+  help?: string;
   [k: string]: unknown;
 }
 
@@ -212,6 +220,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         "children": {
           "$ref": "#/$defs/children"
+        },
+        "help": {
+          "type": "string"
         }
       }
     },
@@ -261,6 +272,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         "title": {
           "type": "string"
+        },
+        "help": {
+          "type": "string"
         }
       }
     },
@@ -278,6 +292,9 @@ export const normalizedLayoutKeywordSchema = {
           "$ref": "#/$defs/expression"
         },
         "label": {
+          "type": "string"
+        },
+        "help": {
           "type": "string"
         }
       }
@@ -300,6 +317,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         "step": {
           "type": "number"
+        },
+        "help": {
+          "type": "string"
         }
       }
     },
@@ -318,6 +338,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         "label": {
           "type": "string"
+        },
+        "help": {
+          "type": "string"
         }
       }
     },
@@ -335,6 +358,9 @@ export const normalizedLayoutKeywordSchema = {
           "$ref": "#/$defs/expression"
         },
         "label": {
+          "type": "string"
+        },
+        "help": {
           "type": "string"
         }
       }
@@ -360,6 +386,9 @@ export const normalizedLayoutKeywordSchema = {
         },
         "getItems": {
           "$ref": "#/$defs/get-items"
+        },
+        "help": {
+          "type": "string"
         }
       }
     },
@@ -439,6 +468,9 @@ export const normalizedLayoutKeywordSchema = {
           "$ref": "#/$defs/expression"
         },
         "label": {
+          "type": "string"
+        },
+        "help": {
           "type": "string"
         }
       }

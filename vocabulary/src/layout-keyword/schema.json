@@ -25,6 +25,7 @@
       "additionalProperties": false,
       "properties": {
         "comp": {"$ref": "#/$defs/comp-name"},
+        "help": {"type": "string"},
         "children": {"$ref": "#/$defs/partial-children"},
         "label": {"type": "string"},
         "title": {"type": "string"},

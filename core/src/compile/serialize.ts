@@ -6,9 +6,8 @@ import { parse, print } from 'recast'
 import { type CompiledLayout } from '.'
 
 export function serialize (compiledLayout: CompiledLayout): string {
-  ok(compiledLayout.ajv)
   ok(compiledLayout.schema)
-  const ajv = compiledLayout.ajv
+  const ajv = compiledLayout.options.ajv
 
   const validatesExports: Record<string, string> = {}
   let i = 0

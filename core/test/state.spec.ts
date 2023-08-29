@@ -19,7 +19,7 @@ for (const compileMode of ['runtime', 'build-time']) {
     if (compileMode === 'runtime') {
       compile = compileSrc
     } else {
-      compile = (schema: object, options: CompileOptions = {}): CompiledLayout => {
+      compile = (schema: object, options: Partial<CompileOptions> = {}): CompiledLayout => {
         const compiledLayout = compileSrc(schema, { ...options, code: true })
         const code = serialize(compiledLayout)
         const filePath = resolve(__dirname, `../tmp/${currentTest?.replace(/\W/g, '_')}.js`)

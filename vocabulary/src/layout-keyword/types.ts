@@ -35,6 +35,7 @@ export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
   comp?: ComponentName;
+  help?: string;
   children?: PartialChildren;
   label?: string;
   title?: string;
@@ -97,6 +98,9 @@ export const layoutKeywordSchema = {
       "properties": {
         "comp": {
           "$ref": "#/$defs/comp-name"
+        },
+        "help": {
+          "type": "string"
         },
         "children": {
           "$ref": "#/$defs/partial-children"

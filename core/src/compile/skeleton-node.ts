@@ -1,8 +1,8 @@
-import type Ajv from 'ajv'
 // import Debug from 'debug'
 import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitch, isGetItemsExpression, isSelectLayout } from '@json-layout/vocabulary'
 import { type SkeletonTree, makeSkeletonTree } from './skeleton-tree'
 import { isGetItemsFetch } from '@json-layout/vocabulary'
+import { type CompileOptions } from '.'
 
 // a skeleton node is a light recursive structure
 // at runtime each one will be instantiated as a StateNode with a value and an associated component instance
@@ -27,7 +27,7 @@ const pushExpression = (expressions: Expression[], expression: Expression) => {
 
 export function makeSkeletonNode (
   schema: any,
-  ajv: Ajv,
+  options: CompileOptions,
   validates: string[],
   normalizedLayouts: Record<string, NormalizedLayout>,
   expressions: Expression[],
@@ -40,11 +40,12 @@ export function makeSkeletonNode (
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   schema.errorMessage = schema.errorMessage ?? {}
-  const normalizedLayout: NormalizedLayout = normalizedLayouts[pointer] ?? normalizeLayoutFragment(schema as SchemaFragment, pointer)
+  const normalizedLayout: NormalizedLayout = normalizedLayouts[pointer] ?? normalizeLayoutFragment(schema as SchemaFragment, pointer, options.markdown)
   normalizedLayouts[pointer] = normalizedLayout
 
   const compObjects = isSwitch(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
+    if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)
     if (isSelectLayout(compObject) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
@@ -69,7 +70,7 @@ export function makeSkeletonNode (
       for (const propertyKey of Object.keys(schema.properties)) {
         node.children.push(makeSkeletonNode(
           schema.properties[propertyKey],
-          ajv,
+          options,
           validates,
           normalizedLayouts,
           expressions,
@@ -88,7 +89,7 @@ export function makeSkeletonNode (
       for (let i = 0; i < schema.allOf.length; i++) {
         node.children.push(makeSkeletonNode(
           schema.allOf[i],
-          ajv,
+          options,
           validates,
           normalizedLayouts,
           expressions,
@@ -100,13 +101,13 @@ export function makeSkeletonNode (
     }
     if (schema.oneOf) {
       const oneOfPointer = `${pointer}/oneOf`
-      normalizedLayouts[oneOfPointer] = normalizedLayouts[oneOfPointer] ?? normalizeLayoutFragment(schema as SchemaFragment, oneOfPointer, 'oneOf')
+      normalizedLayouts[oneOfPointer] = normalizedLayouts[oneOfPointer] ?? normalizeLayoutFragment(schema as SchemaFragment, oneOfPointer, options.markdown, 'oneOf')
       const childrenTrees: SkeletonTree[] = []
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = schema.type
         const title = schema.oneOf[i].title ?? `option ${i}`
         delete schema.oneOf[i].title
-        childrenTrees.push(makeSkeletonTree(schema.oneOf[i], ajv, validates, normalizedLayouts, expressions, `${oneOfPointer}/${i}`, title))
+        childrenTrees.push(makeSkeletonTree(schema.oneOf[i], options, validates, normalizedLayouts, expressions, `${oneOfPointer}/${i}`, title))
       }
       node.children = node.children ?? []
       node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees })
@@ -118,11 +119,11 @@ export function makeSkeletonNode (
   if (schema.type === 'array' && schema.items) {
     if (Array.isArray(schema.items)) {
       node.children = schema.items.map((itemSchema: any, i: number) => {
-        return makeSkeletonNode(itemSchema, ajv, validates, normalizedLayouts, expressions, i, `${pointer}/items/${i}`, pointer)
+        return makeSkeletonNode(itemSchema, options, validates, normalizedLayouts, expressions, i, `${pointer}/items/${i}`, pointer)
       })
     } else {
       node.childrenTrees = [
-        makeSkeletonTree(schema.items, ajv, validates, normalizedLayouts, expressions, `${pointer}/items`, schema.items.title)
+        makeSkeletonTree(schema.items, options, validates, normalizedLayouts, expressions, `${pointer}/items`, schema.items.title)
       ]
     }
   }
