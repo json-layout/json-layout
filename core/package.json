@@ -12,6 +12,16 @@
         "default": "./dist/mjs/index.js",
         "types": "./dist/mjs/index.d.ts"
       }
+    },
+    "./src/compile/serialize": {
+      "require": {
+        "default": "./dist/cjs/compile/serialize.js",
+        "types": "./dist/cjs/compile/serialize.d.ts"
+      },
+      "import": {
+        "default": "./dist/mjs/compile/serialize.js",
+        "types": "./dist/mjs/compile/serialize.d.ts"
+      }
     }
   },
   "main": "./dist/cjs/index.js",

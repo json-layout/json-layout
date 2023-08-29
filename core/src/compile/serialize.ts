@@ -18,7 +18,7 @@ export function serialize (compiledLayout: CompiledLayout): string {
     ajv.addSchema({ $id: exportKey, $ref: fullPointer })
     validatesExports[exportKey] = exportKey
   }
-  let code = standaloneCode(ajv, validatesExports)
+  let code = standaloneCode(ajv, validatesExports).replace('"use strict";', '')
 
   i = 0
   const expressionsNodes = []
