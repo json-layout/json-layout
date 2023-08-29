@@ -32,7 +32,8 @@
         "step": {"type": "number"},
         "if": {"$ref": "#/$defs/partial-expression"},
         "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}},
-        "getItems": {"$ref": "#/$defs/partial-get-items"}
+        "getItems": {"$ref": "#/$defs/partial-get-items"},
+        "cols": {"$ref": "#/$defs/partial-cols"}
       }
     },
     "comp-name": {
@@ -57,7 +58,7 @@
         {
           "properties": {
             "key": {"type": ["string", "integer"]},
-            "width": {"type": "number"}
+            "cols": {"$ref": "#/$defs/partial-cols"}
           }
         }
       ]
@@ -128,6 +129,29 @@
       "properties": {
         "url": {"$ref": "#/$defs/partial-expression"}
       }
+    },
+    "partial-cols": {
+      "oneOf": [
+        {"$ref": "#/$defs/partial-cols-number"},
+        {"$ref": "#/$defs/partial-cols-obj"}
+      ]
+    },
+    "partial-cols-obj": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "xs": {"$ref": "#/$defs/partial-cols-number"},
+        "sm": {"$ref": "#/$defs/partial-cols-number"},
+        "md": {"$ref": "#/$defs/partial-cols-number"},
+        "lg": {"$ref": "#/$defs/partial-cols-number"},
+        "xl": {"$ref": "#/$defs/partial-cols-number"},
+        "xxl": {"$ref": "#/$defs/partial-cols-number"}
+      }
+    },
+    "partial-cols-number": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
     }
   }
 }

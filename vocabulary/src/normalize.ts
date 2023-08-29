@@ -157,7 +157,7 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   if (partial.comp && defaultCompObject.comp !== partial.comp) {
     const compProperties = normalizedLayoutKeywordSchema.$defs[partial.comp]?.properties
     if (typeof compProperties === 'object') {
-      for (const key of Object.keys(compProperties)) {
+      for (const key of Object.keys(compProperties).concat(['if', 'help'])) {
         if (key in defaultCompObject) compObject[key] = defaultCompObject[key as keyof CompObject]
         if (key in partial) compObject[key] = partial[key as keyof PartialCompObject]
       }
@@ -173,6 +173,9 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   if (compObject.description && !compObject.help) compObject.help = compObject.description
   if (compObject.help) compObject.help = markdown(compObject.help).trim()
 
+  if (typeof compObject.cols === 'number') compObject.cols = { sm: compObject.cols }
+  if (typeof compObject.cols === 'object' && compObject.cols.xs === undefined) compObject.cols.xs = 12
+
   return compObject
 }
 
@@ -186,7 +189,7 @@ function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: C
   }
 }
 
-export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string, markdown: Markdown, arrayChild?: 'oneOf'): NormalizedLayout {
+export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaPath: string, markdown: Markdown = (src) => src, arrayChild?: 'oneOf'): NormalizedLayout {
   let layoutKeyword, defaultCompObject: CompObject
   if (arrayChild === 'oneOf') {
     layoutKeyword = schemaFragment.oneOfLayout ?? {}

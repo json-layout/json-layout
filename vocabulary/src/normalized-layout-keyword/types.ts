@@ -1,14 +1,11 @@
 export type NormalizedLayout = Switch | CompObject;
-export type CompObject =
-  | None
-  | List
-  | TextField
-  | NumberField
-  | Textarea
-  | Checkbox
-  | Select
-  | OneOfSelect
-  | CompositeCompObject;
+export type CompObject = {
+  if?: Expression;
+  help?: string;
+  cols?: ColsObj;
+  [k: string]: unknown;
+} & (None | List | TextField | NumberField | Textarea | Checkbox | Select | OneOfSelect | CompositeCompObject);
+export type Cols = number;
 export type SelectItems = SelectItem[];
 export type GetItems = {
   returnObjects?: boolean;
@@ -22,7 +19,7 @@ export type GetItems1 = Expression | GetItemsFetch;
 export type CompositeCompObject = Section;
 export type Child = Child1 & {
   key: string | number;
-  width?: number;
+  cols?: ColsObj;
   [k: string]: unknown;
 };
 export type Child1 = unknown | CompositeCompObject;
@@ -31,60 +28,55 @@ export type Children = Child[];
 export interface Switch {
   switch: CompObject[];
 }
-export interface None {
-  comp: "none";
-  if?: Expression;
-  [k: string]: unknown;
-}
 export interface Expression {
   type: "expr-eval" | "js-fn" | "js-eval" | "js-tpl";
   expr: string;
   ref?: number;
   [k: string]: unknown;
 }
+export interface ColsObj {
+  xs: number;
+  sm?: Cols;
+  md?: Cols;
+  lg?: Cols;
+  xl?: Cols;
+  xxl?: Cols;
+}
+export interface None {
+  comp: "none";
+  [k: string]: unknown;
+}
 export interface List {
   comp: "list";
-  if?: Expression;
   title?: string;
-  help?: string;
   [k: string]: unknown;
 }
 export interface TextField {
   comp: "text-field";
-  if?: Expression;
   label: string;
-  help?: string;
   [k: string]: unknown;
 }
 export interface NumberField {
   comp: "number-field";
-  if?: Expression;
   label: string;
   step?: number;
-  help?: string;
   [k: string]: unknown;
 }
 export interface Textarea {
   comp: "textarea";
-  if?: Expression;
   label: string;
-  help?: string;
   [k: string]: unknown;
 }
 export interface Checkbox {
   comp: "checkbox";
-  if?: Expression;
   label: string;
-  help?: string;
   [k: string]: unknown;
 }
 export interface Select {
   comp: "select";
-  if?: Expression;
   label: string;
   items?: SelectItems;
   getItems?: GetItems;
-  help?: string;
   [k: string]: unknown;
 }
 export interface SelectItem {
@@ -106,10 +98,8 @@ export interface OneOfSelect {
 }
 export interface Section {
   comp: "section";
-  if?: Expression;
   title?: string | null;
   children: Children;
-  help?: string;
   [k: string]: unknown;
 }
 
@@ -147,33 +137,50 @@ export const normalizedLayoutKeywordSchema = {
         "comp"
       ],
       "unevaluatedProperties": false,
-      "oneOf": [
+      "allOf": [
         {
-          "$ref": "#/$defs/none"
+          "properties": {
+            "if": {
+              "$ref": "#/$defs/expression"
+            },
+            "help": {
+              "type": "string"
+            },
+            "cols": {
+              "$ref": "#/$defs/cols-obj"
+            }
+          }
         },
         {
-          "$ref": "#/$defs/list"
-        },
-        {
-          "$ref": "#/$defs/text-field"
-        },
-        {
-          "$ref": "#/$defs/number-field"
-        },
-        {
-          "$ref": "#/$defs/textarea"
-        },
-        {
-          "$ref": "#/$defs/checkbox"
-        },
-        {
-          "$ref": "#/$defs/select"
-        },
-        {
-          "$ref": "#/$defs/one-of-select"
-        },
-        {
-          "$ref": "#/$defs/composite-comp-object"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/none"
+            },
+            {
+              "$ref": "#/$defs/list"
+            },
+            {
+              "$ref": "#/$defs/text-field"
+            },
+            {
+              "$ref": "#/$defs/number-field"
+            },
+            {
+              "$ref": "#/$defs/textarea"
+            },
+            {
+              "$ref": "#/$defs/checkbox"
+            },
+            {
+              "$ref": "#/$defs/select"
+            },
+            {
+              "$ref": "#/$defs/one-of-select"
+            },
+            {
+              "$ref": "#/$defs/composite-comp-object"
+            }
+          ]
         }
       ]
     },
@@ -193,9 +200,6 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "none"
-        },
-        "if": {
-          "$ref": "#/$defs/expression"
         }
       }
     },
@@ -209,9 +213,6 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "section"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "title": {
           "type": [
             "string",
@@ -220,9 +221,6 @@ export const normalizedLayoutKeywordSchema = {
         },
         "children": {
           "$ref": "#/$defs/children"
-        },
-        "help": {
-          "type": "string"
         }
       }
     },
@@ -239,10 +237,8 @@ export const normalizedLayoutKeywordSchema = {
             "integer"
           ]
         },
-        "width": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100
+        "cols": {
+          "$ref": "#/$defs/cols-obj"
         }
       },
       "anyOf": [
@@ -267,13 +263,7 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "list"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "title": {
-          "type": "string"
-        },
-        "help": {
           "type": "string"
         }
       }
@@ -288,13 +278,7 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "text-field"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "label": {
-          "type": "string"
-        },
-        "help": {
           "type": "string"
         }
       }
@@ -309,17 +293,11 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "number-field"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "label": {
           "type": "string"
         },
         "step": {
           "type": "number"
-        },
-        "help": {
-          "type": "string"
         }
       }
     },
@@ -333,13 +311,7 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "textarea"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "label": {
-          "type": "string"
-        },
-        "help": {
           "type": "string"
         }
       }
@@ -354,13 +326,7 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "checkbox"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "label": {
-          "type": "string"
-        },
-        "help": {
           "type": "string"
         }
       }
@@ -375,9 +341,6 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "select"
         },
-        "if": {
-          "$ref": "#/$defs/expression"
-        },
         "label": {
           "type": "string"
         },
@@ -386,9 +349,6 @@ export const normalizedLayoutKeywordSchema = {
         },
         "getItems": {
           "$ref": "#/$defs/get-items"
-        },
-        "help": {
-          "type": "string"
         }
       }
     },
@@ -499,6 +459,39 @@ export const normalizedLayoutKeywordSchema = {
           "readOnly": true
         }
       }
+    },
+    "cols-obj": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "xs"
+      ],
+      "properties": {
+        "xs": {
+          "$ref": "#/$defs/cols",
+          "default": 12
+        },
+        "sm": {
+          "$ref": "#/$defs/cols"
+        },
+        "md": {
+          "$ref": "#/$defs/cols"
+        },
+        "lg": {
+          "$ref": "#/$defs/cols"
+        },
+        "xl": {
+          "$ref": "#/$defs/cols"
+        },
+        "xxl": {
+          "$ref": "#/$defs/cols"
+        }
+      }
+    },
+    "cols": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
     }
   }
 }

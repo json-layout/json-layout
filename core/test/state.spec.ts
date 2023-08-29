@@ -155,6 +155,29 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
     })
 
+    it('should manage a simple responsive grid', () => {
+      const compiledLayout = compile({
+        type: 'object',
+        properties: {
+          str1: { type: 'string', layout: { cols: 6 } },
+          str2: { type: 'string', layout: { cols: { lg: 6 } } }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 1000 })
+      assert.equal(statefulLayout.stateTree.root.width, 1000)
+      assert.equal(statefulLayout.stateTree.root.cols, 12)
+      assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+      assert.equal(statefulLayout.stateTree.root.children[0].width, 500)
+      assert.equal(statefulLayout.stateTree.root.children[0].cols, 6)
+      assert.equal(statefulLayout.stateTree.root.children[1].width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[1].cols, 12)
+      statefulLayout.options = { width: 2000 }
+      assert.equal(statefulLayout.stateTree.root.children[0].width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[0].cols, 6)
+      assert.equal(statefulLayout.stateTree.root.children[1].width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[1].cols, 6)
+    })
+
     it('should manage a oneOf in an object', () => {
       const compiledLayout = compile({
         type: 'object',

@@ -10,7 +10,7 @@ export type ComponentName =
   | "select";
 export type PartialChild = PartialCompObject & {
   key?: string | number;
-  width?: number;
+  cols?: PartialCols;
   [k: string]: unknown;
 };
 export type PartialExpression = string | PartialExpressionObj;
@@ -31,6 +31,8 @@ export type PartialGetItemsObj = {
   [k: string]: unknown;
 } & PartialGetItemsObj1;
 export type PartialGetItemsObj1 = PartialExpression | PartialGetItemsFetch;
+export type PartialCols = PartialColsNumber | PartialColsObj;
+export type PartialColsNumber = number;
 export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
@@ -43,6 +45,7 @@ export interface PartialCompObject {
   if?: PartialExpression;
   items?: PartialSelectItem[];
   getItems?: PartialGetItems;
+  cols?: PartialCols;
 }
 export interface PartialExpressionObj {
   type?: "expr-eval" | "js-fn" | "js-eval" | "js-tpl";
@@ -52,6 +55,14 @@ export interface PartialExpressionObj {
 export interface PartialGetItemsFetch {
   url: PartialExpression;
   [k: string]: unknown;
+}
+export interface PartialColsObj {
+  xs?: PartialColsNumber;
+  sm?: PartialColsNumber;
+  md?: PartialColsNumber;
+  lg?: PartialColsNumber;
+  xl?: PartialColsNumber;
+  xxl?: PartialColsNumber;
 }
 export interface PartialSwitch {
   switch: PartialCompObject[];
@@ -125,6 +136,9 @@ export const layoutKeywordSchema = {
         },
         "getItems": {
           "$ref": "#/$defs/partial-get-items"
+        },
+        "cols": {
+          "$ref": "#/$defs/partial-cols"
         }
       }
     },
@@ -157,8 +171,8 @@ export const layoutKeywordSchema = {
                 "integer"
               ]
             },
-            "width": {
-              "type": "number"
+            "cols": {
+              "$ref": "#/$defs/partial-cols"
             }
           }
         }
@@ -271,6 +285,45 @@ export const layoutKeywordSchema = {
           "$ref": "#/$defs/partial-expression"
         }
       }
+    },
+    "partial-cols": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/partial-cols-number"
+        },
+        {
+          "$ref": "#/$defs/partial-cols-obj"
+        }
+      ]
+    },
+    "partial-cols-obj": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "xs": {
+          "$ref": "#/$defs/partial-cols-number"
+        },
+        "sm": {
+          "$ref": "#/$defs/partial-cols-number"
+        },
+        "md": {
+          "$ref": "#/$defs/partial-cols-number"
+        },
+        "lg": {
+          "$ref": "#/$defs/partial-cols-number"
+        },
+        "xl": {
+          "$ref": "#/$defs/partial-cols-number"
+        },
+        "xxl": {
+          "$ref": "#/$defs/partial-cols-number"
+        }
+      }
+    },
+    "partial-cols-number": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
     }
   }
 }

@@ -1,5 +1,7 @@
 // inspired by https://vuetifyjs.com/en/features/display-and-platform/#interface
 
+import { type Cols, type ColsObj } from '@json-layout/vocabulary'
+
 // TODO: make this configurable
 const thresholds = {
   xs: 0,
@@ -76,4 +78,16 @@ export class Display {
   get xxl (): boolean {
     return this.width >= thresholds.xxl
   }
+}
+
+export function getChildDisplay (parentDisplay: Display, colsObj: ColsObj | undefined): [Display, Cols] {
+  if (!colsObj) return [parentDisplay, 12]
+  let cols = colsObj.xs
+  if (parentDisplay.smAndUp && colsObj.sm !== undefined) cols = colsObj.sm
+  if (parentDisplay.mdAndUp && colsObj.md !== undefined) cols = colsObj.md
+  if (parentDisplay.lgAndUp && colsObj.lg !== undefined) cols = colsObj.lg
+  if (parentDisplay.xlAndUp && colsObj.xl !== undefined) cols = colsObj.xl
+  if (parentDisplay.xxl && colsObj.xxl !== undefined) cols = colsObj.xxl
+  const display = cols === 12 ? parentDisplay : new Display(Math.round(parentDisplay.width * (cols / 12)))
+  return [display, cols]
 }

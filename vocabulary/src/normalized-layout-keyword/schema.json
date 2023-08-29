@@ -21,16 +21,27 @@
       "type": "object",
       "required": ["comp"],
       "unevaluatedProperties": false,
-      "oneOf": [
-        {"$ref": "#/$defs/none"},
-        {"$ref": "#/$defs/list"},
-        {"$ref": "#/$defs/text-field"},
-        {"$ref": "#/$defs/number-field"},
-        {"$ref": "#/$defs/textarea"},
-        {"$ref": "#/$defs/checkbox"},
-        {"$ref": "#/$defs/select"},
-        {"$ref": "#/$defs/one-of-select"},
-        {"$ref": "#/$defs/composite-comp-object"}
+      "allOf": [
+        {
+          "properties": {
+            "if": {"$ref": "#/$defs/expression"},
+            "help": {"type": "string"},
+            "cols": {"$ref": "#/$defs/cols-obj"}
+          }
+        },
+        {
+          "oneOf": [
+            {"$ref": "#/$defs/none"},
+            {"$ref": "#/$defs/list"},
+            {"$ref": "#/$defs/text-field"},
+            {"$ref": "#/$defs/number-field"},
+            {"$ref": "#/$defs/textarea"},
+            {"$ref": "#/$defs/checkbox"},
+            {"$ref": "#/$defs/select"},
+            {"$ref": "#/$defs/one-of-select"},
+            {"$ref": "#/$defs/composite-comp-object"}
+          ]
+        }
       ]
     },
     "composite-comp-object": {
@@ -43,8 +54,8 @@
       "type": "object",
       "required": ["comp"],
       "properties": {
-        "comp": {"const": "none"},
-        "if": {"$ref": "#/$defs/expression"}
+        "comp": {"const": "none"}
+        
       }
     },
     "section": {
@@ -52,10 +63,8 @@
       "required": ["comp", "children"],
       "properties": {
         "comp": {"const": "section"},
-        "if": {"$ref": "#/$defs/expression"},
         "title": {"type": ["string", "null"]},
-        "children": {"$ref": "#/$defs/children"},
-        "help": {"type": "string"}
+        "children": {"$ref": "#/$defs/children"}
       }
     },
     "child": {
@@ -64,7 +73,7 @@
       "required": ["key"],
       "properties": {
         "key": {"type": ["string", "integer"]},
-        "width": {"type": "number", "minimum": 0, "maximum": 100}
+        "cols": {"$ref": "#/$defs/cols-obj"}
       },
       "anyOf": [
         {},
@@ -80,9 +89,7 @@
       "required": ["comp"],
       "properties": {
         "comp": {"const": "list"},
-        "if": {"$ref": "#/$defs/expression"},
-        "title": {"type": "string"},
-        "help": {"type": "string"}
+        "title": {"type": "string"}
       }
     },
     "text-field": {
@@ -90,9 +97,7 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "text-field"},
-        "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"},
-        "help": {"type": "string"}
+        "label": {"type": "string"}
       }
     },
     "number-field": {
@@ -100,10 +105,8 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "number-field"},
-        "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"},
-        "step": {"type": "number"},
-        "help": {"type": "string"}
+        "step": {"type": "number"}
       }
     },
     "textarea": {
@@ -111,9 +114,7 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "textarea"},
-        "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"},
-        "help": {"type": "string"}
+        "label": {"type": "string"}
       }
     },
     "checkbox": {
@@ -121,9 +122,7 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "checkbox"},
-        "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"},
-        "help": {"type": "string"}
+        "label": {"type": "string"}
       }
     },
     "select": {
@@ -131,11 +130,9 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "select"},
-        "if": {"$ref": "#/$defs/expression"},
         "label": {"type": "string"},
         "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"},
-        "help": {"type": "string"}
+        "getItems": {"$ref": "#/$defs/get-items"}
       }
     },
     "select-items": {
@@ -198,6 +195,24 @@
           "readOnly": true
         }
       }
+    },
+    "cols-obj": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["xs"],
+      "properties": {
+        "xs": {"$ref": "#/$defs/cols", "default": 12},
+        "sm": {"$ref": "#/$defs/cols"},
+        "md": {"$ref": "#/$defs/cols"},
+        "lg": {"$ref": "#/$defs/cols"},
+        "xl": {"$ref": "#/$defs/cols"},
+        "xxl": {"$ref": "#/$defs/cols"}
+      }
+    },
+    "cols": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
     }
   }
 }

@@ -2,10 +2,10 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions, type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type NormalizedLayout, type Expression } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
-import { type Display } from './utils/display'
+import { getChildDisplay, type Display } from './utils/display'
 import { shallowCompareArrays } from './utils/immutable'
 import { type CreateStateTreeContext } from './state-tree'
 // import { type ErrorObject } from 'ajv-errors'
@@ -20,14 +20,15 @@ export interface StateNode {
   layout: CompObject
   mode: Mode
   width: number
+  cols: Cols
   data: unknown
   error: string | undefined
   children?: StateNode[]
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, unknown, string | undefined, StateNode[]?]>(
-  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, data, error, children?) => {
+const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, number, unknown, string | undefined, StateNode[]?]>(
+  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, cols, data, error, children?) => {
     draft.key = key
     draft.fullKey = fullKey
     draft.parentFullKey = parentFullKey
@@ -37,6 +38,7 @@ const produceStateNode = produce<StateNode, [string | number, string, string | n
     draft.layout = layout
     draft.mode = mode
     draft.width = width
+    draft.cols = cols
     draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
     draft.error = error
     draft.children = children
@@ -84,23 +86,24 @@ export function createStateNode (
   dataPath: string,
   parentDataPath: string | null,
   skeleton: SkeletonNode,
-  contextualLayout: NormalizedLayout | null,
+  contextualLayout: CompObject | null,
   mode: Mode,
-  display: Display,
+  parentDisplay: Display,
   data: unknown,
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = contextualLayout ?? compiledLayout.normalizedLayouts[skeleton.pointer]
-  // const display = getDisplay(containerWidth)
   let layout: CompObject
   if (isSwitch(normalizedLayout)) {
     layout = normalizedLayout.switch.find(compObject => {
       if (!compObject.if) return true
-      return !!evalExpression(compiledLayout.expressions, compObject.if, data, options.context, mode, display)
+      return !!evalExpression(compiledLayout.expressions, compObject.if, data, options.context, mode, parentDisplay)
     }) ?? nodeCompObject
   } else {
     layout = normalizedLayout
   }
+
+  const [display, col] = getChildDisplay(parentDisplay, contextualLayout?.cols ?? layout.cols)
 
   data = data ?? skeleton.defaultData
 
@@ -121,7 +124,7 @@ export function createStateNode (
         isSameData ? dataPath : `${dataPath}/${child.key}`,
         dataPath,
         childSkeleton,
-        child.comp ? (child as unknown as NormalizedLayout) : null,
+        child.comp ? (child as unknown as CompObject) : null,
         mode,
         display,
         isSameData ? objectData : objectData[child.key],
@@ -170,6 +173,7 @@ export function createStateNode (
     layout,
     mode,
     display.width,
+    col,
     data,
     error?.message,
     shallowCompareArrays(reusedNode?.children, children)
