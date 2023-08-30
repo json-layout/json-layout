@@ -5,7 +5,7 @@ import { evalExpression, producePatchedData, type StateNode } from './state-node
 import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
 import { Display } from './utils/display'
 import { isSelect } from './nodes'
-import { isGetItemsExpression, isGetItemsFetch, type SelectItem, type SelectItems, type Expression } from '@json-layout/vocabulary'
+import { isGetItemsExpression, isGetItemsFetch, type SelectItem, type SelectItems, type Expression, type NodeOptions } from '@json-layout/vocabulary'
 
 export * from './nodes'
 export type { StateTree } from './state-tree'
@@ -24,6 +24,7 @@ export interface StatefulLayoutOptions {
   context: Record<string, any>
   mode: Mode
   width: number
+  nodes: NodeOptions
 }
 
 const logDataBinding = debug('jl:data-binding')
@@ -33,6 +34,7 @@ const fillOptions = (partialOptions: Partial<StatefulLayoutOptions>): StatefulLa
     context: {},
     mode: 'write',
     width: 1000,
+    nodes: {},
     ...partialOptions
   }
 }

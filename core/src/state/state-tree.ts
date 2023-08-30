@@ -52,6 +52,7 @@ export function createStateTree (
     options.mode,
     display,
     value,
+    options.nodes,
     reusedStateTree?.root
   )
 

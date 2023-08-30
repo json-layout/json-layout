@@ -33,7 +33,15 @@
         "if": {"$ref": "#/$defs/partial-expression"},
         "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}},
         "getItems": {"$ref": "#/$defs/partial-get-items"},
-        "cols": {"$ref": "#/$defs/partial-cols"}
+        "cols": {"$ref": "#/$defs/partial-cols"},
+        "props": {"type": "object"},
+        "slots": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/partial-slot"}
+          }
+        },
+        "options": {"type": "object"}
       }
     },
     "comp-name": {
@@ -152,6 +160,38 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 12
+    },
+    "partial-slot": {
+      "oneOf": [
+        {"type": "string"},
+        {"$ref": "#/$defs/partial-slot-text"},
+        {"$ref": "#/$defs/partial-slot-markdown"},
+        {"$ref": "#/$defs/partial-slot-name"}
+      ]
+    },
+    "partial-slot-text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": {"type": "string"}
+      }
+    },
+    "partial-slot-markdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["markdown"],
+      "properties": {
+        "markdown": {"type": "string"}
+      }
+    },
+    "partial-slot-name": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"}
+      }
     }
   }
 }

@@ -4,6 +4,7 @@ import oneOf from './one-of'
 const category: JSONLayoutExamplesCategory = {
   title: 'Combinations',
   id: 'combine',
+  description: '',
   examples: [oneOf]
 }
 

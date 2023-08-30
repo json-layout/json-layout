@@ -3,9 +3,28 @@ export type CompObject = {
   if?: Expression;
   help?: string;
   cols?: ColsObj;
+  props?: NodeProps;
+  slots?: {
+    [k: string]: Slot;
+  };
+  options?: NodeOptions;
   [k: string]: unknown;
 } & (None | List | TextField | NumberField | Textarea | Checkbox | Select | OneOfSelect | CompositeCompObject);
 export type Cols = number;
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` ".*".
+ */
+export type Slot =
+  | {
+      text?: string;
+    }
+  | {
+      markdown?: string;
+    }
+  | {
+      name?: string;
+    };
 export type SelectItems = SelectItem[];
 export type GetItems = {
   returnObjects?: boolean;
@@ -41,6 +60,12 @@ export interface ColsObj {
   lg?: Cols;
   xl?: Cols;
   xxl?: Cols;
+}
+export interface NodeProps {
+  [k: string]: unknown;
+}
+export interface NodeOptions {
+  [k: string]: unknown;
 }
 export interface None {
   comp: "none";
@@ -148,6 +173,20 @@ export const normalizedLayoutKeywordSchema = {
             },
             "cols": {
               "$ref": "#/$defs/cols-obj"
+            },
+            "props": {
+              "$ref": "#/$defs/node-props"
+            },
+            "slots": {
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "$ref": "#/$defs/slot"
+                }
+              }
+            },
+            "options": {
+              "$ref": "#/$defs/node-options"
             }
           }
         },
@@ -492,6 +531,43 @@ export const normalizedLayoutKeywordSchema = {
       "type": "integer",
       "minimum": 0,
       "maximum": 12
+    },
+    "slot": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "markdown": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "node-options": {
+      "type": "object"
+    },
+    "node-props": {
+      "type": "object"
     }
   }
 }

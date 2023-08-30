@@ -1,12 +1,13 @@
-import simple from './simple'
+import simpleFields from './simple-fields'
 import combine from './combine'
 import dev from './_dev'
 
-export const examples: JSONLayoutExamplesCategory[] = [simple, combine, dev]
+export const examples: JSONLayoutExamplesCategory[] = [simpleFields, combine, dev]
 
 export interface JSONLayoutExamplesCategory {
   title: string
   id: string
+  description: string
   examples: JSONLayoutExample[]
 }
 

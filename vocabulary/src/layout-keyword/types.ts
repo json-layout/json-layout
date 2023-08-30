@@ -33,6 +33,11 @@ export type PartialGetItemsObj = {
 export type PartialGetItemsObj1 = PartialExpression | PartialGetItemsFetch;
 export type PartialCols = PartialColsNumber | PartialColsObj;
 export type PartialColsNumber = number;
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` ".*".
+ */
+export type PartialSlot = string | PartialSlotText | PartialSlotMarkdown | PartialSlotName;
 export type PartialChildren = (string | PartialChild)[];
 
 export interface PartialCompObject {
@@ -46,6 +51,15 @@ export interface PartialCompObject {
   items?: PartialSelectItem[];
   getItems?: PartialGetItems;
   cols?: PartialCols;
+  props?: {
+    [k: string]: unknown;
+  };
+  slots?: {
+    [k: string]: PartialSlot;
+  };
+  options?: {
+    [k: string]: unknown;
+  };
 }
 export interface PartialExpressionObj {
   type?: "expr-eval" | "js-fn" | "js-eval" | "js-tpl";
@@ -63,6 +77,15 @@ export interface PartialColsObj {
   lg?: PartialColsNumber;
   xl?: PartialColsNumber;
   xxl?: PartialColsNumber;
+}
+export interface PartialSlotText {
+  text: string;
+}
+export interface PartialSlotMarkdown {
+  markdown: string;
+}
+export interface PartialSlotName {
+  name: string;
 }
 export interface PartialSwitch {
   switch: PartialCompObject[];
@@ -139,6 +162,20 @@ export const layoutKeywordSchema = {
         },
         "cols": {
           "$ref": "#/$defs/partial-cols"
+        },
+        "props": {
+          "type": "object"
+        },
+        "slots": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/$defs/partial-slot"
+            }
+          }
+        },
+        "options": {
+          "type": "object"
         }
       }
     },
@@ -324,6 +361,58 @@ export const layoutKeywordSchema = {
       "type": "integer",
       "minimum": 0,
       "maximum": 12
+    },
+    "partial-slot": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/partial-slot-text"
+        },
+        {
+          "$ref": "#/$defs/partial-slot-markdown"
+        },
+        {
+          "$ref": "#/$defs/partial-slot-name"
+        }
+      ]
+    },
+    "partial-slot-text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "partial-slot-markdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "markdown"
+      ],
+      "properties": {
+        "markdown": {
+          "type": "string"
+        }
+      }
+    },
+    "partial-slot-name": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
     }
   }
 }

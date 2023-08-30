@@ -388,5 +388,12 @@ for (const compileMode of ['runtime', 'build-time']) {
         { title: 'VAL2', key: 'val2', value: 'val2' }
       ])
     })
+
+    it('merge options going down the state tree', async () => {
+      const compiledLayout = compile({ type: 'object', layout: { options: { opt1: 'Opt 1' } }, properties: { str1: { type: 'string', layout: { options: { opt2: 'Opt 2' } } } } })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { domain: 'test.com' }, nodes: { opt0: 'Opt 0', opt2: 'Opt 0/2' } }, {})
+      assert.deepEqual(statefulLayout.stateTree.root.options, { opt0: 'Opt 0', opt2: 'Opt 0/2', opt1: 'Opt 1' })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1' })
+    })
   })
 }

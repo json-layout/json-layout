@@ -2,7 +2,7 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions, type Mode } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols, type NodeOptions } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
@@ -23,12 +23,13 @@ export interface StateNode {
   cols: Cols
   data: unknown
   error: string | undefined
+  options: NodeOptions
   children?: StateNode[]
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, number, unknown, string | undefined, StateNode[]?]>(
-  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, cols, data, error, children?) => {
+const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, number, unknown, string | undefined, NodeOptions, StateNode[]?]>(
+  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, cols, data, error, options, children?) => {
     draft.key = key
     draft.fullKey = fullKey
     draft.parentFullKey = parentFullKey
@@ -41,6 +42,7 @@ const produceStateNode = produce<StateNode, [string | number, string, string | n
     draft.cols = cols
     draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
     draft.error = error
+    draft.options = options
     draft.children = children
   }
 )
@@ -52,6 +54,21 @@ const produceStateNodeData = produce<Record<string, unknown>, [string, StateNode
       Object.assign(draft, child.data)
     } else {
       draft[child.key] = child.data
+    }
+  }
+})
+
+const produceNodeOptions = produce<NodeOptions, [NodeOptions, NodeOptions]>((draft, parentNodeOptions, nodeOptions) => {
+  for (const key in parentNodeOptions) {
+    draft[key] = parentNodeOptions[key]
+  }
+  for (const key in nodeOptions) {
+    draft[key] = nodeOptions[key]
+  }
+  for (const key in draft) {
+    if (!(key in parentNodeOptions) && !(key in nodeOptions)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete draft[key]
     }
   }
 })
@@ -90,6 +107,7 @@ export function createStateNode (
   mode: Mode,
   parentDisplay: Display,
   data: unknown,
+  parentNodeOptions: NodeOptions,
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = contextualLayout ?? compiledLayout.normalizedLayouts[skeleton.pointer]
@@ -106,6 +124,8 @@ export function createStateNode (
   const [display, col] = getChildDisplay(parentDisplay, contextualLayout?.cols ?? layout.cols)
 
   data = data ?? skeleton.defaultData
+
+  const nodeOptions = layout.options ? produceNodeOptions(reusedNode?.options ?? {}, parentNodeOptions, layout.options) : parentNodeOptions
 
   let children: StateNode[] | undefined
   if (layout.comp === 'section') {
@@ -128,6 +148,7 @@ export function createStateNode (
         mode,
         display,
         isSameData ? objectData : objectData[child.key],
+        nodeOptions,
         reusedNode?.children?.[i]
       )
     })
@@ -151,6 +172,7 @@ export function createStateNode (
         mode,
         display,
         itemData,
+        nodeOptions,
         reusedNode?.children?.[0]
       )
     })
@@ -176,6 +198,7 @@ export function createStateNode (
     col,
     data,
     error?.message,
+    nodeOptions,
     shallowCompareArrays(reusedNode?.children, children)
   )
   context.nodes.push(node)

@@ -1,4 +1,4 @@
-import {LayoutKeyword, ComponentName, PartialChildren, PartialSwitch, PartialCompObject, PartialGetItems, PartialGetItemsFetch, PartialExpression, PartialGetItemsObj} from './types'
+import {LayoutKeyword, ComponentName, PartialChildren, PartialSwitch, PartialCompObject, PartialGetItems, PartialGetItemsFetch, PartialExpression, PartialGetItemsObj, PartialSlotMarkdown, PartialSlot} from './types'
 import validate from './validate'
 
 export * from './types'
@@ -35,4 +35,8 @@ export function isPartialGetItemsObj (getItems: PartialGetItems): getItems is Pa
 
 export function isPartialGetItemsFetch (getItems: PartialGetItems): getItems is PartialGetItemsFetch {
   return typeof getItems === 'object' && !!getItems.url
+}
+
+export function isPartialSlotMarkdown (partialSlot: PartialSlot): partialSlot is PartialSlotMarkdown {
+  return typeof partialSlot == 'object' && !!(partialSlot as PartialSlotMarkdown).markdown
 }

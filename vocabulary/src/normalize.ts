@@ -1,4 +1,4 @@
-import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren, isPartialGetItemsFetch, type PartialExpression, isPartialGetItemsExpr, isPartialGetItemsObj } from './layout-keyword'
+import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren, isPartialGetItemsFetch, type PartialExpression, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown } from './layout-keyword'
 import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child, type Expression } from '.'
 
 export interface SchemaFragment {
@@ -151,6 +151,22 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
 
   if (!partial.comp && (partial.items ?? partial.getItems)) {
     partial.comp = 'select'
+  }
+
+  if (partial.slots) {
+    for (const [name, slot] of Object.entries(partial.slots)) {
+      if (typeof slot === 'string') {
+        if (name === 'component') {
+          partial.slots[name] = { name: slot }
+        } else {
+          partial.slots[name] = { markdown: slot }
+        }
+      }
+      const slotObj = partial.slots[name]
+      if (isPartialSlotMarkdown(slotObj)) {
+        slotObj.markdown = markdown(slotObj.markdown).trim()
+      }
+    }
   }
 
   const compObject: any = {}
