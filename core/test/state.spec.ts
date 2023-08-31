@@ -279,29 +279,6 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(arrNode2.children?.[0].data, 'test')
     })
 
-    it('should fill default values', () => {
-      const compiledLayout = compile({
-        type: 'object',
-        properties: {
-          str1: { type: 'string', default: 'String 1' },
-          obj1: { type: 'object', properties: { str2: { type: 'string', default: 'String 2' } } },
-          obj2: { type: 'object', properties: { str3: { type: 'string' } } },
-          str4: { type: 'string', const: 'String 4' }
-        }
-      })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
-
-      // console.log(JSON.stringify(statefulLayout.data, null, 2))
-      assert.deepEqual(statefulLayout.data, {
-        str1: 'String 1',
-        obj1: {
-          str2: 'String 2'
-        },
-        obj2: {},
-        str4: 'String 4'
-      })
-    })
-
     it('should use children info for ordering', () => {
       const compiledLayout = compile({
         type: 'object',
@@ -394,6 +371,70 @@ for (const compileMode of ['runtime', 'build-time']) {
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { domain: 'test.com' }, nodes: { opt0: 'Opt 0', opt2: 'Opt 0/2' } }, {})
       assert.deepEqual(statefulLayout.stateTree.root.options, { opt0: 'Opt 0', opt2: 'Opt 0/2', opt1: 'Opt 1' })
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1' })
+    })
+
+    it('should fill default values', () => {
+      const compiledLayout = compile({
+        type: 'object',
+        properties: {
+          str1: { type: 'string', default: 'String 1' },
+          obj1: { type: 'object', properties: { str2: { type: 'string', default: 'String 2' } } },
+          str4: { type: 'string', const: 'String 4' }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+
+      // console.log(JSON.stringify(statefulLayout.data, null, 2))
+      assert.deepEqual(statefulLayout.data, {
+        str1: 'String 1',
+        obj1: {
+          str2: 'String 2'
+        },
+        str4: 'String 4'
+      })
+    })
+
+    it('should manage empty data differently if it is required or not', async () => {
+      const compiledLayout = compile({
+        type: 'object',
+        required: ['str2', 'obj3'],
+        properties: {
+          str1: { type: 'string' },
+          str2: { type: 'string' },
+          obj1: { type: 'object', properties: { str1: { type: 'string' } } },
+          obj2: { type: 'object', required: ['str1'], properties: { str1: { type: 'string' } } },
+          obj3: { type: 'object', properties: { str1: { type: 'string' } } }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+      assert.deepEqual(statefulLayout.data, {
+        str2: '',
+        obj3: {}
+      })
+
+      assert.equal(statefulLayout.stateTree.root.children?.length, 5)
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], 'Str 1')
+      statefulLayout.input(statefulLayout.stateTree.root.children[1], 'Str 2')
+      assert.equal(statefulLayout.stateTree.root.children[2].children?.length, 1)
+      statefulLayout.input(statefulLayout.stateTree.root.children[2].children[0], 'Str 1')
+      assert.equal(statefulLayout.stateTree.root.children[3].children?.length, 1)
+      statefulLayout.input(statefulLayout.stateTree.root.children[3].children[0], 'Str 1')
+      assert.deepEqual(statefulLayout.data, {
+        str1: 'Str 1',
+        str2: 'Str 2',
+        obj3: {},
+        obj1: { str1: 'Str 1' },
+        obj2: { str1: 'Str 1' }
+      })
+
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], '')
+      statefulLayout.input(statefulLayout.stateTree.root.children[1], '')
+      statefulLayout.input(statefulLayout.stateTree.root.children[2].children[0], '')
+      statefulLayout.input(statefulLayout.stateTree.root.children[3].children[0], '')
+      assert.deepEqual(statefulLayout.data, {
+        str2: '',
+        obj3: {}
+      })
     })
   })
 }

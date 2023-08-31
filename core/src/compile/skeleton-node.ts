@@ -33,7 +33,8 @@ export function makeSkeletonNode (
   expressions: Expression[],
   key: string | number,
   pointer: string,
-  parentPointer: string | null
+  parentPointer: string | null,
+  required: boolean
 ): SkeletonNode {
   // consolidate schema
   if (!schema.type && schema.properties) schema.type = 'object'
@@ -60,8 +61,11 @@ export function makeSkeletonNode (
   let defaultData
   if (schema.const) defaultData = schema.const
   else if (schema.default) defaultData = schema.default
-  if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
-  if (schema.type === 'array') defaultData = []
+  if (required) {
+    if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
+    if (schema.type === 'array') defaultData = []
+    if (schema.type === 'string' && !schema.format) defaultData = ''
+  }
 
   const node: SkeletonNode = { key: key ?? '', pointer, parentPointer, defaultData }
   if (schema.type === 'object') {
@@ -75,8 +79,9 @@ export function makeSkeletonNode (
           normalizedLayouts,
           expressions,
           propertyKey,
-        `${pointer}/properties/${propertyKey}`,
-        pointer
+          `${pointer}/properties/${propertyKey}`,
+          pointer,
+          schema.required?.includes(propertyKey)
         ))
         if (schema?.required?.includes(propertyKey)) {
           schema.errorMessage.required = schema.errorMessage.required ?? {}
@@ -93,9 +98,10 @@ export function makeSkeletonNode (
           validates,
           normalizedLayouts,
           expressions,
-        `$allOf-${i}`,
-        `${pointer}/allOf/${i}`,
-        pointer
+          `$allOf-${i}`,
+          `${pointer}/allOf/${i}`,
+          pointer,
+          false
         ))
       }
     }
@@ -119,7 +125,17 @@ export function makeSkeletonNode (
   if (schema.type === 'array' && schema.items) {
     if (Array.isArray(schema.items)) {
       node.children = schema.items.map((itemSchema: any, i: number) => {
-        return makeSkeletonNode(itemSchema, options, validates, normalizedLayouts, expressions, i, `${pointer}/items/${i}`, pointer)
+        return makeSkeletonNode(
+          itemSchema,
+          options,
+          validates,
+          normalizedLayouts,
+          expressions,
+          i,
+          `${pointer}/items/${i}`,
+          pointer,
+          true
+        )
       })
     } else {
       node.childrenTrees = [

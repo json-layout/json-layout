@@ -21,7 +21,7 @@ export function makeSkeletonTree (
   pointer: string,
   title: string
 ): SkeletonTree {
-  const root = makeSkeletonNode(schema, options, validates, normalizedLayouts, expressions, '', pointer, null)
+  const root = makeSkeletonNode(schema, options, validates, normalizedLayouts, expressions, '', pointer, null, true)
   validates.push(pointer)
   return { title, root }
 }

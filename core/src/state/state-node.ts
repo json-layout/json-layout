@@ -27,9 +27,21 @@ export interface StateNode {
   children?: StateNode[]
 }
 
+const isDataEmpty = (data: unknown) => {
+  if (data === '') return true
+  if (Array.isArray(data) && !data.length) return true
+  if (typeof data === 'object' && !!data && Object.values(data).findIndex(prop => !isDataEmpty(prop)) === -1) return true
+  return false
+}
+
 // use Immer for efficient updating with immutability and no-op detection
 const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, number, unknown, string | undefined, NodeOptions, StateNode[]?]>(
   (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, cols, data, error, options, children?) => {
+    data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
+    // empty data is removed and replaced by the default data
+    if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
+    data = data ?? skeleton.defaultData
+
     draft.key = key
     draft.fullKey = fullKey
     draft.parentFullKey = parentFullKey
@@ -40,7 +52,7 @@ const produceStateNode = produce<StateNode, [string | number, string, string | n
     draft.mode = mode
     draft.width = width
     draft.cols = cols
-    draft.data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
+    draft.data = data
     draft.error = error
     draft.options = options
     draft.children = children
@@ -49,11 +61,13 @@ const produceStateNode = produce<StateNode, [string | number, string, string | n
 
 const produceStateNodeData = produce<Record<string, unknown>, [string, StateNode[]]>((draft, parentDataPath, children) => {
   for (const child of children) {
-    if (child.data === undefined) continue
     if (parentDataPath === child.dataPath) {
+      if (child.data === undefined) continue
       Object.assign(draft, child.data)
     } else {
-      draft[child.key] = child.data
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      if (child.data === undefined) delete draft[child.key]
+      else draft[child.key] = child.data
     }
   }
 })
@@ -122,8 +136,6 @@ export function createStateNode (
   }
 
   const [display, col] = getChildDisplay(parentDisplay, contextualLayout?.cols ?? layout.cols)
-
-  data = data ?? skeleton.defaultData
 
   const nodeOptions = layout.options ? produceNodeOptions(reusedNode?.options ?? {}, parentNodeOptions, layout.options) : parentNodeOptions
 
