@@ -5,7 +5,7 @@ import { evalExpression, producePatchedData, type StateNode } from './state-node
 import { type CreateStateTreeContext, type StateTree, createStateTree } from './state-tree'
 import { Display } from './utils/display'
 import { isSelect } from './nodes'
-import { isGetItemsExpression, isGetItemsFetch, type SelectItem, type SelectItems, type Expression, type NodeOptions } from '@json-layout/vocabulary'
+import { isGetItemsExpression, isGetItemsFetch, type SelectItem, type SelectItems, type Expression, type StateNodeOptions } from '@json-layout/vocabulary'
 
 export * from './nodes'
 export type { StateTree } from './state-tree'
@@ -18,13 +18,9 @@ export type StatefulLayoutEvents = {
   'update': StatefulLayout
 }
 
-export type Mode = 'read' | 'write'
-
-export interface StatefulLayoutOptions {
+export type StatefulLayoutOptions = StateNodeOptions & {
   context: Record<string, any>
-  mode: Mode
   width: number
-  nodes: NodeOptions
 }
 
 const logDataBinding = debug('jl:data-binding')
@@ -32,9 +28,9 @@ const logDataBinding = debug('jl:data-binding')
 const fillOptions = (partialOptions: Partial<StatefulLayoutOptions>): StatefulLayoutOptions => {
   return {
     context: {},
-    mode: 'write',
     width: 1000,
-    nodes: {},
+    readOnly: false,
+    summary: false,
     ...partialOptions
   }
 }
@@ -115,7 +111,7 @@ export class StatefulLayout {
     if (!isSelect(node)) throw new Error('node is not a select component')
     if (node.layout.items) return node.layout.items
 
-    const evalSelectExpression = (expression: Expression, data: any) => evalExpression(this.compiledLayout.expressions, expression, data, this._options.context, node.mode, new Display(node.width))
+    const evalSelectExpression = (expression: Expression, data: any) => evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.options.width))
 
     let rawItems
     if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {

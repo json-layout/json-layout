@@ -128,7 +128,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       const compiledLayout = compile({
         type: 'object',
         properties: {
-          str1: { type: 'string', layout: { switch: [{ if: "mode == 'read'", comp: 'text-field' }, { if: "mode == 'write'", comp: 'textarea' }] } }
+          str1: { type: 'string', layout: { switch: [{ if: 'options.readOnly', comp: 'text-field' }, { if: '!options.readOnly', comp: 'textarea' }] } }
         }
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
@@ -164,17 +164,17 @@ for (const compileMode of ['runtime', 'build-time']) {
         }
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 1000 })
-      assert.equal(statefulLayout.stateTree.root.width, 1000)
+      assert.equal(statefulLayout.stateTree.root.options.width, 1000)
       assert.equal(statefulLayout.stateTree.root.cols, 12)
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
-      assert.equal(statefulLayout.stateTree.root.children[0].width, 500)
+      assert.equal(statefulLayout.stateTree.root.children[0].options.width, 500)
       assert.equal(statefulLayout.stateTree.root.children[0].cols, 6)
-      assert.equal(statefulLayout.stateTree.root.children[1].width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[1].options.width, 1000)
       assert.equal(statefulLayout.stateTree.root.children[1].cols, 12)
       statefulLayout.options = { width: 2000 }
-      assert.equal(statefulLayout.stateTree.root.children[0].width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[0].options.width, 1000)
       assert.equal(statefulLayout.stateTree.root.children[0].cols, 6)
-      assert.equal(statefulLayout.stateTree.root.children[1].width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[1].options.width, 1000)
       assert.equal(statefulLayout.stateTree.root.children[1].cols, 6)
     })
 
@@ -329,7 +329,7 @@ for (const compileMode of ['runtime', 'build-time']) {
     })
 
     it('should manage a select with getItems as a simple expression', async () => {
-      const compiledLayout = compile({ type: 'string', layout: { getItems: 'context.items' } })
+      const compiledLayout = compile({ type: 'string', layout: { getItems: 'options.context.items' } })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { items: ['val1', 'val2'] } }, {})
       assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
       const items = await statefulLayout.getSelectItems(statefulLayout.stateTree.root)
@@ -340,7 +340,7 @@ for (const compileMode of ['runtime', 'build-time']) {
     })
 
     it('should manage a select with getItems as a more complex expression', async () => {
-      const compiledLayout = compile({ type: 'string', layout: { getItems: 'context.items.map(item => ({title: item.toUpperCase(), key: item, value: item}))' } })
+      const compiledLayout = compile({ type: 'string', layout: { getItems: 'options.context.items.map(item => ({title: item.toUpperCase(), key: item, value: item}))' } })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { items: ['val1', 'val2'] } }, {})
       assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
       const items = await statefulLayout.getSelectItems(statefulLayout.stateTree.root)
@@ -351,8 +351,8 @@ for (const compileMode of ['runtime', 'build-time']) {
     })
 
     it('should manage a select with getItems as fetch instruction', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
-      const compiledLayout = compile({ type: 'string', layout: { getItems: { url: 'http://${context.domain}/test', itemsResults: 'data.results', itemTitle: 'data.toUpperCase()' } } })
+      // eslint-disable-next-line no-template-curly-in-string
+      const compiledLayout = compile({ type: 'string', layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemTitle: 'data.toUpperCase()' } } })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { domain: 'test.com' } }, {})
       assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
       const nockScope = nock('http://test.com')
@@ -368,9 +368,9 @@ for (const compileMode of ['runtime', 'build-time']) {
 
     it('merge options going down the state tree', async () => {
       const compiledLayout = compile({ type: 'object', layout: { options: { opt1: 'Opt 1' } }, properties: { str1: { type: 'string', layout: { options: { opt2: 'Opt 2' } } } } })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { context: { domain: 'test.com' }, nodes: { opt0: 'Opt 0', opt2: 'Opt 0/2' } }, {})
-      assert.deepEqual(statefulLayout.stateTree.root.options, { opt0: 'Opt 0', opt2: 'Opt 0/2', opt1: 'Opt 1' })
-      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1' })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { opt0: 'Opt 0', opt2: 'Opt 0/2' }, {})
+      assert.deepEqual(statefulLayout.stateTree.root.options, { opt0: 'Opt 0', opt2: 'Opt 0/2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false })
     })
 
     it('should fill default values', () => {
@@ -435,6 +435,32 @@ for (const compileMode of ['runtime', 'build-time']) {
         str2: '',
         obj3: {}
       })
+    })
+
+    it('should add readOnly and summary options to array items', () => {
+      const compiledLayout = compile({
+        type: 'array',
+        items: {
+          type: 'object',
+          layout: {
+            switch: [{
+              if: 'options.summary',
+              children: ['str1']
+            }]
+          },
+          properties: {
+            str1: { type: 'string' },
+            str2: { type: 'string' }
+          }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, [{ str1: 'Str 1', str2: 'Str 2' }])
+      assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+      assert.deepEqual(statefulLayout.stateTree.root.children[0].data, { str1: 'Str 1', str2: 'Str 2' })
+      assert.equal(statefulLayout.stateTree.root.children[0].options.summary, true)
+      assert.equal(statefulLayout.stateTree.root.children[0].options.readOnly, true)
+      assert.equal(statefulLayout.stateTree.root.children[0]?.children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children[0]?.children[0].key, 'str1')
     })
   })
 }

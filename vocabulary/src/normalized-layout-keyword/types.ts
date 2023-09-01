@@ -3,16 +3,19 @@ export type CompObject = {
   if?: Expression;
   help?: string;
   cols?: ColsObj;
-  props?: NodeProps;
-  slots?: {
-    [k: string]: Slot;
+  props?: StateNodePropsLib;
+  slots?: StateNodeSlotsLib & {
+    before?: Slot;
+    after?: Slot;
+    component?: Slot;
+    [k: string]: unknown;
   };
-  options?: NodeOptions;
+  options?: StateNodeOptions;
   [k: string]: unknown;
 } & (None | List | TextField | NumberField | Textarea | Checkbox | Select | OneOfSelect | CompositeCompObject);
 export type Cols = number;
 /**
- * This interface was referenced by `undefined`'s JSON-Schema definition
+ * This interface was referenced by `StateNodeSlotsLib`'s JSON-Schema definition
  * via the `patternProperty` ".*".
  */
 export type Slot =
@@ -25,6 +28,11 @@ export type Slot =
   | {
       name?: string;
     };
+export type StateNodeOptions = StateNodeOptionsLib & {
+  readOnly?: boolean;
+  summary?: boolean;
+  [k: string]: unknown;
+};
 export type SelectItems = SelectItem[];
 export type GetItems = {
   returnObjects?: boolean;
@@ -61,10 +69,21 @@ export interface ColsObj {
   xl?: Cols;
   xxl?: Cols;
 }
-export interface NodeProps {
+export interface StateNodePropsLib {
+  /**
+   * This interface was referenced by `StateNodePropsLib`'s JSON-Schema definition
+   * via the `patternProperty` ".*".
+   */
   [k: string]: unknown;
 }
-export interface NodeOptions {
+export interface StateNodeSlotsLib {
+  [k: string]: Slot;
+}
+export interface StateNodeOptionsLib {
+  /**
+   * This interface was referenced by `StateNodeOptionsLib`'s JSON-Schema definition
+   * via the `patternProperty` ".*".
+   */
   [k: string]: unknown;
 }
 export interface None {
@@ -175,18 +194,31 @@ export const normalizedLayoutKeywordSchema = {
               "$ref": "#/$defs/cols-obj"
             },
             "props": {
-              "$ref": "#/$defs/node-props"
+              "$ref": "#/$defs/state-node-props-lib"
             },
             "slots": {
               "type": "object",
-              "patternProperties": {
-                ".*": {
-                  "$ref": "#/$defs/slot"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/state-node-slots-lib"
+                },
+                {
+                  "properties": {
+                    "before": {
+                      "$ref": "#/$defs/slot"
+                    },
+                    "after": {
+                      "$ref": "#/$defs/slot"
+                    },
+                    "component": {
+                      "$ref": "#/$defs/slot"
+                    }
+                  }
                 }
-              }
+              ]
             },
             "options": {
-              "$ref": "#/$defs/node-options"
+              "$ref": "#/$defs/state-node-options"
             }
           }
         },
@@ -563,11 +595,45 @@ export const normalizedLayoutKeywordSchema = {
         }
       ]
     },
-    "node-options": {
-      "type": "object"
+    "state-node-options": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/state-node-options-lib"
+        },
+        {
+          "properties": {
+            "readOnly": {
+              "type": "boolean",
+              "default": false
+            },
+            "summary": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      ]
     },
-    "node-props": {
-      "type": "object"
+    "state-node-options-lib": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {}
+      }
+    },
+    "state-node-props-lib": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {}
+      }
+    },
+    "state-node-slots-lib": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/$defs/slot"
+        }
+      }
     }
   }
 }

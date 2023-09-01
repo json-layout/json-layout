@@ -1,8 +1,8 @@
 // import { type Emitter } from 'mitt'
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
-import { type StatefulLayoutOptions, type Mode } from '..'
+import { type StatefulLayoutOptions } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols, type NodeOptions } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
@@ -18,12 +18,10 @@ export interface StateNode {
   parentDataPath: string | null
   skeleton: SkeletonNode
   layout: CompObject
-  mode: Mode
-  width: number
   cols: Cols
   data: unknown
   error: string | undefined
-  options: NodeOptions
+  options: StatefulLayoutOptions
   children?: StateNode[]
 }
 
@@ -35,8 +33,8 @@ const isDataEmpty = (data: unknown) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, Mode, number, number, unknown, string | undefined, NodeOptions, StateNode[]?]>(
-  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, mode, width, cols, data, error, options, children?) => {
+const produceStateNode = produce<StateNode, [string | number, string, string | null, string, string | null, SkeletonNode, CompObject, number, unknown, string | undefined, StatefulLayoutOptions, StateNode[]?]>(
+  (draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, options, children?) => {
     data = children ? produceStateNodeData((data ?? {}) as Record<string, unknown>, dataPath, children) : data
     // empty data is removed and replaced by the default data
     if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
@@ -49,12 +47,10 @@ const produceStateNode = produce<StateNode, [string | number, string, string | n
     draft.parentDataPath = parentDataPath
     draft.skeleton = skeleton
     draft.layout = layout
-    draft.mode = mode
-    draft.width = width
+    draft.options = options
     draft.cols = cols
     draft.data = data
     draft.error = error
-    draft.options = options
     draft.children = children
   }
 )
@@ -72,7 +68,7 @@ const produceStateNodeData = produce<Record<string, unknown>, [string, StateNode
   }
 })
 
-const produceNodeOptions = produce<NodeOptions, [NodeOptions, NodeOptions]>((draft, parentNodeOptions, nodeOptions) => {
+const produceNodeOptions = produce<StatefulLayoutOptions, [StatefulLayoutOptions, StateNodeOptions | undefined, number]>((draft, parentNodeOptions, nodeOptions = {}, width) => {
   for (const key in parentNodeOptions) {
     draft[key] = parentNodeOptions[key]
   }
@@ -85,9 +81,12 @@ const produceNodeOptions = produce<NodeOptions, [NodeOptions, NodeOptions]>((dra
       delete draft[key]
     }
   }
+  draft.width = width
 })
-
-const nodeCompObject: CompObject = { comp: 'none' }
+const produceArrayItemOptions = produce<StatefulLayoutOptions, []>((draft) => {
+  draft.readOnly = true
+  draft.summary = true
+})
 
 const matchError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: string, parentDataPath: string | null): boolean => {
   const originalError = error.params?.errors?.[0] ?? error
@@ -100,16 +99,29 @@ const matchChildError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: s
   return false
 }
 
-export function evalExpression (expressions: CompiledExpression[], expression: Expression, data: any, context: Record<string, any>, mode: Mode, display: Display): any {
+export function evalExpression (expressions: CompiledExpression[], expression: Expression, data: any, options: StatefulLayoutOptions, display: Display): any {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
   // console.log(expression.expr, context, mode, display)
-  return compiledExpression(data, context, mode, display)
+  return compiledExpression(data, options, display)
+}
+
+const getCompObject = (normalizedLayout: NormalizedLayout, options: StatefulLayoutOptions, compiledLayout: CompiledLayout, display: Display, data: unknown): CompObject => {
+  if (isSwitch(normalizedLayout)) {
+    for (const compObject of normalizedLayout.switch) {
+      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display)) {
+        return compObject
+      }
+    }
+  } else {
+    return normalizedLayout
+  }
+  throw new Error('no layout matched for node')
 }
 
 export function createStateNode (
   context: CreateStateTreeContext,
-  options: StatefulLayoutOptions,
+  parentOptions: StatefulLayoutOptions,
   compiledLayout: CompiledLayout,
   key: string | number,
   fullKey: string,
@@ -118,26 +130,16 @@ export function createStateNode (
   parentDataPath: string | null,
   skeleton: SkeletonNode,
   contextualLayout: CompObject | null,
-  mode: Mode,
   parentDisplay: Display,
   data: unknown,
-  parentNodeOptions: NodeOptions,
   reusedNode?: StateNode
 ): StateNode {
   const normalizedLayout = contextualLayout ?? compiledLayout.normalizedLayouts[skeleton.pointer]
-  let layout: CompObject
-  if (isSwitch(normalizedLayout)) {
-    layout = normalizedLayout.switch.find(compObject => {
-      if (!compObject.if) return true
-      return !!evalExpression(compiledLayout.expressions, compObject.if, data, options.context, mode, parentDisplay)
-    }) ?? nodeCompObject
-  } else {
-    layout = normalizedLayout
-  }
+  const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data)
 
-  const [display, col] = getChildDisplay(parentDisplay, contextualLayout?.cols ?? layout.cols)
+  const [display, cols] = getChildDisplay(parentDisplay, contextualLayout?.cols ?? layout.cols)
 
-  const nodeOptions = layout.options ? produceNodeOptions(reusedNode?.options ?? {}, parentNodeOptions, layout.options) : parentNodeOptions
+  const options = produceNodeOptions(reusedNode?.options ?? {} as StatefulLayoutOptions, parentOptions, layout.options, display.width)
 
   let children: StateNode[] | undefined
   if (layout.comp === 'section') {
@@ -157,10 +159,8 @@ export function createStateNode (
         dataPath,
         childSkeleton,
         child.comp ? (child as unknown as CompObject) : null,
-        mode,
         display,
         isSameData ? objectData : objectData[child.key],
-        nodeOptions,
         reusedNode?.children?.[i]
       )
     })
@@ -169,10 +169,11 @@ export function createStateNode (
   if (layout.comp === 'list') {
     const arrayData = (data ?? []) as unknown[]
     const childSkeleton = skeleton?.childrenTrees?.[0]?.root as SkeletonNode
+    const listItemOptions = produceArrayItemOptions(options)
     children = arrayData.map((itemData, i) => {
       return createStateNode(
         context,
-        options,
+        listItemOptions,
         compiledLayout,
         i,
         `${fullKey}/${i}`,
@@ -181,10 +182,8 @@ export function createStateNode (
         dataPath,
         childSkeleton,
         null,
-        mode,
         display,
         itemData,
-        nodeOptions,
         reusedNode?.children?.[0]
       )
     })
@@ -205,12 +204,10 @@ export function createStateNode (
     parentDataPath,
     skeleton,
     layout,
-    mode,
-    display.width,
-    col,
+    cols,
     data,
     error?.message,
-    nodeOptions,
+    options,
     shallowCompareArrays(reusedNode?.children, children)
   )
   context.nodes.push(node)

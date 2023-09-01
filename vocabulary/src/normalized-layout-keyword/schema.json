@@ -27,14 +27,21 @@
             "if": {"$ref": "#/$defs/expression"},
             "help": {"type": "string"},
             "cols": {"$ref": "#/$defs/cols-obj"},
-            "props": {"$ref": "#/$defs/node-props"},
+            "props": {"$ref": "#/$defs/state-node-props-lib"},
             "slots": {
               "type": "object",
-              "patternProperties": {
-                ".*": {"$ref": "#/$defs/slot"}
-              }
+              "allOf": [
+                {"$ref": "#/$defs/state-node-slots-lib"},
+                {
+                  "properties": {
+                    "before": {"$ref": "#/$defs/slot"},
+                    "after": {"$ref": "#/$defs/slot"},
+                    "component": {"$ref": "#/$defs/slot"}
+                  }
+                }
+              ]
             },
-            "options": {"$ref": "#/$defs/node-options"}
+            "options": {"$ref": "#/$defs/state-node-options"}
           }
         },
         {
@@ -247,11 +254,35 @@
         }
       ]
     },
-    "node-options": {
-      "type": "object"
+    "state-node-options": {
+      "type": "object",
+      "allOf": [
+        {"$ref": "#/$defs/state-node-options-lib"},
+        {
+          "properties": {
+            "readOnly": {"type": "boolean", "default": false},
+            "summary": {"type": "boolean", "default": false}
+          }
+        }
+      ]
     },
-    "node-props": {
-      "type": "object"
+    "state-node-options-lib": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {}
+      }
+    },
+    "state-node-props-lib": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {}
+      }
+    },
+    "state-node-slots-lib": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {"$ref": "#/$defs/slot"}
+      }
     }
   }
 }

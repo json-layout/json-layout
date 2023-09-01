@@ -197,9 +197,9 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
 
 function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment, markdown: Markdown): NormalizedLayout {
   if (isPartialSwitch(layoutKeyword)) {
-    return {
-      switch: layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject, schemaFragment, markdown))
-    }
+    const switchCases = layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject, schemaFragment, markdown))
+    if (!switchCases.find(switchCase => !switchCase.if)) switchCases.push(JSON.parse(JSON.stringify(defaultCompObject)))
+    return { switch: switchCases }
   } else {
     return getCompObject(layoutKeyword, defaultCompObject, schemaFragment, markdown)
   }

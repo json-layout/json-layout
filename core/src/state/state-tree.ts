@@ -1,5 +1,5 @@
 import produce from 'immer'
-import { type StatefulLayoutOptions, type Mode } from '.'
+import { type StatefulLayoutOptions } from '.'
 import { createStateNode, type StateNode } from './state-node'
 import { type CompiledLayout, type SkeletonTree } from '../compile'
 import { type ErrorObject } from 'ajv'
@@ -7,7 +7,6 @@ import { type Display } from './utils/display'
 
 export interface StateTree {
   root: StateNode
-  mode: Mode
   valid: boolean
   title: string
 }
@@ -18,10 +17,9 @@ export interface CreateStateTreeContext {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-const produceStateTree = produce<StateTree, [StateNode, Mode, boolean]>(
-  (draft, root, mode, valid) => {
+const produceStateTree = produce<StateTree, [StateNode, boolean]>(
+  (draft, root, valid) => {
     draft.root = root
-    draft.mode = mode
     draft.valid = valid
   }
 )
@@ -49,12 +47,10 @@ export function createStateTree (
     null,
     skeleton.root,
     null,
-    options.mode,
     display,
     value,
-    options.nodes,
     reusedStateTree?.root
   )
 
-  return produceStateTree(reusedStateTree ?? ({} as StateTree), root, options.mode, valid)
+  return produceStateTree(reusedStateTree ?? ({} as StateTree), root, valid)
 }

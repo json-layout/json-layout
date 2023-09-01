@@ -7,14 +7,14 @@ import Ajv, { type ValidateFunction, type Options as AjvOptions } from 'ajv'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
 import MarkdownIt from 'markdown-it'
-import { type Markdown, type Expression, type NormalizedLayout } from '@json-layout/vocabulary'
+import { type Markdown, type Expression, type NormalizedLayout, type StateNodeOptions } from '@json-layout/vocabulary'
 import { makeSkeletonTree, type SkeletonTree } from './skeleton-tree'
 import { type Display } from '../state/utils/display'
 
 export type { SkeletonTree } from './skeleton-tree'
 export type { SkeletonNode } from './skeleton-node'
 
-export type CompiledExpression = (data: any, context: Record<string, any>, mode: string, display: Display) => any
+export type CompiledExpression = (data: any, options: StateNodeOptions, display: Display) => any
 
 export interface CompileOptions {
   ajv: Ajv
@@ -32,7 +32,7 @@ export interface CompiledLayout {
   expressions: CompiledExpression[]
 }
 
-const expressionsParams = ['data', 'context', 'mode', 'display']
+const expressionsParams = ['data', 'options', 'display']
 
 const clone = rfdc()
 const exprEvalParser = new ExprEvalParser()
