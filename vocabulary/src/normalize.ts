@@ -101,7 +101,8 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
   if (schemaFragment.type === 'integer') return { comp: 'number-field', label: schemaFragment.title ?? key, step: 1 }
   if (schemaFragment.type === 'number') return { comp: 'number-field', label: schemaFragment.title ?? key }
   if (schemaFragment.type === 'boolean') return { comp: 'checkbox', label: schemaFragment.title ?? key }
-  throw new Error(`failed to calculate default layout for schema ${schemaPath}`)
+  console.warn(`failed to calculate default layout for schema ${schemaPath}`, schemaFragment)
+  return { comp: 'none' }
 }
 
 function getPartialCompObject (layoutKeyword: LayoutKeyword): PartialCompObject | null {
@@ -215,12 +216,12 @@ export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaP
     defaultCompObject = getDefaultCompObject(schemaFragment, schemaPath)
   }
   if (!validateLayoutKeyword(layoutKeyword)) {
-    console.log(`layout keyword validation errors at path ${schemaPath}`, validateLayoutKeyword.errors)
+    console.warn(`layout keyword validation errors at path ${schemaPath}`, layoutKeyword, validateLayoutKeyword.errors)
     throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
   const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject, schemaFragment, markdown)
   if (!validateNormalizedLayout(normalizedLayout)) {
-    console.log(`normalized layout validation errors at path ${schemaPath}`, JSON.stringify(normalizedLayout, null, 2), validateNormalizedLayout.errors)
+    console.warn(`normalized layout validation errors at path ${schemaPath}`, normalizedLayout, validateNormalizedLayout.errors)
     throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })
   }
   return normalizedLayout
