@@ -10,6 +10,7 @@ import MarkdownIt from 'markdown-it'
 import { type Markdown, type Expression, type NormalizedLayout, type StateNodeOptions } from '@json-layout/vocabulary'
 import { makeSkeletonTree, type SkeletonTree } from './skeleton-tree'
 import { type Display } from '../state/utils/display'
+import { resolveRefs } from './utils/resolve-refs'
 
 export type { SkeletonTree } from './skeleton-tree'
 export type { SkeletonNode } from './skeleton-node'
@@ -21,6 +22,7 @@ export interface CompileOptions {
   code: boolean
   markdown: Markdown
   markdownIt?: MarkdownIt.Options
+  lang: string
 }
 
 export interface CompiledLayout {
@@ -57,18 +59,19 @@ const fillOptions = (partialOptions: Partial<CompileOptions>): CompileOptions =>
     ajv,
     code: false,
     markdown,
+    lang: 'en',
     ...partialOptions
   }
 }
 
 export function compile (_schema: object, partialOptions: Partial<CompileOptions> = {}): CompiledLayout {
-  const schema = <SchemaObject>clone(_schema)
-
   const options = fillOptions(partialOptions)
 
-  if (!('$id' in schema)) {
-    schema.$id = '_jl'
-  }
+  const schema = <SchemaObject>clone(_schema)
+
+  schema.$id = schema.$id ?? '_jl'
+  resolveRefs(schema, options.ajv, options.lang)
+  options.ajv.addSchema(schema)
 
   const validatePointers: string[] = []
   const normalizedLayouts: Record<string, NormalizedLayout> = {}
@@ -78,12 +81,10 @@ export function compile (_schema: object, partialOptions: Partial<CompileOptions
   // useful to get predictable schemaPath properties in errors and to have proper handling of default values
   const skeletonTree = makeSkeletonTree(schema, options, validatePointers, normalizedLayouts, expressionsDefinitions, `${schema.$id}#`, 'main')
 
-  options.ajv.addSchema(schema)
-
   const uriResolver = options.ajv.opts.uriResolver
   const validates: Record<string, ValidateFunction> = {}
   for (const pointer of validatePointers) {
-    const fullPointer = uriResolver.resolve(schema.$id as string, pointer)
+    const fullPointer = uriResolver.resolve(schema.$id, pointer)
     validates[pointer] = options.ajv.compile({ $ref: fullPointer })
   }
 
