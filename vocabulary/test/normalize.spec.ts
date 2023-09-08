@@ -109,4 +109,11 @@ describe('normalize schema fragment function', () => {
       }
     )
   })
+
+  it('should manage nullable', () => {
+    assert.deepEqual(
+      normalize({ type: 'string', layout: { getItems: 'context.items' } }, '/prop'),
+      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval' } }
+    )
+  })
 })

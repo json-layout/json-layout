@@ -216,13 +216,15 @@ export function normalizeLayoutFragment (schemaFragment: SchemaFragment, schemaP
     defaultCompObject = getDefaultCompObject(schemaFragment, schemaPath)
   }
   if (!validateLayoutKeyword(layoutKeyword)) {
-    console.warn(`layout keyword validation errors at path ${schemaPath}`, layoutKeyword, validateLayoutKeyword.errors)
-    throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
+    console.error(`layout keyword validation errors at path ${schemaPath}`, layoutKeyword, validateLayoutKeyword.errors)
+    return defaultCompObject
+    // throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
   const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject, schemaFragment, markdown)
   if (!validateNormalizedLayout(normalizedLayout)) {
-    console.warn(`normalized layout validation errors at path ${schemaPath}`, normalizedLayout, validateNormalizedLayout.errors)
-    throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })
+    console.error(`normalized layout validation errors at path ${schemaPath}`, normalizedLayout, validateNormalizedLayout.errors)
+    return defaultCompObject
+    // throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })
   }
   return normalizedLayout
 }

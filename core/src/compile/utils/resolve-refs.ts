@@ -1,4 +1,4 @@
-import type Ajv from 'ajv'
+import Ajv from 'ajv'
 import { type SchemaObject } from 'ajv'
 
 const getJSONRef = (schemas: Record<string, SchemaObject>, ref: string, ajv: Ajv): [any, string] => {
@@ -17,7 +17,7 @@ const getJSONRef = (schemas: Record<string, SchemaObject>, ref: string, ajv: Ajv
 
 const recurse = (schemas: Record<string, SchemaObject>, schemaFragment: SchemaObject, schemaId: string, ajv: Ajv, lang: string = 'en'): SchemaObject => {
   for (const key of Object.keys(schemaFragment)) {
-    if (typeof schemaFragment[key] === 'object') {
+    if (schemaFragment[key] && typeof schemaFragment[key] === 'object') {
       if ('$ref' in schemaFragment[key]) {
         const fullRef = ajv.opts.uriResolver.resolve(schemaId, schemaFragment[key].$ref).replace('~$locale~', lang)
         const fullRefDefaultLang = ajv.opts.uriResolver.resolve(schemaId, schemaFragment[key].$ref).replace('~$locale~', 'en')
@@ -44,5 +44,5 @@ const recurse = (schemas: Record<string, SchemaObject>, schemaFragment: SchemaOb
 
 export function resolveRefs (schema: SchemaObject, ajv: Ajv, lang: string = 'en') {
   if (!schema.$id) throw new Error('missing schema id')
-  return recurse({ [schema.$id]: schema }, schema, schema.$id, ajv, lang)
+  return recurse({ [schema.$id]: schema }, schema, schema.$id, ajv ?? new Ajv(), lang)
 }

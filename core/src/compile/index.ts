@@ -14,6 +14,7 @@ import { resolveRefs } from './utils/resolve-refs'
 
 export type { SkeletonTree } from './skeleton-tree'
 export type { SkeletonNode } from './skeleton-node'
+export { resolveRefs } from './utils/resolve-refs'
 
 export type CompiledExpression = (data: any, options: StateNodeOptions, display: Display) => any
 
