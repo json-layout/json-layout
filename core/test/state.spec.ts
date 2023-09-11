@@ -178,6 +178,30 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[1].cols, 6)
     })
 
+    it('should manage a simple responsive grid from parent layout', () => {
+      const compiledLayout = compile({
+        type: 'object',
+        layout: [{ key: 'str1', cols: 6 }, { key: 'str2', cols: { lg: 6 } }],
+        properties: {
+          str1: { type: 'string' },
+          str2: { type: 'string' }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 1000 })
+      assert.equal(statefulLayout.stateTree.root.options.width, 1000)
+      assert.equal(statefulLayout.stateTree.root.cols, 12)
+      assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+      assert.equal(statefulLayout.stateTree.root.children[0].options.width, 500)
+      assert.equal(statefulLayout.stateTree.root.children[0].cols, 6)
+      assert.equal(statefulLayout.stateTree.root.children[1].options.width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[1].cols, 12)
+      statefulLayout.options = { width: 2000 }
+      assert.equal(statefulLayout.stateTree.root.children[0].options.width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[0].cols, 6)
+      assert.equal(statefulLayout.stateTree.root.children[1].options.width, 1000)
+      assert.equal(statefulLayout.stateTree.root.children[1].cols, 6)
+    })
+
     it('should manage a oneOf in an object', () => {
       const compiledLayout = compile({
         type: 'object',

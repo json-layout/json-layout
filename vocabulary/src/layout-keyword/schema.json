@@ -1,7 +1,8 @@
 {
   "$id": "https://json-layout.github.io/layout-keyword",
   "title": "layout keyword",
-  "oneOf": [
+  "unevaluatedProperties": false,
+  "anyOf": [
     {"$ref": "#/$defs/comp-name"},
     {"$ref": "#/$defs/partial-children"},
     {"$ref": "#/$defs/partial-comp-object"},
@@ -22,7 +23,6 @@
     "partial-comp-object": {
       "title": "partial comp object",
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "comp": {"$ref": "#/$defs/comp-name"},
         "help": {"type": "string"},
@@ -55,20 +55,22 @@
         "checkbox",
         "section",
         "list",
-        "select"
+        "select",
+        "tabs",
+        "vertical-tabs",
+        "expansion-panels"
       ]
     },
     "partial-child": {
       "type": "object",
       "unevaluatedProperties": false,
+      "properties": {
+        "key": {"type": ["string", "integer"]},
+        "cols": {"$ref": "#/$defs/partial-cols"}
+      },
       "allOf": [
         {"$ref": "#/$defs/partial-comp-object"},
-        {
-          "properties": {
-            "key": {"type": ["string", "integer"]},
-            "cols": {"$ref": "#/$defs/partial-cols"}
-          }
-        }
+        {}
       ]
     },
     "partial-children": {

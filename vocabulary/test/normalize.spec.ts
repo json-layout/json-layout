@@ -116,4 +116,11 @@ describe('normalize schema fragment function', () => {
       { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval' } }
     )
   })
+
+  it('should manage tabs layout', () => {
+    assert.deepEqual(
+      normalize({ type: 'object', layout: { comp: 'tabs', children: [{ title: 'Tab 1', children: ['str1'] }, { title: 'Tab 2', children: ['str2'] }] }, properties: { str1: { type: 'string' }, str2: { type: 'string' } } }, '/prop'),
+      { comp: 'tabs', children: [{ comp: 'section', key: '$comp-0', title: 'Tab 1', children: [{ key: 'str1' }] }, { comp: 'section', key: '$comp-1', title: 'Tab 2', children: [{ key: 'str2' }] }] }
+    )
+  })
 })

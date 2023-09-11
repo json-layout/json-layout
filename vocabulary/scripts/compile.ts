@@ -16,7 +16,8 @@ const ajv = new Ajv2019({
     // optimize: true
   },
   discriminator: true,
-  allowMatchingProperties: true
+  allowMatchingProperties: true,
+  allowUnionTypes: true
 })
 
 const main = async () => {

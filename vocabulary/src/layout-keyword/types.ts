@@ -7,12 +7,16 @@ export type ComponentName =
   | "checkbox"
   | "section"
   | "list"
-  | "select";
-export type PartialChild = PartialCompObject & {
+  | "select"
+  | "tabs"
+  | "vertical-tabs"
+  | "expansion-panels";
+export type PartialChild = PartialChild1 & {
   key?: string | number;
   cols?: PartialCols;
   [k: string]: unknown;
 };
+export type PartialChild1 = PartialCompObject & unknown;
 export type PartialExpression = string | PartialExpressionObj;
 export type PartialSelectItem =
   | string
@@ -60,6 +64,7 @@ export interface PartialCompObject {
   options?: {
     [k: string]: unknown;
   };
+  [k: string]: unknown;
 }
 export interface PartialExpressionObj {
   type?: "expr-eval" | "js-fn" | "js-eval" | "js-tpl";
@@ -95,7 +100,8 @@ export interface PartialSwitch {
 export const layoutKeywordSchema = {
   "$id": "https://json-layout.github.io/layout-keyword",
   "title": "layout keyword",
-  "oneOf": [
+  "unevaluatedProperties": false,
+  "anyOf": [
     {
       "$ref": "#/$defs/comp-name"
     },
@@ -128,7 +134,6 @@ export const layoutKeywordSchema = {
     "partial-comp-object": {
       "title": "partial comp object",
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "comp": {
           "$ref": "#/$defs/comp-name"
@@ -190,29 +195,31 @@ export const layoutKeywordSchema = {
         "checkbox",
         "section",
         "list",
-        "select"
+        "select",
+        "tabs",
+        "vertical-tabs",
+        "expansion-panels"
       ]
     },
     "partial-child": {
       "type": "object",
       "unevaluatedProperties": false,
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "cols": {
+          "$ref": "#/$defs/partial-cols"
+        }
+      },
       "allOf": [
         {
           "$ref": "#/$defs/partial-comp-object"
         },
-        {
-          "properties": {
-            "key": {
-              "type": [
-                "string",
-                "integer"
-              ]
-            },
-            "cols": {
-              "$ref": "#/$defs/partial-cols"
-            }
-          }
-        }
+        {}
       ]
     },
     "partial-children": {

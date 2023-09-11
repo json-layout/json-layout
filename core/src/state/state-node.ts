@@ -2,12 +2,13 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
 import { shallowCompareArrays } from './utils/immutable'
 import { type CreateStateTreeContext } from './state-tree'
+import { childIsCompObject } from '@json-layout/vocabulary'
 // import { type ErrorObject } from 'ajv-errors'
 
 export interface StateNode {
@@ -129,15 +130,14 @@ export function createStateNode (
   dataPath: string,
   parentDataPath: string | null,
   skeleton: SkeletonNode,
-  contextualLayout: CompObject | null,
+  childDefinition: Child | null,
   parentDisplay: Display,
   data: unknown,
   reusedNode?: StateNode
 ): StateNode {
-  const normalizedLayout = contextualLayout ?? compiledLayout.normalizedLayouts[skeleton.pointer]
+  const normalizedLayout = childDefinition && childIsCompObject(childDefinition) ? childDefinition : compiledLayout.normalizedLayouts[skeleton.pointer]
   const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data)
-
-  const [display, cols] = getChildDisplay(parentDisplay, contextualLayout?.cols ?? layout.cols)
+  const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
 
   const options = produceNodeOptions(reusedNode?.options ?? {} as StatefulLayoutOptions, parentOptions, layout.options, display.width)
 
@@ -158,7 +158,7 @@ export function createStateNode (
         isSameData ? dataPath : `${dataPath}/${child.key}`,
         dataPath,
         childSkeleton,
-        child.comp ? (child as unknown as CompObject) : null,
+        child,
         display,
         isSameData ? objectData : objectData[child.key],
         reusedNode?.children?.[i]

@@ -12,7 +12,20 @@ export type CompObject = {
   };
   options?: StateNodeOptions;
   [k: string]: unknown;
-} & (None | List | TextField | NumberField | Textarea | Checkbox | Select | OneOfSelect | CompositeCompObject);
+} & (
+  | None
+  | List
+  | TextField
+  | NumberField
+  | Textarea
+  | Checkbox
+  | Select
+  | OneOfSelect
+  | Section
+  | Tabs
+  | VerticalTabs
+  | ExpansionPanels
+);
 export type Cols = number;
 /**
  * This interface was referenced by `StateNodeSlotsLib`'s JSON-Schema definition
@@ -43,13 +56,13 @@ export type GetItems = {
   [k: string]: unknown;
 } & GetItems1;
 export type GetItems1 = Expression | GetItemsFetch;
-export type CompositeCompObject = Section;
 export type Child = Child1 & {
   key: string | number;
   cols?: ColsObj;
   [k: string]: unknown;
 };
 export type Child1 = unknown | CompositeCompObject;
+export type CompositeCompObject = Section | Tabs | VerticalTabs | ExpansionPanels;
 export type Children = Child[];
 
 export interface Switch {
@@ -146,6 +159,21 @@ export interface Section {
   children: Children;
   [k: string]: unknown;
 }
+export interface Tabs {
+  comp: "tabs";
+  children: Children;
+  [k: string]: unknown;
+}
+export interface VerticalTabs {
+  comp: "vertical-tabs";
+  children: Children;
+  [k: string]: unknown;
+}
+export interface ExpansionPanels {
+  comp: "expansion-panels";
+  children: Children;
+  [k: string]: unknown;
+}
 
 // raw schema
 export const normalizedLayoutKeywordSchema = {
@@ -223,6 +251,9 @@ export const normalizedLayoutKeywordSchema = {
           }
         },
         {
+          "discriminator": {
+            "propertyName": "comp"
+          },
           "oneOf": [
             {
               "$ref": "#/$defs/none"
@@ -249,7 +280,16 @@ export const normalizedLayoutKeywordSchema = {
               "$ref": "#/$defs/one-of-select"
             },
             {
-              "$ref": "#/$defs/composite-comp-object"
+              "$ref": "#/$defs/section"
+            },
+            {
+              "$ref": "#/$defs/tabs"
+            },
+            {
+              "$ref": "#/$defs/vertical-tabs"
+            },
+            {
+              "$ref": "#/$defs/expansion-panels"
             }
           ]
         }
@@ -257,9 +297,21 @@ export const normalizedLayoutKeywordSchema = {
     },
     "composite-comp-object": {
       "type": "object",
+      "discriminator": {
+        "propertyName": "comp"
+      },
       "oneOf": [
         {
           "$ref": "#/$defs/section"
+        },
+        {
+          "$ref": "#/$defs/tabs"
+        },
+        {
+          "$ref": "#/$defs/vertical-tabs"
+        },
+        {
+          "$ref": "#/$defs/expansion-panels"
         }
       ]
     },
@@ -289,6 +341,51 @@ export const normalizedLayoutKeywordSchema = {
             "string",
             "null"
           ]
+        },
+        "children": {
+          "$ref": "#/$defs/children"
+        }
+      }
+    },
+    "tabs": {
+      "type": "object",
+      "required": [
+        "comp",
+        "children"
+      ],
+      "properties": {
+        "comp": {
+          "const": "tabs"
+        },
+        "children": {
+          "$ref": "#/$defs/children"
+        }
+      }
+    },
+    "vertical-tabs": {
+      "type": "object",
+      "required": [
+        "comp",
+        "children"
+      ],
+      "properties": {
+        "comp": {
+          "const": "vertical-tabs"
+        },
+        "children": {
+          "$ref": "#/$defs/children"
+        }
+      }
+    },
+    "expansion-panels": {
+      "type": "object",
+      "required": [
+        "comp",
+        "children"
+      ],
+      "properties": {
+        "comp": {
+          "const": "expansion-panels"
         },
         "children": {
           "$ref": "#/$defs/children"

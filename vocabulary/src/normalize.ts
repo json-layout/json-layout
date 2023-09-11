@@ -1,5 +1,5 @@
 import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren, isPartialGetItemsFetch, type PartialExpression, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown } from './layout-keyword'
-import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child, type Expression } from '.'
+import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child, type Expression, isCompositeLayout } from '.'
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
@@ -45,24 +45,29 @@ function getChildren (defaultChildren: Children, partialChildren?: PartialChildr
   if (!partialChildren) return defaultChildren
   let compI = 0
   return partialChildren.map(partialChild => {
-    if (typeof partialChild === 'string') {
+    if (typeof partialChild === 'string') { // simple string/key referencing a known child
       const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild)
       if (!matchingDefaultChild) throw new Error(`child unknown ${partialChild}`)
       return matchingDefaultChild
     } else {
-      if (partialChild.key) {
+      if (typeof partialChild.cols === 'number') partialChild.cols = { sm: partialChild.cols }
+      if (typeof partialChild.cols === 'object' && partialChild.cols.xs === undefined) partialChild.cols.xs = 12
+      if (partialChild.key) { // object referencing known child and overwriting cols
         const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild.key)
         if (!matchingDefaultChild) throw new Error(`child unknown ${partialChild.key}`)
+        return partialChild as Child
+      } else { // a composite component definition, not directly related to a known child
+        const child = partialChild as Child
+        if (partialChild.children) {
+          if (!partialChild.comp) child.comp = 'section'
+          child.children = getChildren(defaultChildren, partialChild.children)
+        }
+        if (!('key' in partialChild)) {
+          child.key = `$comp-${compI}`
+          compI++
+        }
+        return child
       }
-      const child = partialChild as Child
-      if (partialChild.children) {
-        child.children = getChildren(defaultChildren, partialChild.children)
-      }
-      if (!('key' in partialChild)) {
-        child.key = `$comp-${compI}`
-        compI++
-      }
-      return child
     }
   })
 }
@@ -183,7 +188,7 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
     Object.assign(compObject, defaultCompObject, partial) as CompObject
   }
 
-  if (isSectionLayout(defaultCompObject) && isSectionLayout(compObject)) {
+  if (isSectionLayout(defaultCompObject) && isCompositeLayout(compObject)) {
     compObject.children = getChildren((defaultCompObject).children, partial.children)
   }
 

@@ -45,6 +45,7 @@
           }
         },
         {
+          "discriminator": {"propertyName": "comp"},
           "oneOf": [
             {"$ref": "#/$defs/none"},
             {"$ref": "#/$defs/list"},
@@ -54,15 +55,22 @@
             {"$ref": "#/$defs/checkbox"},
             {"$ref": "#/$defs/select"},
             {"$ref": "#/$defs/one-of-select"},
-            {"$ref": "#/$defs/composite-comp-object"}
+            {"$ref": "#/$defs/section"},
+            {"$ref": "#/$defs/tabs"},
+            {"$ref": "#/$defs/vertical-tabs"},
+            {"$ref": "#/$defs/expansion-panels"}
           ]
         }
       ]
     },
     "composite-comp-object": {
       "type": "object",
+      "discriminator": {"propertyName": "comp"},
       "oneOf": [
-        {"$ref": "#/$defs/section"}
+        {"$ref": "#/$defs/section"},
+        {"$ref": "#/$defs/tabs"},
+        {"$ref": "#/$defs/vertical-tabs"},
+        {"$ref": "#/$defs/expansion-panels"}
       ]
     },
     "none": {
@@ -79,6 +87,30 @@
       "properties": {
         "comp": {"const": "section"},
         "title": {"type": ["string", "null"]},
+        "children": {"$ref": "#/$defs/children"}
+      }
+    },
+    "tabs": {
+      "type": "object",
+      "required": ["comp", "children"],
+      "properties": {
+        "comp": {"const": "tabs"},
+        "children": {"$ref": "#/$defs/children"}
+      }
+    },
+    "vertical-tabs": {
+      "type": "object",
+      "required": ["comp", "children"],
+      "properties": {
+        "comp": {"const": "vertical-tabs"},
+        "children": {"$ref": "#/$defs/children"}
+      }
+    },
+    "expansion-panels": {
+      "type": "object",
+      "required": ["comp", "children"],
+      "properties": {
+        "comp": {"const": "expansion-panels"},
         "children": {"$ref": "#/$defs/children"}
       }
     },
