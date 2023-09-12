@@ -2,7 +2,7 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, type Section } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, type Section, isCompositeLayout, isSectionLayout } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
@@ -147,10 +147,10 @@ export function createStateNode (
   const options = produceNodeOptions(reusedNode?.options ?? {} as StatefulLayoutOptions, parentOptions, layout.options, display.width)
 
   let children: StateNode[] | undefined
-  if (layout.comp === 'section') {
+  if (isCompositeLayout(layout)) {
     // TODO: make this type casting safe using prior validation
     const objectData = (data ?? {}) as Record<string, unknown>
-    const childrenOptions = produceSectionChildrenOptions(options, layout)
+    const childrenOptions = isSectionLayout(layout) ? produceSectionChildrenOptions(options, layout) : options
     children = layout.children.map((child, i) => {
       const childSkeleton = skeleton.children?.find(c => c.key === child.key) ?? skeleton
       const isSameData = typeof child.key === 'string' && child.key.startsWith('$')
