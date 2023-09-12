@@ -16,6 +16,9 @@ export interface SchemaFragment {
 
 export type Markdown = (src: string) => string
 
+// this navice implementation is sufficient here, not used very often
+const clone = (obj: any) => JSON.parse(JSON.stringify(obj))
+
 function getDefaultChildren (schemaFragment: SchemaFragment): Children {
   const children: Children = []
   if (schemaFragment.type === 'object') {
@@ -203,8 +206,8 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
 
 function getNormalizedLayout (layoutKeyword: LayoutKeyword, defaultCompObject: CompObject, schemaFragment: SchemaFragment, markdown: Markdown): NormalizedLayout {
   if (isPartialSwitch(layoutKeyword)) {
-    const switchCases = layoutKeyword.switch.map(layout => getCompObject(layout, defaultCompObject, schemaFragment, markdown))
-    if (!switchCases.find(switchCase => !switchCase.if)) switchCases.push(JSON.parse(JSON.stringify(defaultCompObject)))
+    const switchCases = layoutKeyword.switch.map(layout => getCompObject(layout, clone(defaultCompObject), schemaFragment, markdown))
+    if (!switchCases.find(switchCase => !switchCase.if)) switchCases.push(clone(defaultCompObject))
     return { switch: switchCases }
   } else {
     return getCompObject(layoutKeyword, defaultCompObject, schemaFragment, markdown)

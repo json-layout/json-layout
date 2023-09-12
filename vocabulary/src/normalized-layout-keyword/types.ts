@@ -44,6 +44,7 @@ export type Slot =
 export type StateNodeOptions = StateNodeOptionsLib & {
   readOnly?: boolean;
   summary?: boolean;
+  sectionDepth?: number;
   [k: string]: unknown;
 };
 export type SelectItems = SelectItem[];
@@ -707,6 +708,12 @@ export const normalizedLayoutKeywordSchema = {
             "summary": {
               "type": "boolean",
               "default": false
+            },
+            "sectionDepth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6,
+              "default": 2
             }
           }
         }

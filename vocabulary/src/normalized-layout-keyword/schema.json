@@ -293,7 +293,8 @@
         {
           "properties": {
             "readOnly": {"type": "boolean", "default": false},
-            "summary": {"type": "boolean", "default": false}
+            "summary": {"type": "boolean", "default": false},
+            "sectionDepth": {"type": "integer", "minimum": 1, "maximum": 6, "default": 2}
           }
         }
       ]

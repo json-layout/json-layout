@@ -28,7 +28,7 @@
         "help": {"type": "string"},
         "children": {"$ref": "#/$defs/partial-children"},
         "label": {"type": "string"},
-        "title": {"type": "string"},
+        "title": {"type": ["string", "null"]},
         "step": {"type": "number"},
         "if": {"$ref": "#/$defs/partial-expression"},
         "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}},

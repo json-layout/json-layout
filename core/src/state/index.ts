@@ -18,7 +18,7 @@ export type StatefulLayoutEvents = {
   'update': StatefulLayout
 }
 
-export type StatefulLayoutOptions = StateNodeOptions & {
+export type StatefulLayoutOptions = Required<StateNodeOptions> & {
   context: Record<string, any>
   width: number
 }
@@ -31,6 +31,7 @@ const fillOptions = (partialOptions: Partial<StatefulLayoutOptions>): StatefulLa
     width: 1000,
     readOnly: false,
     summary: false,
+    sectionDepth: 2,
     ...partialOptions
   }
 }

@@ -49,7 +49,7 @@ export interface PartialCompObject {
   help?: string;
   children?: PartialChildren;
   label?: string;
-  title?: string;
+  title?: string | null;
   step?: number;
   if?: PartialExpression;
   items?: PartialSelectItem[];
@@ -148,7 +148,10 @@ export const layoutKeywordSchema = {
           "type": "string"
         },
         "title": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "step": {
           "type": "number"

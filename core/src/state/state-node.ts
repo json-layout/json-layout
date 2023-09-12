@@ -2,13 +2,12 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, type Section } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
 import { shallowCompareArrays } from './utils/immutable'
 import { type CreateStateTreeContext } from './state-tree'
-import { childIsCompObject } from '@json-layout/vocabulary'
 // import { type ErrorObject } from 'ajv-errors'
 
 export interface StateNode {
@@ -84,9 +83,15 @@ const produceNodeOptions = produce<StatefulLayoutOptions, [StatefulLayoutOptions
   }
   draft.width = width
 })
+
 const produceArrayItemOptions = produce<StatefulLayoutOptions, []>((draft) => {
   draft.readOnly = true
   draft.summary = true
+})
+
+const produceSectionChildrenOptions = produce<StatefulLayoutOptions, [Section]>((draft, section) => {
+  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+  if (section.title && draft.sectionDepth < 6) draft.sectionDepth += 1
 })
 
 const matchError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: string, parentDataPath: string | null): boolean => {
@@ -145,12 +150,13 @@ export function createStateNode (
   if (layout.comp === 'section') {
     // TODO: make this type casting safe using prior validation
     const objectData = (data ?? {}) as Record<string, unknown>
+    const childrenOptions = produceSectionChildrenOptions(options, layout)
     children = layout.children.map((child, i) => {
       const childSkeleton = skeleton.children?.find(c => c.key === child.key) ?? skeleton
       const isSameData = typeof child.key === 'string' && child.key.startsWith('$')
       return createStateNode(
         context,
-        options,
+        childrenOptions,
         compiledLayout,
         child.key,
         `${fullKey}/${child.key}`,
