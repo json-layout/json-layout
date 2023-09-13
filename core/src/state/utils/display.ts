@@ -3,7 +3,9 @@
 import { type Cols, type ColsObj } from '@json-layout/vocabulary'
 
 // TODO: make this configurable
-const thresholds = {
+type BreakPointName = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
+const names: BreakPointName[] = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl']
+const thresholds: Record<BreakPointName, number> = {
   xs: 0,
   sm: 600,
   md: 960,
@@ -17,6 +19,13 @@ export class Display {
 
   public constructor (width: number) {
     this.width = width
+  }
+
+  get name (): BreakPointName {
+    for (let i = 0; i < names.length; i++) {
+      if (names[i + 1] && this.width < thresholds[names[i + 1]]) return names[i]
+    }
+    return 'xxl'
   }
 
   get xs (): boolean {

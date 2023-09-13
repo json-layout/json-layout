@@ -2,7 +2,7 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, type Section, isCompositeLayout, isSectionLayout } from '@json-layout/vocabulary'
+import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, isCompositeLayout, type CompositeCompObject } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
@@ -89,9 +89,9 @@ const produceArrayItemOptions = produce<StatefulLayoutOptions, []>((draft) => {
   draft.summary = true
 })
 
-const produceSectionChildrenOptions = produce<StatefulLayoutOptions, [Section]>((draft, section) => {
+const produceCompositeChildrenOptions = produce<StatefulLayoutOptions, [CompositeCompObject]>((draft, section) => {
   // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-  if (section.title && draft.sectionDepth < 6) draft.sectionDepth += 1
+  if (section.title && draft.titleDepth < 6) draft.titleDepth += 1
 })
 
 const matchError = (error: ErrorObject, skeleton: SkeletonNode, dataPath: string, parentDataPath: string | null): boolean => {
@@ -150,7 +150,7 @@ export function createStateNode (
   if (isCompositeLayout(layout)) {
     // TODO: make this type casting safe using prior validation
     const objectData = (data ?? {}) as Record<string, unknown>
-    const childrenOptions = isSectionLayout(layout) ? produceSectionChildrenOptions(options, layout) : options
+    const childrenOptions = produceCompositeChildrenOptions(options, layout)
     children = layout.children.map((child, i) => {
       const childSkeleton = skeleton.children?.find(c => c.key === child.key) ?? skeleton
       const isSameData = typeof child.key === 'string' && child.key.startsWith('$')

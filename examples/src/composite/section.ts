@@ -7,7 +7,7 @@ const example: JSONLayoutExample = {
   
 The title of the section can be derived from the \`title\` attribute of the object or from \`layout.title\`. An empty or null title will make the section into a simple container for its children.
 
-The attribute \`layout.option.sectionDepth\` can be used to configure the title tag (h1, h2, etc). Its default value is 2 and it is incremented automatically when nesting sections.`,
+The attribute \`layout.option.titleDepth\` can be used to configure the title tag (h1, h2, etc). Its default value is 2 and it is incremented automatically when nesting sections.`,
   schema: {
     type: 'object',
     title: 'Invisible container',

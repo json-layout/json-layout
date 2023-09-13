@@ -13,6 +13,7 @@ To do so you have to define objects inside the \`layout.children\` attribute.`,
       { title: 'Section 1', children: ['str1'] },
       {
         comp: 'tabs',
+        title: 'Tabs',
         children: [
           { title: 'Tab 1', children: ['str2'] },
           { title: 'Tab 2', children: ['str3'] }
@@ -20,6 +21,7 @@ To do so you have to define objects inside the \`layout.children\` attribute.`,
       },
       {
         comp: 'expansion-panels',
+        title: 'Expansion panels',
         children: [
           { title: 'Panel 1', children: ['str4'] },
           { title: 'Panel 2', children: ['str5'] }

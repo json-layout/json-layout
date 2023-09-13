@@ -31,7 +31,7 @@ const fillOptions = (partialOptions: Partial<StatefulLayoutOptions>): StatefulLa
     width: 1000,
     readOnly: false,
     summary: false,
-    sectionDepth: 2,
+    titleDepth: 2,
     ...partialOptions
   }
 }
@@ -47,6 +47,7 @@ export class StatefulLayout {
   readonly skeletonTree: SkeletonTree
 
   private _display!: Display
+  get display () { return this._display }
 
   private _options!: StatefulLayoutOptions
   get options () { return this._options }

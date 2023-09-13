@@ -44,7 +44,7 @@ export type Slot =
 export type StateNodeOptions = StateNodeOptionsLib & {
   readOnly?: boolean;
   summary?: boolean;
-  sectionDepth?: number;
+  titleDepth?: number;
   [k: string]: unknown;
 };
 export type SelectItems = SelectItem[];
@@ -162,16 +162,19 @@ export interface Section {
 }
 export interface Tabs {
   comp: "tabs";
+  title?: string | null;
   children: Children;
   [k: string]: unknown;
 }
 export interface VerticalTabs {
   comp: "vertical-tabs";
+  title?: string | null;
   children: Children;
   [k: string]: unknown;
 }
 export interface ExpansionPanels {
   comp: "expansion-panels";
+  title?: string | null;
   children: Children;
   [k: string]: unknown;
 }
@@ -358,6 +361,12 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "tabs"
         },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "children": {
           "$ref": "#/$defs/children"
         }
@@ -373,6 +382,12 @@ export const normalizedLayoutKeywordSchema = {
         "comp": {
           "const": "vertical-tabs"
         },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "children": {
           "$ref": "#/$defs/children"
         }
@@ -387,6 +402,12 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "expansion-panels"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "children": {
           "$ref": "#/$defs/children"
@@ -709,7 +730,7 @@ export const normalizedLayoutKeywordSchema = {
               "type": "boolean",
               "default": false
             },
-            "sectionDepth": {
+            "titleDepth": {
               "type": "integer",
               "minimum": 1,
               "maximum": 6,
