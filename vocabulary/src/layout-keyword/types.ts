@@ -5,6 +5,7 @@ export type ComponentName =
   | "number-field"
   | "textarea"
   | "checkbox"
+  | "switch"
   | "section"
   | "list"
   | "select"
@@ -196,6 +197,7 @@ export const layoutKeywordSchema = {
         "number-field",
         "textarea",
         "checkbox",
+        "switch",
         "section",
         "list",
         "select",

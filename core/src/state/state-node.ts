@@ -2,7 +2,7 @@
 import { type SkeletonNode, type CompiledLayout, type CompiledExpression } from '../compile'
 import { type StatefulLayoutOptions } from '..'
 // import { getDisplay } from '../utils'
-import { type CompObject, isSwitch, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, isCompositeLayout, type CompositeCompObject } from '@json-layout/vocabulary'
+import { type CompObject, isSwitchStruct, type Expression, type Cols, type StateNodeOptions, type NormalizedLayout, type Child, childIsCompObject, isCompositeLayout, type CompositeCompObject } from '@json-layout/vocabulary'
 import produce from 'immer'
 import { type ErrorObject } from 'ajv'
 import { getChildDisplay, type Display } from './utils/display'
@@ -113,7 +113,7 @@ export function evalExpression (expressions: CompiledExpression[], expression: E
 }
 
 const getCompObject = (normalizedLayout: NormalizedLayout, options: StatefulLayoutOptions, compiledLayout: CompiledLayout, display: Display, data: unknown): CompObject => {
-  if (isSwitch(normalizedLayout)) {
+  if (isSwitchStruct(normalizedLayout)) {
     for (const compObject of normalizedLayout.switch) {
       if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display)) {
         return compObject

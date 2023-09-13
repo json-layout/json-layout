@@ -198,7 +198,7 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
   if (compObject.description && !compObject.help) compObject.help = compObject.description
   if (compObject.help) compObject.help = markdown(compObject.help).trim()
 
-  if (typeof compObject.cols === 'number') compObject.cols = { sm: compObject.cols }
+  if (typeof compObject.cols === 'number') compObject.cols = { xs: compObject.cols }
   if (typeof compObject.cols === 'object' && compObject.cols.xs === undefined) compObject.cols.xs = 12
 
   return compObject

@@ -53,6 +53,7 @@
         "number-field",
         "textarea",
         "checkbox",
+        "switch",
         "section",
         "list",
         "select",

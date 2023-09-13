@@ -1,4 +1,4 @@
-export type NormalizedLayout = Switch | CompObject;
+export type NormalizedLayout = SwitchStruct | CompObject;
 export type CompObject = {
   if?: Expression;
   help?: string;
@@ -19,6 +19,7 @@ export type CompObject = {
   | NumberField
   | Textarea
   | Checkbox
+  | Switch
   | Select
   | OneOfSelect
   | Section
@@ -66,7 +67,7 @@ export type Child1 = unknown | CompositeCompObject;
 export type CompositeCompObject = Section | Tabs | VerticalTabs | ExpansionPanels;
 export type Children = Child[];
 
-export interface Switch {
+export interface SwitchStruct {
   switch: CompObject[];
 }
 export interface Expression {
@@ -130,6 +131,11 @@ export interface Checkbox {
   label: string;
   [k: string]: unknown;
 }
+export interface Switch {
+  comp: "switch";
+  label: string;
+  [k: string]: unknown;
+}
 export interface Select {
   comp: "select";
   label: string;
@@ -185,14 +191,14 @@ export const normalizedLayoutKeywordSchema = {
   "title": "normalized layout",
   "oneOf": [
     {
-      "$ref": "#/$defs/switch"
+      "$ref": "#/$defs/switch-struct"
     },
     {
       "$ref": "#/$defs/comp-object"
     }
   ],
   "$defs": {
-    "switch": {
+    "switch-struct": {
       "type": "object",
       "required": [
         "switch"
@@ -276,6 +282,9 @@ export const normalizedLayoutKeywordSchema = {
             },
             {
               "$ref": "#/$defs/checkbox"
+            },
+            {
+              "$ref": "#/$defs/switch"
             },
             {
               "$ref": "#/$defs/select"
@@ -515,6 +524,21 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "checkbox"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "switch": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label"
+      ],
+      "properties": {
+        "comp": {
+          "const": "switch"
         },
         "label": {
           "type": "string"

@@ -2,11 +2,11 @@
   "$id": "https://json-layout.github.io/normalized-layout-keyword",
   "title": "normalized layout",
   "oneOf": [
-    {"$ref": "#/$defs/switch"},
+    {"$ref": "#/$defs/switch-struct"},
     {"$ref": "#/$defs/comp-object"}
   ],
   "$defs": {
-    "switch": {
+    "switch-struct": {
       "type": "object",
       "required": ["switch"],
       "additionalProperties": false,
@@ -53,6 +53,7 @@
             {"$ref": "#/$defs/number-field"},
             {"$ref": "#/$defs/textarea"},
             {"$ref": "#/$defs/checkbox"},
+            {"$ref": "#/$defs/switch"},
             {"$ref": "#/$defs/select"},
             {"$ref": "#/$defs/one-of-select"},
             {"$ref": "#/$defs/section"},
@@ -172,6 +173,14 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "checkbox"},
+        "label": {"type": "string"}
+      }
+    },
+    "switch": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "switch"},
         "label": {"type": "string"}
       }
     },

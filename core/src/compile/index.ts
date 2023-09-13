@@ -100,11 +100,11 @@ export function compile (_schema: object, partialOptions: Partial<CompileOptions
       expressions.push(new Function(...expressionsParams, expression.expr) as CompiledExpression)
     }
     if (expression.type === 'js-eval') {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/restrict-plus-operands
       expressions.push(new Function(...expressionsParams, 'return (' + expression.expr + ')') as CompiledExpression)
     }
     if (expression.type === 'js-tpl') {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/restrict-plus-operands
       expressions.push(new Function(...expressionsParams, 'return `' + expression.expr + '`') as CompiledExpression)
     }
   }

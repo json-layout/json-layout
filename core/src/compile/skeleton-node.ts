@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitch, isGetItemsExpression, isSelectLayout } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, type NormalizedLayout, type SchemaFragment, type Expression, isSwitchStruct, isGetItemsExpression, isSelectLayout } from '@json-layout/vocabulary'
 import { type SkeletonTree, makeSkeletonTree } from './skeleton-tree'
 import { isGetItemsFetch } from '@json-layout/vocabulary'
 import { type CompileOptions } from '.'
@@ -44,7 +44,7 @@ export function makeSkeletonNode (
   const normalizedLayout: NormalizedLayout = normalizedLayouts[pointer] ?? normalizeLayoutFragment(schema as SchemaFragment, pointer, options.markdown)
   normalizedLayouts[pointer] = normalizedLayout
 
-  const compObjects = isSwitch(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
+  const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
     if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)

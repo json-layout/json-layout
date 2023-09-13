@@ -1,4 +1,4 @@
-import { type NormalizedLayout, Switch, CompObject, Section, GetItems, Expression, Select, GetItemsFetch, TextField, Child, CompositeCompObject } from './types'
+import { type NormalizedLayout, SwitchStruct, CompObject, Section, GetItems, Expression, Select, GetItemsFetch, TextField, Child, CompositeCompObject } from './types'
 import validate from './validate'
 
 export * from './types'
@@ -9,12 +9,12 @@ interface ValidateNormalizedLayout {
 }
 export const validateNormalizedLayout = validate as unknown as ValidateNormalizedLayout
 
-export function isSwitch (layout: NormalizedLayout): layout is Switch {
+export function isSwitchStruct (layout: NormalizedLayout): layout is SwitchStruct {
   return typeof layout === 'object' && 'switch' in layout
 }
 
 export function isCompObject (layout: NormalizedLayout): layout is CompObject {
-  return !isSwitch(layout)
+  return !isSwitchStruct(layout)
 }
 
 export function childIsCompObject (child: Child): child is Child & CompositeCompObject {
