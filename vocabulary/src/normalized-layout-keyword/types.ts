@@ -20,6 +20,10 @@ export type CompObject = {
   | Textarea
   | Checkbox
   | Switch
+  | Slider
+  | DatePicker
+  | DateTimePicker
+  | ColorPicker
   | Select
   | OneOfSelect
   | Section
@@ -119,6 +123,8 @@ export interface NumberField {
   comp: "number-field";
   label: string;
   step?: number;
+  min?: number;
+  max?: number;
   [k: string]: unknown;
 }
 export interface Textarea {
@@ -133,6 +139,33 @@ export interface Checkbox {
 }
 export interface Switch {
   comp: "switch";
+  label: string;
+  [k: string]: unknown;
+}
+export interface Slider {
+  comp: "slider";
+  label: string;
+  step?: number;
+  min: number;
+  max: number;
+  [k: string]: unknown;
+}
+export interface DatePicker {
+  comp: "date-picker";
+  label: string;
+  min?: string;
+  max?: string;
+  [k: string]: unknown;
+}
+export interface DateTimePicker {
+  comp: "date-time-picker";
+  label: string;
+  min?: string;
+  max?: string;
+  [k: string]: unknown;
+}
+export interface ColorPicker {
+  comp: "color-picker";
   label: string;
   [k: string]: unknown;
 }
@@ -285,6 +318,18 @@ export const normalizedLayoutKeywordSchema = {
             },
             {
               "$ref": "#/$defs/switch"
+            },
+            {
+              "$ref": "#/$defs/slider"
+            },
+            {
+              "$ref": "#/$defs/date-picker"
+            },
+            {
+              "$ref": "#/$defs/date-time-picker"
+            },
+            {
+              "$ref": "#/$defs/color-picker"
             },
             {
               "$ref": "#/$defs/select"
@@ -497,6 +542,12 @@ export const normalizedLayoutKeywordSchema = {
         },
         "step": {
           "type": "number"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
         }
       }
     },
@@ -539,6 +590,93 @@ export const normalizedLayoutKeywordSchema = {
       "properties": {
         "comp": {
           "const": "switch"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "slider": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "comp": {
+          "const": "slider"
+        },
+        "label": {
+          "type": "string"
+        },
+        "step": {
+          "type": "number"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      }
+    },
+    "date-picker": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label"
+      ],
+      "properties": {
+        "comp": {
+          "const": "date-picker"
+        },
+        "label": {
+          "type": "string"
+        },
+        "min": {
+          "type": "string",
+          "format": "date"
+        },
+        "max": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "date-time-picker": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label"
+      ],
+      "properties": {
+        "comp": {
+          "const": "date-time-picker"
+        },
+        "label": {
+          "type": "string"
+        },
+        "min": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "max": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "color-picker": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label"
+      ],
+      "properties": {
+        "comp": {
+          "const": "color-picker"
         },
         "label": {
           "type": "string"

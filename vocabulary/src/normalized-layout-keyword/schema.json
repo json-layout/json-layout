@@ -54,6 +54,10 @@
             {"$ref": "#/$defs/textarea"},
             {"$ref": "#/$defs/checkbox"},
             {"$ref": "#/$defs/switch"},
+            {"$ref": "#/$defs/slider"},
+            {"$ref": "#/$defs/date-picker"},
+            {"$ref": "#/$defs/date-time-picker"},
+            {"$ref": "#/$defs/color-picker"},
             {"$ref": "#/$defs/select"},
             {"$ref": "#/$defs/one-of-select"},
             {"$ref": "#/$defs/section"},
@@ -157,7 +161,9 @@
       "properties": {
         "comp": {"const": "number-field"},
         "label": {"type": "string"},
-        "step": {"type": "number"}
+        "step": {"type": "number"},
+        "min": {"type": "number"},
+        "max": {"type": "number"}
       }
     },
     "textarea": {
@@ -181,6 +187,45 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "switch"},
+        "label": {"type": "string"}
+      }
+    },
+    "slider": {
+      "type": "object",
+      "required": ["comp", "label", "min", "max"],
+      "properties": {
+        "comp": {"const": "slider"},
+        "label": {"type": "string"},
+        "step": {"type": "number"},
+        "min": {"type": "number"},
+        "max": {"type": "number"}
+      }
+    },
+    "date-picker": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "date-picker"},
+        "label": {"type": "string"},
+        "min": {"type": "string", "format": "date"},
+        "max": {"type": "string", "format": "date"}
+      }
+    },
+    "date-time-picker": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "date-time-picker"},
+        "label": {"type": "string"},
+        "min": {"type": "string", "format": "date-time"},
+        "max": {"type": "string", "format": "date-time"}
+      }
+    },
+    "color-picker": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "color-picker"},
         "label": {"type": "string"}
       }
     },

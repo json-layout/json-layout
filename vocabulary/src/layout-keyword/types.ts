@@ -6,6 +6,10 @@ export type ComponentName =
   | "textarea"
   | "checkbox"
   | "switch"
+  | "slider"
+  | "date-picker"
+  | "date-time-picker"
+  | "color-picker"
   | "section"
   | "list"
   | "select"
@@ -198,6 +202,10 @@ export const layoutKeywordSchema = {
         "textarea",
         "checkbox",
         "switch",
+        "slider",
+        "date-picker",
+        "date-time-picker",
+        "color-picker",
         "section",
         "list",
         "select",
