@@ -5,7 +5,7 @@ import { parseModule, generateCode, builders } from 'magicast'
 import { parse, print } from 'recast'
 import { type CompiledLayout } from '.'
 
-export function serialize (compiledLayout: CompiledLayout): string {
+export function serialize (compiledLayout: CompiledLayout, commonJS: boolean = false): string {
   ok(compiledLayout.schema)
   const ajv = compiledLayout.options.ajv
 
@@ -17,7 +17,14 @@ export function serialize (compiledLayout: CompiledLayout): string {
     ajv.addSchema({ $id: exportKey, $ref: fullPointer })
     validatesExports[exportKey] = exportKey
   }
-  let code = standaloneCode(ajv, validatesExports).replace('"use strict";', '')
+  let code = standaloneCode(ajv, validatesExports)
+  // cf https://github.com/ajv-validator/ajv-formats/pull/73
+  if (!commonJS && code.includes('require("ajv-formats/dist/formats")')) {
+    code = code.replace('"use strict";', '"use strict";import { fullFormats } from "ajv-formats/dist/formats";')
+    code = code.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'fullFormats')
+  } else {
+    code = code.replace('"use strict";', '')
+  }
 
   i = 0
   const expressionsNodes = []

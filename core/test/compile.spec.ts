@@ -13,8 +13,8 @@ describe('compile schema function', () => {
   })
 
   it('should support serializing the compiled layout', async () => {
-    const compiledLayout = compile({ type: 'string', layout: { if: "mode == 'read'" } }, { code: true })
-    const code = serialize(compiledLayout)
+    const compiledLayout = compile({ type: 'string', layout: { if: "mode == 'read'" }, format: 'date-time' }, { code: true })
+    const code = serialize(compiledLayout, true)
     assert.ok(code)
 
     const filePath = resolve(__dirname, '../tmp/compiled.js')

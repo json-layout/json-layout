@@ -50,7 +50,14 @@ export const ${camelcase(key)}Schema = ${JSON.stringify(schema, null, 2)}
 
     // the validate pre-compiled function
     const validate = ajv.compile(schema)
-    const validateCode = standaloneCode(ajv, validate)
+    let validateCode = standaloneCode(ajv, validate)
+
+    // cf https://github.com/ajv-validator/ajv-formats/pull/73
+    if (validateCode.includes('require("ajv-formats/dist/formats")')) {
+      validateCode = validateCode.replace('"use strict";', '"use strict";import { fullFormats } from "ajv-formats/dist/formats";')
+      validateCode = validateCode.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'fullFormats')
+    }
+
     writeFileSync(path.join(dir, key, 'validate.js'), validateCode)
   }
 }
