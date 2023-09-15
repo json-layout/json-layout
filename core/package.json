@@ -32,9 +32,12 @@
   ],
   "scripts": {
     "test": "mkdir -p tmp && NODE_OPTIONS='--no-experimental-fetch' ts-mocha --type-check --paths 'test/**/*.spec.ts'",
-    "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
+    "build": "run-s clean build:cjs build:mjs",
+    "clean": "rm -rf ./dist",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:mjs": "tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
-    "dev": "onchange --await-write-finish 500 'src/**' 'test/**/*' -- run-s test build"
+    "dev": "onchange -i -k 'src/**' 'test/**/*' -- run-p test build:mjs"
   },
   "repository": {
     "type": "git",

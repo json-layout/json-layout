@@ -22,9 +22,12 @@
   ],
   "scripts": {
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
-    "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
+    "build": "run-s clean build:cjs build:mjs",
+    "clean": "rm -rf ./dist",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:mjs": "tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
-    "dev": "onchange src/** -- npm run build"
+    "dev": "onchange -i -k src/** -- npm run build:mjs"
   },
   "repository": {
     "type": "git",

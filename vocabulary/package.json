@@ -19,11 +19,14 @@
   "files": ["src", "dist"],
   "scripts": {
     "test": "ts-mocha --type-check --paths 'test/**/*.spec.ts'",
-    "build": "rm -rf ./dist && tsc -p tsconfig.cjs.json && tsc -p tsconfig.mjs.json",
+    "build": "run-s clean build:cjs build:mjs",
+    "clean": "rm -rf ./dist",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:mjs": "tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
     "compile": "ts-node scripts/compile.ts",
-    "watch:schemas": "onchange --await-write-finish 500 'src/**/*.json' -- npm run compile",
-    "watch:src": "onchange --await-write-finish 500 'src/**/*.ts' 'test/**' -- run-s test build",
+    "watch:schemas": "onchange -i -k 'src/**/*.json' -- npm run compile",
+    "watch:src": "onchange -i -k --await-write-finish 500 'src/**/*.ts' 'test/**' -- run-p test build:mjs",
     "dev": "run-p watch:schemas watch:src"
   },
   "repository": {
