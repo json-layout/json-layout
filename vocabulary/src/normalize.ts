@@ -1,5 +1,5 @@
 import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, type LayoutKeyword, type PartialCompObject, type PartialChildren, isPartialGetItemsFetch, type PartialExpression, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown } from './layout-keyword'
-import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child, type Expression, isCompositeLayout } from '.'
+import { validateNormalizedLayout, normalizedLayoutKeywordSchema, type NormalizedLayout, type CompObject, type Children, isSectionLayout, type Child, type Expression, isCompositeLayout, type NumberField } from '.'
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
@@ -12,6 +12,8 @@ export interface SchemaFragment {
   allOf?: any[]
   items?: any
   enum?: any[]
+  minimum?: number
+  maximum?: number
 }
 
 export type Markdown = (src: string) => string
@@ -106,8 +108,13 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
     }
   }
   if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
-  if (schemaFragment.type === 'integer') return { comp: 'number-field', label: schemaFragment.title ?? key, step: 1 }
-  if (schemaFragment.type === 'number') return { comp: 'number-field', label: schemaFragment.title ?? key }
+  if (schemaFragment.type === 'integer' || schemaFragment.type === 'number') {
+    const compObject: NumberField = { comp: 'number-field', label: schemaFragment.title ?? key }
+    if (schemaFragment.type === 'integer') compObject.step = 1
+    if ('minimum' in schemaFragment) compObject.min = schemaFragment.minimum
+    if ('maximum' in schemaFragment) compObject.max = schemaFragment.maximum
+    return compObject
+  }
   if (schemaFragment.type === 'boolean') return { comp: 'checkbox', label: schemaFragment.title ?? key }
   console.warn(`failed to calculate default layout for schema ${schemaPath}`, schemaFragment)
   return { comp: 'none' }

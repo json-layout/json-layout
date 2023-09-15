@@ -1,4 +1,4 @@
-import { type TextField, type Textarea, type Section, type NumberField, type OneOfSelect, type Select, type Checkbox, type Switch, type Tabs, type VerticalTabs, type ExpansionPanels } from '@json-layout/vocabulary'
+import { type TextField, type Textarea, type Section, type NumberField, type OneOfSelect, type Select, type Checkbox, type Switch, type Tabs, type VerticalTabs, type ExpansionPanels, type Slider } from '@json-layout/vocabulary'
 import { type StateNode } from './state-node'
 import { type SkeletonTree } from '../compile'
 
@@ -7,6 +7,8 @@ export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, d
 export type TextareaNode = Omit<StateNode, 'children'> & { layout: Textarea, data: string }
 
 export type NumberFieldNode = Omit<StateNode, 'children'> & { layout: NumberField, data: number }
+
+export type SliderNode = Omit<StateNode, 'children'> & { layout: Slider, data: number }
 
 export type CheckboxNode = Omit<StateNode, 'children'> & { layout: Checkbox, data: boolean }
 
