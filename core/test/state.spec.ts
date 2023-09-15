@@ -120,7 +120,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
       assert.equal(statefulLayout.stateTree.root.error, 'must have required property \'missingProp\'')
-      assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].data, '')
       assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
     })
 

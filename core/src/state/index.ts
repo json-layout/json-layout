@@ -52,8 +52,7 @@ export class StatefulLayout {
   private _options!: StatefulLayoutOptions
   get options () { return this._options }
   set options (options: Partial<StatefulLayoutOptions>) {
-    this._options = fillOptions(options)
-    this._display = this._display && this._display.width === this._options.width ? this._display : new Display(this._options.width)
+    this.prepareOptions(options)
     this.updateState()
   }
 
@@ -67,16 +66,33 @@ export class StatefulLayout {
 
   private _lastCreateStateTreeContext!: CreateStateTreeContext
 
-  constructor (compiledLayout: CompiledLayout, skeletonTree: SkeletonTree, options: Partial<StatefulLayoutOptions>, value: unknown = {}) {
+  constructor (compiledLayout: CompiledLayout, skeletonTree: SkeletonTree, options: Partial<StatefulLayoutOptions>, data: unknown = {}) {
     this._compiledLayout = compiledLayout
     this.skeletonTree = skeletonTree
     this.events = mitt<StatefulLayoutEvents>()
-    this.options = options
-    this._data = value
+    this.prepareOptions(options)
+    this._data = data
     this.updateState()
   }
 
+  private prepareOptions (options: Partial<StatefulLayoutOptions>) {
+    this._options = fillOptions(options)
+    this._display = this._display && this._display.width === this._options.width ? this._display : new Display(this._options.width)
+  }
+
   private updateState () {
+    this.createStateTree()
+    if (this._data !== this._stateTree.root.data) {
+      logDataBinding('hydrating state tree changed the data, do it again', this._data, this._stateTree.root.data)
+      // this is necessary because a first hydration can add default values and change validity, etc
+      this._data = this._stateTree.root.data
+      this.createStateTree()
+    }
+    logDataBinding('emit update event', this._data, this._stateTree)
+    this.events.emit('update', this)
+  }
+
+  private createStateTree () {
     const createStateTreeContext: CreateStateTreeContext = { nodes: [] }
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -87,13 +103,7 @@ export class StatefulLayout {
       this._data,
       this._stateTree
     )
-    if (this._data !== this._stateTree.root.data) {
-      logDataBinding('update data after hydrating state tree', this._data, this._stateTree.root.data)
-      this._data = this._stateTree.root.data
-    }
     this._lastCreateStateTreeContext = createStateTreeContext
-    logDataBinding('emit update event', this._data, this._stateTree)
-    this.events.emit('update', this)
   }
 
   input (node: StateNode, data: unknown) {
