@@ -26,7 +26,7 @@
     "lint": "eslint . --fix",
     "compile": "ts-node scripts/compile.ts",
     "watch:schemas": "onchange -i -k 'src/**/*.json' -- npm run compile",
-    "watch:src": "onchange -i -k --await-write-finish 500 'src/**/*.ts' 'test/**' -- run-p test build:mjs",
+    "watch:src": "onchange -i -k --await-write-finish 500 'src/**/*.ts' 'test/**' -- run-p test build:cjs",
     "dev": "run-p watch:schemas watch:src"
   },
   "repository": {

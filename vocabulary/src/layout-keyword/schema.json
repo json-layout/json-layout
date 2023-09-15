@@ -57,6 +57,7 @@
         "slider",
         "date-picker",
         "date-time-picker",
+        "time-picker",
         "color-picker",
         "section",
         "list",

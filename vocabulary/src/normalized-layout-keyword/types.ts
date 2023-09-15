@@ -23,6 +23,7 @@ export type CompObject = {
   | Slider
   | DatePicker
   | DateTimePicker
+  | TimePicker
   | ColorPicker
   | Select
   | OneOfSelect
@@ -159,6 +160,13 @@ export interface DatePicker {
 }
 export interface DateTimePicker {
   comp: "date-time-picker";
+  label: string;
+  min?: string;
+  max?: string;
+  [k: string]: unknown;
+}
+export interface TimePicker {
+  comp: "time-picker";
   label: string;
   min?: string;
   max?: string;
@@ -327,6 +335,9 @@ export const normalizedLayoutKeywordSchema = {
             },
             {
               "$ref": "#/$defs/date-time-picker"
+            },
+            {
+              "$ref": "#/$defs/time-picker"
             },
             {
               "$ref": "#/$defs/color-picker"
@@ -665,6 +676,29 @@ export const normalizedLayoutKeywordSchema = {
         "max": {
           "type": "string",
           "format": "date-time"
+        }
+      }
+    },
+    "time-picker": {
+      "type": "object",
+      "required": [
+        "comp",
+        "label"
+      ],
+      "properties": {
+        "comp": {
+          "const": "time-picker"
+        },
+        "label": {
+          "type": "string"
+        },
+        "min": {
+          "type": "string",
+          "format": "time"
+        },
+        "max": {
+          "type": "string",
+          "format": "time"
         }
       }
     },

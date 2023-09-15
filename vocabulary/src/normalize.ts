@@ -5,6 +5,7 @@ export interface SchemaFragment {
   layout?: LayoutKeyword
   oneOfLayout?: LayoutKeyword
   type: string
+  format?: string
   title?: string
   properties?: Record<string, any>
   oneOf?: any[]
@@ -14,6 +15,8 @@ export interface SchemaFragment {
   enum?: any[]
   minimum?: number
   maximum?: number
+  formatMinimum?: string
+  formatMaximum?: string
 }
 
 export type Markdown = (src: string) => string
@@ -107,7 +110,20 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
       items: schemaFragment.oneOf.map(oneOfItem => ({ key: (oneOfItem.const as 'string') + '', title: ((oneOfItem.title ?? oneOfItem.const) as 'string') + '', value: oneOfItem.const }))
     }
   }
-  if (schemaFragment.type === 'string') return { comp: 'text-field', label: schemaFragment.title ?? key }
+  if (schemaFragment.type === 'string') {
+    if (schemaFragment.format) {
+      let formatCompObject: CompObject | null = null
+      if (schemaFragment.format === 'date') formatCompObject = { comp: 'date-picker', label: schemaFragment.title ?? key }
+      if (schemaFragment.format === 'date-time') formatCompObject = { comp: 'date-time-picker', label: schemaFragment.title ?? key }
+      if (schemaFragment.format === 'time') formatCompObject = { comp: 'time-picker', label: schemaFragment.title ?? key }
+      if (formatCompObject) {
+        if ('formatMinimum' in schemaFragment) formatCompObject.min = schemaFragment.formatMinimum
+        if ('formatMaximum' in schemaFragment) formatCompObject.max = schemaFragment.formatMaximum
+        return formatCompObject
+      }
+    }
+    return { comp: 'text-field', label: schemaFragment.title ?? key }
+  }
   if (schemaFragment.type === 'integer' || schemaFragment.type === 'number') {
     const compObject: NumberField = { comp: 'number-field', label: schemaFragment.title ?? key }
     if (schemaFragment.type === 'integer') compObject.step = 1

@@ -1,4 +1,4 @@
-import { type TextField, type Textarea, type Section, type NumberField, type OneOfSelect, type Select, type Checkbox, type Switch, type Tabs, type VerticalTabs, type ExpansionPanels, type Slider } from '@json-layout/vocabulary'
+import { type TextField, type Textarea, type Section, type NumberField, type OneOfSelect, type Select, type Checkbox, type Switch, type Tabs, type VerticalTabs, type ExpansionPanels, type Slider, type DatePicker, type DateTimePicker, type TimePicker, type ColorPicker } from '@json-layout/vocabulary'
 import { type StateNode } from './state-node'
 import { type SkeletonTree } from '../compile'
 
@@ -13,6 +13,14 @@ export type SliderNode = Omit<StateNode, 'children'> & { layout: Slider, data: n
 export type CheckboxNode = Omit<StateNode, 'children'> & { layout: Checkbox, data: boolean }
 
 export type SwitchNode = Omit<StateNode, 'children'> & { layout: Switch, data: boolean }
+
+export type DatePickerNode = Omit<StateNode, 'children'> & { layout: DatePicker, data: boolean }
+
+export type DateTimePickerNode = Omit<StateNode, 'children'> & { layout: DateTimePicker, data: boolean }
+
+export type TimePickerNode = Omit<StateNode, 'children'> & { layout: TimePicker, data: boolean }
+
+export type ColorPickerNode = Omit<StateNode, 'children'> & { layout: ColorPicker, data: boolean }
 
 export type SectionNode = StateNode & { layout: Section, children: StateNode[] }
 export const isSection = (node: StateNode | undefined): node is SectionNode => !!node && node.layout.comp === 'section'

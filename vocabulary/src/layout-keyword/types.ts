@@ -9,6 +9,7 @@ export type ComponentName =
   | "slider"
   | "date-picker"
   | "date-time-picker"
+  | "time-picker"
   | "color-picker"
   | "section"
   | "list"
@@ -205,6 +206,7 @@ export const layoutKeywordSchema = {
         "slider",
         "date-picker",
         "date-time-picker",
+        "time-picker",
         "color-picker",
         "section",
         "list",

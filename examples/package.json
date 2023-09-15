@@ -27,7 +27,7 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:mjs": "tsc -p tsconfig.mjs.json",
     "lint": "eslint . --fix",
-    "dev": "onchange -i -k src/** -- npm run build:mjs"
+    "dev": "onchange -i -k src/** -- npm run build:cjs"
   },
   "repository": {
     "type": "git",

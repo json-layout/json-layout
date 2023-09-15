@@ -57,6 +57,7 @@
             {"$ref": "#/$defs/slider"},
             {"$ref": "#/$defs/date-picker"},
             {"$ref": "#/$defs/date-time-picker"},
+            {"$ref": "#/$defs/time-picker"},
             {"$ref": "#/$defs/color-picker"},
             {"$ref": "#/$defs/select"},
             {"$ref": "#/$defs/one-of-select"},
@@ -219,6 +220,16 @@
         "label": {"type": "string"},
         "min": {"type": "string", "format": "date-time"},
         "max": {"type": "string", "format": "date-time"}
+      }
+    },
+    "time-picker": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "time-picker"},
+        "label": {"type": "string"},
+        "min": {"type": "string", "format": "time"},
+        "max": {"type": "string", "format": "time"}
       }
     },
     "color-picker": {
