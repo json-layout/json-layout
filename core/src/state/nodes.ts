@@ -14,7 +14,7 @@ export type CheckboxNode = Omit<StateNode, 'children'> & { layout: Checkbox, dat
 
 export type SwitchNode = Omit<StateNode, 'children'> & { layout: Switch, data: boolean }
 
-export type DatePickerNode = Omit<StateNode, 'children'> & { layout: DatePicker, data: boolean }
+export type DatePickerNode = Omit<StateNode, 'children'> & { layout: DatePicker, data: string }
 
 export type DateTimePickerNode = Omit<StateNode, 'children'> & { layout: DateTimePicker, data: boolean }
 

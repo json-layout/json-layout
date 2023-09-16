@@ -209,7 +209,8 @@
         "comp": {"const": "date-picker"},
         "label": {"type": "string"},
         "min": {"type": "string", "format": "date"},
-        "max": {"type": "string", "format": "date"}
+        "max": {"type": "string", "format": "date"},
+        "format": {"type": "string", "enum": ["date", "date-time"], "default": "date"}
       }
     },
     "date-time-picker": {

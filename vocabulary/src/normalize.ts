@@ -113,7 +113,7 @@ function getDefaultCompObject (schemaFragment: SchemaFragment, schemaPath: strin
   if (schemaFragment.type === 'string') {
     if (schemaFragment.format) {
       let formatCompObject: CompObject | null = null
-      if (schemaFragment.format === 'date') formatCompObject = { comp: 'date-picker', label: schemaFragment.title ?? key }
+      if (schemaFragment.format === 'date') formatCompObject = { comp: 'date-picker', label: schemaFragment.title ?? key, format: 'date' }
       if (schemaFragment.format === 'date-time') formatCompObject = { comp: 'date-time-picker', label: schemaFragment.title ?? key }
       if (schemaFragment.format === 'time') formatCompObject = { comp: 'time-picker', label: schemaFragment.title ?? key }
       if (formatCompObject) {
@@ -183,6 +183,10 @@ function getCompObject (layoutKeyword: LayoutKeyword, defaultCompObject: CompObj
 
   if (!partial.comp && (partial.items ?? partial.getItems)) {
     partial.comp = 'select'
+  }
+
+  if (partial.comp === 'date-picker' && schemaFragment.format === 'date-time') {
+    partial.format = 'date-time'
   }
 
   if (partial.slots) {

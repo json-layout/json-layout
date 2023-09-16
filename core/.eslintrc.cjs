@@ -5,17 +5,24 @@ module.exports = {
     // project: './tsconfig.json'
     project: require('path').join(__dirname, "tsconfig.json")
   },
-  extends: ['standard-with-typescript'],
+  overrides: [
+    {
+      files: ['*.ts'],
+      extends: 'standard-with-typescript',
+      rules: {
+        '@typescript-eslint/explicit-function-return-type': 0,
+        '@typescript-eslint/restrict-template-expressions': 0,
+        '@typescript-eslint/strict-boolean-expressions': 0,
+        '@typescript-eslint/consistent-type-assertions': 0
+      }
+    }
+  ],
   env: {
     node: true // Enable Node.js global variables
   },
   ignorePatterns: ['/node_modules', '/dist', '/.eslintrc.cjs', '/tmp'],
   plugins: ['no-only-tests'],
   rules: {
-    '@typescript-eslint/explicit-function-return-type': 0,
-    '@typescript-eslint/restrict-template-expressions': 0,
-    '@typescript-eslint/strict-boolean-expressions': 0,
-    '@typescript-eslint/consistent-type-assertions': 0,
     "no-only-tests/no-only-tests": "error"
   }
 }

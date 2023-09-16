@@ -156,6 +156,7 @@ export interface DatePicker {
   label: string;
   min?: string;
   max?: string;
+  format?: "date" | "date-time";
   [k: string]: unknown;
 }
 export interface DateTimePicker {
@@ -653,6 +654,14 @@ export const normalizedLayoutKeywordSchema = {
         "max": {
           "type": "string",
           "format": "date"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "date",
+            "date-time"
+          ],
+          "default": "date"
         }
       }
     },
