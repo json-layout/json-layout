@@ -1,12 +1,22 @@
 import simpleProperties from './simple-properties'
 import formats from './formats'
+import selects from './selects'
 import composite from './composite'
 import combine from './combine'
 import responsive from './responsive'
 import density from './density'
 import dev from './_dev'
 
-export const examples: JSONLayoutExamplesCategory[] = [simpleProperties, formats, composite, responsive, density, combine, dev]
+export const examples: JSONLayoutExamplesCategory[] = [
+  simpleProperties,
+  formats,
+  selects,
+  composite,
+  responsive,
+  density,
+  combine,
+  dev
+]
 
 export interface JSONLayoutExamplesCategory {
   title: string

@@ -1,3 +1,5 @@
+import { describe, it } from 'node:test'
+
 import { strict as assert } from 'assert'
 import { normalizeLayoutFragment as normalize } from '../src/normalize'
 import { type PartialChildren } from '../src'

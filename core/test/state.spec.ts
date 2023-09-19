@@ -1,3 +1,4 @@
+import { describe, it, beforeEach } from 'node:test'
 import { strict as assert } from 'assert'
 import nock from 'nock'
 import { type CompiledLayout, type CompileOptions, compile as compileSrc, StatefulLayout } from '../src'
@@ -6,15 +7,18 @@ import { type PartialChildren } from '@json-layout/vocabulary'
 import fetch from 'node-fetch'
 import { writeFileSync } from 'fs'
 import { resolve } from 'path'
+// import Debug from 'debug'
 
 global.fetch = fetch as any
+
+// const debug = Debug('test')
 
 for (const compileMode of ['runtime', 'build-time']) {
   let compile: typeof compileSrc
   describe(`stateful layout with compilation at ${compileMode}`, () => {
     let currentTest: string | undefined
-    beforeEach(function () {
-      currentTest = this.currentTest?.title
+    beforeEach((test) => {
+      currentTest = test.name
     })
     if (compileMode === 'runtime') {
       compile = compileSrc

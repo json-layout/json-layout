@@ -2,11 +2,11 @@
   "description": "JSON Layout. Vocabulary and tools for rendering and edition of schematized JSON documents.",
   "main": "index.js",
   "scripts": {
-    "test": "npm -w vocabulary test && npm -w core test",
-    "build": "npm -w vocabulary run compile && npm -w vocabulary run build && npm -w core run build && npm -w examples run build",
-    "lint": "npm -w vocabulary run lint && npm -w core run lint && npm -w examples run lint",
+    "test": "run-s 'test -w vocabulary' 'test -w core'",
+    "build": "run-s 'build -w vocabulary' 'build -w core' 'build -w examples'",
+    "lint": "run-s 'lint -w vocabulary' 'lint -w core' 'lint -w examples'",
     "prepare": "husky install",
-    "dev": "run-p 'dev -w core' 'dev -w examples' 'dev -w vocabulary'"
+    "dev": "run-p 'dev -w vocabulary' 'dev -w core' 'dev -w examples'"
   },
   "repository": {
     "type": "git",
