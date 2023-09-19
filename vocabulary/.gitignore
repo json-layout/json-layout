@@ -1,2 +1,4 @@
 /dist
 /node_modules
+/src/*/types.ts
+/src/*/validate.js
