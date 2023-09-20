@@ -31,5 +31,6 @@ export interface JSONLayoutExample {
   description: string
   options?: any
   schema: any
+  data?: any
   devOnly?: boolean
 }

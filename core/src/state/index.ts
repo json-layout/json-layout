@@ -128,6 +128,7 @@ export class StatefulLayout {
     let rawItems
     if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {
       rawItems = evalSelectExpression(node.layout.getItems, null)
+      if (!Array.isArray(rawItems)) throw new Error('getItems expression didn\'t return an array')
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
       const url = evalSelectExpression(node.layout.getItems.url, null)
