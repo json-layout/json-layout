@@ -1,4 +1,5 @@
-/dist
+/types
 /node_modules
 /src/*/types.ts
 /src/*/validate.js
+/src/*/schema.js

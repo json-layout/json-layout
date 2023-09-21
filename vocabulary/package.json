@@ -2,35 +2,30 @@
   "name": "@json-layout/vocabulary",
   "version": "0.0.0",
   "description": "Main JSON Layout vocabulary as JSON schemas and Typescript types. Also contains some small utility functions without any dependency.",
+  "type": "module",
   "exports": {
     ".": {
-      "require": {
-        "default": "./dist/cjs/index.js",
-        "types": "./dist/cjs/index.d.ts"
-      },
       "import": {
-        "default": "./dist/mjs/index.js",
-        "types": "./dist/mjs/index.d.ts"
+        "default": "./src/index.js",
+        "types": "./types/index.d.ts"
       }
     }
   },
-  "main": "./dist/cjs/index.js",
-  "types": "./dist/cjs/index.d.ts",
   "files": [
     "src",
-    "dist"
+    "types"
   ],
   "scripts": {
-    "test": "node --require ts-node/register --test test/*.spec.ts",
-    "build": "run-s clean build:schemas build:cjs build:mjs",
-    "clean": "rm -rf ./dist && rm -f src/*/types.ts && rm -f src/*/validate.js",
-    "build:schemas": "ts-node scripts/compile-schemas.ts",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:mjs": "tsc -p tsconfig.mjs.json",
+    "test": "node --test test/*.spec.js",
+    "build": "run-s clean build:schemas build:tsc",
+    "clean": "rm -rf ./types && rm -f src/*/types.ts && rm -f src/*/validate.js",
+    "build:schemas": "node scripts/compile-schemas.js",
+    "build:tsc": "tsc -p tsconfig.build.json",
     "lint": "eslint . --fix",
-    "watch:schemas": "node --require ts-node/register --watch scripts/compile-schemas.ts",
-    "watch:src": "tsc -p tsconfig.cjs.json --watch --preserveWatchOutput",
-    "dev": "run-p -l watch:schemas watch:src"
+    "watch:schemas": "node --watch scripts/compile-schemas.js",
+    "watch:src": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "watch:test": "node --test --watch test/*.spec.js",
+    "dev": "run-p -l watch:schemas watch:src watch:test"
   },
   "repository": {
     "type": "git",
@@ -55,12 +50,6 @@
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "ajv": "^8.12.0",
-    "camelcase": "^6.3.0",
-    "eslint": "^8.49.0",
-    "eslint-config-standard-with-typescript": "^39.0.0",
-    "eslint-plugin-no-only-tests": "^3.1.0",
-    "json-schema-to-typescript": "^12.0.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.5"
+    "json-schema-to-typescript": "^12.0.0"
   }
 }

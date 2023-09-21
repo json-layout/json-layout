@@ -1,13 +1,13 @@
 module.exports = {
   root: true,
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    // project: './tsconfig.json'
-    project: require('path').join(__dirname, "tsconfig.json")
-  },
+  extends: ['standard', 'plugin:jsdoc/recommended-typescript-flavor-error'],
   overrides: [
     {
       files: ['*.ts'],
+      parser: '@typescript-eslint/parser',
+      parserOptions: {
+        project: require('path').join(__dirname, "tsconfig.json")
+      },
       extends: 'standard-with-typescript',
       rules: {
         '@typescript-eslint/explicit-function-return-type': 0,
@@ -17,12 +17,10 @@ module.exports = {
       }
     }
   ],
-  env: {
-    node: true // Enable Node.js global variables
-  },
-  ignorePatterns: ['/node_modules', '/dist', '/.eslintrc.cjs', '/tmp'],
-  plugins: ['no-only-tests'],
+  ignorePatterns: ['/node_modules', '/types', '/.eslintrc.cjs', '/tmp'],
+  plugins: ['jsdoc'],
   rules: {
-    "no-only-tests/no-only-tests": "error"
+    'jsdoc/require-param-description': 0,
+    'jsdoc/require-returns-description': 0
   }
 }
