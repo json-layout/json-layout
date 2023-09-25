@@ -236,7 +236,7 @@ function getCompObject (layoutKeyword, defaultCompObject, schemaFragment, markdo
   if (partial.comp && defaultCompObject.comp !== partial.comp) {
     const compProperties = normalizedLayoutSchema.$defs[partial.comp]?.properties
     if (typeof compProperties === 'object') {
-      for (const key of Object.keys(compProperties).concat(['if', 'help'])) {
+      for (const key of Object.keys(compProperties).concat(['if', 'help', 'cols', 'props', 'slots', 'options'])) {
         if (key in defaultCompObject) compObject[key] = defaultCompObject[key]
         if (key in partial) compObject[key] = partial[key]
       }
