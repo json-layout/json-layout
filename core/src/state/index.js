@@ -14,8 +14,20 @@ import { isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
  * @typedef {import('./types.js').CreateStateTreeContext} CreateStateTreeContext
  * @typedef {import('./types.js').TextFieldNode} TextFieldNode
  * @typedef {import('./types.js').TextareaNode} TextareaNode
+ * @typedef {import('./types.js').NumberFieldNode} NumberFieldNode
+ * @typedef {import('./types.js').SliderNode} SliderNode
  * @typedef {import('./types.js').SectionNode} SectionNode
  * @typedef {import('./types.js').SelectNode} SelectNode
+ * @typedef {import('./types.js').CheckboxNode} CheckboxNode
+ * @typedef {import('./types.js').SwitchNode} SwitchNode
+ * @typedef {import('./types.js').ColorPickerNode} ColorPickerNode
+ * @typedef {import('./types.js').DatePickerNode} DatePickerNode
+ * @typedef {import('./types.js').DateTimePickerNode} DateTimePickerNode
+ * @typedef {import('./types.js').TimePickerNode} TimePickerNode
+ * @typedef {import('./types.js').ExpansionPanelsNode} ExpansionPanelsNode
+ * @typedef {import('./types.js').TabsNode} TabsNode
+ * @typedef {import('./types.js').VerticalTabsNode} VerticalTabsNode
+ * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
  */
 
 /** @type {(node: StateNode | undefined) => node is SectionNode} */

@@ -8,6 +8,7 @@ import density from './density/index.js'
 import dev from './_dev/index.js'
 
 /** @typedef {import('./types.js').JSONLayoutExamplesCategory} JSONLayoutExamplesCategory */
+/** @typedef {import('./types.js').JSONLayoutExample} JSONLayoutExample */
 
 /** @type {JSONLayoutExamplesCategory[]} */
 export const examples = [
