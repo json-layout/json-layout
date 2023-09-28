@@ -93,6 +93,7 @@
       "properties": {
         "comp": {"const": "section"},
         "title": {"type": ["string", "null"]},
+        "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/children"}
       }
     },
@@ -102,6 +103,7 @@
       "properties": {
         "comp": {"const": "tabs"},
         "title": {"type": ["string", "null"]},
+        "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/children"}
       }
     },
@@ -111,6 +113,7 @@
       "properties": {
         "comp": {"const": "vertical-tabs"},
         "title": {"type": ["string", "null"]},
+        "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/children"}
       }
     },
@@ -120,6 +123,7 @@
       "properties": {
         "comp": {"const": "expansion-panels"},
         "title": {"type": ["string", "null"]},
+        "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/children"}
       }
     },
@@ -142,10 +146,14 @@
     },
     "list": {
       "type": "object",
-      "required": ["comp"],
+      "required": ["comp", "listEditMode", "listActions"],
       "properties": {
         "comp": {"const": "list"},
-        "title": {"type": "string"}
+        "title": {"type": "string"},
+        "listEditMode": {"type": "string", "enum": ["inline", "inline-single", "menu", "dialog"]},
+        "listActions": {"type": "array", "items": {"type": "string", "enum": ["add", "edit", "delete", "sort", "duplicate"]}},
+        "itemTitle": {"$ref": "#/$defs/expression"},
+        "itemSubtitle": {"$ref": "#/$defs/expression"}
       }
     },
     "text-field": {

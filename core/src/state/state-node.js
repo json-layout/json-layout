@@ -10,14 +10,14 @@ import { shallowCompareArrays } from './utils/immutable.js'
 const isDataEmpty = (data) => {
   if (data === '') return true
   if (Array.isArray(data) && !data.length) return true
-  if (typeof data === 'object' && !!data && Object.values(data).findIndex(prop => !isDataEmpty(prop)) === -1) return true
+  if (typeof data === 'object' && !Array.isArray(data) && !!data && Object.values(data).findIndex(prop => !isDataEmpty(prop)) === -1) return true
   return false
 }
 
 // use Immer for efficient updating with immutability and no-op detection
 /** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, options: import('./types.js').StatefulLayoutOptions, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
 const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, options, children) => {
-  data = children ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
+  data = children && layout.comp !== 'list' ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
   // empty data is removed and replaced by the default data
   if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
   data = data ?? skeleton.defaultData
@@ -69,7 +69,7 @@ const produceNodeOptions = produce((draft, parentNodeOptions, nodeOptions = {}, 
 })
 
 /** @type {(draft: import('./types.js').StatefulLayoutOptions) => import('./types.js').StatefulLayoutOptions} */
-const produceArrayItemOptions = produce((draft) => {
+const produceReadonlyArrayItemOptions = produce((draft) => {
   draft.readOnly = true
   draft.summary = true
 })
@@ -215,7 +215,7 @@ export function createStateNode (
   if (layout.comp === 'list') {
     const arrayData = /** @type {unknown[]} */(data ?? [])
     const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0]?.root)
-    const listItemOptions = produceArrayItemOptions(options)
+    const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
     children = arrayData.map((itemData, i) => {
       return createStateNode(
         context,

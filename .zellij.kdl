@@ -1,0 +1,35 @@
+layout {
+    pane {
+      split_direction "vertical"
+      pane name="examples/build" {
+        command "bash"
+        args "-ic" "nvm use && npm -w examples run watch:build"
+      }
+      pane name="core/build" {
+        command "bash"
+        args "-ic" "nvm use && npm -w core run watch:build"
+      }
+      pane name="core/test" {
+        command "bash"
+        args "-ic" "nvm use && npm -w core run watch:test"
+      }
+    }
+    pane {
+      split_direction "vertical"
+      pane name="vocabulary/schemas" {
+        command "bash"
+        args "-ic" "nvm use && npm -w vocabulary run watch:schemas"
+      }
+      pane name="vocabulary/build" {
+        command "bash"
+        args "-ic" "nvm use && npm -w vocabulary run watch:build"
+      }
+      pane name="vocabulary/test" {
+        command "bash"
+        args "-ic" "nvm use && npm -w vocabulary run watch:test"
+      }
+    }
+    pane size=2 borderless=true {
+        plugin location="zellij:status-bar"
+    }
+}

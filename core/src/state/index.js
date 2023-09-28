@@ -28,6 +28,7 @@ import { isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
  * @typedef {import('./types.js').TabsNode} TabsNode
  * @typedef {import('./types.js').VerticalTabsNode} VerticalTabsNode
  * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
+ * @typedef {import('./types.js').ListNode} ListNode
  */
 
 /** @type {(node: StateNode | undefined) => node is SectionNode} */

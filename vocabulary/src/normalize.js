@@ -101,7 +101,12 @@ function getDefaultCompObject (schemaFragment, schemaPath) {
     if (Array.isArray(schemaFragment.items)) {
       return { comp: 'section', title: schemaFragment.title ?? null, children: getDefaultChildren(schemaFragment) } // tuples
     }
-    return { comp: 'list', title: schemaFragment.title ?? key }
+    return {
+      comp: 'list',
+      title: schemaFragment.title ?? key,
+      listEditMode: schemaFragment.items.type === 'object' ? 'inline-single' : 'inline',
+      listActions: ['add', 'edit', 'delete', 'duplicate', 'sort']
+    }
   }
   const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
   if (schemaFragment.enum && hasSimpleType) {

@@ -145,7 +145,15 @@ export function makeSkeletonNode (
       })
     } else {
       node.childrenTrees = [
-        makeSkeletonTree(schema.items, options, validates, normalizedLayouts, expressions, `${pointer}/items`, schema.items.title)
+        makeSkeletonTree(
+          schema.items,
+          options,
+          validates,
+          normalizedLayouts,
+          expressions,
+          `${pointer}/items`,
+          schema.items.title
+        )
       ]
     }
   }

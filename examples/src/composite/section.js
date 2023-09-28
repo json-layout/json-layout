@@ -15,6 +15,9 @@ The attribute \`layout.option.titleDepth\` can be used to configure the title ta
       section: {
         type: 'object',
         title: 'Section',
+        layout: {
+          subtitle: 'This section has a subtitle.'
+        },
         properties: {
           str1: {
             type: 'string',

@@ -18,7 +18,7 @@
   "scripts": {
     "build": "rm -rf ./types && tsc",
     "lint": "eslint . --fix",
-    "dev": "tsc --watch --preserveWatchOutput"
+    "watch:build": "tsc --watch --preserveWatchOutput"
   },
   "repository": {
     "type": "git",

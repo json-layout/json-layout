@@ -6,7 +6,7 @@
     "build": "run-s 'build -w vocabulary' 'build -w core' 'build -w examples'",
     "lint": "run-s 'lint -w vocabulary' 'lint -w core' 'lint -w examples'",
     "prepare": "husky install",
-    "dev": "run-p 'dev -w vocabulary' 'dev -w core' 'dev -w examples'"
+    "dev-zellij": "zellij --layout .zellij.kdl"
   },
   "repository": {
     "type": "git",

@@ -29,6 +29,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').Tabs} Tabs
  * @typedef {import('./types.js').VerticalTabs} VerticalTabs
  * @typedef {import('./types.js').ExpansionPanels} ExpansionPanels
+ * @typedef {import('./types.js').List} List
  * @typedef {import('./types.js').Cols} Cols
  * @typedef {import('./types.js').ColsObj} ColsObj
  * @typedef {import('./types.js').StateNodeOptions} StateNodeOptions

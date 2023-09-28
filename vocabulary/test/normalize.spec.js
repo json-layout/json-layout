@@ -124,4 +124,11 @@ describe('normalize schema fragment function', () => {
       { comp: 'tabs', title: null, children: [{ comp: 'section', key: '$comp-0', title: 'Tab 1', children: [{ key: 'str1' }] }, { comp: 'section', key: '$comp-1', title: 'Tab 2', children: [{ key: 'str2' }] }] }
     )
   })
+
+  it('should accept a subtitle for a section', () => {
+    assert.deepEqual(
+      normalize({ type: 'object', title: 'Title', layout: { subtitle: 'A subtitle' }, properties: {} }, '/prop'),
+      { comp: 'section', title: 'Title', subtitle: 'A subtitle', children: [] }
+    )
+  })
 })

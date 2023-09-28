@@ -1,5 +1,5 @@
 import { type ErrorObject } from 'ajv'
-import { type CompObject, type Cols, type StateNodeOptions, type TextField, type Textarea, type NumberField, type Slider, type Checkbox, type Switch, type DatePicker, type DateTimePicker, type TimePicker, type ColorPicker, type Section, type OneOfSelect, type Select, type Tabs, type VerticalTabs, type ExpansionPanels } from '@json-layout/vocabulary'
+import { type CompObject, type Cols, type StateNodeOptions, type TextField, type Textarea, type NumberField, type Slider, type Checkbox, type Switch, type DatePicker, type DateTimePicker, type TimePicker, type ColorPicker, type Section, type OneOfSelect, type Select, type Tabs, type VerticalTabs, type ExpansionPanels, type List } from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout } from '../index.js'
 
 export interface StateNode {
@@ -71,3 +71,5 @@ export type TabsNode = StateNode & { layout: Tabs, children: StateNode[] }
 export type VerticalTabsNode = StateNode & { layout: VerticalTabs, children: StateNode[] }
 
 export type ExpansionPanelsNode = StateNode & { layout: ExpansionPanels, children: StateNode[] }
+
+export type ListNode = StateNode & { layout: List, data: any[], children: StateNode[], childrenTrees: SkeletonTree[] }
