@@ -6,6 +6,8 @@ import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
 import { isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
 
+export { Display } from './utils/display.js'
+
 /**
  * @typedef {import('./types.js').StateNode} StateNode
  * @typedef {import('./types.js').StateTree} StateTree
@@ -101,6 +103,9 @@ export class StatefulLayout {
    */
   // @ts-ignore
   _options
+  /**
+   * @returns {StatefulLayoutOptions}
+   */
   get options () { return this._options }
   /**
    * @param {Partial<StatefulLayoutOptions>} options

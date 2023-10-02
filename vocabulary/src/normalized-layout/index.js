@@ -33,6 +33,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').Cols} Cols
  * @typedef {import('./types.js').ColsObj} ColsObj
  * @typedef {import('./types.js').StateNodeOptions} StateNodeOptions
+ * @typedef {import('./types.js').Slot} Slot
  * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is NormalizedLayout }} ValidateNormalizedLayout
  */
 
@@ -83,4 +84,22 @@ export function isGetItemsExpression (getItems) {
 /** @type {(getItems: GetItems) => getItems is GetItemsFetch} */
 export function isGetItemsFetch (getItems) {
   return !!getItems.url
+}
+
+/** @type {(slot: Slot) => slot is {text: string}} */
+export function isTextSlot (slot) {
+  // @ts-ignore
+  return !!slot.text
+}
+
+/** @type {(slot: Slot) => slot is {markdown: string}} */
+export function isMarkdownSlot (slot) {
+  // @ts-ignore
+  return !!slot.markdown
+}
+
+/** @type {(slot: Slot) => slot is {name: string}} */
+export function isNameSlot (slot) {
+  // @ts-ignore
+  return !!slot.name
 }

@@ -343,6 +343,7 @@
         {
           "type": "object",
           "additionalProperties": false,
+          "required": ["text"],
           "properties": {
             "text": {"type": "string"}
           }
@@ -350,6 +351,7 @@
         {
           "type": "object",
           "additionalProperties": false,
+          "required": ["markdown"],
           "properties": {
             "markdown": {"type": "string"}
           }
@@ -357,6 +359,7 @@
         {
           "type": "object",
           "additionalProperties": false,
+          "required": ["name"],
           "properties": {
             "name": {"type": "string"}
           }

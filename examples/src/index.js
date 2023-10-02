@@ -3,9 +3,10 @@ import formats from './formats/index.js'
 import selects from './selects/index.js'
 import arrays from './arrays/index.js'
 import composite from './composite/index.js'
-import combine from './combine/index.js'
 import responsive from './responsive/index.js'
 import density from './density/index.js'
+import slots from './slots/index.js'
+import combine from './combine/index.js'
 import dev from './_dev/index.js'
 
 /** @typedef {import('./types.js').JSONLayoutExamplesCategory} JSONLayoutExamplesCategory */
@@ -20,6 +21,7 @@ export const examples = [
   composite,
   responsive,
   density,
+  slots,
   combine,
   dev
 ]

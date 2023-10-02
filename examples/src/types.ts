@@ -11,6 +11,7 @@ export interface JSONLayoutExample {
   description: string
   options?: any
   schema: any
+  codeSlots?: string[]
   data?: any
   devOnly?: boolean
 }
