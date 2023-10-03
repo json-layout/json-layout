@@ -27,7 +27,7 @@
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
     "lint": "eslint . --fix",
     "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "watch:test": "node  --no-experimental-fetch --test --watch test/*.spec.js"
+    "watch:test": "node --no-experimental-fetch --test --watch test/*.spec.js"
   },
   "repository": {
     "type": "git",

@@ -36,7 +36,7 @@ const fillOptions = (partialOptions) => {
   if (!ajv) {
     /** @type {import('ajv').Options} */
     const ajvOpts = { strict: false, allErrors: true }
-    if (partialOptions.code) ajvOpts.code = { source: true, esm: true }
+    if (partialOptions.code) ajvOpts.code = { source: true, esm: true, lines: true }
     const newAjv = new Ajv(ajvOpts)
     addFormats.default(newAjv)
     ajvErrors.default(newAjv)
@@ -70,7 +70,6 @@ export function compile (_schema, partialOptions = {}) {
 
   schema.$id = schema.$id ?? '_jl'
   resolveRefs(schema, options.ajv, options.lang)
-  options.ajv.addSchema(schema)
 
   /** @type {string[]} */
   const validatePointers = []
@@ -79,9 +78,9 @@ export function compile (_schema, partialOptions = {}) {
   /** @type {import('@json-layout/vocabulary').Expression[]} */
   const expressionsDefinitions = []
 
-  // TODO: produce a resolved/normalized version of the schema
-  // useful to get predictable schemaPath properties in errors and to have proper handling of default values
   const skeletonTree = makeSkeletonTree(schema, options, validatePointers, normalizedLayouts, expressionsDefinitions, `${schema.$id}#`, 'main')
+
+  options.ajv.addSchema(schema)
 
   const uriResolver = options.ajv.opts.uriResolver
   /** @type {Record<string, import('ajv').ValidateFunction>} */

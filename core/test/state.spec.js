@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import nock from 'nock'
 import fetch from 'node-fetch'
@@ -28,10 +28,13 @@ for (const compileMode of ['runtime', 'build-time']) {
     } else {
       compile = /** @type {typeof compileSrc} */async (schema, options = {}) => {
         const compiledLayout = compileSrc(schema, { ...options, code: true })
-        const code = serialize(compiledLayout)
+        const code = serialize(compiledLayout) + '\nexport default compiledLayout;'
         const filePath = resolve(`tmp/${currentTest?.replace(/\W/g, '_')}.js`)
-        // dynamic loading of file in our context requires the commonjs syntax
-        writeFileSync(filePath, code + '\nexport default compiledLayout;')
+        if (existsSync(filePath) && readFileSync(filePath, 'utf8') === code) {
+          // nothing todo, prevent infinite reloading of nodejs in watch mode
+        } else {
+          writeFileSync(filePath, code)
+        }
         return (await import(filePath)).default
       }
     }
