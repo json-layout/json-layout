@@ -223,10 +223,10 @@ function getCompObject (layoutKeyword, defaultCompObject, schemaFragment, markdo
   if (partial.slots) {
     for (const [name, slot] of Object.entries(partial.slots)) {
       if (typeof slot === 'string') {
-        if (name === 'component') {
-          partial.slots[name] = { name: slot }
-        } else {
+        if (['before', 'after'].includes(name)) {
           partial.slots[name] = { markdown: slot }
+        } else {
+          partial.slots[name] = { name: slot }
         }
       }
       const slotObj = partial.slots[name]
