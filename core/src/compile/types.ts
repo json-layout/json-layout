@@ -3,6 +3,7 @@ import type MarkdownIt from 'markdown-it'
 import { type NormalizedLayout, type StateNodeOptions } from '@json-layout/vocabulary'
 import { type ValidateFunction, type SchemaObject } from 'ajv'
 import { type Display } from '../state/utils/display.js'
+import { type LocaleMessages } from '../i18n/types.js'
 
 export type CompiledExpression = (data: any, options: StateNodeOptions, display: Display) => any
 
@@ -12,15 +13,20 @@ export interface CompileOptions {
   markdown: (text: string) => string
   markdownIt?: MarkdownIt.Options
   locale: string
+  localeMessages: LocaleMessages
 }
 
+export type PartialCompileOptions = Partial<Omit<CompileOptions, 'localeMessages'>> & { localeMessages?: Partial<LocaleMessages> }
+
 export interface CompiledLayout {
-  options: CompileOptions
+  options?: CompileOptions
   schema?: SchemaObject
   skeletonTree: SkeletonTree
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
   expressions: CompiledExpression[]
+  locale: string
+  localeMessages: LocaleMessages
   localizeErrors: (errors: ajvModule.ErrorObject[]) => void
 }
 

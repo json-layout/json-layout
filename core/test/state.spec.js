@@ -245,11 +245,11 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[1].skeleton.key, '$allOf-0')
       assert.ok(!statefulLayout.stateTree.root.children[1].error)
       assert.equal(statefulLayout.stateTree.root.children[1]?.children?.length, 1)
-      assert.equal(statefulLayout.stateTree.root.children[1].children[0].error, 'required')
+      assert.equal(statefulLayout.stateTree.root.children[1].children[0].error, 'required information')
       assert.equal(statefulLayout.stateTree.root.children[2].skeleton.key, '$allOf-1')
       assert.ok(!statefulLayout.stateTree.root.children[2].error)
       assert.equal(statefulLayout.stateTree.root.children[2]?.children?.length, 1)
-      assert.equal(statefulLayout.stateTree.root.children[2].children[0].error, 'required')
+      assert.equal(statefulLayout.stateTree.root.children[2].children[0].error, 'required information')
     })
 
     it('should manage arrays', async () => {

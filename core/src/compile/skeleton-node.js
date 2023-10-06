@@ -90,7 +90,7 @@ export function makeSkeletonNode (
         ))
         if (schema?.required?.includes(propertyKey)) {
           schema.errorMessage.required = schema.errorMessage.required ?? {}
-          schema.errorMessage.required[propertyKey] = 'required'
+          schema.errorMessage.required[propertyKey] = options.localeMessages.errorRequired
         }
       }
     }
@@ -124,7 +124,7 @@ export function makeSkeletonNode (
       node.children = node.children ?? []
       node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees })
 
-      schema.errorMessage.oneOf = 'chose one'
+      schema.errorMessage.oneOf = options.localeMessages.errorOneOf
     }
   }
 

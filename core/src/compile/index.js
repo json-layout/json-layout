@@ -7,6 +7,7 @@ import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
 import ajvLocalizeModule from 'ajv-i18n'
 import MarkdownIt from 'markdown-it'
+import i18n from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveRefs } from './utils/resolve-refs.js'
 
@@ -17,6 +18,7 @@ export { resolveRefs } from './utils/resolve-refs.js'
  * @typedef {import('./types.js').SkeletonNode} SkeletonNode
  * @typedef {import('./types.js').CompiledLayout} CompiledLayout
  * @typedef {import('./types.js').CompileOptions} CompileOptions
+ * @typedef {import('./types.js').PartialCompileOptions} PartialCompileOptions
  * @typedef {import('./types.js').CompiledExpression} CompiledExpression
  */
 
@@ -31,7 +33,7 @@ const clone = rfdc()
 const exprEvalParser = new ExprEvalParser()
 
 /**
- * @param {Partial<CompileOptions>} partialOptions
+ * @param {PartialCompileOptions} partialOptions
  * @returns {CompileOptions}
  */
 const fillOptions = (partialOptions) => {
@@ -52,18 +54,23 @@ const fillOptions = (partialOptions) => {
     markdown = markdownIt.render.bind(markdownIt)
   }
 
+  const locale = partialOptions.locale || 'en'
+  const localeMessages = { ...i18n[locale] || i18n.en }
+  if (partialOptions.localeMessages) Object.assign(localeMessages, partialOptions.localeMessages)
+
   return {
     ajv,
     code: false,
     markdown,
-    locale: 'en',
-    ...partialOptions
+    ...partialOptions,
+    locale,
+    localeMessages
   }
 }
 
 /**
  * @param {object} _schema
- * @param {Partial<CompileOptions>} [partialOptions]
+ * @param {PartialCompileOptions} [partialOptions]
  * @returns {CompiledLayout}
  */
 export function compile (_schema, partialOptions = {}) {
@@ -121,6 +128,8 @@ export function compile (_schema, partialOptions = {}) {
     validates,
     normalizedLayouts,
     expressions,
+    locale: options.locale,
+    localeMessages: options.localeMessages,
     // @ts-ignore
     localizeErrors: ajvLocalize[options.locale] || ajvLocalize.en
   }

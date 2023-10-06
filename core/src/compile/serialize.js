@@ -10,6 +10,7 @@ import { parse, print } from 'recast'
  */
 export function serialize (compiledLayout) {
   ok(compiledLayout.schema)
+  ok(compiledLayout.options)
   const ajv = compiledLayout.options.ajv
 
   /** @type {Record<string, string>} */
@@ -37,7 +38,7 @@ export function serialize (compiledLayout) {
   }
 
   // importe only the current locale from ajv-i18n
-  code = `import localizeErrors from "ajv-i18n/localize/${compiledLayout.options.locale}/index.js";
+  code = `import localizeErrors from "ajv-i18n/localize/${compiledLayout.locale}/index.js";
 export const exportLocalizeErrors = localizeErrors;\n` + code
 
   i = 0
@@ -55,6 +56,8 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     normalizedLayouts: compiledLayout.normalizedLayouts,
     validates: {},
     expressions: expressionsNodes,
+    locale: compiledLayout.locale,
+    localeMessages: compiledLayout.localeMessages,
     localizeErrors: ast.exports.exportLocalizeErrors
   }
   delete ast.exports.exportLocalizeErrors
