@@ -5,6 +5,7 @@ import rfdc from 'rfdc'
 import { Parser as ExprEvalParser } from 'expr-eval'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
+import ajvLocalizeModule from 'ajv-i18n'
 import MarkdownIt from 'markdown-it'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveRefs } from './utils/resolve-refs.js'
@@ -21,6 +22,8 @@ export { resolveRefs } from './utils/resolve-refs.js'
 
 // @ts-ignore
 const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
+// @ts-ignore
+const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalizeModule)
 
 const expressionsParams = ['data', 'options', 'display']
 
@@ -53,7 +56,7 @@ const fillOptions = (partialOptions) => {
     ajv,
     code: false,
     markdown,
-    lang: 'en',
+    locale: 'en',
     ...partialOptions
   }
 }
@@ -69,7 +72,7 @@ export function compile (_schema, partialOptions = {}) {
   const schema = /** @type {import('ajv').SchemaObject} */(clone(_schema))
 
   schema.$id = schema.$id ?? '_jl'
-  resolveRefs(schema, options.ajv, options.lang)
+  resolveRefs(schema, options.ajv, options.locale)
 
   /** @type {string[]} */
   const validatePointers = []
@@ -111,5 +114,14 @@ export function compile (_schema, partialOptions = {}) {
     }
   }
 
-  return { options, schema, skeletonTree, validates, normalizedLayouts, expressions }
+  return {
+    options,
+    schema,
+    skeletonTree,
+    validates,
+    normalizedLayouts,
+    expressions,
+    // @ts-ignore
+    localizeErrors: ajvLocalize[options.locale] || ajvLocalize.en
+  }
 }

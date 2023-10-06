@@ -30,7 +30,12 @@ export function createStateTree (
 ) {
   const validate = compiledLayout.validates[skeleton.root.pointer]
   const valid = validate(value)
-  if (validate.errors) context.errors = validate.errors
+  if (validate.errors) {
+    for (const error of validate.errors) {
+      if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
+    }
+    context.errors = validate.errors
+  }
   const root = createStateNode(
     context,
     options,

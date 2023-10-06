@@ -36,6 +36,10 @@ export function serialize (compiledLayout) {
     code = code.replace(/require\("ajv\/dist\/runtime\/ucs2length"\)/g, 'ucs2length')
   }
 
+  // importe only the current locale from ajv-i18n
+  code = `import localizeErrors from "ajv-i18n/localize/${compiledLayout.options.locale}/index.js";
+export const exportLocalizeErrors = localizeErrors;\n` + code
+
   i = 0
   const expressionsNodes = []
   for (const expression of compiledLayout.expressions) {
@@ -50,8 +54,10 @@ export function serialize (compiledLayout) {
     skeletonTree: compiledLayout.skeletonTree,
     normalizedLayouts: compiledLayout.normalizedLayouts,
     validates: {},
-    expressions: expressionsNodes
+    expressions: expressionsNodes,
+    localizeErrors: ast.exports.exportLocalizeErrors
   }
+  delete ast.exports.exportLocalizeErrors
 
   i = 0
   for (const pointer of Object.keys(compiledLayout.validates)) {

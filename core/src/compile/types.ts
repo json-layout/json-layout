@@ -11,7 +11,7 @@ export interface CompileOptions {
   code: boolean
   markdown: (text: string) => string
   markdownIt?: MarkdownIt.Options
-  lang: string
+  locale: string
 }
 
 export interface CompiledLayout {
@@ -21,6 +21,7 @@ export interface CompiledLayout {
   validates: Record<string, ValidateFunction>
   normalizedLayouts: Record<string, NormalizedLayout>
   expressions: CompiledExpression[]
+  localizeErrors: (errors: ajvModule.ErrorObject[]) => void
 }
 
 // a tree is a root node and a validation function

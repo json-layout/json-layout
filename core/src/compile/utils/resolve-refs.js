@@ -27,20 +27,20 @@ const getJSONRef = (schemas, ref, ajv) => {
  * @param {import('ajv').SchemaObject} schemaFragment
  * @param {string} schemaId
  * @param {ajvModule.default} ajv
- * @param {string} lang
+ * @param {string} locale
  * @returns {import('ajv').SchemaObject}
  */
-const recurse = (schemas, schemaFragment, schemaId, ajv, lang = 'en') => {
+const recurse = (schemas, schemaFragment, schemaId, ajv, locale = 'en') => {
   for (const key of Object.keys(schemaFragment)) {
     if (schemaFragment[key] && typeof schemaFragment[key] === 'object') {
       if ('$ref' in schemaFragment[key]) {
-        const fullRef = ajv.opts.uriResolver.resolve(schemaId, schemaFragment[key].$ref).replace('~$locale~', lang)
-        const fullRefDefaultLang = ajv.opts.uriResolver.resolve(schemaId, schemaFragment[key].$ref).replace('~$locale~', 'en')
+        const fullRef = ajv.opts.uriResolver.resolve(schemaId, schemaFragment[key].$ref).replace('~$locale~', locale)
+        const fullRefDefaultLocale = ajv.opts.uriResolver.resolve(schemaId, schemaFragment[key].$ref).replace('~$locale~', 'en')
         let refFragment, refSchemaId
         try {
           [refFragment, refSchemaId] = getJSONRef(schemas, fullRef, ajv)
         } catch (err) {
-          [refFragment, refSchemaId] = getJSONRef(schemas, fullRefDefaultLang, ajv)
+          [refFragment, refSchemaId] = getJSONRef(schemas, fullRefDefaultLocale, ajv)
         }
         if (typeof refFragment === 'object' && !Array.isArray(refFragment)) {
           schemaFragment[key] = { ...refFragment, ...schemaFragment[key] }
@@ -48,9 +48,9 @@ const recurse = (schemas, schemaFragment, schemaId, ajv, lang = 'en') => {
         } else {
           schemaFragment[key] = refFragment
         }
-        recurse(schemas, schemaFragment[key], refSchemaId, ajv, lang)
+        recurse(schemas, schemaFragment[key], refSchemaId, ajv, locale)
       } else {
-        recurse(schemas, schemaFragment[key], schemaId, ajv, lang)
+        recurse(schemas, schemaFragment[key], schemaId, ajv, locale)
       }
     }
   }
@@ -60,10 +60,10 @@ const recurse = (schemas, schemaFragment, schemaId, ajv, lang = 'en') => {
 /**
  * @param {import('ajv').SchemaObject} schema
  * @param {ajvModule.default} ajv
- * @param {string} lang
+ * @param {string} locale
  * @returns {import('ajv').SchemaObject}
  */
-export function resolveRefs (schema, ajv, lang = 'en') {
+export function resolveRefs (schema, ajv, locale = 'en') {
   if (!schema.$id) throw new Error('missing schema id')
-  return recurse({ [schema.$id]: schema }, schema, schema.$id, ajv ?? new Ajv(), lang)
+  return recurse({ [schema.$id]: schema }, schema, schema.$id, ajv ?? new Ajv(), locale)
 }

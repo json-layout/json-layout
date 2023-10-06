@@ -129,7 +129,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
-      assert.equal(statefulLayout.stateTree.root.error, 'must have required property \'missingProp\'')
+      assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
       assert.equal(statefulLayout.stateTree.root.children?.[0].data, '')
       assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
     })
@@ -276,7 +276,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(arrNode.children?.[1].data, 'Str 2')
 
       assert.equal(statefulLayout.stateTree.valid, false)
-      assert.equal(arrNode.children?.[2].error, 'must NOT have fewer than 2 characters')
+      assert.equal(arrNode.children?.[2].error, 'must NOT be shorter than 2 characters')
 
       statefulLayout.input(arrNode.children[0], 'test')
       const arrNode2 = statefulLayout.stateTree.root.children?.[0]

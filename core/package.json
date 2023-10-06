@@ -22,7 +22,7 @@
     "types"
   ],
   "scripts": {
-    "test:single": "node --no-experimental-fetch --test --test-only",
+    "test:single": "node --no-experimental-fetch --test --test-only test/*.spec.js",
     "test": "node --no-experimental-fetch --test test/*.spec.js",
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
     "lint": "eslint . --fix",
@@ -51,6 +51,7 @@
     "ajv": "^8.12.0",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^2.1.1",
+    "ajv-i18n": "^4.2.0",
     "debug": "^4.3.4",
     "expr-eval": "^2.0.2",
     "immer": "^9.0.21",
