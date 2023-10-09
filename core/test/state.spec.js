@@ -111,7 +111,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         required: ['str1', 'missingProp'],
         properties: {
           str1: { type: 'string' },
-          str2: { type: 'string', pattern: '^$[A-Z]+$' },
+          str2: { type: 'string', pattern: '^[A-Z]+$' },
           obj1: {
             type: 'object',
             required: ['str1'],
@@ -120,18 +120,15 @@ for (const compileMode of ['runtime', 'build-time']) {
             }
           }
         }
-      /* allOf: [{
-        // required: ['str1'],
-        properties: {
-          str3: { type: 'string', pattern: '^$[A-Z]+$' }
-        }
-      }] */
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
       assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
       assert.equal(statefulLayout.stateTree.root.children?.[0].data, '')
-      assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^$[A-Z]+$"')
+      assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^[A-Z]+$"')
+
+      statefulLayout.input(statefulLayout.stateTree.root.children?.[1], 'TEST')
+      assert.equal(statefulLayout.stateTree.root.children?.[1].error, undefined)
     })
 
     it('should use a switch on read/write mode', async () => {

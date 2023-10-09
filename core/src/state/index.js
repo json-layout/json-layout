@@ -247,6 +247,20 @@ export class StatefulLayout {
   }
 
   /**
+   * @returns {boolean}
+   */
+  get valid () {
+    return this.stateTree.valid
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  get hasHiddenError () {
+    return this._lastCreateStateTreeContext.nodes.findIndex(node => node.error && !node.validated) !== -1
+  }
+
+  /**
    * @param {StateNode} node
    * @param {unknown} data
    */
@@ -270,7 +284,7 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   blur (node) {
-    logDataBinding('received change event from node', node)
+    logDataBinding('received blur event from node', node)
     if (
       (node.options.validateOn === 'input' || node.options.validateOn === 'blur') &&
       !this.validationState.validatedChildren.includes(node.fullKey)

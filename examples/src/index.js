@@ -7,6 +7,7 @@ import responsive from './responsive/index.js'
 import density from './density/index.js'
 import slots from './slots/index.js'
 import combine from './combine/index.js'
+import validation from './validation/index.js'
 import dev from './_dev/index.js'
 
 /** @typedef {import('./types.js').JSONLayoutExamplesCategory} JSONLayoutExamplesCategory */
@@ -23,5 +24,6 @@ export const examples = [
   density,
   slots,
   combine,
+  validation,
   dev
 ]
