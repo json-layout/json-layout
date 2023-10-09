@@ -8,6 +8,7 @@ import density from './density/index.js'
 import slots from './slots/index.js'
 import combine from './combine/index.js'
 import validation from './validation/index.js'
+import i18n from './i18n/index.js'
 import dev from './_dev/index.js'
 
 /** @typedef {import('./types.js').JSONLayoutExamplesCategory} JSONLayoutExamplesCategory */
@@ -25,5 +26,6 @@ export const examples = [
   slots,
   combine,
   validation,
+  i18n,
   dev
 ]
