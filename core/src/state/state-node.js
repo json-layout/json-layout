@@ -8,15 +8,15 @@ import { shallowCompareArrays } from './utils/immutable.js'
  * @returns {boolean}
  */
 const isDataEmpty = (data) => {
-  if (data === '') return true
+  if (data === '' || data === undefined) return true
   if (Array.isArray(data) && !data.length) return true
   if (typeof data === 'object' && !Array.isArray(data) && !!data && Object.values(data).findIndex(prop => !isDataEmpty(prop)) === -1) return true
   return false
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, options: import('./types.js').StatefulLayoutOptions, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, options, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StatefulLayoutOptions, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, validated, options, children) => {
   data = children && layout.comp !== 'list' ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
   // empty data is removed and replaced by the default data
   if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
@@ -33,9 +33,10 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.cols = cols
   draft.data = data
   draft.error = error
+  draft.childError = children && (children.findIndex(c => c.error || c.childError) !== -1)
+  draft.validated = validated
   draft.children = children
-}
-)
+})
 
 /** @type {(draft: Record<string, unknown>, parentDataPath: string, children: import('../index.js').StateNode[]) => Record<string, unknown>} */
 const produceStateNodeData = produce((draft, parentDataPath, children) => {
@@ -155,6 +156,7 @@ const getCompObject = (normalizedLayout, options, compiledLayout, display, data)
  * @param {import('@json-layout/vocabulary').Child | null} childDefinition
  * @param {import('./utils/display.js').Display} parentDisplay
  * @param {unknown} data
+ * @param {import('./types.js').ValidationState} validationState
  * @param {import('./types.js').StateNode} [reusedNode]
  * @returns {import('./types.js').StateNode}
  */
@@ -171,6 +173,7 @@ export function createStateNode (
   childDefinition,
   parentDisplay,
   data,
+  validationState,
   reusedNode
 ) {
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
@@ -207,6 +210,7 @@ export function createStateNode (
         child,
         display,
         isSameData ? objectData : objectData[child.key],
+        validationState,
         reusedNode?.children?.[i]
       )
     })
@@ -230,6 +234,7 @@ export function createStateNode (
         null,
         display,
         itemData,
+        validationState,
         reusedNode?.children?.[0]
       )
     })
@@ -240,6 +245,11 @@ export function createStateNode (
   if (layout.comp !== 'none') {
     if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath))
   }
+  const validated = validationState.validatedForm ||
+    validationState.validatedChildren.includes(fullKey) ||
+    (validationState.initialized === false && options.initialValidation === 'always') ||
+    (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
+
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,
@@ -252,6 +262,7 @@ export function createStateNode (
     cols,
     data,
     error?.message,
+    validated,
     options,
     children && shallowCompareArrays(reusedNode?.children, children)
   )

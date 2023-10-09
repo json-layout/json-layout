@@ -56,6 +56,8 @@ function fillOptions (partialOptions) {
     readOnly: false,
     summary: false,
     titleDepth: 2,
+    validateOn: 'input',
+    initialValidation: 'withData',
     ...partialOptions
   }
 }
@@ -96,6 +98,32 @@ export class StatefulLayout {
   // @ts-ignore
   _display
   get display () { return this._display }
+
+  /**
+   * @private
+   * @type {import('./types.js').ValidationState}
+   */
+  // @ts-ignore
+  _validationState
+  /**
+   * @returns {import('./types.js').ValidationState}
+   */
+  get validationState () {
+    return this._validationState
+  }
+
+  /**
+   * @private
+   * @param {Partial<import('./types.js').ValidationState>} validationState
+   */
+  set validationState (validationState) {
+    this._validationState = {
+      initialized: validationState.initialized ?? this._validationState.initialized ?? false,
+      validatedForm: validationState.validatedForm ?? this._validationState.validatedForm ?? false,
+      validatedChildren: validationState.validatedChildren ?? this._validationState.validatedChildren ?? []
+    }
+    this.updateState()
+  }
 
   /**
    * @private
@@ -147,6 +175,7 @@ export class StatefulLayout {
     this.events = mitt()
     this.prepareOptions(options)
     this._data = data
+    this.initValidationState()
     this.updateState()
   }
 
@@ -157,6 +186,18 @@ export class StatefulLayout {
   prepareOptions (options) {
     this._options = fillOptions(options)
     this._display = this._display && this._display.width === this._options.width ? this._display : new Display(this._options.width)
+  }
+
+  /**
+   * @private
+   */
+  initValidationState () {
+    const initialValidation = this.options.initialValidation === 'always'
+    this._validationState = {
+      initialized: initialValidation,
+      validatedForm: initialValidation,
+      validatedChildren: []
+    }
   }
 
   /**
@@ -178,6 +219,7 @@ export class StatefulLayout {
    * @private
    */
   createStateTree () {
+    /** @type {CreateStateTreeContext} */
     const createStateTreeContext = { nodes: [] }
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -186,9 +228,22 @@ export class StatefulLayout {
       this.skeletonTree,
       this._display,
       this._data,
+      this._validationState,
       this._stateTree
     )
     this._lastCreateStateTreeContext = createStateTreeContext
+    if (!this.validationState.initialized) {
+      this.validationState = { initialized: true, validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey) }
+    }
+  }
+
+  validate () {
+    this.validationState = { validatedForm: true }
+  }
+
+  resetValidation () {
+    this.initValidationState()
+    this.updateState()
   }
 
   /**
@@ -196,7 +251,10 @@ export class StatefulLayout {
    * @param {unknown} data
    */
   input (node, data) {
-    logDataBinding('received input from node', node, data)
+    logDataBinding('received input event from node', node, data)
+    if (node.options.validateOn === 'input' && !this.validationState.validatedChildren.includes(node.fullKey)) {
+      this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    }
     if (node.parentFullKey === null) {
       this.data = data
       this.events.emit('input', this.data)
@@ -206,6 +264,19 @@ export class StatefulLayout {
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
     const newParentValue = producePatchedData(parentNode.data ?? {}, node, data)
     this.input(parentNode, newParentValue)
+  }
+
+  /**
+   * @param {StateNode} node
+   */
+  blur (node) {
+    logDataBinding('received change event from node', node)
+    if (
+      (node.options.validateOn === 'input' || node.options.validateOn === 'blur') &&
+      !this.validationState.validatedChildren.includes(node.fullKey)
+    ) {
+      this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    }
   }
 
   /**

@@ -13,6 +13,8 @@ export interface StateNode {
   cols: Cols
   data: unknown
   error: string | undefined
+  childError: boolean | undefined
+  validated: boolean
   options: StatefulLayoutOptions
   children?: StateNode[]
 }
@@ -28,6 +30,12 @@ export interface CreateStateTreeContext {
   nodes: StateNode[]
 }
 
+export interface ValidationState {
+  initialized: boolean
+  validatedForm: boolean
+  validatedChildren: string[]
+}
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type StatefulLayoutEvents = {
   // input: { value: unknown, child: { pointer: string, dataPointer: string, value: unknown } }
@@ -38,6 +46,8 @@ export type StatefulLayoutEvents = {
 export type StatefulLayoutOptions = Required<StateNodeOptions> & {
   context: Record<string, any>
   width: number
+  validateOn: 'input' | 'blur' | 'submit'
+  initialValidation: 'never' | 'always' | 'withData'
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, data: string | undefined | null }

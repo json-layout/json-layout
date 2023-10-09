@@ -16,6 +16,7 @@ const produceStateTree = produce(
  * @param {import('../index.js').SkeletonTree} skeleton
  * @param {import('./utils/display.js').Display} display
  * @param {unknown} value
+ * @param {import('./types.js').ValidationState} validationState
  * @param {import('./types.js').StateTree} [reusedStateTree]
  * @returns {import('./types.js').StateTree}
  */
@@ -26,6 +27,7 @@ export function createStateTree (
   skeleton,
   display,
   value,
+  validationState,
   reusedStateTree
 ) {
   const validate = compiledLayout.validates[skeleton.root.pointer]
@@ -49,6 +51,7 @@ export function createStateTree (
     null,
     display,
     value,
+    validationState,
     reusedStateTree?.root
   )
 
