@@ -2,5 +2,9 @@
 export default {
   errorOneOf: 'chose one',
   errorRequired: 'required information',
-  addItem: 'Add item'
+  addItem: 'Add item',
+  delete: 'Delete',
+  edit: 'Edit',
+  duplicate: 'Duplicate',
+  sort: 'Sort'
 }

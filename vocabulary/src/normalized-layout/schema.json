@@ -158,7 +158,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "addItem": {"type": "string"}
+            "addItem": {"type": "string"},
+            "delete": {"type": "string"},
+            "edit": {"type": "string"},
+            "duplicate": {"type": "string"},
+            "sort": {"type": "string"}
           }
         }
       }
