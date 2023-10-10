@@ -57,7 +57,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     validates: {},
     expressions: expressionsNodes,
     locale: compiledLayout.locale,
-    localeMessages: compiledLayout.localeMessages,
+    messages: compiledLayout.messages,
     localizeErrors: ast.exports.exportLocalizeErrors
   }
   delete ast.exports.exportLocalizeErrors

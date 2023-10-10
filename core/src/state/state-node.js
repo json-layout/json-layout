@@ -22,6 +22,8 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
   data = data ?? skeleton.defaultData
 
+  draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
+
   draft.key = key
   draft.fullKey = fullKey
   draft.parentFullKey = parentFullKey
@@ -36,6 +38,11 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.childError = children && (children.findIndex(c => c.error || c.childError) !== -1)
   draft.validated = validated
   draft.children = children
+})
+
+/** @type {(draft: import('../i18n/types.js').LocaleMessages, layoutMessages: Partial<import('../i18n/types.js').LocaleMessages>, options: import('./types.js').StatefulLayoutOptions) => import('../i18n/types.js').LocaleMessages} */
+const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
+  Object.assign(draft, options.messages, layoutMessages)
 })
 
 /** @type {(draft: Record<string, unknown>, parentDataPath: string, children: import('../index.js').StateNode[]) => Record<string, unknown>} */

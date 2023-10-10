@@ -30,4 +30,17 @@ describe('internationalization', () => {
     const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTree, {}, -10)
     assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
   })
+
+  it('should overwrite non-compilation time messages on a state node', async () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: {
+        array1: { type: 'array', items: { type: 'string' }, layout: { messages: { addItem: 'Add item to array 1' } } },
+        array2: { type: 'array', items: { type: 'string' }, layout: { messages: { addItem: 'Add item to array 2' } } }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, -10)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].messages.addItem, 'Add item to array 1')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].messages.addItem, 'Add item to array 2')
+  })
 })

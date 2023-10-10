@@ -1,6 +1,7 @@
 import { type ErrorObject } from 'ajv'
 import { type CompObject, type Cols, type StateNodeOptions, type TextField, type Textarea, type NumberField, type Slider, type Checkbox, type Switch, type DatePicker, type DateTimePicker, type TimePicker, type ColorPicker, type Section, type OneOfSelect, type Select, type Tabs, type VerticalTabs, type ExpansionPanels, type List } from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout } from '../index.js'
+import { type LocaleMessages } from '../i18n/types.js'
 
 export interface StateNode {
   key: string | number
@@ -16,6 +17,7 @@ export interface StateNode {
   childError: boolean | undefined
   validated: boolean
   options: StatefulLayoutOptions
+  messages: LocaleMessages
   children?: StateNode[]
 }
 
@@ -48,6 +50,7 @@ export type StatefulLayoutOptions = Required<StateNodeOptions> & {
   width: number
   validateOn: 'input' | 'blur' | 'submit'
   initialValidation: 'never' | 'always' | 'withData'
+  messages: LocaleMessages
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, data: string | undefined | null }

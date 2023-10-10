@@ -47,9 +47,12 @@ const mitt = /** @type {typeof mittModule.default} */ (mittModule)
 
 /**
  * @param {Partial<StatefulLayoutOptions>} partialOptions
+ * @param {import('../index.js').CompiledLayout} compiledLayout
  * @returns {StatefulLayoutOptions}
  */
-function fillOptions (partialOptions) {
+function fillOptions (partialOptions, compiledLayout) {
+  const messages = { ...compiledLayout.messages }
+  if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
   return {
     context: {},
     width: 1000,
@@ -58,7 +61,8 @@ function fillOptions (partialOptions) {
     titleDepth: 2,
     validateOn: 'input',
     initialValidation: 'withData',
-    ...partialOptions
+    ...partialOptions,
+    messages
   }
 }
 
@@ -184,7 +188,7 @@ export class StatefulLayout {
    * @param {Partial<StatefulLayoutOptions>} options
    */
   prepareOptions (options) {
-    this._options = fillOptions(options)
+    this._options = fillOptions(options, this.compiledLayout)
     this._display = this._display && this._display.width === this._options.width ? this._display : new Display(this._options.width)
   }
 

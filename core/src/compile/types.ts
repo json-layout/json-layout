@@ -13,10 +13,10 @@ export interface CompileOptions {
   markdown: (text: string) => string
   markdownIt?: MarkdownIt.Options
   locale: string
-  localeMessages: LocaleMessages
+  messages: LocaleMessages
 }
 
-export type PartialCompileOptions = Partial<Omit<CompileOptions, 'localeMessages'>> & { localeMessages?: Partial<LocaleMessages> }
+export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & { messages?: Partial<LocaleMessages> }
 
 export interface CompiledLayout {
   options?: CompileOptions
@@ -26,7 +26,7 @@ export interface CompiledLayout {
   normalizedLayouts: Record<string, NormalizedLayout>
   expressions: CompiledExpression[]
   locale: string
-  localeMessages: LocaleMessages
+  messages: LocaleMessages
   localizeErrors: (errors: ajvModule.ErrorObject[]) => void
 }
 

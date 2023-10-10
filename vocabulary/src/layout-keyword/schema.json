@@ -44,7 +44,8 @@
             ".*": {"$ref": "#/$defs/partial-slot"}
           }
         },
-        "options": {"type": "object"}
+        "options": {"type": "object"},
+        "messages": {"type": "object"}
       }
     },
     "comp-name": {

@@ -55,8 +55,8 @@ const fillOptions = (partialOptions) => {
   }
 
   const locale = partialOptions.locale || 'en'
-  const localeMessages = { ...i18n[locale] || i18n.en }
-  if (partialOptions.localeMessages) Object.assign(localeMessages, partialOptions.localeMessages)
+  const messages = { ...i18n[locale] || i18n.en }
+  if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
 
   return {
     ajv,
@@ -64,7 +64,7 @@ const fillOptions = (partialOptions) => {
     markdown,
     ...partialOptions,
     locale,
-    localeMessages
+    messages
   }
 }
 
@@ -129,7 +129,7 @@ export function compile (_schema, partialOptions = {}) {
     normalizedLayouts,
     expressions,
     locale: options.locale,
-    localeMessages: options.localeMessages,
+    messages: options.messages,
     // @ts-ignore
     localizeErrors: ajvLocalize[options.locale] || ajvLocalize.en
   }

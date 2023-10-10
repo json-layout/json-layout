@@ -153,7 +153,14 @@
         "listEditMode": {"type": "string", "enum": ["inline", "inline-single", "menu", "dialog"]},
         "listActions": {"type": "array", "items": {"type": "string", "enum": ["add", "edit", "delete", "sort", "duplicate"]}},
         "itemTitle": {"$ref": "#/$defs/expression"},
-        "itemSubtitle": {"$ref": "#/$defs/expression"}
+        "itemSubtitle": {"$ref": "#/$defs/expression"},
+        "messages": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "addItem": {"type": "string"}
+          }
+        }
       }
     },
     "text-field": {
