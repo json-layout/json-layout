@@ -73,6 +73,7 @@ export function makeSkeletonNode (
 
   /** @type {import('./types.js').SkeletonNode} */
   const node = { key: key ?? '', pointer, parentPointer, defaultData }
+  if (schema.const) node.const = schema.const
   if (schema.type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []

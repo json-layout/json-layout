@@ -180,6 +180,7 @@ export class StatefulLayout {
     this.prepareOptions(options)
     this._data = data
     this.initValidationState()
+    this._activeItems = []
     this.updateState()
   }
 
@@ -224,7 +225,7 @@ export class StatefulLayout {
    */
   createStateTree () {
     /** @type {CreateStateTreeContext} */
-    const createStateTreeContext = { nodes: [] }
+    const createStateTreeContext = { nodes: [], activeItems: this._activeItems }
     this._stateTree = createStateTree(
       createStateTreeContext,
       this._options,
@@ -267,11 +268,15 @@ export class StatefulLayout {
   /**
    * @param {StateNode} node
    * @param {unknown} data
+   * @param {string} [activateKey]
    */
-  input (node, data) {
+  input (node, data, activateKey) {
     logDataBinding('received input event from node', node, data)
     if (node.options.validateOn === 'input' && !this.validationState.validatedChildren.includes(node.fullKey)) {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    }
+    if (activateKey !== undefined) {
+      this._activeItems.push(`${node.fullKey}/${activateKey}`)
     }
     if (node.parentFullKey === null) {
       this.data = data
@@ -346,5 +351,35 @@ export class StatefulLayout {
       })
     }
     throw new Error('node is missing items or getItems parameters')
+  }
+
+  /**
+   * @private
+   * @type {string[]}
+   */
+  _activeItems
+
+  /**
+   * @param {StateNode} node
+   * @param {string | number} key
+   */
+  activateItem (node, key) {
+    console.log('KEY', node.key)
+    this._activeItems.push(`${node.fullKey}/${key}`)
+    if (node.key === '$oneOf') {
+      console.log('ONE OF input', node, node.skeleton.childrenTrees?.[/** @type {number} */(key)].root.defaultData)
+      this.input(node, node.skeleton.childrenTrees?.[/** @type {number} */(key)].root.defaultData)
+    } else {
+      this.updateState()
+    }
+  }
+
+  /**
+   * @param {StateNode} node
+   * @param {string | number} key
+   */
+  deactivateItem (node, key) {
+    this._activeItems = this._activeItems.filter(item => item !== `${node.fullKey}/${key}`)
+    this.updateState()
   }
 }

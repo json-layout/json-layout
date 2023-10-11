@@ -20,7 +20,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   data = children && layout.comp !== 'list' ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
   // empty data is removed and replaced by the default data
   if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
-  data = data ?? skeleton.defaultData
+  data = skeleton.const ?? data ?? skeleton.defaultData
 
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
@@ -223,17 +223,46 @@ export function createStateNode (
     })
   }
 
+  if (key === '$oneOf' && skeleton.childrenTrees) {
+    // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
+    /** @type {number} */
+    let activeChildTreeIndex = skeleton.childrenTrees.findIndex((childTree, i) => context.activeItems.includes(`${fullKey}/${i}`))
+    if (activeChildTreeIndex === -1) activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
+    if (activeChildTreeIndex !== -1) {
+      const activeChildTree = skeleton.childrenTrees[activeChildTreeIndex]
+      children = [
+        createStateNode(
+          context,
+          options,
+          compiledLayout,
+          activeChildTreeIndex,
+          `${fullKey}/${activeChildTreeIndex}`,
+          fullKey,
+          dataPath,
+          dataPath,
+          activeChildTree.root,
+          null,
+          display,
+          data,
+          validationState,
+          reusedNode?.children?.[0]
+        )
+      ]
+    }
+  }
+
   if (layout.comp === 'list') {
     const arrayData = /** @type {unknown[]} */(data ?? [])
     const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0]?.root)
     const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
     children = arrayData.map((itemData, i) => {
+      const childFullKey = `${fullKey}/${i}`
       return createStateNode(
         context,
-        listItemOptions,
+        layout.listEditMode === 'inline-single' && context.activeItems.includes(childFullKey) ? options : listItemOptions,
         compiledLayout,
         i,
-        `${fullKey}/${i}`,
+        childFullKey,
         fullKey,
         `${dataPath}/${i}`,
         dataPath,

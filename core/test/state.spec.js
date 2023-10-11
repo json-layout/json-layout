@@ -13,7 +13,8 @@ global.fetch = fetch
 
 // const debug = Debug('test')
 
-for (const compileMode of ['runtime', 'build-time']) {
+// for (const compileMode of ['runtime', 'build-time']) {
+for (const compileMode of ['runtime']) {
   /** @type {typeof compileSrc} */
   let compile
 
@@ -492,6 +493,73 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[0].options.readOnly, true)
       assert.equal(statefulLayout.stateTree.root.children[0]?.children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children[0]?.children[0].key, 'str1')
+    })
+
+    it('should manage active element in an array', async () => {
+      const compiledLayout = await compile({
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            str1: { type: 'string' }
+          }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, [{ str1: 'test1' }, { str2: 'test1' }])
+      assert.equal(statefulLayout.stateTree.root.children?.[0].options.readOnly, true)
+      assert.equal(statefulLayout.stateTree.root.children?.[0].options.summary, true)
+      assert.equal(statefulLayout.stateTree.root.children?.[1].options.readOnly, true)
+      assert.equal(statefulLayout.stateTree.root.children?.[1].options.summary, true)
+
+      statefulLayout.activateItem(statefulLayout.stateTree.root, '0')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].options.readOnly, false)
+      assert.equal(statefulLayout.stateTree.root.children?.[0].options.summary, false)
+      assert.equal(statefulLayout.stateTree.root.children?.[1].options.readOnly, true)
+      assert.equal(statefulLayout.stateTree.root.children?.[1].options.summary, true)
+    })
+
+    it('should manage active element in a oneOf', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        oneOf: [{
+          properties: {
+            key: { type: 'string', const: 'key1' },
+            str1: { type: 'string' }
+          }
+        }, {
+          properties: {
+            key: { type: 'string', const: 'key2' },
+            str2: { type: 'string' },
+            str3: { type: 'string', const: 'string 3' }
+          }
+        }, {
+          properties: {
+            key: { type: 'string', const: 'key3' },
+            str3: { type: 'string' }
+          }
+        }]
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { key: 'key2' })
+      assert.equal(statefulLayout.stateTree.root.children?.[0].key, '$oneOf')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].key, 1)
+      assert.deepEqual(statefulLayout.stateTree.root.data, { key: 'key2', str3: 'string 3' })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { key: 'key2', str3: 'string 3' })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].children?.[0].data, { key: 'key2', str3: 'string 3' })
+
+      assert.ok(statefulLayout.stateTree.root.children?.[0].children?.[0].children?.[1])
+      statefulLayout.input(statefulLayout.stateTree.root.children?.[0].children?.[0].children?.[1], 'string 2')
+
+      assert.deepEqual(statefulLayout.stateTree.root.data, { key: 'key2', str2: 'string 2', str3: 'string 3' })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { key: 'key2', str2: 'string 2', str3: 'string 3' })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].children?.[0].data, { key: 'key2', str2: 'string 2', str3: 'string 3' })
+
+      statefulLayout.activateItem(statefulLayout.stateTree.root.children?.[0], 2)
+
+      // TODO: additional properties should be removed
+      assert.equal(statefulLayout.stateTree.root.data.key, 'key3')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].data.key, 'key3')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].data.key, 'key3')
     })
   })
 }

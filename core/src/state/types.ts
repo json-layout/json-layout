@@ -30,6 +30,7 @@ export interface StateTree {
 export interface CreateStateTreeContext {
   errors?: ErrorObject[]
   nodes: StateNode[]
+  activeItems: string[]
 }
 
 export interface ValidationState {

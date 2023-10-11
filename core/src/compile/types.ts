@@ -44,6 +44,7 @@ export interface SkeletonNode {
   pointer: string
   parentPointer: string | null
   defaultData?: unknown
+  const?: unknown
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
 }
