@@ -51,7 +51,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
   }
 
   const ast = parseModule(code)
-  ast.exports.default = {
+  ast.exports.compiledLayout = {
     skeletonTree: compiledLayout.skeletonTree,
     normalizedLayouts: compiledLayout.normalizedLayouts,
     validates: {},
@@ -65,16 +65,12 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
   i = 0
   for (const pointer of Object.keys(compiledLayout.validates)) {
     const exportKey = `export${i++}`
-    ast.exports.default.validates[pointer] = ast.exports[exportKey]
+    ast.exports.compiledLayout.validates[pointer] = ast.exports[exportKey]
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete ast.exports[exportKey]
   }
 
-  // const compiledLayoutExpression = builders.literal(ast.exports.default)
-  const compiledLayoutCode = print(ast.exports.default.$ast)
-  delete ast.exports.default
-
-  const generatedCode = `${generateCode(ast).code}\nconst compiledLayout = ${compiledLayoutCode}`
+  const generatedCode = generateCode(ast).code
 
   return generatedCode
 }
