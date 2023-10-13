@@ -125,7 +125,7 @@ export function evalExpression (expressions, expression, data, options, display)
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
   // console.log(expression.expr, context, mode, display)
-  return compiledExpression(data, options, display)
+  return compiledExpression(data, options, options.context, display)
 }
 
 /**

@@ -5,7 +5,7 @@ import { type ValidateFunction, type SchemaObject } from 'ajv'
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
 
-export type CompiledExpression = (data: any, options: StateNodeOptions, display: Display) => any
+export type CompiledExpression = (data: any, options: StateNodeOptions, context: object, display: Display) => any
 
 export interface CompileOptions {
   ajv: ajvModule.default

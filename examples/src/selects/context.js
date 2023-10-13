@@ -2,7 +2,7 @@
 const example = {
   title: 'Items from layout and context',
   id: 'context',
-  description: 'It is possible to force rendering a `select` component and use data from outside the schema as a list of possible values. To do so you can use the `layout.items` property of write an expression in `layout.getItems`.',
+  description: 'It is possible to force rendering a `select` component and use data from outside the schema as a list of possible values. To do so you can use the `layout.items` property or write an expression in `layout.getItems`.',
   schema: {
     type: 'object',
     properties: {

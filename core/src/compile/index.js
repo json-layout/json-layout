@@ -27,7 +27,7 @@ const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
 // @ts-ignore
 const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalizeModule)
 
-const expressionsParams = ['data', 'options', 'display']
+const expressionsParams = ['data', 'options', 'context', 'display']
 
 const clone = rfdc()
 // const exprEvalParser = new ExprEvalParser()
