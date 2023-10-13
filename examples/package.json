@@ -37,6 +37,6 @@
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "peerDependencies": {
-    "@json-layout/core": "0.0.0"
+    "@json-layout/core": "0.1.0"
   }
 }
