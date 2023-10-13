@@ -2,28 +2,7 @@
 const example = {
   title: 'Switch',
   id: 'switch',
-  description: `For more in depth customization of the responsive layout the expressions are given a \`display\` object with this contract:
-
-\`\`\`js
-{
-  width: number // the width of the parent container
-  xs: boolean,
-  sm: boolean,
-  smAndDown: boolean,
-  smAndUp: boolean,
-  md: boolean,
-  mdAndDown: boolean,
-  mobile: boolean, // alias for mdAndDown
-  mdAndUp: boolean,
-  lg: boolean,
-  lgAndDown: boolean,
-  lgAndUp: boolean,
-  xl: boolean,
-  xlAndDown: boolean,
-  xlAndUp: boolean,
-  xxl: boolean
-}
-\`\`\`
+  description: `For more in depth customization of the responsive layout you can use the \`display\` parameter given to expressions.
 
 This object can be used in a \`switch\` to change the component or any other layout option. For example the verticality of expansion panels might be better suited for smaller screens than the horizontality of tabs.`,
   schema: {

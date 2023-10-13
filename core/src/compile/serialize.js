@@ -70,7 +70,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     delete ast.exports[exportKey]
   }
 
-  const generatedCode = generateCode(ast).code
+  const generatedCode = generateCode(ast).code.replace('export const compiledLayout = {', 'const compiledLayout = {')
 
   return generatedCode
 }

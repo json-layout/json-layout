@@ -180,7 +180,7 @@ export class StatefulLayout {
     this.prepareOptions(options)
     this._data = data
     this.initValidationState()
-    this._activeItems = []
+    this.activeItems = {}
     this.updateState()
   }
 
@@ -225,7 +225,7 @@ export class StatefulLayout {
    */
   createStateTree () {
     /** @type {CreateStateTreeContext} */
-    const createStateTreeContext = { nodes: [], activeItems: this._activeItems }
+    const createStateTreeContext = { nodes: [], activeItems: this.activeItems }
     this._stateTree = createStateTree(
       createStateTreeContext,
       this._options,
@@ -268,7 +268,7 @@ export class StatefulLayout {
   /**
    * @param {StateNode} node
    * @param {unknown} data
-   * @param {string} [activateKey]
+   * @param {number} [activateKey]
    */
   input (node, data, activateKey) {
     logDataBinding('received input event from node', node, data)
@@ -276,7 +276,7 @@ export class StatefulLayout {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
     }
     if (activateKey !== undefined) {
-      this._activeItems.push(`${node.fullKey}/${activateKey}`)
+      this.activeItems[node.fullKey] = activateKey
     }
     if (node.parentFullKey === null) {
       this.data = data
@@ -354,21 +354,18 @@ export class StatefulLayout {
   }
 
   /**
-   * @private
-   * @type {string[]}
+   * @type {Record<string, number>}
    */
-  _activeItems
+  activeItems
 
   /**
    * @param {StateNode} node
-   * @param {string | number} key
+   * @param {number} key
    */
   activateItem (node, key) {
-    console.log('KEY', node.key)
-    this._activeItems.push(`${node.fullKey}/${key}`)
+    this.activeItems[node.fullKey] = key
     if (node.key === '$oneOf') {
-      console.log('ONE OF input', node, node.skeleton.childrenTrees?.[/** @type {number} */(key)].root.defaultData)
-      this.input(node, node.skeleton.childrenTrees?.[/** @type {number} */(key)].root.defaultData)
+      this.input(node, node.skeleton.childrenTrees?.[key].root.defaultData)
     } else {
       this.updateState()
     }
@@ -376,10 +373,9 @@ export class StatefulLayout {
 
   /**
    * @param {StateNode} node
-   * @param {string | number} key
    */
-  deactivateItem (node, key) {
-    this._activeItems = this._activeItems.filter(item => item !== `${node.fullKey}/${key}`)
+  deactivateItem (node) {
+    delete this.activeItems[node.fullKey]
     this.updateState()
   }
 }

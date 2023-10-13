@@ -511,7 +511,7 @@ for (const compileMode of ['runtime']) {
       assert.equal(statefulLayout.stateTree.root.children?.[1].options.readOnly, true)
       assert.equal(statefulLayout.stateTree.root.children?.[1].options.summary, true)
 
-      statefulLayout.activateItem(statefulLayout.stateTree.root, '0')
+      statefulLayout.activateItem(statefulLayout.stateTree.root, 0)
       assert.equal(statefulLayout.stateTree.root.children?.[0].options.readOnly, false)
       assert.equal(statefulLayout.stateTree.root.children?.[0].options.summary, false)
       assert.equal(statefulLayout.stateTree.root.children?.[1].options.readOnly, true)
