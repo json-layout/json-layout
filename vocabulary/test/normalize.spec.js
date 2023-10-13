@@ -28,6 +28,7 @@ describe('normalize schema fragment function', () => {
     assert.deepEqual(normalize({ type: 'string' }, '/prop'), { comp: 'text-field', label: 'prop' })
     assert.deepEqual(normalize({ type: 'string', title: 'Prop' }, '/prop'), { comp: 'text-field', label: 'Prop' })
     assert.deepEqual(normalize({ type: 'string', title: 'Prop', layout: { label: 'Prop label' } }, '/prop'), { comp: 'text-field', label: 'Prop label' })
+    assert.deepEqual(normalize({ type: 'object', title: 'Prop', layout: { comp: 'select', items: [{ key: '1' }] } }, '/prop'), { comp: 'select', label: 'Prop', items: [{ key: '1', value: '1', title: '1' }] })
   })
 
   it('should handle number types', () => {

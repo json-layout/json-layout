@@ -17,6 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "test:single": "node --test --test-only test/*.spec.js",
     "test": "node --test test/*.spec.js",
     "build": "run-s clean build:schemas build:tsc",
     "clean": "rm -rf ./types && rm -f src/*/types.ts && rm -f src/*/validate.js",
