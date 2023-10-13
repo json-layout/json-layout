@@ -13,7 +13,8 @@
   },
   "files": [
     "src",
-    "types"
+    "types",
+    "LICENSE"
   ],
   "scripts": {
     "build": "rm -rf ./types && tsc",

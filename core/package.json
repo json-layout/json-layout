@@ -19,7 +19,8 @@
   },
   "files": [
     "src",
-    "types"
+    "types",
+    "LICENSE"
   ],
   "scripts": {
     "test:single": "node --no-experimental-fetch --test --test-only test/*.spec.js",

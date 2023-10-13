@@ -13,7 +13,8 @@
   },
   "files": [
     "src",
-    "types"
+    "types",
+    "LICENSE"
   ],
   "scripts": {
     "test": "node --test test/*.spec.js",
