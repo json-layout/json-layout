@@ -2,7 +2,7 @@
 
 import ajvModule from 'ajv'
 import rfdc from 'rfdc'
-import { Parser as ExprEvalParser } from 'expr-eval'
+// import { Parser as ExprEvalParser } from 'expr-eval'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
 import ajvLocalizeModule from 'ajv-i18n'
@@ -30,7 +30,7 @@ const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalize
 const expressionsParams = ['data', 'options', 'display']
 
 const clone = rfdc()
-const exprEvalParser = new ExprEvalParser()
+// const exprEvalParser = new ExprEvalParser()
 
 /**
  * @param {PartialCompileOptions} partialOptions
@@ -104,9 +104,9 @@ export function compile (_schema, partialOptions = {}) {
   const expressions = []
 
   for (const expression of expressionsDefinitions) {
-    if (expression.type === 'expr-eval') {
+    /* if (expression.type === 'expr-eval') {
       expressions.push(exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')))
-    }
+    } */
     if (expression.type === 'js-fn') {
       // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
       expressions.push(/** @type {CompiledExpression} */(new Function(...expressionsParams, expression.expr)))

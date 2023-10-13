@@ -104,7 +104,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["expr-eval", "js-fn", "js-eval", "js-tpl"]
+          "enum": ["js-fn", "js-eval", "js-tpl"]
         },
         "expr": {
           "type": "string"
