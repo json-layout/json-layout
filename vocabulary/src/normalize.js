@@ -1,5 +1,5 @@
 import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch } from './layout-keyword/index.js'
-import { validateNormalizedLayout, normalizedLayoutSchema, isSectionLayout, isCompositeLayout } from './index.js'
+import { validateNormalizedLayout, compositeCompNames } from './normalized-layout/index.js'
 
 /**
  * @typedef {import('./index.js').Child} Child
@@ -12,11 +12,6 @@ import { validateNormalizedLayout, normalizedLayoutSchema, isSectionLayout, isCo
  * @typedef {import('./index.js').PartialCompObject} PartialCompObject
  * @typedef {import("./types.js").SchemaFragment} SchemaFragment
  */
-
-// export type Markdown = (src: string) => string
-
-// this navice implementation is sufficient here, not used very often
-const clone = (/** @type {any} */ obj) => JSON.parse(JSON.stringify(obj))
 
 /**
  * @param {import('./types.js').SchemaFragment} schemaFragment
@@ -85,81 +80,43 @@ function getChildren (defaultChildren, partialChildren) {
 }
 
 /**
+ * @param {PartialCompObject} partial
  * @param {SchemaFragment} schemaFragment
- * @param {string} schemaPath
- * @returns {import('./index.js').CompObject}
+ * @param {'oneOf'} [arrayChild]
+ * @returns {import('./index.js').ComponentName}
  */
-function getDefaultCompObject (schemaFragment, schemaPath) {
-  const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
-  if ('const' in schemaFragment) return { comp: 'none' }
-  if (!schemaFragment.type) return { comp: 'none' }
-  if (schemaFragment.type === 'object') {
-    return { comp: 'section', title: schemaFragment.title ?? null, children: getDefaultChildren(schemaFragment) }
-  }
-  if (schemaFragment.type === 'array') {
-    if (!schemaFragment.items) return { comp: 'none' }
-    if (Array.isArray(schemaFragment.items)) {
-      return { comp: 'section', title: schemaFragment.title ?? null, children: getDefaultChildren(schemaFragment) } // tuples
-    }
-    return {
-      comp: 'list',
-      title: schemaFragment.title ?? key,
-      listEditMode: schemaFragment.items.type === 'object' ? 'inline-single' : 'inline',
-      listActions: ['add', 'edit', 'delete', 'duplicate', 'sort']
-    }
-  }
+function getDefaultComp (partial, schemaFragment, arrayChild) {
   const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
-  if (schemaFragment.enum && hasSimpleType) {
-    return {
-      comp: 'select',
-      label: schemaFragment.title ?? key,
-      items: schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
-    }
+  if (arrayChild === 'oneOf') return 'one-of-select'
+  if (schemaFragment.type === 'object') return 'section'
+  if (schemaFragment.type === 'array') {
+    if (Array.isArray(schemaFragment.items)) return 'section'
+    else return 'list'
   }
-  if (schemaFragment.oneOf && !(schemaFragment.oneOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem))) && hasSimpleType) {
-    return {
-      comp: 'select',
-      label: schemaFragment.title ?? key,
-      items: schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({ key: oneOfItem.const + '', title: (oneOfItem.title ?? oneOfItem.const) + '', value: oneOfItem.const }))
-    }
-  }
+  if (schemaFragment.enum && hasSimpleType) return 'select'
+  if (schemaFragment.oneOf && hasSimpleType) return 'select'
+  if (partial.items || partial.getItems) return 'select'
   if (schemaFragment.type === 'string') {
-    if (schemaFragment.format) {
-      /** @type {CompObject | null} */
-      let formatCompObject = null
-      if (schemaFragment.format === 'date') formatCompObject = { comp: 'date-picker', label: schemaFragment.title ?? key, format: 'date' }
-      if (schemaFragment.format === 'date-time') formatCompObject = { comp: 'date-time-picker', label: schemaFragment.title ?? key }
-      if (schemaFragment.format === 'time') formatCompObject = { comp: 'time-picker', label: schemaFragment.title ?? key }
-      if (formatCompObject) {
-        if ('formatMinimum' in schemaFragment) formatCompObject.min = schemaFragment.formatMinimum
-        if ('formatMaximum' in schemaFragment) formatCompObject.max = schemaFragment.formatMaximum
-        return formatCompObject
-      }
-    }
-    return { comp: 'text-field', label: schemaFragment.title ?? key }
+    if (schemaFragment.format === 'date') return 'date-picker'
+    if (schemaFragment.format === 'date-time') return 'date-time-picker'
+    if (schemaFragment.format === 'time') return 'time-picker'
+    return 'text-field'
   }
-  if (schemaFragment.type === 'integer' || schemaFragment.type === 'number') {
-    /** @type {import('./index.js').NumberField} */
-    const compObject = { comp: 'number-field', label: schemaFragment.title ?? key }
-    if (schemaFragment.type === 'integer') compObject.step = 1
-    if ('minimum' in schemaFragment) compObject.min = schemaFragment.minimum
-    if ('maximum' in schemaFragment) compObject.max = schemaFragment.maximum
-    return compObject
-  }
-  if (schemaFragment.type === 'boolean') return { comp: 'checkbox', label: schemaFragment.title ?? key }
-  console.warn(`failed to calculate default layout for schema ${schemaPath}`, schemaFragment)
-  return { comp: 'none' }
+  if (schemaFragment.type === 'integer' || schemaFragment.type === 'number') return 'number-field'
+  if (schemaFragment.type === 'boolean') return 'checkbox'
+  console.warn('failed to calculate default component for schema fragment', schemaFragment)
+  return 'none'
 }
 
 /**
  * @param {LayoutKeyword} layoutKeyword
- * @returns {PartialCompObject | null}
+ * @returns {PartialCompObject}
  */
 function getPartialCompObject (layoutKeyword) {
   if (isPartialCompObject(layoutKeyword)) return { ...layoutKeyword }
   else if (isComponentName(layoutKeyword)) return { comp: layoutKeyword }
   else if (isPartialChildren(layoutKeyword)) return { children: layoutKeyword }
-  return null
+  return {}
 }
 
 /**
@@ -174,14 +131,62 @@ function normalizeExpression (expression, defaultType = 'js-eval') {
 
 /**
  * @param {LayoutKeyword} layoutKeyword
- * @param {CompObject} defaultCompObject
  * @param {SchemaFragment} schemaFragment
+ * @param {string} schemaPath
  * @param {(text: string) => string} markdown
+ * @param {'oneOf'} [arrayChild]
  * @returns {CompObject}
  */
-function getCompObject (layoutKeyword, defaultCompObject, schemaFragment, markdown) {
+function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild) {
+  const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
+  const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
+
+  if ('const' in schemaFragment) return { comp: 'none' }
+  if (!schemaFragment.type) return { comp: 'none' }
+  if (schemaFragment.type === 'array' && !schemaFragment.items) return { comp: 'none' }
+
   const partial = getPartialCompObject(layoutKeyword)
-  if (!partial) return defaultCompObject
+
+  // chose the default component for a schema fragment
+  if (!partial.comp) partial.comp = getDefaultComp(partial, schemaFragment, arrayChild)
+  if (partial.comp === 'none') return { comp: 'none' }
+
+  // @ts-ignore
+  if (compositeCompNames.includes(partial.comp)) {
+    partial.title = partial.title ?? schemaFragment.title ?? null
+    partial.children = getChildren(getDefaultChildren(schemaFragment), partial.children)
+  } else if (partial.comp === 'list') {
+    partial.title = partial.title ?? schemaFragment.title ?? key
+    partial.listEditMode = partial.listEditMode ?? (schemaFragment.items.type === 'object' ? 'inline-single' : 'inline')
+    partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
+  } else {
+    partial.label = partial.label ?? schemaFragment.title ?? key
+  }
+
+  if (partial.comp === 'select') {
+    if (schemaFragment.enum && hasSimpleType) {
+      partial.items = partial.items ?? schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
+    }
+    if (schemaFragment.oneOf && hasSimpleType && !(schemaFragment.oneOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem)))) {
+      partial.items = partial.items ?? schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({ key: oneOfItem.const + '', title: (oneOfItem.title ?? oneOfItem.const) + '', value: oneOfItem.const }))
+    }
+  }
+
+  if (partial.comp === 'date-picker') {
+    if (schemaFragment.format === 'date') partial.format = 'date'
+    if (schemaFragment.format === 'date-time') partial.format = 'date-time'
+  }
+
+  if (['date-picker', 'date-time-picker', 'time-picker'].includes(partial.comp)) {
+    if ('formatMinimum' in schemaFragment) partial.min = partial.min ?? schemaFragment.formatMinimum
+    if ('formatMaximum' in schemaFragment) partial.max = partial.max ?? schemaFragment.formatMaximum
+  }
+
+  if (['number-field', 'slider'].includes(partial.comp)) {
+    if (schemaFragment.type === 'integer') partial.step = partial.step ?? 1
+    if ('minimum' in schemaFragment) partial.min = partial.min ?? schemaFragment.minimum
+    if ('maximum' in schemaFragment) partial.max = partial.max ?? schemaFragment.maximum
+  }
 
   if (partial.if) partial.if = normalizeExpression(partial.if)
   if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
@@ -236,49 +241,30 @@ function getCompObject (layoutKeyword, defaultCompObject, schemaFragment, markdo
     }
   }
 
-  /** @type {any} */
-  const compObject = {}
-  if (partial.comp && defaultCompObject.comp !== partial.comp) {
-    const compProperties = normalizedLayoutSchema.$defs[partial.comp]?.properties
-    if (typeof compProperties === 'object') {
-      for (const key of Object.keys(compProperties).concat(['if', 'help', 'cols', 'props', 'slots', 'options'])) {
-        if (key === 'label' && !defaultCompObject.label && defaultCompObject.title) compObject.label = defaultCompObject.title
-        if (key === 'title' && !defaultCompObject.title && defaultCompObject.label) compObject.title = defaultCompObject.label
-        if (key in defaultCompObject) compObject[key] = defaultCompObject[key]
-        if (key in partial) compObject[key] = partial[key]
-      }
-    }
-  } else {
-    Object.assign(compObject, defaultCompObject, partial)
-  }
+  if (schemaFragment.description && !partial.help) partial.help = schemaFragment.description
+  if (partial.help) partial.help = markdown(partial.help).trim()
 
-  if (isSectionLayout(defaultCompObject) && isCompositeLayout(compObject)) {
-    compObject.children = getChildren((defaultCompObject).children, partial.children)
-  }
+  if (typeof partial.cols === 'number') partial.cols = { xs: partial.cols }
+  if (typeof partial.cols === 'object' && partial.cols.xs === undefined) partial.cols.xs = 12
 
-  if (compObject.description && !compObject.help) compObject.help = compObject.description
-  if (compObject.help) compObject.help = markdown(compObject.help).trim()
-
-  if (typeof compObject.cols === 'number') compObject.cols = { xs: compObject.cols }
-  if (typeof compObject.cols === 'object' && compObject.cols.xs === undefined) compObject.cols.xs = 12
-
-  return compObject
+  return /** @type {CompObject} */(partial)
 }
 
 /**
  * @param {LayoutKeyword} layoutKeyword
- * @param {CompObject} defaultCompObject
  * @param {SchemaFragment} schemaFragment
+ * @param {string} schemaPath
  * @param {(text: string) => string} markdown
+ * @param {'oneOf'} [arrayChild]
  * @returns {NormalizedLayout}
  */
-function getNormalizedLayout (layoutKeyword, defaultCompObject, schemaFragment, markdown) {
+function getNormalizedLayout (layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild) {
   if (isPartialSwitch(layoutKeyword)) {
-    const switchCases = layoutKeyword.switch.map(layout => getCompObject(layout, clone(defaultCompObject), schemaFragment, markdown))
-    if (!switchCases.find(switchCase => !switchCase.if)) switchCases.push(clone(defaultCompObject))
+    const switchCases = layoutKeyword.switch.map(layout => getCompObject(layout, schemaFragment, schemaPath, markdown, arrayChild))
+    if (!switchCases.find(switchCase => !switchCase.if)) switchCases.push(getCompObject({}, schemaFragment, schemaPath, markdown, arrayChild))
     return { switch: switchCases }
   } else {
-    return getCompObject(layoutKeyword, defaultCompObject, schemaFragment, markdown)
+    return getCompObject(layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild)
   }
 }
 
@@ -291,24 +277,20 @@ function getNormalizedLayout (layoutKeyword, defaultCompObject, schemaFragment, 
  */
 export function normalizeLayoutFragment (schemaFragment, schemaPath, markdown = (src) => src, arrayChild) {
   let layoutKeyword
-  /** @type {CompObject} */
-  let defaultCompObject
   if (arrayChild === 'oneOf') {
     layoutKeyword = schemaFragment.oneOfLayout ?? {}
-    defaultCompObject = { comp: 'one-of-select' } // TODO: default label ?
   } else {
     layoutKeyword = schemaFragment.layout ?? {}
-    defaultCompObject = getDefaultCompObject(schemaFragment, schemaPath)
   }
   if (!validateLayoutKeyword(layoutKeyword)) {
     console.error(`layout keyword validation errors at path ${schemaPath}`, layoutKeyword, validateLayoutKeyword.errors)
-    return defaultCompObject
+    return getNormalizedLayout({}, schemaFragment, schemaPath, markdown, arrayChild)
     // throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
   }
-  const normalizedLayout = getNormalizedLayout(layoutKeyword, defaultCompObject, schemaFragment, markdown)
+  const normalizedLayout = getNormalizedLayout(layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild)
   if (!validateNormalizedLayout(normalizedLayout)) {
     console.error(`normalized layout validation errors at path ${schemaPath}`, normalizedLayout, validateNormalizedLayout.errors)
-    return defaultCompObject
+    return getNormalizedLayout({}, schemaFragment, schemaPath, markdown, arrayChild)
     // throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })
   }
   return normalizedLayout

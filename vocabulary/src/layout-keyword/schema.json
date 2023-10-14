@@ -68,7 +68,8 @@
         "select",
         "tabs",
         "vertical-tabs",
-        "expansion-panels"
+        "expansion-panels",
+        "one-of-select"
       ]
     },
     "partial-child": {

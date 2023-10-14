@@ -6,6 +6,7 @@ export interface SchemaFragment {
   type: string
   format?: string
   title?: string
+  description?: string
   properties?: Record<string, any>
   oneOf?: any[]
   anyOf?: any[]

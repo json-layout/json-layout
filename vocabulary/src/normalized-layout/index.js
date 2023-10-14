@@ -61,9 +61,11 @@ export function isSectionLayout (layout) {
   return layout.comp === 'section'
 }
 
+export const compositeCompNames = ['section', 'tabs', 'vertical-tabs', 'expansion-panels']
+
 /** @type {(layout: CompObject) => layout is CompositeCompObject} */
 export function isCompositeLayout (layout) {
-  return ['section', 'tabs', 'vertical-tabs', 'expansion-panels'].includes(layout.comp)
+  return compositeCompNames.includes(layout.comp)
 }
 
 /** @type {(layout: CompObject) => layout is TextField} */

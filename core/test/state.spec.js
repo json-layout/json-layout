@@ -13,8 +13,8 @@ global.fetch = fetch
 
 // const debug = Debug('test')
 
-// for (const compileMode of ['runtime', 'build-time']) {
-for (const compileMode of ['runtime']) {
+for (const compileMode of ['runtime', 'build-time']) {
+// for (const compileMode of ['runtime']) {
   /** @type {typeof compileSrc} */
   let compile
 

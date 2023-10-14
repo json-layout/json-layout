@@ -192,7 +192,8 @@ export function createStateNode (
   const options = produceNodeOptions(
     reusedNode?.options ?? /** @type {import('./types.js').StatefulLayoutOptions} */({}),
     parentOptions,
-    layout.options, display.width
+    layout.options,
+    display.width
   )
 
   /** @type {import('./types.js').StateNode[] | undefined} */
