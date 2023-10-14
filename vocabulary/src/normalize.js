@@ -88,14 +88,20 @@ function getChildren (defaultChildren, partialChildren) {
 function getDefaultComp (partial, schemaFragment, arrayChild) {
   const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
   if (arrayChild === 'oneOf') return 'one-of-select'
+  if (hasSimpleType && (schemaFragment.enum || schemaFragment.oneOf)) return 'select'
+  if (partial.items || partial.getItems) return 'select'
+  if (
+    schemaFragment.type === 'array' &&
+    schemaFragment.items &&
+    ['string', 'integer', 'number'].includes(schemaFragment.items.type) &&
+    (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
+    return 'select'
+  }
   if (schemaFragment.type === 'object') return 'section'
   if (schemaFragment.type === 'array') {
     if (Array.isArray(schemaFragment.items)) return 'section'
     else return 'list'
   }
-  if (schemaFragment.enum && hasSimpleType) return 'select'
-  if (schemaFragment.oneOf && hasSimpleType) return 'select'
-  if (partial.items || partial.getItems) return 'select'
   if (schemaFragment.type === 'string') {
     if (schemaFragment.format === 'date') return 'date-picker'
     if (schemaFragment.format === 'date-time') return 'date-time-picker'
@@ -130,6 +136,22 @@ function normalizeExpression (expression, defaultType = 'js-eval') {
 }
 
 /**
+ * @param {SchemaFragment} schemaFragment
+ * @returns {import('./index.js').PartialSelectItem[] | null}
+ */
+function getItemsFromSchema (schemaFragment) {
+  if (!schemaFragment) return null
+  const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
+  if (schemaFragment.enum && hasSimpleType) {
+    return schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
+  }
+  if (schemaFragment.oneOf && hasSimpleType && !(schemaFragment.oneOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem)))) {
+    return schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({ key: oneOfItem.const + '', title: (oneOfItem.title ?? oneOfItem.const) + '', value: oneOfItem.const }))
+  }
+  return null
+}
+
+/**
  * @param {LayoutKeyword} layoutKeyword
  * @param {SchemaFragment} schemaFragment
  * @param {string} schemaPath
@@ -139,7 +161,6 @@ function normalizeExpression (expression, defaultType = 'js-eval') {
  */
 function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild) {
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
-  const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
 
   if ('const' in schemaFragment) return { comp: 'none' }
   if (!schemaFragment.type) return { comp: 'none' }
@@ -163,13 +184,15 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     partial.label = partial.label ?? schemaFragment.title ?? key
   }
 
-  if (partial.comp === 'select') {
-    if (schemaFragment.enum && hasSimpleType) {
-      partial.items = partial.items ?? schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
+  if (partial.comp === 'select' && !partial.items) {
+    let items
+    if (schemaFragment.type === 'array') {
+      items = getItemsFromSchema(schemaFragment.items)
+      partial.multiple = true
+    } else {
+      items = getItemsFromSchema(schemaFragment)
     }
-    if (schemaFragment.oneOf && hasSimpleType && !(schemaFragment.oneOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem)))) {
-      partial.items = partial.items ?? schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({ key: oneOfItem.const + '', title: (oneOfItem.title ?? oneOfItem.const) + '', value: oneOfItem.const }))
-    }
+    if (items) partial.items = items
   }
 
   if (partial.comp === 'date-picker') {

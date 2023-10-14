@@ -267,7 +267,8 @@
         "comp": {"const": "select"},
         "label": {"type": "string"},
         "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"}
+        "getItems": {"$ref": "#/$defs/get-items"},
+        "multiple": {"type": "boolean"}
       }
     },
     "select-items": {
@@ -308,10 +309,7 @@
       "type": "object",
       "required": ["comp"],
       "properties": {
-        "comp": {"const": "one-of-select"},
-        "if": {"$ref": "#/$defs/expression"},
-        "label": {"type": "string"},
-        "help": {"type": "string"}
+        "comp": {"const": "one-of-select"}
       }
     },
     "expression": {

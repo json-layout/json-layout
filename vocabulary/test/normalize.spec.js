@@ -96,6 +96,13 @@ describe('normalize schema fragment function', () => {
     )
   })
 
+  it('should manage select on arrays with enums and oneOf', () => {
+    assert.deepEqual(
+      normalize({ type: 'array', items: { type: 'string', enum: ['val1', 'val2'] } }, '/prop'),
+      { comp: 'select', label: 'prop', multiple: true, items: [{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }] }
+    )
+  })
+
   it('should accept lib specific props, slots and options', () => {
     assert.deepEqual(
       normalize({ type: 'string', layout: { props: { prop1: 'Prop 1' }, slots: { before: 'Before **slot**', component: 'slot-comp' }, options: { opt1: 'Opt 1' } } }, '/prop', (str) => `markdown: ${str}`),
