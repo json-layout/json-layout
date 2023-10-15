@@ -250,10 +250,33 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[2].children[0].error, 'required information')
     })
 
-    it('should manage arrays', async () => {
+    it('should manage arrays of strings as comboboxes', async () => {
       const compiledLayout = await compile({
         type: 'object',
         properties: { arr1: { type: 'array', items: { type: 'string', minLength: 2 } } }
+      })
+      assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
+      assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
+      assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {
+        arr1: ['Str 1', 'Str 2', 'a']
+      })
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.equal(arrNode.layout.comp, 'combobox')
+      assert.deepEqual(arrNode.data, ['Str 1', 'Str 2', 'a'])
+      assert.ok(!arrNode.children)
+      assert.equal(statefulLayout.stateTree.valid, false)
+      assert.equal(arrNode.error, 'must NOT be shorter than 2 characters')
+
+      statefulLayout.input(arrNode, ['test'])
+      assert.equal(statefulLayout.stateTree.valid, true)
+    })
+
+    it('should manage arrays as lists', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: { arr1: { type: 'array', layout: 'list', items: { type: 'string', minLength: 2 } } }
       })
       assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
       assert.ok(!compiledLayout.skeletonTree.root.children[0].children)

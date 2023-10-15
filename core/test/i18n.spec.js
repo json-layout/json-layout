@@ -35,8 +35,8 @@ describe('internationalization', () => {
     const compiledLayout = compile({
       type: 'object',
       properties: {
-        array1: { type: 'array', items: { type: 'string' }, layout: { messages: { addItem: 'Add item to array 1' } } },
-        array2: { type: 'array', items: { type: 'string' }, layout: { messages: { addItem: 'Add item to array 2' } } }
+        array1: { type: 'array', items: { type: 'string' }, layout: { comp: 'list', messages: { addItem: 'Add item to array 1' } } },
+        array2: { type: 'array', items: { type: 'string' }, layout: { comp: 'list', messages: { addItem: 'Add item to array 2' } } }
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, -10)

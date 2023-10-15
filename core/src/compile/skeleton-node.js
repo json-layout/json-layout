@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isSelectLayout, isGetItemsFetch } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 
 /**
@@ -52,7 +52,7 @@ export function makeSkeletonNode (
   for (const compObject of compObjects) {
     if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)
-    if (isSelectLayout(compObject) && compObject.getItems) {
+    if (isItemsLayout(compObject) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
       if (isGetItemsFetch(compObject.getItems)) pushExpression(expressions, compObject.getItems.url)
       if (compObject.getItems.itemTitle) pushExpression(expressions, compObject.getItems.itemTitle)

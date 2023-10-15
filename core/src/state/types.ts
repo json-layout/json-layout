@@ -1,5 +1,27 @@
 import { type ErrorObject } from 'ajv'
-import { type CompObject, type Cols, type StateNodeOptions, type TextField, type Textarea, type NumberField, type Slider, type Checkbox, type Switch, type DatePicker, type DateTimePicker, type TimePicker, type ColorPicker, type Section, type OneOfSelect, type Select, type Tabs, type VerticalTabs, type ExpansionPanels, type List } from '@json-layout/vocabulary'
+import {
+  type CompObject,
+  type Cols,
+  type StateNodeOptions,
+  type TextField,
+  type Textarea,
+  type NumberField,
+  type Slider,
+  type Checkbox,
+  type Switch,
+  type DatePicker,
+  type DateTimePicker,
+  type TimePicker,
+  type ColorPicker,
+  type Section,
+  type OneOfSelect,
+  type Select,
+  type Tabs,
+  type VerticalTabs,
+  type ExpansionPanels,
+  type List,
+  type Combobox
+} from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout } from '../index.js'
 import { type LocaleMessages } from '../i18n/types.js'
 
@@ -87,3 +109,5 @@ export type VerticalTabsNode = StateNode & { layout: VerticalTabs, children: Sta
 export type ExpansionPanelsNode = StateNode & { layout: ExpansionPanels, children: StateNode[] }
 
 export type ListNode = StateNode & { layout: List, data: any[], children: StateNode[], childrenTrees: SkeletonTree[] }
+
+export type ComboboxNode = Omit<StateNode, 'children'> & { layout: Combobox, data: any[] }

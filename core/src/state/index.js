@@ -4,7 +4,7 @@ import debug from 'debug'
 import { evalExpression, producePatchedData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
-import { isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
+import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
 
 export { Display } from './utils/display.js'
 
@@ -20,6 +20,7 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').SliderNode} SliderNode
  * @typedef {import('./types.js').SectionNode} SectionNode
  * @typedef {import('./types.js').SelectNode} SelectNode
+ * @typedef {import('./types.js').ComboboxNode} ComboboxNode
  * @typedef {import('./types.js').CheckboxNode} CheckboxNode
  * @typedef {import('./types.js').SwitchNode} SwitchNode
  * @typedef {import('./types.js').ColorPickerNode} ColorPickerNode
@@ -36,8 +37,8 @@ export { Display } from './utils/display.js'
 /** @type {(node: StateNode | undefined) => node is SectionNode} */
 export const isSection = (node) => !!node && node.layout.comp === 'section'
 
-/** @type {(node: StateNode | undefined) => node is SelectNode} */
-export const isSelect = (node) => !!node && node.layout.comp === 'select'
+/** @type {(node: StateNode | undefined) => node is SelectNode | ComboboxNode} */
+export const isItemsNode = (node) => !!node && isItemsLayout(node.layout)
 
 const logDataBinding = debug('jl:data-binding')
 
@@ -307,7 +308,7 @@ export class StatefulLayout {
    * @returns {Promise<import('@json-layout/vocabulary').SelectItems>}
    */
   async getSelectItems (node) {
-    if (!isSelect(node)) throw new Error('node is not a select component')
+    if (!isItemsNode(node)) throw new Error('node is not a select component')
     if (node.layout.items) return node.layout.items
 
     /** @type {(expression: import('@json-layout/vocabulary').Expression, data: any) => any} */

@@ -30,6 +30,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').VerticalTabs} VerticalTabs
  * @typedef {import('./types.js').ExpansionPanels} ExpansionPanels
  * @typedef {import('./types.js').List} List
+ * @typedef {import('./types.js').Combobox} Combobox
  * @typedef {import('./types.js').Cols} Cols
  * @typedef {import('./types.js').ColsObj} ColsObj
  * @typedef {import('./types.js').StateNodeOptions} StateNodeOptions
@@ -76,6 +77,11 @@ export function isTextFieldLayout (layout) {
 /** @type {(layout: CompObject) => layout is Select} */
 export function isSelectLayout (layout) {
   return layout.comp === 'select'
+}
+
+/** @type {(layout: CompObject) => layout is Select | Combobox} */
+export function isItemsLayout (layout) {
+  return layout.comp === 'select' || layout.comp === 'combobox'
 }
 
 /** @type {(getItems: GetItems) => getItems is Expression} */

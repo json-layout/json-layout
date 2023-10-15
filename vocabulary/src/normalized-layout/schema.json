@@ -59,6 +59,7 @@
             {"$ref": "#/$defs/date-time-picker"},
             {"$ref": "#/$defs/time-picker"},
             {"$ref": "#/$defs/color-picker"},
+            {"$ref": "#/$defs/combobox"},
             {"$ref": "#/$defs/select"},
             {"$ref": "#/$defs/one-of-select"},
             {"$ref": "#/$defs/section"},
@@ -260,6 +261,17 @@
         "label": {"type": "string"}
       }
     },
+    "combobox": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "combobox"},
+        "label": {"type": "string"},
+        "items": {"$ref": "#/$defs/select-items"},
+        "getItems": {"$ref": "#/$defs/get-items"},
+        "multiple": {"type": "boolean"}
+      }
+    },
     "select": {
       "type": "object",
       "required": ["comp", "label"],
@@ -286,17 +298,21 @@
     },
     "get-items": {
       "type": "object",
-      "properties": {
-        "returnObjects": {"type": "boolean", "readOnly": true},
-        "itemsResults": {"$ref": "#/$defs/expression"},
-        "itemTitle": {"$ref": "#/$defs/expression"},
-        "itemKey": {"$ref": "#/$defs/expression"},
-        "itemValue": {"$ref": "#/$defs/expression"}
+      "allOf": [{
+        "properties": {
+          "returnObjects": {"type": "boolean", "readOnly": true},
+          "itemsResults": {"$ref": "#/$defs/expression"},
+          "itemTitle": {"$ref": "#/$defs/expression"},
+          "itemKey": {"$ref": "#/$defs/expression"},
+          "itemValue": {"$ref": "#/$defs/expression"}
+        }
       },
-      "oneOf": [
-        {"$ref": "#/$defs/expression"},
-        {"$ref": "#/$defs/get-items-fetch"}
-      ]
+      {
+        "oneOf": [
+          {"$ref": "#/$defs/expression"},
+          {"$ref": "#/$defs/get-items-fetch"}
+        ]
+      }]
     },
     "get-items-fetch": {
       "type": "object",

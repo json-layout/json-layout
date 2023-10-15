@@ -90,12 +90,13 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   if (arrayChild === 'oneOf') return 'one-of-select'
   if (hasSimpleType && (schemaFragment.enum || schemaFragment.oneOf)) return 'select'
   if (partial.items || partial.getItems) return 'select'
-  if (
-    schemaFragment.type === 'array' &&
-    schemaFragment.items &&
-    ['string', 'integer', 'number'].includes(schemaFragment.items.type) &&
-    (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
-    return 'select'
+  if (schemaFragment.type === 'array' && schemaFragment.items) {
+    if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
+      return 'select'
+    }
+    if (schemaFragment.items.type === 'string' && !schemaFragment.items.layout && !['date', 'date-time', 'time'].includes(schemaFragment.items.format)) {
+      return 'combobox'
+    }
   }
   if (schemaFragment.type === 'object') return 'section'
   if (schemaFragment.type === 'array') {
@@ -193,6 +194,12 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
       items = getItemsFromSchema(schemaFragment)
     }
     if (items) partial.items = items
+  }
+
+  if (partial.comp === 'combobox') {
+    if (schemaFragment.type === 'array') {
+      partial.multiple = true
+    }
   }
 
   if (partial.comp === 'date-picker') {
