@@ -16,6 +16,7 @@ import {
   type Section,
   type OneOfSelect,
   type Select,
+  type Autocomplete,
   type Tabs,
   type VerticalTabs,
   type ExpansionPanels,
@@ -101,6 +102,8 @@ export type SectionNode = StateNode & { layout: Section, children: StateNode[] }
 export type OneOfSelectNode = StateNode & { layout: OneOfSelect, data: Record<string, unknown>, childrenTrees: SkeletonTree[] }
 
 export type SelectNode = Omit<StateNode, 'children'> & { layout: Select, data: any }
+
+export type AutocompleteNode = Omit<StateNode, 'children'> & { layout: Autocomplete, data: any }
 
 export type TabsNode = StateNode & { layout: Tabs, children: StateNode[] }
 

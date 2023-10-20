@@ -62,6 +62,7 @@
             {"$ref": "#/$defs/combobox"},
             {"$ref": "#/$defs/number-combobox"},
             {"$ref": "#/$defs/select"},
+            {"$ref": "#/$defs/autocomplete"},
             {"$ref": "#/$defs/one-of-select"},
             {"$ref": "#/$defs/section"},
             {"$ref": "#/$defs/tabs"},
@@ -298,6 +299,17 @@
         "multiple": {"type": "boolean"}
       }
     },
+    "autocomplete": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "autocomplete"},
+        "label": {"type": "string"},
+        "items": {"$ref": "#/$defs/select-items"},
+        "getItems": {"$ref": "#/$defs/get-items"},
+        "multiple": {"type": "boolean"}
+      }
+    },
     "select-items": {
       "type": "array",
       "items": {"$ref": "#/$defs/select-item"}
@@ -333,7 +345,14 @@
       "type": "object",
       "required": ["url"],
       "properties": {
-        "url": {"$ref": "#/$defs/expression"}
+        "url": {"$ref": "#/$defs/expression"},
+        "qSearchParam": {"type": "string"},
+        "searchParams": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/expression"}
+          }
+        }
       }
     },
     "one-of-select": {

@@ -89,10 +89,17 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
   if (arrayChild === 'oneOf') return 'one-of-select'
   if (hasSimpleType && (schemaFragment.enum || schemaFragment.oneOf)) return 'select'
-  if (partial.items || partial.getItems) return 'select'
+  if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
+  if (partial.getItems) {
+    if (isPartialGetItemsFetch(partial.getItems)) {
+      if (partial.getItems.qSearchParam) return 'autocomplete'
+      if (typeof partial.getItems.url === 'string' && partial.getItems.url.includes('{q}')) return 'autocomplete'
+    }
+    return 'select'
+  }
   if (schemaFragment.type === 'array' && schemaFragment.items) {
     if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
-      return 'select'
+      return (schemaFragment.items.enum || schemaFragment.items.oneOf).length > 20 ? 'autocomplete' : 'select'
     }
     if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && !schemaFragment.items.layout && !['date', 'date-time', 'time'].includes(schemaFragment.items.format)) {
       return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'

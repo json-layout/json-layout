@@ -68,6 +68,7 @@
         "section",
         "list",
         "select",
+        "autocomplete",
         "tabs",
         "vertical-tabs",
         "expansion-panels",
@@ -135,16 +136,20 @@
     },
     "partial-get-items-obj": {
       "type": "object",
-      "properties": {
-        "itemTitle": {"$ref": "#/$defs/partial-expression"},
-        "itemKey": {"$ref": "#/$defs/partial-expression"},
-        "itemValue": {"$ref": "#/$defs/partial-expression"},
-        "itemsResults": {"$ref": "#/$defs/partial-expression"}
+      "allOf": [{
+        "properties": {
+          "itemTitle": {"$ref": "#/$defs/partial-expression"},
+          "itemKey": {"$ref": "#/$defs/partial-expression"},
+          "itemValue": {"$ref": "#/$defs/partial-expression"},
+          "itemsResults": {"$ref": "#/$defs/partial-expression"}
+        }
       },
-      "oneOf": [
-        {"$ref": "#/$defs/partial-expression"},
-        {"$ref": "#/$defs/partial-get-items-fetch"}
-      ]
+      {
+        "oneOf": [
+          {"$ref": "#/$defs/partial-expression"},
+          {"$ref": "#/$defs/partial-get-items-fetch"}
+        ]
+      }]
     },
     "partial-get-items-fetch": {
       "type": "object",

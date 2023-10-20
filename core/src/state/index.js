@@ -20,6 +20,7 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').SliderNode} SliderNode
  * @typedef {import('./types.js').SectionNode} SectionNode
  * @typedef {import('./types.js').SelectNode} SelectNode
+ * @typedef {import('./types.js').AutocompleteNode} AutocompleteNode
  * @typedef {import('./types.js').ComboboxNode} ComboboxNode
  * @typedef {import('./types.js').CheckboxNode} CheckboxNode
  * @typedef {import('./types.js').SwitchNode} SwitchNode
@@ -37,7 +38,7 @@ export { Display } from './utils/display.js'
 /** @type {(node: StateNode | undefined) => node is SectionNode} */
 export const isSection = (node) => !!node && node.layout.comp === 'section'
 
-/** @type {(node: StateNode | undefined) => node is SelectNode | ComboboxNode} */
+/** @type {(node: StateNode | undefined) => node is SelectNode | ComboboxNode | AutocompleteNode} */
 export const isItemsNode = (node) => !!node && isItemsLayout(node.layout)
 
 const logDataBinding = debug('jl:data-binding')
@@ -304,12 +305,15 @@ export class StatefulLayout {
   }
 
   /**
+   * @private
    * @param {StateNode} node
-   * @returns {Promise<import('@json-layout/vocabulary').SelectItems>}
+   * @param {string} q
+   * @returns {Promise<[import('@json-layout/vocabulary').SelectItems, boolean]>}
    */
-  async getSelectItems (node) {
-    if (!isItemsNode(node)) throw new Error('node is not a select component')
-    if (node.layout.items) return node.layout.items
+  async getSourceItems (node, q = '') {
+    if (!isItemsNode(node)) throw new Error('node is not a component with an items list')
+
+    if (node.layout.items) return [node.layout.items, false]
 
     /** @type {(expression: import('@json-layout/vocabulary').Expression, data: any) => any} */
     const evalSelectExpression = (expression, data) => {
@@ -317,12 +321,24 @@ export class StatefulLayout {
     }
 
     let rawItems
+    let appliedQ = false
     if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {
       rawItems = evalSelectExpression(node.layout.getItems, null)
       if (!Array.isArray(rawItems)) throw new Error('getItems expression didn\'t return an array')
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
-      const url = evalSelectExpression(node.layout.getItems.url, null)
+      const url = new URL(evalSelectExpression(node.layout.getItems.url, null))
+      let qSearchParam = node.layout.getItems.qSearchParam
+      if (!qSearchParam) {
+        for (const searchParam of url.searchParams.entries()) {
+          if (searchParam[1] === '{q}') qSearchParam = searchParam[0]
+        }
+      }
+      if (qSearchParam) {
+        appliedQ = true
+        if (q) url.searchParams.set(qSearchParam, q)
+        else url.searchParams.delete(qSearchParam)
+      }
       rawItems = await (await fetch(url)).json()
     }
 
@@ -330,7 +346,8 @@ export class StatefulLayout {
       if (node.layout.getItems?.itemsResults) {
         rawItems = evalSelectExpression(node.layout.getItems.itemsResults, rawItems)
       }
-      return rawItems.map((/** @type {any} */ rawItem) => {
+      /** @type {import('@json-layout/vocabulary').SelectItems} */
+      const items = rawItems.map((/** @type {any} */ rawItem) => {
         if (typeof rawItem === 'object') {
           /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
           const item = {}
@@ -350,8 +367,20 @@ export class StatefulLayout {
           return item
         }
       })
+      return [items, appliedQ]
     }
     throw new Error(`node ${node.fullKey} is missing items or getItems parameters`)
+  }
+
+  /**
+   * @param {StateNode} node
+   * @param {string} q
+   * @returns {Promise<import('@json-layout/vocabulary').SelectItems>}
+   */
+  async getItems (node, q = '') {
+    const [sourceItems, appliedQ] = await this.getSourceItems(node, q)
+    if (q && !appliedQ) return sourceItems.filter(item => item.title.toLowerCase().includes(q.toLowerCase()))
+    return sourceItems
   }
 
   /**

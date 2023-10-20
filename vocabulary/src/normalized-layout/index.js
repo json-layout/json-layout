@@ -9,6 +9,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').GetItems} GetItems
  * @typedef {import('./types.js').Expression} Expression
  * @typedef {import('./types.js').Select} Select
+ * @typedef {import('./types.js').Autocomplete} Autocomplete
  * @typedef {import('./types.js').SelectItem} SelectItem
  * @typedef {import('./types.js').SelectItems} SelectItems
  * @typedef {import('./types.js').GetItemsFetch} GetItemsFetch
@@ -79,9 +80,9 @@ export function isSelectLayout (layout) {
   return layout.comp === 'select'
 }
 
-/** @type {(layout: CompObject) => layout is Select | Combobox} */
+/** @type {(layout: CompObject) => layout is Select | Combobox | Autocomplete} */
 export function isItemsLayout (layout) {
-  return layout.comp === 'select' || layout.comp === 'combobox'
+  return layout.comp === 'select' || layout.comp === 'combobox' || layout.comp === 'autocomplete'
 }
 
 /** @type {(getItems: GetItems) => getItems is Expression} */
