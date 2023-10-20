@@ -351,7 +351,7 @@ export class StatefulLayout {
         }
       })
     }
-    throw new Error('node is missing items or getItems parameters')
+    throw new Error(`node ${node.fullKey} is missing items or getItems parameters`)
   }
 
   /**

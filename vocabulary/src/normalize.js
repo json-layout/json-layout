@@ -94,8 +94,8 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
     if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
       return 'select'
     }
-    if (schemaFragment.items.type === 'string' && !schemaFragment.items.layout && !['date', 'date-time', 'time'].includes(schemaFragment.items.format)) {
-      return 'combobox'
+    if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && !schemaFragment.items.layout && !['date', 'date-time', 'time'].includes(schemaFragment.items.format)) {
+      return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'
     }
   }
   if (schemaFragment.type === 'object') return 'section'
@@ -196,7 +196,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     if (items) partial.items = items
   }
 
-  if (partial.comp === 'combobox') {
+  if (['combobox', 'number-combobox'].includes(partial.comp)) {
     if (schemaFragment.type === 'array') {
       partial.multiple = true
     }

@@ -64,6 +64,7 @@
         "time-picker",
         "color-picker",
         "combobox",
+        "number-combobox",
         "section",
         "list",
         "select",

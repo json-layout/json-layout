@@ -60,6 +60,7 @@
             {"$ref": "#/$defs/time-picker"},
             {"$ref": "#/$defs/color-picker"},
             {"$ref": "#/$defs/combobox"},
+            {"$ref": "#/$defs/number-combobox"},
             {"$ref": "#/$defs/select"},
             {"$ref": "#/$defs/one-of-select"},
             {"$ref": "#/$defs/section"},
@@ -270,6 +271,20 @@
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"}
+      }
+    },
+    "number-combobox": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "number-combobox"},
+        "label": {"type": "string"},
+        "items": {"$ref": "#/$defs/select-items"},
+        "getItems": {"$ref": "#/$defs/get-items"},
+        "multiple": {"type": "boolean"},
+        "step": {"type": "number"},
+        "min": {"type": "number"},
+        "max": {"type": "number"}
       }
     },
     "select": {
