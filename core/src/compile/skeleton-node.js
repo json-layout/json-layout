@@ -58,6 +58,7 @@ export function makeSkeletonNode (
       if (compObject.getItems.itemTitle) pushExpression(expressions, compObject.getItems.itemTitle)
       if (compObject.getItems.itemKey) pushExpression(expressions, compObject.getItems.itemKey)
       if (compObject.getItems.itemValue) pushExpression(expressions, compObject.getItems.itemValue)
+      if (compObject.getItems.itemIcon) pushExpression(expressions, compObject.getItems.itemIcon)
       if (compObject.getItems.itemsResults) pushExpression(expressions, compObject.getItems.itemsResults)
     }
   }

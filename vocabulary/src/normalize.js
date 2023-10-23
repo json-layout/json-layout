@@ -88,7 +88,8 @@ function getChildren (defaultChildren, partialChildren) {
 function getDefaultComp (partial, schemaFragment, arrayChild) {
   const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
   if (arrayChild === 'oneOf') return 'one-of-select'
-  if (hasSimpleType && (schemaFragment.enum || schemaFragment.oneOf)) return 'select'
+  if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
+  if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
   if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
   if (partial.getItems) {
     if (isPartialGetItemsFetch(partial.getItems)) {
@@ -154,7 +155,12 @@ function getItemsFromSchema (schemaFragment) {
     return schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
   }
   if (schemaFragment.oneOf && hasSimpleType && !(schemaFragment.oneOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem)))) {
-    return schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({ key: oneOfItem.const + '', title: (oneOfItem.title ?? oneOfItem.const) + '', value: oneOfItem.const }))
+    return schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({
+      ...oneOfItem,
+      key: oneOfItem.const + '',
+      title: (oneOfItem.title ?? oneOfItem.const) + '',
+      value: oneOfItem.const
+    }))
   }
   return null
 }
@@ -192,7 +198,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     partial.label = partial.label ?? schemaFragment.title ?? key
   }
 
-  if (partial.comp === 'select' && !partial.items) {
+  if (['select', 'autocomplete'].includes(partial.comp) && !partial.items) {
     let items
     if (schemaFragment.type === 'array') {
       items = getItemsFromSchema(schemaFragment.items)
@@ -200,7 +206,13 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     } else {
       items = getItemsFromSchema(schemaFragment)
     }
-    if (items) partial.items = items
+    if (items) {
+      if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
+        partial.getItems.expr = JSON.stringify(items)
+      } else {
+        partial.getItems = JSON.stringify(items)
+      }
+    }
   }
 
   if (['combobox', 'number-combobox'].includes(partial.comp)) {
@@ -232,6 +244,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle)
     if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey)
     if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue)
+    if (partial.getItems.itemIcon) partial.getItems.itemIcon = normalizeExpression(partial.getItems.itemIcon)
     if (partial.getItems.itemsResults) partial.getItems.itemsResults = normalizeExpression(partial.getItems.itemsResults)
   }
   if (partial.getItems && isPartialGetItemsFetch(partial.getItems)) {

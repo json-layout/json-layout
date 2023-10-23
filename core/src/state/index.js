@@ -348,24 +348,23 @@ export class StatefulLayout {
       }
       /** @type {import('@json-layout/vocabulary').SelectItems} */
       const items = rawItems.map((/** @type {any} */ rawItem) => {
+        /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
+        const item = {}
         if (typeof rawItem === 'object') {
-          /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
-          const item = {}
           item.value = node.layout.getItems?.itemValue ? evalSelectExpression(node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
           item.key = node.layout.getItems?.itemKey ? evalSelectExpression(node.layout.getItems.itemKey, rawItem) : rawItem.key
           item.title = node.layout.getItems?.itemTitle ? evalSelectExpression(node.layout.getItems.itemTitle, rawItem) : rawItem.title
           item.value = item.value ?? item.key
           item.key = item.key ?? item.value + ''
           item.title = item.title ?? item.key
-          return item
+          if (!item.icon && rawItem.icon) item.icon = rawItem.icon
         } else {
-          /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
-          const item = {}
           item.value = node.layout.getItems?.itemValue ? evalSelectExpression(node.layout.getItems.itemValue, rawItem) : rawItem
           item.key = node.layout.getItems?.itemKey ? evalSelectExpression(node.layout.getItems.itemKey, rawItem) : item.value
           item.title = node.layout.getItems?.itemTitle ? evalSelectExpression(node.layout.getItems.itemTitle, rawItem) : item.value
-          return item
         }
+        if (node.layout.getItems?.itemIcon) item.icon = evalSelectExpression(node.layout.getItems?.itemIcon, rawItem)
+        return item
       })
       return [items, appliedQ]
     }

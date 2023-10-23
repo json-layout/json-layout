@@ -75,12 +75,20 @@ describe('normalize schema fragment function', () => {
   it('should manage select on enums and oneOf', () => {
     assert.deepEqual(
       normalize({ type: 'string', enum: ['val1', 'val2'] }, '/prop'),
-      { comp: 'select', label: 'prop', items: [{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }] }
+      {
+        comp: 'select',
+        label: 'prop',
+        getItems: { type: 'js-eval', expr: JSON.stringify([{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }]) }
+      }
     )
 
     assert.deepEqual(
       normalize({ type: 'string', oneOf: [{ const: 'val1', title: 'Val 1' }, { const: 'val2' }] }, '/prop'),
-      { comp: 'select', label: 'prop', items: [{ key: 'val1', title: 'Val 1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }] }
+      {
+        comp: 'select',
+        label: 'prop',
+        getItems: { type: 'js-eval', expr: JSON.stringify([{ const: 'val1', title: 'Val 1', key: 'val1', value: 'val1' }, { const: 'val2', key: 'val2', title: 'val2', value: 'val2' }]) }
+      }
     )
 
     assert.deepEqual(
@@ -99,7 +107,12 @@ describe('normalize schema fragment function', () => {
   it('should manage select on arrays with enums and oneOf', () => {
     assert.deepEqual(
       normalize({ type: 'array', items: { type: 'string', enum: ['val1', 'val2'] } }, '/prop'),
-      { comp: 'select', label: 'prop', multiple: true, items: [{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }] }
+      {
+        comp: 'select',
+        label: 'prop',
+        multiple: true,
+        getItems: { type: 'js-eval', expr: JSON.stringify([{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }]) }
+      }
     )
   })
 

@@ -320,7 +320,8 @@
       "properties": {
         "title": {"type": "string"},
         "key": {"type": "string"},
-        "value": {}
+        "value": {},
+        "icon": {"type": "string"}
       }
     },
     "get-items": {
@@ -331,7 +332,8 @@
           "itemsResults": {"$ref": "#/$defs/expression"},
           "itemTitle": {"$ref": "#/$defs/expression"},
           "itemKey": {"$ref": "#/$defs/expression"},
-          "itemValue": {"$ref": "#/$defs/expression"}
+          "itemValue": {"$ref": "#/$defs/expression"},
+          "itemIcon": {"$ref": "#/$defs/expression"}
         }
       },
       {

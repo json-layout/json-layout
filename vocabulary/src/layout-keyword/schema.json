@@ -141,12 +141,14 @@
           "itemTitle": {"$ref": "#/$defs/partial-expression"},
           "itemKey": {"$ref": "#/$defs/partial-expression"},
           "itemValue": {"$ref": "#/$defs/partial-expression"},
+          "itemIcon": {"$ref": "#/$defs/partial-expression"},
           "itemsResults": {"$ref": "#/$defs/partial-expression"}
         }
       },
       {
-        "oneOf": [
-          {"$ref": "#/$defs/partial-expression"},
+        "anyOf": [
+          {"type": "object"},
+          {"$ref": "#/$defs/partial-expression-obj"},
           {"$ref": "#/$defs/partial-get-items-fetch"}
         ]
       }]
