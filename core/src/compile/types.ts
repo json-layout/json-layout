@@ -1,7 +1,7 @@
 import type ajvModule from 'ajv'
 import type MarkdownIt from 'markdown-it'
 import { type NormalizedLayout, type StateNodeOptions } from '@json-layout/vocabulary'
-import { type ValidateFunction, type SchemaObject } from 'ajv'
+import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv'
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
 
@@ -23,6 +23,7 @@ export interface CompiledLayout {
   schema?: SchemaObject
   skeletonTree: SkeletonTree
   validates: Record<string, ValidateFunction>
+  validationErrors: Record<string, string[]>
   normalizedLayouts: Record<string, NormalizedLayout>
   expressions: CompiledExpression[]
   locale: string

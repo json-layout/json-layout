@@ -20,6 +20,7 @@ const pushExpression = (expressions, expression) => {
  * @param {any} schema
  * @param {import('./index.js').CompileOptions} options
  * @param {string[]} validates
+ * @param {Record<string, string[]>} validationErrors
  * @param {Record<string, import('@json-layout/vocabulary').NormalizedLayout>} normalizedLayouts
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
  * @param {string | number} key
@@ -32,6 +33,7 @@ export function makeSkeletonNode (
   schema,
   options,
   validates,
+  validationErrors,
   normalizedLayouts,
   expressions,
   key,
@@ -44,9 +46,14 @@ export function makeSkeletonNode (
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   schema.errorMessage = schema.errorMessage ?? {}
-  /** @type {import('@json-layout/vocabulary').NormalizedLayout} */
-  const normalizedLayout = normalizedLayouts[pointer] ?? normalizeLayoutFragment(/** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema), pointer, options.markdown)
-  normalizedLayouts[pointer] = normalizedLayout
+  if (!normalizedLayouts[pointer]) {
+    const normalizationResult = normalizeLayoutFragment(/** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema), pointer, options.markdown)
+    normalizedLayouts[pointer] = normalizationResult.layout
+    if (normalizationResult.errors.length) {
+      validationErrors[pointer.replace('_jl#', '/')] = normalizationResult.errors
+    }
+  }
+  const normalizedLayout = normalizedLayouts[pointer]
 
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
@@ -83,6 +90,7 @@ export function makeSkeletonNode (
           schema.properties[propertyKey],
           options,
           validates,
+          validationErrors,
           normalizedLayouts,
           expressions,
           propertyKey,
@@ -103,6 +111,7 @@ export function makeSkeletonNode (
           schema.allOf[i],
           options,
           validates,
+          validationErrors,
           normalizedLayouts,
           expressions,
           `$allOf-${i}`,
@@ -121,7 +130,16 @@ export function makeSkeletonNode (
         if (!schema.oneOf[i].type) schema.oneOf[i].type = schema.type
         const title = schema.oneOf[i].title ?? `option ${i}`
         delete schema.oneOf[i].title
-        childrenTrees.push(makeSkeletonTree(schema.oneOf[i], options, validates, normalizedLayouts, expressions, `${oneOfPointer}/${i}`, title))
+        childrenTrees.push(makeSkeletonTree(
+          schema.oneOf[i],
+          options,
+          validates,
+          validationErrors,
+          normalizedLayouts,
+          expressions,
+          `${oneOfPointer}/${i}`,
+          title
+        ))
       }
       node.children = node.children ?? []
       node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees })
@@ -137,6 +155,7 @@ export function makeSkeletonNode (
           itemSchema,
           options,
           validates,
+          validationErrors,
           normalizedLayouts,
           expressions,
           i,
@@ -151,6 +170,7 @@ export function makeSkeletonNode (
           schema.items,
           options,
           validates,
+          validationErrors,
           normalizedLayouts,
           expressions,
           `${pointer}/items`,

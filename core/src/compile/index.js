@@ -87,8 +87,19 @@ export function compile (_schema, partialOptions = {}) {
   const normalizedLayouts = {}
   /** @type {import('@json-layout/vocabulary').Expression[]} */
   const expressionsDefinitions = []
+  /** @type {Record<string, string[]>} */
+  const validationErrors = {}
 
-  const skeletonTree = makeSkeletonTree(schema, options, validatePointers, normalizedLayouts, expressionsDefinitions, `${schema.$id}#`, 'main')
+  const skeletonTree = makeSkeletonTree(
+    schema,
+    options,
+    validatePointers,
+    validationErrors,
+    normalizedLayouts,
+    expressionsDefinitions,
+    `${schema.$id}#`,
+    'main'
+  )
 
   options.ajv.addSchema(schema)
 
@@ -126,6 +137,7 @@ export function compile (_schema, partialOptions = {}) {
     schema,
     skeletonTree,
     validates,
+    validationErrors,
     normalizedLayouts,
     expressions,
     locale: options.locale,

@@ -5,6 +5,7 @@
 // @ts-ignore
 import Ajv2019 from 'ajv/dist/2019.js'
 import addFormats from 'ajv-formats'
+import ajvErrors from 'ajv-errors'
 import { readFileSync, readdirSync, existsSync, writeFileSync, unlinkSync } from 'node:fs'
 import { compile as compileTs } from 'json-schema-to-typescript'
 import path from 'node:path'
@@ -19,10 +20,13 @@ const ajv = new Ajv2019({
   },
   discriminator: true,
   allowMatchingProperties: true,
-  allowUnionTypes: true
+  allowUnionTypes: true,
+  allErrors: true
 })
 // @ts-ignore
 addFormats(ajv)
+// @ts-ignore
+ajvErrors(ajv)
 
 const main = async () => {
   const dir = path.resolve('./src')

@@ -119,8 +119,7 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   }
   if (schemaFragment.type === 'integer' || schemaFragment.type === 'number') return 'number-field'
   if (schemaFragment.type === 'boolean') return 'checkbox'
-  console.warn('failed to calculate default component for schema fragment', schemaFragment)
-  return 'none'
+  throw new Error('failed to calculate default component for schema fragment')
 }
 
 /**
@@ -171,20 +170,29 @@ function getItemsFromSchema (schemaFragment) {
  * @param {string} schemaPath
  * @param {(text: string) => string} markdown
  * @param {'oneOf'} [arrayChild]
- * @returns {CompObject}
+ * @returns {{normalized: CompObject, errors: string[]}}
  */
 function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild) {
+  /** @type {string[]} */
+  const errors = []
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
 
-  if ('const' in schemaFragment) return { comp: 'none' }
-  if (!schemaFragment.type) return { comp: 'none' }
-  if (schemaFragment.type === 'array' && !schemaFragment.items) return { comp: 'none' }
+  if ('const' in schemaFragment) return { normalized: { comp: 'none' }, errors }
+  if (!schemaFragment.type) return { normalized: { comp: 'none' }, errors }
+  if (schemaFragment.type === 'array' && !schemaFragment.items) return { normalized: { comp: 'none' }, errors }
 
   const partial = getPartialCompObject(layoutKeyword)
 
   // chose the default component for a schema fragment
-  if (!partial.comp) partial.comp = getDefaultComp(partial, schemaFragment, arrayChild)
-  if (partial.comp === 'none') return { comp: 'none' }
+  if (!partial.comp) {
+    try {
+      partial.comp = getDefaultComp(partial, schemaFragment, arrayChild)
+    } catch (/** @type {any} */err) {
+      errors.push(err.message)
+      partial.comp = 'none'
+    }
+  }
+  if (partial.comp === 'none') return { normalized: { comp: 'none' }, errors }
 
   // @ts-ignore
   if (compositeCompNames.includes(partial.comp)) {
@@ -297,7 +305,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
   if (typeof partial.cols === 'number') partial.cols = { xs: partial.cols }
   if (typeof partial.cols === 'object' && partial.cols.xs === undefined) partial.cols.xs = 12
 
-  return /** @type {CompObject} */(partial)
+  return { normalized: /** @type {CompObject} */(partial), errors }
 }
 
 /**
@@ -306,16 +314,55 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
  * @param {string} schemaPath
  * @param {(text: string) => string} markdown
  * @param {'oneOf'} [arrayChild]
- * @returns {NormalizedLayout}
+ * @returns {{normalized: NormalizedLayout, errors: string[]}}
  */
 function getNormalizedLayout (layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild) {
   if (isPartialSwitch(layoutKeyword)) {
-    const switchCases = layoutKeyword.switch.map(layout => getCompObject(layout, schemaFragment, schemaPath, markdown, arrayChild))
-    if (!switchCases.find(switchCase => !switchCase.if)) switchCases.push(getCompObject({}, schemaFragment, schemaPath, markdown, arrayChild))
-    return { switch: switchCases }
+    /** @type {CompObject[]} */
+    const normalizedSwitchCases = []
+    const errors = []
+    const switchCases = [...layoutKeyword.switch]
+    if (!switchCases.find(s => !s.if)) {
+      switchCases.push({})
+    }
+    for (let i = 0; i < switchCases.length; i++) {
+      const switchCase = switchCases[i]
+      const compObjectResult = getCompObject(switchCase, schemaFragment, schemaPath, markdown, arrayChild)
+      normalizedSwitchCases.push(compObjectResult.normalized)
+      for (const error of compObjectResult.errors) errors.push(`switch ${i} - ${error}`)
+    }
+    return { normalized: { switch: normalizedSwitchCases }, errors: [] }
   } else {
     return getCompObject(layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild)
   }
+}
+
+/**
+ * @param {import('ajv').ErrorObject} error
+ * @param {(error: import('ajv').ErrorObject) => boolean} fn
+ * @returns {boolean}
+ */
+function matchValidationError (error, fn) {
+  if (error.keyword === 'errorMessage') {
+    error = error.params.errors[0]
+  }
+  return fn(error)
+}
+
+/**
+ * @param {import('ajv').ErrorObject[]} errors
+ * @returns {string[]}
+ */
+function lighterValidationErrors (errors) {
+  const compositeErrors = errors.filter(e => matchValidationError(e, (e) => e.keyword === 'anyOf' || e.keyword === 'oneOf'))
+  // in case of a anyOf/oneOf error there are some subschemas errors that mostly prevent readability
+  for (const compositeError of compositeErrors) {
+    const explicitError = errors.find(e => matchValidationError(e, (e) => e.instancePath === compositeError.instancePath && e.keyword !== 'type'))
+    if (explicitError) {
+      errors = errors.filter(e => matchValidationError(e, (e) => e.instancePath !== compositeError.instancePath || e.keyword !== 'type'))
+    }
+  }
+  return errors.map(e => e.message ?? e.keyword)
 }
 
 /**
@@ -323,7 +370,7 @@ function getNormalizedLayout (layoutKeyword, schemaFragment, schemaPath, markdow
  * @param {string} schemaPath
  * @param {(text: string) => string} markdown
  * @param {'oneOf'} [arrayChild]
- * @returns {NormalizedLayout}
+ * @returns {{layout: NormalizedLayout, errors: string[]}}
  */
 export function normalizeLayoutFragment (schemaFragment, schemaPath, markdown = (src) => src, arrayChild) {
   let layoutKeyword
@@ -334,14 +381,19 @@ export function normalizeLayoutFragment (schemaFragment, schemaPath, markdown = 
   }
   if (!validateLayoutKeyword(layoutKeyword)) {
     console.error(`layout keyword validation errors at path ${schemaPath}`, layoutKeyword, validateLayoutKeyword.errors)
-    return getNormalizedLayout({}, schemaFragment, schemaPath, markdown, arrayChild)
-    // throw new Error(`invalid layout keyword at path ${schemaPath}`, { cause: validateLayoutKeyword.errors })
+    return {
+      layout: getNormalizedLayout({}, schemaFragment, schemaPath, markdown, arrayChild).normalized,
+      errors: lighterValidationErrors(validateLayoutKeyword.errors)
+    }
   }
   const normalizedLayout = getNormalizedLayout(layoutKeyword, schemaFragment, schemaPath, markdown, arrayChild)
-  if (!validateNormalizedLayout(normalizedLayout)) {
+  if (!validateNormalizedLayout(normalizedLayout.normalized)) {
     console.error(`normalized layout validation errors at path ${schemaPath}`, normalizedLayout, validateNormalizedLayout.errors)
-    return getNormalizedLayout({}, schemaFragment, schemaPath, markdown, arrayChild)
+    return {
+      layout: getNormalizedLayout({}, schemaFragment, schemaPath, markdown, arrayChild).normalized,
+      errors: lighterValidationErrors(validateNormalizedLayout.errors)
+    }
     // throw new Error(`invalid layout at path ${schemaPath}`, { cause: validateNormalizedLayout.errors })
   }
-  return normalizedLayout
+  return { layout: normalizedLayout.normalized, errors: [] }
 }

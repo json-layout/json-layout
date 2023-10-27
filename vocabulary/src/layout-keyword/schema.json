@@ -2,6 +2,9 @@
   "$id": "https://json-layout.github.io/layout-keyword",
   "title": "layout keyword",
   "unevaluatedProperties": false,
+  "errorMessage": {
+    "anyOf": "layout keyword must be a string with a valid component name, or a more complete object definition, or an array of children, or a switch structure"
+  },
   "anyOf": [
     {"$ref": "#/$defs/comp-name"},
     {"$ref": "#/$defs/partial-children"},
@@ -51,6 +54,9 @@
     "comp-name": {
       "title": "component name",
       "type": "string",
+      "errorMessage": {
+        "enum": "component name is unknown"
+      },
       "enum": [
         "none",
         "text-field",

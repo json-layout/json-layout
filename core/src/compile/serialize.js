@@ -55,6 +55,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     skeletonTree: compiledLayout.skeletonTree,
     normalizedLayouts: compiledLayout.normalizedLayouts,
     validates: {},
+    validationErrors: compiledLayout.validationErrors,
     expressions: expressionsNodes,
     locale: compiledLayout.locale,
     messages: compiledLayout.messages,
