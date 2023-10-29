@@ -8,7 +8,7 @@ You can use a textarea by defining the \`layout\` keyword.`,
   schema: {
     type: 'object',
     properties: {
-      text: { type: 'string', title: 'A simple string property' },
+      text: { type: 'string', title: 'A simple string property', description: 'A description displayed in a help message' },
       textarea: { type: 'string', title: 'A string in a textarea', layout: 'textarea' }
     }
   }

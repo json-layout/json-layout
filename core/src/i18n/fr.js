@@ -6,5 +6,6 @@ export default {
   delete: 'Supprimer',
   edit: 'Éditer',
   duplicate: 'Dupliquer',
-  sort: 'Trier'
+  sort: 'Trier',
+  showHelp: 'Afficher un message d\'aide'
 }

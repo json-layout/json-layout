@@ -6,5 +6,6 @@ export default {
   delete: 'Delete',
   edit: 'Edit',
   duplicate: 'Duplicate',
-  sort: 'Sort'
+  sort: 'Sort',
+  showHelp: 'Show a help message'
 }

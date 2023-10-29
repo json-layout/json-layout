@@ -9,6 +9,7 @@ export interface StateOptionsMessages {
   edit: string
   duplicate: string
   sort: string
+  showHelp: string
 }
 
 export type LocaleMessages = CompileOptionsMessages & StateOptionsMessages
