@@ -123,7 +123,13 @@ export function makeSkeletonNode (
     }
     if (schema.oneOf) {
       const oneOfPointer = `${pointer}/oneOf`
-      normalizedLayouts[oneOfPointer] = normalizedLayouts[oneOfPointer] ?? normalizeLayoutFragment(schema, oneOfPointer, options.markdown, 'oneOf')
+      if (!normalizedLayouts[oneOfPointer]) {
+        const normalizationResult = normalizeLayoutFragment(schema, oneOfPointer, options.markdown, 'oneOf')
+        normalizedLayouts[oneOfPointer] = normalizationResult.layout
+        if (normalizationResult.errors.length) {
+          validationErrors[oneOfPointer.replace('_jl#', '/')] = normalizationResult.errors
+        }
+      }
       /** @type {import('./types.js').SkeletonTree[]} */
       const childrenTrees = []
       for (let i = 0; i < schema.oneOf.length; i++) {
