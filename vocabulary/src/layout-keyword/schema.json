@@ -62,6 +62,7 @@
         "text-field",
         "number-field",
         "textarea",
+        "markdown",
         "checkbox",
         "switch",
         "slider",

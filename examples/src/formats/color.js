@@ -6,7 +6,7 @@ const example = {
   schema: {
     type: 'object',
     properties: {
-      date: {
+      color: {
         type: 'string',
         title: 'A color',
         layout: 'color-picker'

@@ -26,7 +26,7 @@ export function serialize (compiledLayout) {
 
   code = code.replace('"use strict";', '')
 
-  // some internal imports to ajv are not translated to asm, we do it here
+  // some internal imports to ajv are not translated to esm, we do it here
   // cf https://github.com/ajv-validator/ajv-formats/pull/73
   if (code.includes('require("ajv-formats/dist/formats")')) {
     code = 'import { fullFormats } from "ajv-formats/dist/formats.js";\n' + code
@@ -37,7 +37,7 @@ export function serialize (compiledLayout) {
     code = code.replace(/require\("ajv\/dist\/runtime\/ucs2length"\)/g, 'ucs2length')
   }
 
-  // importe only the current locale from ajv-i18n
+  // import only the current locale from ajv-i18n
   code = `import localizeErrors from "ajv-i18n/localize/${compiledLayout.locale}/index.js";
 export const exportLocalizeErrors = localizeErrors;\n` + code
 

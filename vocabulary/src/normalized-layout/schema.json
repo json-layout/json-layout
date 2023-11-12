@@ -52,6 +52,7 @@
             {"$ref": "#/$defs/text-field"},
             {"$ref": "#/$defs/number-field"},
             {"$ref": "#/$defs/textarea"},
+            {"$ref": "#/$defs/markdown"},
             {"$ref": "#/$defs/checkbox"},
             {"$ref": "#/$defs/switch"},
             {"$ref": "#/$defs/slider"},
@@ -194,6 +195,14 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "textarea"},
+        "label": {"type": "string"}
+      }
+    },
+    "markdown": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "markdown"},
         "label": {"type": "string"}
       }
     },
