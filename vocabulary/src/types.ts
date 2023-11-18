@@ -13,6 +13,7 @@ export interface SchemaFragment {
   allOf?: any[]
   items?: any
   enum?: any[]
+  examples?: any[]
   minimum?: number
   maximum?: number
   formatMinimum?: string

@@ -90,6 +90,10 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   if (arrayChild === 'oneOf') return 'one-of-select'
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
+  if (hasSimpleType && schemaFragment.examples) return schemaFragment.type === 'string' ? 'combobox' : 'number-combobox'
+  if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[0]).length === 0) {
+    return schemaFragment.type === 'string' ? 'combobox' : 'number-combobox'
+  }
   if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
   if (partial.getItems) {
     if (isPartialGetItemsFetch(partial.getItems)) {
@@ -99,10 +103,17 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
     return 'select'
   }
   if (schemaFragment.type === 'array' && schemaFragment.items) {
-    if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
+    const hasSimpleTypeItems = ['string', 'integer', 'number'].includes(schemaFragment.items.type)
+    if (hasSimpleTypeItems && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
       return (schemaFragment.items.enum || schemaFragment.items.oneOf).length > 20 ? 'autocomplete' : 'select'
     }
-    if (['string', 'integer', 'number'].includes(schemaFragment.items.type) && !schemaFragment.items.layout && !['date', 'date-time', 'time'].includes(schemaFragment.items.format)) {
+    if (hasSimpleTypeItems && schemaFragment.items.examples) {
+      return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'
+    }
+    if (hasSimpleTypeItems && schemaFragment.items.anyOf && schemaFragment.items.anyOf.length && Object.keys(schemaFragment.items.anyOf[schemaFragment.items.anyOf.length - 1]).length === 0) {
+      return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'
+    }
+    if (hasSimpleTypeItems && !schemaFragment.items.layout && !['date', 'date-time', 'time'].includes(schemaFragment.items.format)) {
       return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'
     }
   }
@@ -152,6 +163,20 @@ function getItemsFromSchema (schemaFragment) {
   const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
   if (schemaFragment.enum && hasSimpleType) {
     return schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
+  }
+  if (schemaFragment.examples && hasSimpleType) {
+    return schemaFragment.examples.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
+  }
+  if (schemaFragment.anyOf && hasSimpleType && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
+    const nonEmptyAnyOf = schemaFragment.anyOf.slice(0, -1)
+    if (!(nonEmptyAnyOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem)))) {
+      return nonEmptyAnyOf.map((/** @type {{ const: string; title: any; }} */ anyOfItem) => ({
+        ...anyOfItem,
+        key: anyOfItem.const + '',
+        title: (anyOfItem.title ?? anyOfItem.const) + '',
+        value: anyOfItem.const
+      }))
+    }
   }
   if (schemaFragment.oneOf && hasSimpleType && !(schemaFragment.oneOf.find((/** @type {any} */ oneOfItem) => !('const' in oneOfItem)))) {
     return schemaFragment.oneOf.map((/** @type {{ const: string; title: any; }} */ oneOfItem) => ({
