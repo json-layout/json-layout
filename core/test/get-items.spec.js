@@ -9,6 +9,34 @@ import { compile, StatefulLayout } from '../src/index.js'
 global.fetch = fetch
 
 describe('get select items', () => {
+  it('should manage a select with enum', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      enum: ['val1', 'val2']
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
+
+  it('should manage a combobox with examples', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      examples: ['val1', 'val2']
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'combobox')
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
+
   it('should manage a select with items', async () => {
     const compiledLayout = await compile({
       type: 'string',

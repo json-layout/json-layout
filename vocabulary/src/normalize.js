@@ -91,7 +91,7 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.examples) return schemaFragment.type === 'string' ? 'combobox' : 'number-combobox'
-  if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[0]).length === 0) {
+  if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
     return schemaFragment.type === 'string' ? 'combobox' : 'number-combobox'
   }
   if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
@@ -231,7 +231,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     partial.label = partial.label ?? schemaFragment.title ?? key
   }
 
-  if (['select', 'autocomplete'].includes(partial.comp) && !partial.items) {
+  if (['select', 'autocomplete', 'combobox'].includes(partial.comp) && !partial.items) {
     let items
     if (schemaFragment.type === 'array') {
       items = getItemsFromSchema(schemaFragment.items)

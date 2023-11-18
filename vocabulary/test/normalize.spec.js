@@ -116,6 +116,33 @@ describe('normalize schema fragment function', () => {
     )
   })
 
+  it('should manage combobox with examples on simple types', () => {
+    assert.deepEqual(
+      normalize({ type: 'string', examples: ['val1', 'val2'] }, '/prop').layout,
+      { comp: 'combobox', label: 'prop', getItems: { type: 'js-eval', expr: '[{"key":"val1","title":"val1","value":"val1"},{"key":"val2","title":"val2","value":"val2"}]' } }
+    )
+  })
+
+  it('should manage combobox with open-ended anyOf on simple types', () => {
+    assert.deepEqual(
+      normalize({
+        type: 'string',
+        anyOf: [
+          {
+            const: 'value1',
+            title: 'Value 1'
+          },
+          {
+            const: 'value2',
+            title: 'Value 2'
+          },
+          {}
+        ]
+      }, '/prop').layout,
+      { comp: 'combobox', label: 'prop', getItems: { type: 'js-eval', expr: '[{"const":"value1","title":"Value 1","key":"value1","value":"value1"},{"const":"value2","title":"Value 2","key":"value2","value":"value2"}]' } }
+    )
+  })
+
   it('should accept lib specific props, slots and options', () => {
     assert.deepEqual(
       normalize({ type: 'string', layout: { props: { prop1: 'Prop 1' }, slots: { before: 'Before **slot**', component: 'slot-comp' }, options: { opt1: 'Opt 1' } } }, '/prop', (str) => `markdown: ${str}`).layout,

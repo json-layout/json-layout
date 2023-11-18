@@ -1,7 +1,6 @@
 {
   "$id": "https://json-layout.github.io/layout-keyword",
   "title": "layout keyword",
-  "unevaluatedProperties": false,
   "errorMessage": {
     "anyOf": "layout keyword must be a string with a valid component name, or a more complete object definition, or an array of children, or a switch structure"
   },
