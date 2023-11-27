@@ -1,6 +1,6 @@
 {
   "name": "@json-layout/examples",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Examples to be used by implementations for documentation and testing of JSON Layout.",
   "type": "module",
   "exports": {
@@ -38,6 +38,6 @@
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "peerDependencies": {
-    "@json-layout/core": "0.1.0"
+    "@json-layout/core": "0.2.0"
   }
 }
