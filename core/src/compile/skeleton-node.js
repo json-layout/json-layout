@@ -74,9 +74,8 @@ export function makeSkeletonNode (
   if (schema.const) defaultData = schema.const
   else if (schema.default) defaultData = schema.default
   if (required) {
-    if (schema.type === 'object') defaultData = {} // TODO: this is only true if property is required ?
+    if (schema.type === 'object') defaultData = {}
     if (schema.type === 'array') defaultData = []
-    if (schema.type === 'string' && !schema.format) defaultData = ''
   }
 
   /** @type {import('./types.js').SkeletonNode} */

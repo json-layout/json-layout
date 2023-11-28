@@ -63,6 +63,7 @@ function fillOptions (partialOptions, compiledLayout) {
     titleDepth: 2,
     validateOn: 'input',
     initialValidation: 'withData',
+    defaultOn: 'empty',
     ...partialOptions,
     messages
   }

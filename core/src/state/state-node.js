@@ -10,7 +10,21 @@ import { shallowCompareArrays } from './utils/immutable.js'
 const isDataEmpty = (data) => {
   if (data === '' || data === undefined) return true
   if (Array.isArray(data) && !data.length) return true
-  if (typeof data === 'object' && !Array.isArray(data) && !!data && Object.values(data).findIndex(prop => !isDataEmpty(prop)) === -1) return true
+  if (typeof data === 'object' && !Array.isArray(data) && !!data && Object.values(data).findIndex(prop => prop !== undefined) === -1) return true
+  return false
+}
+
+/**
+ * @param {unknown} data
+ * @param {import('../index.js').SkeletonNode} skeleton
+ * @param {import('./types.js').StatefulLayoutOptions} options
+ * @returns {boolean}
+ */
+const useDefaultData = (data, skeleton, options) => {
+  if (skeleton.defaultData !== undefined) {
+    if (options.defaultOn === 'missing' && data === undefined) return true
+    if (options.defaultOn === 'empty' && isDataEmpty(data)) return true
+  }
   return false
 }
 
@@ -18,9 +32,14 @@ const isDataEmpty = (data) => {
 /** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StatefulLayoutOptions, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
 const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, validated, options, children) => {
   data = children && layout.comp !== 'list' ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
-  // empty data is removed and replaced by the default data
-  if (isDataEmpty(data) && skeleton.defaultData === undefined) data = undefined
-  data = skeleton.const ?? data ?? skeleton.defaultData
+  if (skeleton.const !== undefined) data = skeleton.const
+  else {
+    if (useDefaultData(data, skeleton, options)) data = skeleton.defaultData
+    else {
+      // remove empty data, except if we need to distinguish between empty and missing data
+      if (options.defaultOn !== 'missing' && isDataEmpty(data)) data = undefined
+    }
+  }
 
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 

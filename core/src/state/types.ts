@@ -74,6 +74,7 @@ export type StatefulLayoutOptions = Required<StateNodeOptions> & {
   width: number
   validateOn: 'input' | 'blur' | 'submit'
   initialValidation: 'never' | 'always' | 'withData'
+  defaultOn: 'missing' | 'empty' | 'never'
   messages: LocaleMessages
 }
 

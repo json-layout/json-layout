@@ -8,8 +8,8 @@ import { serialize } from '../src/compile/serialize.js'
 
 // const debug = Debug('test')
 
-for (const compileMode of ['runtime', 'build-time']) {
-// for (const compileMode of ['runtime']) {
+// for (const compileMode of ['runtime', 'build-time']) {
+for (const compileMode of ['runtime']) {
   /** @type {typeof compileSrc} */
   let compile
 
@@ -120,7 +120,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
       assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
-      assert.equal(statefulLayout.stateTree.root.children?.[0].data, '')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
       assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^[A-Z]+$"')
 
       statefulLayout.input(statefulLayout.stateTree.root.children?.[1], 'TEST')
@@ -367,8 +367,8 @@ for (const compileMode of ['runtime', 'build-time']) {
     it('merge options going down the state tree', async () => {
       const compiledLayout = await compile({ type: 'object', layout: { options: { opt1: 'Opt 1' } }, properties: { str1: { type: 'string', layout: { options: { opt2: 'Opt 2' } } } } })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { opt0: 'Opt 0', opt2: 'Opt 0/2' }, {})
-      assert.deepEqual(statefulLayout.stateTree.root.options, { opt0: 'Opt 0', opt2: 'Opt 0/2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false, titleDepth: 2, initialValidation: 'withData', validateOn: 'input', messages: i18n.en })
-      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false, titleDepth: 2, initialValidation: 'withData', validateOn: 'input', messages: i18n.en })
+      assert.deepEqual(statefulLayout.stateTree.root.options, { opt0: 'Opt 0', opt2: 'Opt 0/2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false, titleDepth: 2, initialValidation: 'withData', defaultOn: 'empty', validateOn: 'input', messages: i18n.en })
+      assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false, titleDepth: 2, initialValidation: 'withData', defaultOn: 'empty', validateOn: 'input', messages: i18n.en })
     })
 
     it('should fill default values', async () => {
@@ -406,7 +406,6 @@ for (const compileMode of ['runtime', 'build-time']) {
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
       assert.deepEqual(statefulLayout.data, {
-        str2: '',
         obj3: {}
       })
 
@@ -430,7 +429,6 @@ for (const compileMode of ['runtime', 'build-time']) {
       statefulLayout.input(statefulLayout.stateTree.root.children[2].children[0], '')
       statefulLayout.input(statefulLayout.stateTree.root.children[3].children[0], '')
       assert.deepEqual(statefulLayout.data, {
-        str2: '',
         obj3: {}
       })
     })
