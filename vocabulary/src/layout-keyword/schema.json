@@ -47,7 +47,9 @@
           }
         },
         "options": {"type": "object"},
-        "messages": {"type": "object"}
+        "messages": {"type": "object"},
+        "defaultData": {"$ref": "#/$defs/partial-expression"},
+        "constData": {"$ref": "#/$defs/partial-expression"}
       }
     },
     "comp-name": {

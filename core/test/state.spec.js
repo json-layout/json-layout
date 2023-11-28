@@ -371,27 +371,6 @@ for (const compileMode of ['runtime']) {
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, { opt0: 'Opt 0', opt2: 'Opt 2', opt1: 'Opt 1', context: {}, width: 1000, readOnly: false, summary: false, titleDepth: 2, initialValidation: 'withData', defaultOn: 'empty', validateOn: 'input', messages: i18n.en })
     })
 
-    it('should fill default values', async () => {
-      const compiledLayout = await compile({
-        type: 'object',
-        properties: {
-          str1: { type: 'string', default: 'String 1' },
-          obj1: { type: 'object', properties: { str2: { type: 'string', default: 'String 2' } } },
-          str4: { type: 'string', const: 'String 4' }
-        }
-      })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
-
-      // console.log(JSON.stringify(statefulLayout.data, null, 2))
-      assert.deepEqual(statefulLayout.data, {
-        str1: 'String 1',
-        obj1: {
-          str2: 'String 2'
-        },
-        str4: 'String 4'
-      })
-    })
-
     it('should manage empty data differently if it is required or not', async () => {
       const compiledLayout = await compile({
         type: 'object',

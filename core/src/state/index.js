@@ -395,7 +395,7 @@ export class StatefulLayout {
   activateItem (node, key) {
     this.activeItems[node.fullKey] = key
     if (node.key === '$oneOf') {
-      this.input(node, node.skeleton.childrenTrees?.[key].root.defaultData)
+      this.input(node, undefined)
     } else {
       this.updateState()
     }

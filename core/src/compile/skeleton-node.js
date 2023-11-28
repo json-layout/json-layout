@@ -55,10 +55,24 @@ export function makeSkeletonNode (
   }
   const normalizedLayout = normalizedLayouts[pointer]
 
+  let defaultData
+  if ('default' in schema) defaultData = schema.default
+  else if (required) {
+    if (schema.type === 'object') defaultData = {}
+    if (schema.type === 'array') defaultData = []
+  }
+
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
     if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)
+
+    if ('const' in schema) compObject.constData = { type: 'js-eval', expr: JSON.stringify(schema.const) }
+    if (compObject.constData) pushExpression(expressions, compObject.constData)
+
+    if (defaultData && !compObject.defaultData) compObject.defaultData = { type: 'js-eval', expr: JSON.stringify(defaultData) }
+    if (compObject.defaultData) pushExpression(expressions, compObject.defaultData)
+
     if (isItemsLayout(compObject) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
       if (isGetItemsFetch(compObject.getItems)) pushExpression(expressions, compObject.getItems.url)
@@ -70,17 +84,8 @@ export function makeSkeletonNode (
     }
   }
 
-  let defaultData
-  if (schema.const) defaultData = schema.const
-  else if (schema.default) defaultData = schema.default
-  if (required) {
-    if (schema.type === 'object') defaultData = {}
-    if (schema.type === 'array') defaultData = []
-  }
-
   /** @type {import('./types.js').SkeletonNode} */
-  const node = { key: key ?? '', pointer, parentPointer, defaultData }
-  if (schema.const) node.const = schema.const
+  const node = { key: key ?? '', pointer, parentPointer }
   if (schema.type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []

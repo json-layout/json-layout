@@ -271,6 +271,10 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
   }
 
   if (partial.if) partial.if = normalizeExpression(partial.if)
+
+  if (partial.defaultData) partial.defaultData = normalizeExpression(partial.defaultData)
+  if (partial.constData) partial.constData = normalizeExpression(partial.constData)
+
   if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
   if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
     if (schemaFragment.type === 'object') partial.getItems.returnObjects = true
