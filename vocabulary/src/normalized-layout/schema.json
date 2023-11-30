@@ -27,6 +27,7 @@
             "if": {"$ref": "#/$defs/expression"},
             "defaultData": {"$ref": "#/$defs/expression"},
             "constData": {"$ref": "#/$defs/expression"},
+            "nullable": {"type": "boolean"},
             "help": {"type": "string"},
             "cols": {"$ref": "#/$defs/cols-obj"},
             "props": {"$ref": "#/$defs/state-node-props-lib"},

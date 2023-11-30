@@ -301,9 +301,17 @@ export function createStateNode (
     if (layout.defaultData && useDefaultData(nodeData, layout, options)) {
       nodeData = evalExpression(compiledLayout.expressions, layout.defaultData, nodeData, options, display)
     } else {
-      // remove empty data, except if we need to distinguish between empty and missing data
-      if (options.defaultOn !== 'missing' && isDataEmpty(nodeData)) {
-        nodeData = undefined
+      if (isDataEmpty(nodeData)) {
+        if (layout.nullable) {
+          // if a property is nullable empty values are converted to null
+          // except for undefined if we need to distinguish between empty and missing data
+          if (options.defaultOn !== 'missing' || nodeData !== undefined) {
+            nodeData = null
+          }
+        } else if (options.defaultOn !== 'missing') {
+          // remove empty data, except if we need to distinguish between empty and missing data
+          nodeData = undefined
+        }
       }
     }
   }

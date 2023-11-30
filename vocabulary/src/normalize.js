@@ -18,9 +18,10 @@ import { validateNormalizedLayout, compositeCompNames } from './normalized-layou
  * @returns {Children}
  */
 function getDefaultChildren (schemaFragment) {
+  const { type } = getType(schemaFragment)
   /** @type {Children} */
   const children = []
-  if (schemaFragment.type === 'object') {
+  if (type === 'object') {
     if (schemaFragment.properties) {
       for (const key of Object.keys(schemaFragment.properties)) {
         children.push({ key })
@@ -35,7 +36,7 @@ function getDefaultChildren (schemaFragment) {
       children.push({ key: '$oneOf' })
     }
   }
-  if (schemaFragment.type === 'array' && Array.isArray(schemaFragment.items)) {
+  if (type === 'array' && Array.isArray(schemaFragment.items)) {
     for (let i = 0; i < schemaFragment.items.length; i++) {
       children.push({ key: i })
     }
@@ -86,13 +87,14 @@ function getChildren (defaultChildren, partialChildren) {
  * @returns {import('./index.js').ComponentName}
  */
 function getDefaultComp (partial, schemaFragment, arrayChild) {
-  const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
+  const { type } = getType(schemaFragment)
+  const hasSimpleType = ['string', 'integer', 'number'].includes(type)
   if (arrayChild === 'oneOf') return 'one-of-select'
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
-  if (hasSimpleType && schemaFragment.examples) return schemaFragment.type === 'string' ? 'combobox' : 'number-combobox'
+  if (hasSimpleType && schemaFragment.examples) return type === 'string' ? 'combobox' : 'number-combobox'
   if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
-    return schemaFragment.type === 'string' ? 'combobox' : 'number-combobox'
+    return type === 'string' ? 'combobox' : 'number-combobox'
   }
   if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
   if (partial.getItems) {
@@ -102,7 +104,7 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
     }
     return 'select'
   }
-  if (schemaFragment.type === 'array' && schemaFragment.items) {
+  if (type === 'array' && schemaFragment.items) {
     const hasSimpleTypeItems = ['string', 'integer', 'number'].includes(schemaFragment.items.type)
     if (hasSimpleTypeItems && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
       return (schemaFragment.items.enum || schemaFragment.items.oneOf).length > 20 ? 'autocomplete' : 'select'
@@ -117,19 +119,19 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
       return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'
     }
   }
-  if (schemaFragment.type === 'object') return 'section'
-  if (schemaFragment.type === 'array') {
+  if (type === 'object') return 'section'
+  if (type === 'array') {
     if (Array.isArray(schemaFragment.items)) return 'section'
     else return 'list'
   }
-  if (schemaFragment.type === 'string') {
+  if (type === 'string') {
     if (schemaFragment.format === 'date') return 'date-picker'
     if (schemaFragment.format === 'date-time') return 'date-time-picker'
     if (schemaFragment.format === 'time') return 'time-picker'
     return 'text-field'
   }
-  if (schemaFragment.type === 'integer' || schemaFragment.type === 'number') return 'number-field'
-  if (schemaFragment.type === 'boolean') return 'checkbox'
+  if (type === 'integer' || type === 'number') return 'number-field'
+  if (type === 'boolean') return 'checkbox'
   throw new Error('failed to calculate default component for schema fragment')
 }
 
@@ -160,7 +162,8 @@ function normalizeExpression (expression, defaultType = 'js-eval') {
  */
 function getItemsFromSchema (schemaFragment) {
   if (!schemaFragment) return null
-  const hasSimpleType = ['string', 'integer', 'number'].includes(schemaFragment.type)
+  const { type } = getType(schemaFragment)
+  const hasSimpleType = ['string', 'integer', 'number'].includes(type)
   if (schemaFragment.enum && hasSimpleType) {
     return schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
   }
@@ -190,6 +193,18 @@ function getItemsFromSchema (schemaFragment) {
 }
 
 /**
+ * @param {SchemaFragment} schemaFragment
+ * @returns {{type: string, nullable: boolean}}
+ */
+const getType = (schemaFragment) => {
+  if (Array.isArray(schemaFragment.type) && schemaFragment.type.length === 2 && schemaFragment.type.includes('null')) {
+    const type = schemaFragment.type.find(t => t !== 'null')
+    return { type, nullable: true }
+  }
+  return { type: schemaFragment.type, nullable: false }
+}
+
+/**
  * @param {LayoutKeyword} layoutKeyword
  * @param {SchemaFragment} schemaFragment
  * @param {string} schemaPath
@@ -202,9 +217,11 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
   const errors = []
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
 
+  const { type, nullable } = getType(schemaFragment)
+
   if ('const' in schemaFragment) return { normalized: { comp: 'none' }, errors }
-  if (!schemaFragment.type) return { normalized: { comp: 'none' }, errors }
-  if (schemaFragment.type === 'array' && !schemaFragment.items) return { normalized: { comp: 'none' }, errors }
+  if (!type) return { normalized: { comp: 'none' }, errors }
+  if (type === 'array' && !schemaFragment.items) return { normalized: { comp: 'none' }, errors }
 
   const partial = getPartialCompObject(layoutKeyword)
 
@@ -218,6 +235,8 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     }
   }
   if (partial.comp === 'none') return { normalized: { comp: 'none' }, errors }
+
+  if (nullable) partial.nullable = nullable
 
   // @ts-ignore
   if (compositeCompNames.includes(partial.comp)) {
@@ -233,7 +252,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
 
   if (['select', 'autocomplete', 'combobox'].includes(partial.comp) && !partial.items) {
     let items
-    if (schemaFragment.type === 'array') {
+    if (type === 'array') {
       items = getItemsFromSchema(schemaFragment.items)
       partial.multiple = true
     } else {
@@ -249,7 +268,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
   }
 
   if (['combobox', 'number-combobox'].includes(partial.comp)) {
-    if (schemaFragment.type === 'array') {
+    if (type === 'array') {
       partial.multiple = true
     }
   }
@@ -265,7 +284,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
   }
 
   if (['number-field', 'slider'].includes(partial.comp)) {
-    if (schemaFragment.type === 'integer') partial.step = partial.step ?? 1
+    if (type === 'integer') partial.step = partial.step ?? 1
     if ('minimum' in schemaFragment) partial.min = partial.min ?? schemaFragment.minimum
     if ('maximum' in schemaFragment) partial.max = partial.max ?? schemaFragment.maximum
   }
@@ -277,7 +296,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
 
   if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
   if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
-    if (schemaFragment.type === 'object') partial.getItems.returnObjects = true
+    if (type === 'object') partial.getItems.returnObjects = true
     if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle)
     if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey)
     if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue)
