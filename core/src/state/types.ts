@@ -20,6 +20,7 @@ import {
   type Tabs,
   type VerticalTabs,
   type ExpansionPanels,
+  type Stepper,
   type List,
   type Combobox
 } from '@json-layout/vocabulary'
@@ -111,6 +112,8 @@ export type TabsNode = StateNode & { layout: Tabs, children: StateNode[] }
 export type VerticalTabsNode = StateNode & { layout: VerticalTabs, children: StateNode[] }
 
 export type ExpansionPanelsNode = StateNode & { layout: ExpansionPanels, children: StateNode[] }
+
+export type StepperNode = StateNode & { layout: Stepper, children: StateNode[] }
 
 export type ListNode = StateNode & { layout: List, data: any[], children: StateNode[], childrenTrees: SkeletonTree[] }
 

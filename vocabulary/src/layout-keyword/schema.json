@@ -80,6 +80,7 @@
         "tabs",
         "vertical-tabs",
         "expansion-panels",
+        "stepper",
         "one-of-select"
       ]
     },

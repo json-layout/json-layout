@@ -30,6 +30,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').Tabs} Tabs
  * @typedef {import('./types.js').VerticalTabs} VerticalTabs
  * @typedef {import('./types.js').ExpansionPanels} ExpansionPanels
+ * @typedef {import('./types.js').Stepper} Stepper
  * @typedef {import('./types.js').List} List
  * @typedef {import('./types.js').Combobox} Combobox
  * @typedef {import('./types.js').Cols} Cols
@@ -63,7 +64,7 @@ export function isSectionLayout (layout) {
   return layout.comp === 'section'
 }
 
-export const compositeCompNames = ['section', 'tabs', 'vertical-tabs', 'expansion-panels']
+export const compositeCompNames = ['section', 'tabs', 'vertical-tabs', 'expansion-panels', 'stepper']
 
 /** @type {(layout: CompObject) => layout is CompositeCompObject} */
 export function isCompositeLayout (layout) {
