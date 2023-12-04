@@ -242,7 +242,10 @@ export class StatefulLayout {
     )
     this._lastCreateStateTreeContext = createStateTreeContext
     if (!this.validationState.initialized) {
-      this.validationState = { initialized: true, validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey) }
+      this.validationState = {
+        initialized: true,
+        validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey)
+      }
     }
   }
 
@@ -260,6 +263,13 @@ export class StatefulLayout {
    */
   get valid () {
     return this.stateTree.valid
+  }
+
+  /**
+   * @returns {string[]}
+   */
+  get errors () {
+    return this._lastCreateStateTreeContext.nodes.filter(n => !!n.error).map(n => /** @type {string} */(n.error))
   }
 
   /**
@@ -303,6 +313,18 @@ export class StatefulLayout {
       !this.validationState.validatedChildren.includes(node.fullKey)
     ) {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    }
+  }
+
+  /**
+   * @param {StateNode} node
+   */
+  validateNodeRecurse (node) {
+    this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    if (node.children) {
+      for (const child of node.children) {
+        this.validateNodeRecurse(child)
+      }
     }
   }
 
