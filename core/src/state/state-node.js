@@ -294,7 +294,7 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
 
-  let nodeData = children && layout.comp !== 'list' ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
+  let nodeData = children ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
   if (layout.constData) {
     nodeData = evalExpression(compiledLayout.expressions, layout.constData, nodeData, options, display)
   } else {

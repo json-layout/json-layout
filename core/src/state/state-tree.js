@@ -15,7 +15,7 @@ const produceStateTree = produce(
  * @param {import('../index.js').CompiledLayout} compiledLayout
  * @param {import('../index.js').SkeletonTree} skeleton
  * @param {import('./utils/display.js').Display} display
- * @param {unknown} value
+ * @param {unknown} data
  * @param {import('./types.js').ValidationState} validationState
  * @param {import('./types.js').StateTree} [reusedStateTree]
  * @returns {import('./types.js').StateTree}
@@ -26,12 +26,12 @@ export function createStateTree (
   compiledLayout,
   skeleton,
   display,
-  value,
+  data,
   validationState,
   reusedStateTree
 ) {
   const validate = compiledLayout.validates[skeleton.root.pointer]
-  const valid = validate(value)
+  const valid = validate(data)
   if (validate.errors) {
     for (const error of validate.errors) {
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
@@ -50,7 +50,7 @@ export function createStateTree (
     skeleton.root,
     null,
     display,
-    value,
+    data,
     validationState,
     reusedStateTree?.root
   )

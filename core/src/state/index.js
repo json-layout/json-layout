@@ -31,6 +31,7 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').ExpansionPanelsNode} ExpansionPanelsNode
  * @typedef {import('./types.js').TabsNode} TabsNode
  * @typedef {import('./types.js').VerticalTabsNode} VerticalTabsNode
+ * @typedef {import('./types.js').StepperNode} StepperNode
  * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
  * @typedef {import('./types.js').ListNode} ListNode
  */
@@ -173,9 +174,9 @@ export class StatefulLayout {
    * @param {import("../index.js").CompiledLayout} compiledLayout
    * @param {import("../index.js").SkeletonTree} skeletonTree
    * @param {Partial<StatefulLayoutOptions>} options
-   * @param {unknown} data
+   * @param {unknown} [data]
    */
-  constructor (compiledLayout, skeletonTree, options, data = {}) {
+  constructor (compiledLayout, skeletonTree, options, data) {
     this._compiledLayout = compiledLayout
     this.skeletonTree = skeletonTree
     /** @type {import('mitt').Emitter<StatefulLayoutEvents>} */

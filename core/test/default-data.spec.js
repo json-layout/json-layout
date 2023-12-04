@@ -46,4 +46,33 @@ describe('default data management', () => {
       properties: { str1: { type: 'string', layout: { defaultData: 'String 1' } } }
     })
   }) */
+
+  it('should use default data on root object', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      default: { str1: 'String 1' },
+      properties: { str1: { type: 'string' } }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
+  })
+
+  it('should use default data when adding new item to array', async () => {
+    const compiledLayout = await compile({
+      type: 'array',
+      items: {
+        type: 'object',
+        default: { str1: 'String 1' },
+        properties: { str1: { type: 'string' } }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+
+    assert.deepEqual(statefulLayout.data, [])
+
+    statefulLayout.input(statefulLayout.stateTree.root, [undefined])
+
+    assert.deepEqual(statefulLayout.data, [{ str1: 'String 1' }])
+  })
 })
