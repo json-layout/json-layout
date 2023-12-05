@@ -138,7 +138,6 @@ describe('stateful layout validation state', () => {
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { initialValidation: 'never' }, { obj1: { str1: 'test1' } })
-    console.log(statefulLayout.stateTree.root.children?.[0])
     assert.equal(statefulLayout.stateTree.root.childError, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].childError, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'must match pattern "^[A-Z]+$"')

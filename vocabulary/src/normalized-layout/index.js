@@ -81,6 +81,11 @@ export function isSelectLayout (layout) {
   return layout.comp === 'select'
 }
 
+/** @type {(layout: CompObject) => layout is CompObject & {autofocus: boolean}} */
+export function isFocusableLayout (layout) {
+  return ['text-field', 'number-field', 'textarea', 'select', 'combobox', 'number-combobox', 'autocomplete', 'markdown'].includes(layout.comp)
+}
+
 /** @type {(layout: CompObject) => layout is Select | Combobox | Autocomplete} */
 export function isItemsLayout (layout) {
   return layout.comp === 'select' || layout.comp === 'combobox' || layout.comp === 'autocomplete'

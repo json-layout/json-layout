@@ -1,4 +1,4 @@
-import { isSwitchStruct, childIsCompObject, isCompositeLayout } from '@json-layout/vocabulary'
+import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import { getChildDisplay } from './utils/display.js'
 import { shallowCompareArrays } from './utils/immutable.js'
@@ -27,8 +27,8 @@ const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StatefulLayoutOptions, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, validated, options, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StatefulLayoutOptions, autofocus: boolean, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, validated, options, autofocus, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -44,6 +44,8 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.error = error
   draft.childError = children && (children.findIndex(c => c.error || c.childError) !== -1)
   draft.validated = validated
+  if (autofocus) draft.autofocus = true
+  else delete draft.autofocus
   draft.children = children
 })
 
@@ -209,26 +211,32 @@ export function createStateNode (
     // TODO: make this type casting safe using prior validation
     const objectData = /** @type {Record<string, unknown>} */(data ?? {})
     const childrenOptions = produceCompositeChildrenOptions(options, layout)
-    children = layout.children.map((child, i) => {
-      const childSkeleton = skeleton.children?.find(c => c.key === child.key) ?? skeleton
-      const isSameData = typeof child.key === 'string' && child.key.startsWith('$')
-      return createStateNode(
+    children = []
+    let focusChild = context.autofocus === fullKey
+    for (let i = 0; i < layout.children.length; i++) {
+      const childLayout = layout.children[i]
+      const childSkeleton = skeleton.children?.find(c => c.key === childLayout.key) ?? skeleton
+      const isSameData = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
+      if (focusChild) context.autofocus = `${fullKey}/${childLayout.key}`
+      const child = createStateNode(
         context,
         childrenOptions,
         compiledLayout,
-        child.key,
-        `${fullKey}/${child.key}`,
+        childLayout.key,
+        `${fullKey}/${childLayout.key}`,
         fullKey,
-        isSameData ? dataPath : `${dataPath}/${child.key}`,
+        isSameData ? dataPath : `${dataPath}/${childLayout.key}`,
         dataPath,
         childSkeleton,
-        child,
+        childLayout,
         display,
-        isSameData ? objectData : objectData[child.key],
+        isSameData ? objectData : objectData[childLayout.key],
         validationState,
         reusedNode?.children?.[i]
       )
-    })
+      if (child.autofocus) focusChild = false
+      children.push(child)
+    }
   }
 
   if (key === '$oneOf' && skeleton.childrenTrees) {
@@ -237,6 +245,8 @@ export function createStateNode (
     const activeChildTreeIndex = fullKey in context.activeItems ? context.activeItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
     if (activeChildTreeIndex !== -1) {
       context.activeItems[fullKey] = activeChildTreeIndex
+      const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
+      if (context.autofocus === fullKey) context.autofocus = activeChildKey
       const activeChildTree = skeleton.childrenTrees[activeChildTreeIndex]
       children = [
         createStateNode(
@@ -244,7 +254,7 @@ export function createStateNode (
           options,
           compiledLayout,
           activeChildTreeIndex,
-          `${fullKey}/${activeChildTreeIndex}`,
+          activeChildKey,
           fullKey,
           dataPath,
           dataPath,
@@ -265,6 +275,7 @@ export function createStateNode (
     const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
     children = arrayData.map((itemData, i) => {
       const childFullKey = `${fullKey}/${i}`
+      if (context.autofocus === fullKey && i === 0) context.autofocus = childFullKey
       return createStateNode(
         context,
         (layout.listEditMode === 'inline-single' && context.activeItems[fullKey] === i) ? options : listItemOptions,
@@ -316,6 +327,7 @@ export function createStateNode (
     }
   }
 
+  const autofocus = isFocusableLayout(layout) && !options.readOnly && !options.summary && (context.autofocus === fullKey || !!layout.autofocus)
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,
@@ -330,6 +342,7 @@ export function createStateNode (
     error?.message,
     validated,
     options,
+    autofocus,
     children && shallowCompareArrays(reusedNode?.children, children)
   )
   context.nodes.push(node)

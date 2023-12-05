@@ -190,7 +190,8 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "text-field"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "autofocus": {"type": "boolean"}
       }
     },
     "number-field": {
@@ -199,6 +200,7 @@
       "properties": {
         "comp": {"const": "number-field"},
         "label": {"type": "string"},
+        "autofocus": {"type": "boolean"},
         "step": {"type": "number"},
         "min": {"type": "number"},
         "max": {"type": "number"}
@@ -209,7 +211,8 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "textarea"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "autofocus": {"type": "boolean"}
       }
     },
     "markdown": {
@@ -217,7 +220,8 @@
       "required": ["comp", "label"],
       "properties": {
         "comp": {"const": "markdown"},
-        "label": {"type": "string"}
+        "label": {"type": "string"},
+        "autofocus": {"type": "boolean"}
       }
     },
     "checkbox": {
@@ -292,6 +296,7 @@
       "properties": {
         "comp": {"const": "combobox"},
         "label": {"type": "string"},
+        "autofocus": {"type": "boolean"},
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"}
@@ -303,6 +308,7 @@
       "properties": {
         "comp": {"const": "number-combobox"},
         "label": {"type": "string"},
+        "autofocus": {"type": "boolean"},
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"},
@@ -317,6 +323,7 @@
       "properties": {
         "comp": {"const": "select"},
         "label": {"type": "string"},
+        "autofocus": {"type": "boolean"},
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"}
@@ -328,6 +335,7 @@
       "properties": {
         "comp": {"const": "autocomplete"},
         "label": {"type": "string"},
+        "autofocus": {"type": "boolean"},
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"}

@@ -42,6 +42,7 @@ export interface StateNode {
   validated: boolean
   options: StatefulLayoutOptions
   messages: LocaleMessages
+  autofocus?: boolean
   children?: StateNode[]
 }
 
@@ -55,6 +56,7 @@ export interface CreateStateTreeContext {
   errors?: ErrorObject[]
   nodes: StateNode[]
   activeItems: Record<string, number>
+  autofocus: string | null
 }
 
 export interface ValidationState {
@@ -77,6 +79,7 @@ export type StatefulLayoutOptions = Required<StateNodeOptions> & {
   initialValidation: 'never' | 'always' | 'withData'
   defaultOn: 'missing' | 'empty' | 'never'
   messages: LocaleMessages
+  autofocus: boolean
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, data: string | undefined | null }

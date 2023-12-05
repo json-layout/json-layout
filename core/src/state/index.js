@@ -65,6 +65,7 @@ function fillOptions (partialOptions, compiledLayout) {
     validateOn: 'input',
     initialValidation: 'withData',
     defaultOn: 'empty',
+    autofocus: false,
     ...partialOptions,
     messages
   }
@@ -171,6 +172,13 @@ export class StatefulLayout {
   _lastCreateStateTreeContext
 
   /**
+   * @private
+   * @type {string | null}
+   */
+  // @ts-ignore
+  _autofocus
+
+  /**
    * @param {import("../index.js").CompiledLayout} compiledLayout
    * @param {import("../index.js").SkeletonTree} skeletonTree
    * @param {Partial<StatefulLayoutOptions>} options
@@ -182,6 +190,7 @@ export class StatefulLayout {
     /** @type {import('mitt').Emitter<StatefulLayoutEvents>} */
     this.events = mitt()
     this.prepareOptions(options)
+    this._autofocus = this.options.autofocus ? '' : null
     this._data = data
     this.initValidationState()
     this.activeItems = {}
@@ -229,7 +238,11 @@ export class StatefulLayout {
    */
   createStateTree () {
     /** @type {CreateStateTreeContext} */
-    const createStateTreeContext = { nodes: [], activeItems: this.activeItems }
+    const createStateTreeContext = {
+      nodes: [],
+      activeItems: this.activeItems,
+      autofocus: this._autofocus
+    }
     this._stateTree = createStateTree(
       createStateTreeContext,
       this._options,
@@ -291,6 +304,7 @@ export class StatefulLayout {
     }
     if (activateKey !== undefined) {
       this.activeItems[node.fullKey] = activateKey
+      this._autofocus = node.fullKey + '/' + activateKey
     }
     if (node.parentFullKey === null) {
       this.data = data
@@ -417,6 +431,7 @@ export class StatefulLayout {
    */
   activateItem (node, key) {
     this.activeItems[node.fullKey] = key
+    this._autofocus = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
       this.input(node, undefined)
     } else {
