@@ -9,6 +9,8 @@ export interface StateOptionsMessages {
   edit: string
   duplicate: string
   sort: string
+  up: string
+  down: string
   showHelp: string
   mdeLink1: string
   mdeLink2: string

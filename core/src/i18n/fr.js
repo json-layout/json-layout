@@ -7,6 +7,8 @@ export default {
   edit: 'Éditer',
   duplicate: 'Dupliquer',
   sort: 'Trier',
+  up: 'Décaler vers le haut',
+  down: 'Décaler vers le bas',
   showHelp: 'Afficher un message d\'aide',
   mdeLink1: '[titre du lien',
   mdeLink2: '](adresse du lien)',

@@ -7,6 +7,8 @@ export default {
   edit: 'Edit',
   duplicate: 'Duplicate',
   sort: 'Sort',
+  up: 'Move up',
+  down: 'Move down',
   showHelp: 'Show a help message',
   mdeLink1: '[Link title',
   mdeLink2: '](link url)',
