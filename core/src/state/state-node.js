@@ -44,8 +44,16 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.error = error
   draft.childError = children && (children.findIndex(c => c.error || c.childError) !== -1)
   draft.validated = validated
-  if (autofocus) draft.autofocus = true
-  else delete draft.autofocus
+  if (autofocus) {
+    draft.autofocus = true
+    delete draft.autofocusChild
+  } else {
+    delete draft.autofocus
+    const autofocusChild = children?.find(c => c.autofocus)
+    if (autofocusChild) draft.autofocusChild = autofocusChild.key
+    else delete draft.autofocusChild
+  }
+
   draft.children = children
 })
 
@@ -205,6 +213,10 @@ export function createStateNode (
     display.width
   )
 
+  if (context.initial && parentOptions.autofocus && layout.autofocus) {
+    context.autofocusTarget = fullKey
+  }
+
   /** @type {import('./types.js').StateNode[] | undefined} */
   let children
   if (isCompositeLayout(layout)) {
@@ -212,18 +224,19 @@ export function createStateNode (
     const objectData = /** @type {Record<string, unknown>} */(data ?? {})
     const childrenOptions = produceCompositeChildrenOptions(options, layout)
     children = []
-    let focusChild = context.autofocus === fullKey
+    let focusChild = context.autofocusTarget === fullKey
     for (let i = 0; i < layout.children.length; i++) {
       const childLayout = layout.children[i]
       const childSkeleton = skeleton.children?.find(c => c.key === childLayout.key) ?? skeleton
       const isSameData = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
-      if (focusChild) context.autofocus = `${fullKey}/${childLayout.key}`
+      const childFullKey = `${fullKey}/${childLayout.key}`
+      if (focusChild) context.autofocusTarget = childFullKey
       const child = createStateNode(
         context,
         childrenOptions,
         compiledLayout,
         childLayout.key,
-        `${fullKey}/${childLayout.key}`,
+        childFullKey,
         fullKey,
         isSameData ? dataPath : `${dataPath}/${childLayout.key}`,
         dataPath,
@@ -234,7 +247,7 @@ export function createStateNode (
         validationState,
         reusedNode?.children?.[i]
       )
-      if (child.autofocus) focusChild = false
+      if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
       children.push(child)
     }
   }
@@ -246,7 +259,7 @@ export function createStateNode (
     if (activeChildTreeIndex !== -1) {
       context.activeItems[fullKey] = activeChildTreeIndex
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
-      if (context.autofocus === fullKey) context.autofocus = activeChildKey
+      if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
       const activeChildTree = skeleton.childrenTrees[activeChildTreeIndex]
       children = [
         createStateNode(
@@ -273,10 +286,13 @@ export function createStateNode (
     const arrayData = /** @type {unknown[]} */(data ?? [])
     const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0]?.root)
     const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
-    children = arrayData.map((itemData, i) => {
+    children = []
+    let focusChild = context.autofocusTarget === fullKey
+    for (let i = 0; i < arrayData.length; i++) {
+      const itemData = arrayData[i]
       const childFullKey = `${fullKey}/${i}`
-      if (context.autofocus === fullKey && i === 0) context.autofocus = childFullKey
-      return createStateNode(
+      if (focusChild) context.autofocusTarget = childFullKey
+      const child = createStateNode(
         context,
         (layout.listEditMode === 'inline-single' && context.activeItems[fullKey] === i) ? options : listItemOptions,
         compiledLayout,
@@ -292,7 +308,9 @@ export function createStateNode (
         validationState,
         reusedNode?.children?.[0]
       )
-    })
+      if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
+      children.push(child)
+    }
   }
 
   const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, skeleton, dataPath))
@@ -327,7 +345,7 @@ export function createStateNode (
     }
   }
 
-  const autofocus = isFocusableLayout(layout) && !options.readOnly && !options.summary && (context.autofocus === fullKey || !!layout.autofocus)
+  const autofocus = isFocusableLayout(layout) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,
@@ -356,5 +374,4 @@ export const producePatchedData = produce((draft, node, data) => {
   } else {
     draft[node.key] = data
   }
-}
-)
+})

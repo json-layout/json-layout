@@ -43,6 +43,7 @@ export interface StateNode {
   options: StatefulLayoutOptions
   messages: LocaleMessages
   autofocus?: boolean
+  autofocusChild?: string | number
   children?: StateNode[]
 }
 
@@ -56,7 +57,8 @@ export interface CreateStateTreeContext {
   errors?: ErrorObject[]
   nodes: StateNode[]
   activeItems: Record<string, number>
-  autofocus: string | null
+  autofocusTarget: string | null
+  initial: boolean
 }
 
 export interface ValidationState {
@@ -70,6 +72,7 @@ export type StatefulLayoutEvents = {
   // input: { value: unknown, child: { pointer: string, dataPointer: string, value: unknown } }
   input: unknown
   'update': StatefulLayout
+  autofocus: string
 }
 
 export type StatefulLayoutOptions = Required<StateNodeOptions> & {

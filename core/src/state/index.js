@@ -175,8 +175,12 @@ export class StatefulLayout {
    * @private
    * @type {string | null}
    */
-  // @ts-ignore
-  _autofocus
+  _autofocusTarget
+  /**
+   * @private
+   * @type {string | null}
+   */
+  _previousAutofocusTarget
 
   /**
    * @param {import("../index.js").CompiledLayout} compiledLayout
@@ -190,11 +194,13 @@ export class StatefulLayout {
     /** @type {import('mitt').Emitter<StatefulLayoutEvents>} */
     this.events = mitt()
     this.prepareOptions(options)
-    this._autofocus = this.options.autofocus ? '' : null
+    this._autofocusTarget = this.options.autofocus ? '' : null
+    this._previousAutofocusTarget = null
     this._data = data
     this.initValidationState()
     this.activeItems = {}
     this.updateState()
+    this.handleAutofocus()
   }
 
   /**
@@ -223,10 +229,11 @@ export class StatefulLayout {
    */
   updateState () {
     this.createStateTree()
-    if (this._data !== this._stateTree.root.data) {
+    if (this._data !== this._stateTree.root.data || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
       logDataBinding('hydrating state tree changed the data, do it again', this._data, this._stateTree.root.data)
       // this is necessary because a first hydration can add default values and change validity, etc
       this._data = this._stateTree.root.data
+      this._autofocusTarget = this._lastCreateStateTreeContext.autofocusTarget
       this.createStateTree()
     }
     logDataBinding('emit update event', this._data, this._stateTree)
@@ -241,7 +248,8 @@ export class StatefulLayout {
     const createStateTreeContext = {
       nodes: [],
       activeItems: this.activeItems,
-      autofocus: this._autofocus
+      autofocusTarget: this._autofocusTarget,
+      initial: !this._lastCreateStateTreeContext
     }
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -255,8 +263,9 @@ export class StatefulLayout {
     )
     this._lastCreateStateTreeContext = createStateTreeContext
     if (!this.validationState.initialized) {
-      this.validationState = {
+      this._validationState = {
         initialized: true,
+        validatedForm: this._validationState.validatedForm,
         validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey)
       }
     }
@@ -304,7 +313,7 @@ export class StatefulLayout {
     }
     if (activateKey !== undefined) {
       this.activeItems[node.fullKey] = activateKey
-      this._autofocus = node.fullKey + '/' + activateKey
+      this._autofocusTarget = node.fullKey + '/' + activateKey
     }
     if (node.parentFullKey === null) {
       this.data = data
@@ -315,6 +324,10 @@ export class StatefulLayout {
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
     const newParentValue = producePatchedData(parentNode.data ?? {}, node, data)
     this.input(parentNode, newParentValue)
+
+    if (activateKey !== undefined) {
+      this.handleAutofocus()
+    }
   }
 
   /**
@@ -431,12 +444,13 @@ export class StatefulLayout {
    */
   activateItem (node, key) {
     this.activeItems[node.fullKey] = key
-    this._autofocus = node.fullKey + '/' + key
+    this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
       this.input(node, undefined)
     } else {
       this.updateState()
     }
+    this.handleAutofocus()
   }
 
   /**
@@ -445,5 +459,16 @@ export class StatefulLayout {
   deactivateItem (node) {
     delete this.activeItems[node.fullKey]
     this.updateState()
+  }
+
+  handleAutofocus () {
+    const autofocusTarget = this._autofocusTarget
+    if (autofocusTarget !== null && this._autofocusTarget !== this._previousAutofocusTarget) {
+      this._previousAutofocusTarget = autofocusTarget
+      setTimeout(() => {
+        logDataBinding('emit autofocus event', autofocusTarget)
+        this.events.emit('autofocus', autofocusTarget)
+      })
+    }
   }
 }
