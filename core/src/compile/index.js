@@ -1,7 +1,6 @@
 // compileStatic is meant to produce a serializable result
 
 import ajvModule from 'ajv'
-import rfdc from 'rfdc'
 // import { Parser as ExprEvalParser } from 'expr-eval'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
@@ -10,6 +9,7 @@ import MarkdownIt from 'markdown-it'
 import i18n from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveRefs } from './utils/resolve-refs.js'
+import clone from '../utils/clone.js'
 
 export { resolveRefs } from './utils/resolve-refs.js'
 
@@ -29,7 +29,6 @@ const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalize
 
 const expressionsParams = ['data', 'options', 'context', 'display']
 
-const clone = rfdc()
 // const exprEvalParser = new ExprEvalParser()
 
 /**
