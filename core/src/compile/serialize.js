@@ -29,8 +29,8 @@ export function serialize (compiledLayout) {
   // some internal imports to ajv are not translated to esm, we do it here
   // cf https://github.com/ajv-validator/ajv-formats/pull/73
   if (code.includes('require("ajv-formats/dist/formats")')) {
-    code = 'import { fullFormats } from "ajv-formats/dist/formats.js";\n' + code
-    code = code.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'fullFormats')
+    code = 'import ajvFormats from "ajv-formats/dist/formats.js";\n' + code
+    code = code.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'ajvFormats.fullFormats')
   }
   if (code.includes('require("ajv/dist/runtime/ucs2length")')) {
     code = 'import ucs2length from "ajv/dist/runtime/ucs2length.js";\n' + code
