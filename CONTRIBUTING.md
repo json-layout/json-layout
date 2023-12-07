@@ -34,7 +34,7 @@ Release and publish using npm.
 
 Create new version:
 
-First modify the cross-references in the package.json files of the workspaces (at least core/package.json references @kson-layout/vocabulary). Then create the new tags:
+First modify the cross-references in the package.json files of the workspaces (core/package.json references @json-layout/vocabulary and examples/packages.json references @json-layout/core). Then create the new tags:
 
 ```
 npm --workspaces version minor
@@ -44,6 +44,4 @@ Publish on npm and github:
 
 ```
 npm --workspaces publish
-git push
-git push --tags
 ```
