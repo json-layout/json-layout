@@ -38,6 +38,6 @@
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "peerDependencies": {
-    "@json-layout/core": "0.4.0"
+    "@json-layout/core": "0.5.0"
   }
 }
