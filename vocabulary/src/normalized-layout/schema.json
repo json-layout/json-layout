@@ -44,7 +44,7 @@
                 }
               ]
             },
-            "options": {"$ref": "#/$defs/state-node-options"}
+            "options": {"$ref": "#/$defs/state-node-options-base"}
           }
         },
         {
@@ -458,10 +458,10 @@
         }
       ]
     },
-    "state-node-options": {
+    "state-node-options-base": {
       "type": "object",
       "allOf": [
-        {"$ref": "#/$defs/state-node-options-lib"},
+        {"$ref": "#/$defs/state-node-options-base-lib"},
         {
           "properties": {
             "readOnly": {"type": "boolean", "default": false},
@@ -471,7 +471,7 @@
         }
       ]
     },
-    "state-node-options-lib": {
+    "state-node-options-base-lib": {
       "type": "object",
       "patternProperties": {
         ".*": {}

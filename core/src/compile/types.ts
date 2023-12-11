@@ -1,11 +1,11 @@
 import type ajvModule from 'ajv'
 import type MarkdownIt from 'markdown-it'
-import { type NormalizedLayout, type StateNodeOptions } from '@json-layout/vocabulary'
+import { type NormalizedLayout, type StateNodeOptionsBase } from '@json-layout/vocabulary'
 import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv'
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
 
-export type CompiledExpression = (data: any, options: StateNodeOptions, context: object, display: Display) => any
+export type CompiledExpression = (data: any, options: StateNodeOptionsBase, context: object, display: Display) => any
 
 export interface CompileOptions {
   ajv: ajvModule.default

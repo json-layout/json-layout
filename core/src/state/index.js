@@ -368,7 +368,7 @@ export class StatefulLayout {
 
     /** @type {(expression: import('@json-layout/vocabulary').Expression, data: any) => any} */
     const evalSelectExpression = (expression, data) => {
-      return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.options.width))
+      return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width))
     }
 
     let rawItems

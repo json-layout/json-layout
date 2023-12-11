@@ -2,7 +2,7 @@ import { type ErrorObject } from 'ajv'
 import {
   type CompObject,
   type Cols,
-  type StateNodeOptions,
+  type StateNodeOptionsBase,
   type TextField,
   type Textarea,
   type NumberField,
@@ -40,7 +40,8 @@ export interface StateNode {
   error: string | undefined
   childError: boolean | undefined
   validated: boolean
-  options: StatefulLayoutOptions
+  width: number
+  options: StateNodeOptions
   messages: LocaleMessages
   autofocus?: boolean
   autofocusChild?: string | number
@@ -75,14 +76,17 @@ export type StatefulLayoutEvents = {
   autofocus: string
 }
 
-export type StatefulLayoutOptions = Required<StateNodeOptions> & {
+export type StateNodeOptions = Required<StateNodeOptionsBase & {
   context: Record<string, any>
-  width: number
   validateOn: 'input' | 'blur' | 'submit'
   initialValidation: 'never' | 'always' | 'withData'
   defaultOn: 'missing' | 'empty' | 'never'
   messages: LocaleMessages
   autofocus: boolean
+}>
+
+export type StatefulLayoutOptions = StateNodeOptions & {
+  width: number
 }
 
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, data: string | undefined | null }

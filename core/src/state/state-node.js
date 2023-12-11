@@ -17,7 +17,7 @@ const isDataEmpty = (data) => {
 /**
  * @param {unknown} data
  * @param {import('@json-layout/vocabulary').CompObject} layout
- * @param {import('./types.js').StatefulLayoutOptions} options
+ * @param {import('./types.js').StateNodeOptions} options
  * @returns {boolean}
  */
 const useDefaultData = (data, layout, options) => {
@@ -27,8 +27,8 @@ const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StatefulLayoutOptions, autofocus: boolean, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, cols, data, error, validated, options, autofocus, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -38,6 +38,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.parentDataPath = parentDataPath
   draft.skeleton = skeleton
   draft.layout = layout
+  draft.width = width
   draft.options = options
   draft.cols = cols
   draft.data = data
@@ -57,7 +58,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.children = children
 })
 
-/** @type {(draft: import('../i18n/types.js').LocaleMessages, layoutMessages: Partial<import('../i18n/types.js').LocaleMessages>, options: import('./types.js').StatefulLayoutOptions) => import('../i18n/types.js').LocaleMessages} */
+/** @type {(draft: import('../i18n/types.js').LocaleMessages, layoutMessages: Partial<import('../i18n/types.js').LocaleMessages>, options: import('./types.js').StateNodeOptions) => import('../i18n/types.js').LocaleMessages} */
 const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
   Object.assign(draft, options.messages, layoutMessages)
 })
@@ -76,10 +77,10 @@ const produceStateNodeData = produce((draft, parentDataPath, children) => {
   }
 })
 
-/** @type {(draft: import('./types.js').StatefulLayoutOptions, parentNodeOptions: import('./types.js').StatefulLayoutOptions, nodeOptions: import('@json-layout/vocabulary').StateNodeOptions | undefined, width: number) => import('./types.js').StatefulLayoutOptions} */
-const produceNodeOptions = produce((draft, parentNodeOptions, nodeOptions = {}, width) => {
+/** @type {(draft: import('./types.js').StateNodeOptions, parentNodeOptions: import('./types.js').StateNodeOptions, nodeOptions: Partial<import('./types.js').StateNodeOptions> | undefined) => import('./types.js').StateNodeOptions} */
+const produceNodeOptions = produce((draft, parentNodeOptions, nodeOptions = {}) => {
   for (const key in parentNodeOptions) {
-    draft[key] = parentNodeOptions[key]
+    draft[key] = nodeOptions[key] ?? parentNodeOptions[key]
   }
   for (const key in nodeOptions) {
     draft[key] = nodeOptions[key]
@@ -90,16 +91,15 @@ const produceNodeOptions = produce((draft, parentNodeOptions, nodeOptions = {}, 
       delete draft[key]
     }
   }
-  draft.width = width
 })
 
-/** @type {(draft: import('./types.js').StatefulLayoutOptions) => import('./types.js').StatefulLayoutOptions} */
+/** @type {(draft: import('./types.js').StateNodeOptions) => import('./types.js').StateNodeOptions} */
 const produceReadonlyArrayItemOptions = produce((draft) => {
   draft.readOnly = true
   draft.summary = true
 })
 
-/** @type {(draft: import('./types.js').StatefulLayoutOptions, section: import('@json-layout/vocabulary').CompositeCompObject) => import('./types.js').StatefulLayoutOptions} */
+/** @type {(draft: import('./types.js').StateNodeOptions, section: import('@json-layout/vocabulary').CompositeCompObject) => import('./types.js').StateNodeOptions} */
 const produceCompositeChildrenOptions = produce((draft, section) => {
   // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
   if (section.title && draft.titleDepth < 6) draft.titleDepth += 1
@@ -134,7 +134,7 @@ const matchChildError = (error, skeleton, dataPath) => {
  * @param {import('../index.js').CompiledExpression[]} expressions
  * @param {import('@json-layout/vocabulary').Expression} expression
  * @param {any} data
- * @param {import('./types.js').StatefulLayoutOptions} options
+ * @param {import('./types.js').StateNodeOptions} options
  * @param {import('./utils/display.js').Display} display
  * @returns {any}
  */
@@ -147,7 +147,7 @@ export function evalExpression (expressions, expression, data, options, display)
 
 /**
  * @param {import('@json-layout/vocabulary').NormalizedLayout} normalizedLayout
- * @param {import('./types.js').StatefulLayoutOptions} options
+ * @param {import('./types.js').StateNodeOptions} options
  * @param {import('../index.js').CompiledLayout} compiledLayout
  * @param {import('./utils/display.js').Display} display
  * @param {unknown} data
@@ -169,7 +169,7 @@ const getCompObject = (normalizedLayout, options, compiledLayout, display, data)
 /**
  *
  * @param {import('./types.js').CreateStateTreeContext} context
- * @param {import('./types.js').StatefulLayoutOptions} parentOptions
+ * @param {import('./types.js').StateNodeOptions} parentOptions
  * @param {import('../index.js').CompiledLayout} compiledLayout
  * @param {string | number} key
  * @param {string} fullKey
@@ -206,12 +206,13 @@ export function createStateNode (
   const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data)
   const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
 
-  const options = produceNodeOptions(
-    reusedNode?.options ?? /** @type {import('./types.js').StatefulLayoutOptions} */({}),
-    parentOptions,
-    layout.options,
-    display.width
-  )
+  const options = layout.options
+    ? produceNodeOptions(
+      reusedNode?.options ?? /** @type {import('./types.js').StateNodeOptions} */({}),
+      parentOptions,
+      layout.options
+    )
+    : parentOptions
 
   if (context.initial && parentOptions.autofocus && layout.autofocus) {
     context.autofocusTarget = fullKey
@@ -355,6 +356,7 @@ export function createStateNode (
     parentDataPath,
     skeleton,
     layout,
+    display.width,
     cols,
     nodeData,
     error?.message,
