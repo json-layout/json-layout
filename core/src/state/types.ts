@@ -62,6 +62,7 @@ export interface CreateStateTreeContext {
   autofocusTarget: string | null
   initial: boolean
   cacheKeys: Record<string, StateNodeCacheKey>
+  rootData: unknown
 }
 
 // [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentWidth, validationState, activeItems, initial, data]

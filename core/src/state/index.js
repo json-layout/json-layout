@@ -251,7 +251,8 @@ export class StatefulLayout {
       activeItems: this.activeItems,
       autofocusTarget: this._autofocusTarget,
       initial: !this._lastCreateStateTreeContext,
-      cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {}
+      cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {},
+      rootData: this._data
     }
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -371,7 +372,9 @@ export class StatefulLayout {
 
     /** @type {(expression: import('@json-layout/vocabulary').Expression, data: any) => any} */
     const evalSelectExpression = (expression, data) => {
-      return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width))
+      const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
+      const parentData = parentNode ? parentNode.data : null
+      return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), parentData, this._data)
     }
 
     let rawItems

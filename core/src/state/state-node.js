@@ -136,13 +136,14 @@ const matchChildError = (error, skeleton, dataPath) => {
  * @param {any} data
  * @param {import('./types.js').StateNodeOptions} options
  * @param {import('./utils/display.js').Display} display
+ * @param {unknown} rootData
+ * @param {unknown} parentData
  * @returns {any}
  */
-export function evalExpression (expressions, expression, data, options, display) {
+export function evalExpression (expressions, expression, data, options, display, rootData, parentData) {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
-  // console.log(expression.expr, context, mode, display)
-  return compiledExpression(data, options, options.context, display)
+  return expression.pure ? compiledExpression(data, options, options.context, display) : compiledExpression(data, options, options.context, display, rootData, parentData)
 }
 
 /**
@@ -151,19 +152,27 @@ export function evalExpression (expressions, expression, data, options, display)
  * @param {import('../index.js').CompiledLayout} compiledLayout
  * @param {import('./utils/display.js').Display} display
  * @param {unknown} data
+ * @param {unknown} rootData
+ * @param {unknown} parentData
  * @returns {import('@json-layout/vocabulary').CompObject}
  */
-const getCompObject = (normalizedLayout, options, compiledLayout, display, data) => {
+const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentData) => {
   if (isSwitchStruct(normalizedLayout)) {
     for (const compObject of normalizedLayout.switch) {
-      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display)) {
+      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, parentData, rootData)) {
         return compObject
       }
     }
   } else {
-    return normalizedLayout
+    if (normalizedLayout.if) {
+      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, parentData, rootData)) {
+        return normalizedLayout
+      }
+    } else {
+      return normalizedLayout
+    }
   }
-  throw new Error('no layout matched for node')
+  return { comp: 'none' }
 }
 
 /**
@@ -180,6 +189,7 @@ const getCompObject = (normalizedLayout, options, compiledLayout, display, data)
  * @param {import('@json-layout/vocabulary').Child | null} childDefinition
  * @param {import('./utils/display.js').Display} parentDisplay
  * @param {unknown} data
+ * @param {unknown} parentData
  * @param {import('./types.js').ValidationState} validationState
  * @param {import('./types.js').StateNode} [reusedNode]
  * @returns {import('./types.js').StateNode}
@@ -197,6 +207,7 @@ export function createStateNode (
   childDefinition,
   parentDisplay,
   data,
+  parentData,
   validationState,
   reusedNode
 ) {
@@ -213,7 +224,7 @@ export function createStateNode (
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
     ? childDefinition
     : compiledLayout.normalizedLayouts[skeleton.pointer]
-  const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data)
+  const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentData)
   const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
 
   const options = layout.options
@@ -224,7 +235,7 @@ export function createStateNode (
     )
     : parentOptions
 
-  if (context.initial && parentOptions.autofocus && layout.autofocus) {
+  if (context.initial && parentOptions.autofocus && layout.autofocus && layout.comp !== 'none') {
     context.autofocusTarget = fullKey
   }
 
@@ -255,6 +266,7 @@ export function createStateNode (
         childLayout,
         display,
         isSameData ? objectData : objectData[childLayout.key],
+        objectData,
         validationState,
         reusedNode?.children?.[i]
       )
@@ -286,6 +298,7 @@ export function createStateNode (
           null,
           display,
           data,
+          data,
           validationState,
           reusedNode?.children?.[0]
         )
@@ -316,6 +329,7 @@ export function createStateNode (
         null,
         display,
         itemData,
+        arrayData,
         validationState,
         reusedNode?.children?.[0]
       )
@@ -336,10 +350,10 @@ export function createStateNode (
 
   let nodeData = children ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
   if (layout.constData) {
-    nodeData = evalExpression(compiledLayout.expressions, layout.constData, nodeData, options, display)
+    nodeData = evalExpression(compiledLayout.expressions, layout.constData, nodeData, options, display, context.rootData, parentData)
   } else {
     if (layout.defaultData && useDefaultData(nodeData, layout, options)) {
-      nodeData = evalExpression(compiledLayout.expressions, layout.defaultData, nodeData, options, display)
+      nodeData = evalExpression(compiledLayout.expressions, layout.defaultData, nodeData, options, display, context.rootData, parentData)
     } else {
       if (isDataEmpty(nodeData)) {
         if (layout.nullable) {
