@@ -3,20 +3,6 @@ import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetIte
 import { makeSkeletonTree } from './skeleton-tree.js'
 
 /**
- * @param {import('@json-layout/vocabulary').Expression[]} expressions
- * @param {import('@json-layout/vocabulary').Expression} expression
- */
-const pushExpression = (expressions, expression) => {
-  const index = expressions.findIndex(e => e.type === expression.type && e.expr === expression.expr)
-  if (index !== -1) {
-    expression.ref = index
-  } else {
-    expression.ref = expressions.length
-    expressions.push(expression)
-  }
-}
-
-/**
  * @param {any} schema
  * @param {import('./index.js').CompileOptions} options
  * @param {string[]} validates
@@ -62,15 +48,31 @@ export function makeSkeletonNode (
     if (schema.type === 'array') defaultData = []
   }
 
+  let pure = true
+  /**
+   * @param {import('@json-layout/vocabulary').Expression[]} expressions
+   * @param {import('@json-layout/vocabulary').Expression} expression
+   */
+  const pushExpression = (expressions, expression) => {
+    if (!expression.pure) pure = false
+    const index = expressions.findIndex(e => e.type === expression.type && e.expr === expression.expr)
+    if (index !== -1) {
+      expression.ref = index
+    } else {
+      expression.ref = expressions.length
+      expressions.push(expression)
+    }
+  }
+
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
     if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)
 
-    if ('const' in schema) compObject.constData = { type: 'js-eval', expr: JSON.stringify(schema.const) }
+    if ('const' in schema) compObject.constData = { type: 'js-eval', expr: JSON.stringify(schema.const), pure: true }
     if (compObject.constData) pushExpression(expressions, compObject.constData)
 
-    if (defaultData && !compObject.defaultData) compObject.defaultData = { type: 'js-eval', expr: JSON.stringify(defaultData) }
+    if (defaultData && !compObject.defaultData) compObject.defaultData = { type: 'js-eval', expr: JSON.stringify(defaultData), pure: true }
     if (compObject.defaultData) pushExpression(expressions, compObject.defaultData)
 
     if (isItemsLayout(compObject) && compObject.getItems) {
@@ -85,7 +87,7 @@ export function makeSkeletonNode (
   }
 
   /** @type {import('./types.js').SkeletonNode} */
-  const node = { key: key ?? '', pointer, parentPointer }
+  const node = { key: key ?? '', pointer, parentPointer, pure }
   if (schema.type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []
@@ -152,7 +154,7 @@ export function makeSkeletonNode (
         ))
       }
       node.children = node.children ?? []
-      node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees })
+      node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees, pure: childrenTrees[0].root.pure })
 
       schema.errorMessage.oneOf = options.messages.errorOneOf
     }
@@ -189,5 +191,9 @@ export function makeSkeletonNode (
       ]
     }
   }
+
+  for (const child of node.children || []) if (!child.pure) node.pure = false
+  for (const childTree of node.childrenTrees || []) if (!childTree.root.pure) node.pure = false
+
   return node
 }

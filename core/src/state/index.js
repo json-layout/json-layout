@@ -1,6 +1,7 @@
 // eslint-disable-next-line import/no-named-default
 import mittModule from 'mitt'
 import debug from 'debug'
+import { produce } from 'immer'
 import { evalExpression, producePatchedData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
@@ -249,7 +250,8 @@ export class StatefulLayout {
       nodes: [],
       activeItems: this.activeItems,
       autofocusTarget: this._autofocusTarget,
-      initial: !this._lastCreateStateTreeContext
+      initial: !this._lastCreateStateTreeContext,
+      cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {}
     }
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -269,6 +271,7 @@ export class StatefulLayout {
         validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey)
       }
     }
+    this.activeItems = createStateTreeContext.activeItems
   }
 
   validate () {
@@ -312,7 +315,7 @@ export class StatefulLayout {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
     }
     if (activateKey !== undefined) {
-      this.activeItems[node.fullKey] = activateKey
+      this.activeItems = produce(this.activeItems, draft => { draft[node.fullKey] = activateKey })
       this._autofocusTarget = node.fullKey + '/' + activateKey
     }
     if (node.parentFullKey === null) {
@@ -443,7 +446,7 @@ export class StatefulLayout {
    * @param {number} key
    */
   activateItem (node, key) {
-    this.activeItems[node.fullKey] = key
+    this.activeItems = produce(this.activeItems, draft => { draft[node.fullKey] = key })
     this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
       this.input(node, undefined)
@@ -457,7 +460,7 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   deactivateItem (node) {
-    delete this.activeItems[node.fullKey]
+    this.activeItems = produce(this.activeItems, draft => { delete draft[node.fullKey] })
     this.updateState()
   }
 

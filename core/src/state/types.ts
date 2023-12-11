@@ -22,9 +22,10 @@ import {
   type ExpansionPanels,
   type Stepper,
   type List,
-  type Combobox
+  type Combobox,
+  type Child
 } from '@json-layout/vocabulary'
-import { type SkeletonTree, type SkeletonNode, type StatefulLayout } from '../index.js'
+import { type SkeletonTree, type SkeletonNode, type StatefulLayout, type CompiledLayout } from '../index.js'
 import { type LocaleMessages } from '../i18n/types.js'
 
 export interface StateNode {
@@ -60,7 +61,22 @@ export interface CreateStateTreeContext {
   activeItems: Record<string, number>
   autofocusTarget: string | null
   initial: boolean
+  cacheKeys: Record<string, StateNodeCacheKey>
 }
+
+// [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentWidth, validationState, activeItems, initial, data]
+export type StateNodeCacheKey = [
+  StateNodeOptions,
+  CompiledLayout,
+  string,
+  SkeletonNode,
+  Child | null,
+  number,
+  ValidationState,
+  Record<string, number>,
+  boolean,
+  unknown
+]
 
 export interface ValidationState {
   initialized: boolean

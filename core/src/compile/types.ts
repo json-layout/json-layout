@@ -44,6 +44,7 @@ export interface SkeletonNode {
   key: string | number
   pointer: string
   parentPointer: string | null
+  pure: boolean
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
 }

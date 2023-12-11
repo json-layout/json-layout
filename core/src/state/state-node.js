@@ -1,7 +1,7 @@
 import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import { getChildDisplay } from './utils/display.js'
-import { shallowCompareArrays } from './utils/immutable.js'
+import { shallowEqualArray, shallowProduceArray } from './utils/immutable.js'
 
 /**
  * @param {unknown} data
@@ -200,6 +200,16 @@ export function createStateNode (
   validationState,
   reusedNode
 ) {
+  /** @type {import('./types.js').StateNodeCacheKey | null} */
+  let cacheKey = null
+  if (skeleton.pure && reusedNode) {
+    cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activeItems, context.initial, data]
+    if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
+      context.nodes.push(reusedNode)
+      return reusedNode
+    }
+  }
+
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
     ? childDefinition
     : compiledLayout.normalizedLayouts[skeleton.pointer]
@@ -258,7 +268,7 @@ export function createStateNode (
     /** @type {number} */
     const activeChildTreeIndex = fullKey in context.activeItems ? context.activeItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
     if (activeChildTreeIndex !== -1) {
-      context.activeItems[fullKey] = activeChildTreeIndex
+      context.activeItems = produce(context.activeItems, draft => { draft[fullKey] = activeChildTreeIndex })
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
       const activeChildTree = skeleton.childrenTrees[activeChildTreeIndex]
@@ -363,9 +373,12 @@ export function createStateNode (
     validated,
     options,
     autofocus,
-    children && shallowCompareArrays(reusedNode?.children, children)
+    children && shallowProduceArray(reusedNode?.children, children)
   )
+
   context.nodes.push(node)
+  if (cacheKey) context.cacheKeys[fullKey] = cacheKey
+
   return node
 }
 

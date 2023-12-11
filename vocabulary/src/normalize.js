@@ -152,8 +152,8 @@ function getPartialCompObject (layoutKeyword) {
  * @returns {Expression}
  */
 function normalizeExpression (expression, defaultType = 'js-eval') {
-  if (typeof expression === 'string') return { type: defaultType, expr: expression }
-  else return { ...expression, type: expression.type ?? defaultType }
+  if (typeof expression === 'string') return { type: defaultType, expr: expression, pure: true }
+  else return { pure: true, type: defaultType, ...expression }
 }
 
 /**

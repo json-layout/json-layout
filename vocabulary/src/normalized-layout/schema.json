@@ -397,7 +397,7 @@
     },
     "expression": {
       "type": "object",
-      "required": ["type", "expr"],
+      "required": ["type", "expr", "pure"],
       "properties": {
         "type": {
           "type": "string",
@@ -405,6 +405,9 @@
         },
         "expr": {
           "type": "string"
+        },
+        "pure": {
+          "type": "boolean"
         },
         "ref": {
           "type": "integer",

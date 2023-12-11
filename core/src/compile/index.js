@@ -27,8 +27,6 @@ const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
 // @ts-ignore
 const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalizeModule)
 
-const expressionsParams = ['data', 'options', 'context', 'display']
-
 // const exprEvalParser = new ExprEvalParser()
 
 /**
@@ -114,6 +112,9 @@ export function compile (_schema, partialOptions = {}) {
   const expressions = []
 
   for (const expression of expressionsDefinitions) {
+    const expressionsParams = expression.pure
+      ? ['data', 'options', 'context', 'display']
+      : ['data', 'options', 'context', 'display', 'parent']
     /* if (expression.type === 'expr-eval') {
       expressions.push(exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')))
     } */
