@@ -10,6 +10,21 @@ const produceStateTree = produce(
 )
 
 /**
+ * @generator
+ * @param {import('./types.js').StateNode} node
+ * @yields {import('./types.js').StateNode}
+ * @returns {Generator<import('./types.js').StateNode>}
+ */
+function * traverseNodes (node) {
+  yield node
+  if (node.children) {
+    for (const child of node.children) {
+      yield * traverseNodes(child)
+    }
+  }
+}
+
+/**
  * @param {import('./types.js').CreateStateTreeContext} context
  * @param {import('./types.js').StatefulLayoutOptions} options
  * @param {import('../index.js').CompiledLayout} compiledLayout
@@ -55,6 +70,15 @@ export function createStateTree (
     validationState,
     reusedStateTree?.root
   )
+
+  context.nodes = []
+  context.files = []
+  for (const node of traverseNodes(root)) {
+    context.nodes.push(node)
+    if (node.data instanceof File) {
+      context.files.push({ dataPath: node.dataPath, file: node.data })
+    }
+  }
 
   return produceStateTree(reusedStateTree ?? /** @type {import('./types.js').StateTree} */({}), root, valid)
 }

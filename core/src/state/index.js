@@ -5,7 +5,8 @@ import { produce } from 'immer'
 import { evalExpression, producePatchedData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
-import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
+import { isFileLayout, isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
+import { shallowProduceArray } from './utils/immutable.js'
 
 export { Display } from './utils/display.js'
 
@@ -35,6 +36,7 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').StepperNode} StepperNode
  * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
  * @typedef {import('./types.js').ListNode} ListNode
+ * @typedef {import('./types.js').FileRef} FileRef
  */
 
 /** @type {(node: StateNode | undefined) => node is SectionNode} */
@@ -184,6 +186,11 @@ export class StatefulLayout {
   _previousAutofocusTarget
 
   /**
+   * @type {FileRef[]}
+   */
+  files = []
+
+  /**
    * @param {import("../index.js").CompiledLayout} compiledLayout
    * @param {import("../index.js").SkeletonTree} skeletonTree
    * @param {Partial<StatefulLayoutOptions>} options
@@ -247,12 +254,13 @@ export class StatefulLayout {
   createStateTree () {
     /** @type {CreateStateTreeContext} */
     const createStateTreeContext = {
-      nodes: [],
       activeItems: this.activeItems,
       autofocusTarget: this._autofocusTarget,
       initial: !this._lastCreateStateTreeContext,
       cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {},
-      rootData: this._data
+      rootData: this._data,
+      files: [],
+      nodes: []
     }
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -273,6 +281,7 @@ export class StatefulLayout {
       }
     }
     this.activeItems = createStateTreeContext.activeItems
+    this.files = shallowProduceArray(this.files, createStateTreeContext.files)
   }
 
   validate () {
@@ -306,12 +315,42 @@ export class StatefulLayout {
   }
 
   /**
+   * @private
+   * @param {StateNode} node
+   * @param {import('@json-layout/vocabulary').Expression} expression
+   * @param {any} data
+   * @returns {any}
+   */
+  evalNodeExpression = (node, expression, data) => {
+    // const parentNode = this._stateTree.traverseNode(this._stateTree.root).find(n => n.fullKey === node.parentFullKey)
+    const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
+    const parentData = parentNode ? parentNode.data : null
+    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), parentData, this._data)
+  }
+
+  /**
    * @param {StateNode} node
    * @param {unknown} data
    * @param {number} [activateKey]
    */
   input (node, data, activateKey) {
     logDataBinding('received input event from node', node, data)
+
+    const transformedData = node.layout.transformData && this.evalNodeExpression(node, node.layout.transformData, data)
+
+    if (isFileLayout(node.layout) && data instanceof File) {
+      if (transformedData) {
+        // @ts-ignore
+        data.toJSON = () => transformedData
+      } else {
+        const fileJSON = { name: data.name, size: data.size, type: data.type }
+        // @ts-ignore
+        data.toJSON = () => fileJSON
+      }
+    } else if (transformedData) {
+      data = transformedData
+    }
+
     if (node.options.validateOn === 'input' && !this.validationState.validatedChildren.includes(node.fullKey)) {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
     }
@@ -370,21 +409,14 @@ export class StatefulLayout {
 
     if (node.layout.items) return [node.layout.items, false]
 
-    /** @type {(expression: import('@json-layout/vocabulary').Expression, data: any) => any} */
-    const evalSelectExpression = (expression, data) => {
-      const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
-      const parentData = parentNode ? parentNode.data : null
-      return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), parentData, this._data)
-    }
-
     let rawItems
     let appliedQ = false
     if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {
-      rawItems = evalSelectExpression(node.layout.getItems, null)
+      rawItems = this.evalNodeExpression(node, node.layout.getItems, null)
       if (!Array.isArray(rawItems)) throw new Error('getItems expression didn\'t return an array')
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
-      const url = new URL(evalSelectExpression(node.layout.getItems.url, null))
+      const url = new URL(this.evalNodeExpression(node, node.layout.getItems.url, null))
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
         for (const searchParam of url.searchParams.entries()) {
@@ -401,26 +433,26 @@ export class StatefulLayout {
 
     if (rawItems) {
       if (node.layout.getItems?.itemsResults) {
-        rawItems = evalSelectExpression(node.layout.getItems.itemsResults, rawItems)
+        rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
       }
       /** @type {import('@json-layout/vocabulary').SelectItems} */
       const items = rawItems.map((/** @type {any} */ rawItem) => {
         /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
         const item = {}
         if (typeof rawItem === 'object') {
-          item.value = node.layout.getItems?.itemValue ? evalSelectExpression(node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
-          item.key = node.layout.getItems?.itemKey ? evalSelectExpression(node.layout.getItems.itemKey, rawItem) : rawItem.key
-          item.title = node.layout.getItems?.itemTitle ? evalSelectExpression(node.layout.getItems.itemTitle, rawItem) : rawItem.title
+          item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
+          item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : rawItem.key
+          item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : rawItem.title
           item.value = item.value ?? item.key
           item.key = item.key ?? item.value + ''
           item.title = item.title ?? item.key
           if (!item.icon && rawItem.icon) item.icon = rawItem.icon
         } else {
-          item.value = node.layout.getItems?.itemValue ? evalSelectExpression(node.layout.getItems.itemValue, rawItem) : rawItem
-          item.key = node.layout.getItems?.itemKey ? evalSelectExpression(node.layout.getItems.itemKey, rawItem) : item.value
-          item.title = node.layout.getItems?.itemTitle ? evalSelectExpression(node.layout.getItems.itemTitle, rawItem) : item.value
+          item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : rawItem
+          item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : item.value
+          item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
         }
-        if (node.layout.getItems?.itemIcon) item.icon = evalSelectExpression(node.layout.getItems?.itemIcon, rawItem)
+        if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
         return item
       })
       return [items, appliedQ]

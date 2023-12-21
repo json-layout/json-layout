@@ -27,6 +27,7 @@
             "if": {"$ref": "#/$defs/expression"},
             "defaultData": {"$ref": "#/$defs/expression"},
             "constData": {"$ref": "#/$defs/expression"},
+            "transformData": {"$ref": "#/$defs/expression"},
             "nullable": {"type": "boolean"},
             "help": {"type": "string"},
             "cols": {"$ref": "#/$defs/cols-obj"},
@@ -72,7 +73,8 @@
             {"$ref": "#/$defs/tabs"},
             {"$ref": "#/$defs/vertical-tabs"},
             {"$ref": "#/$defs/expansion-panels"},
-            {"$ref": "#/$defs/stepper"}
+            {"$ref": "#/$defs/stepper"},
+            {"$ref": "#/$defs/file-input"}
           ]
         }
       ]
@@ -339,6 +341,15 @@
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"}
+      }
+    },
+    "file-input": {
+      "type": "object",
+      "required": ["comp", "label"],
+      "properties": {
+        "comp": {"const": "file-input"},
+        "label": {"type": "string"},
+        "accept": {"type": "string"}
       }
     },
     "select-items": {

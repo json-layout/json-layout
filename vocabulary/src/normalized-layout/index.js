@@ -33,6 +33,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').Stepper} Stepper
  * @typedef {import('./types.js').List} List
  * @typedef {import('./types.js').Combobox} Combobox
+ * @typedef {import('./types.js').FileInput} FileInput
  * @typedef {import('./types.js').Cols} Cols
  * @typedef {import('./types.js').ColsObj} ColsObj
  * @typedef {import('./types.js').StateNodeOptionsBase} StateNodeOptionsBase
@@ -79,6 +80,11 @@ export function isTextFieldLayout (layout) {
 /** @type {(layout: CompObject) => layout is Select} */
 export function isSelectLayout (layout) {
   return layout.comp === 'select'
+}
+
+/** @type {(layout: CompObject) => layout is FileInput} */
+export function isFileLayout (layout) {
+  return layout.comp === 'file-input'
 }
 
 /** @type {(layout: CompObject) => layout is CompObject & {autofocus: boolean}} */

@@ -75,6 +75,8 @@ export function makeSkeletonNode (
     if (defaultData && !compObject.defaultData) compObject.defaultData = { type: 'js-eval', expr: JSON.stringify(defaultData), pure: true }
     if (compObject.defaultData) pushExpression(expressions, compObject.defaultData)
 
+    if (compObject.transformData) pushExpression(expressions, compObject.transformData)
+
     if (isItemsLayout(compObject) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
       if (isGetItemsFetch(compObject.getItems)) pushExpression(expressions, compObject.getItems.url)

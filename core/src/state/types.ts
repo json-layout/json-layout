@@ -52,17 +52,22 @@ export interface StateNode {
 export interface StateTree {
   root: StateNode
   valid: boolean
-  title: string
 }
 
 export interface CreateStateTreeContext {
   errors?: ErrorObject[]
-  nodes: StateNode[]
+  files: FileRef[]
   activeItems: Record<string, number>
   autofocusTarget: string | null
   initial: boolean
   cacheKeys: Record<string, StateNodeCacheKey>
   rootData: unknown
+  nodes: StateNode[]
+}
+
+export interface FileRef {
+  file: File
+  dataPath: string
 }
 
 // [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentWidth, validationState, activeItems, initial, data]

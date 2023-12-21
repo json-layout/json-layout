@@ -215,10 +215,7 @@ export function createStateNode (
   let cacheKey = null
   if (skeleton.pure && reusedNode) {
     cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activeItems, context.initial, data]
-    if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
-      context.nodes.push(reusedNode)
-      return reusedNode
-    }
+    if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) return reusedNode
   }
 
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
@@ -390,7 +387,6 @@ export function createStateNode (
     children && shallowProduceArray(reusedNode?.children, children)
   )
 
-  context.nodes.push(node)
   if (cacheKey) context.cacheKeys[fullKey] = cacheKey
 
   return node
