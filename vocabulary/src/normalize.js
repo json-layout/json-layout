@@ -221,9 +221,12 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
 
   if ('const' in schemaFragment) return { normalized: { comp: 'none' }, errors }
   if (!type) return { normalized: { comp: 'none' }, errors }
-  if (type === 'array' && !schemaFragment.items) return { normalized: { comp: 'none' }, errors }
 
   const partial = getPartialCompObject(layoutKeyword)
+
+  if (type === 'array' && !schemaFragment.items && partial.comp !== 'file-input') {
+    return { normalized: { comp: 'none' }, errors }
+  }
 
   // chose the default component for a schema fragment
   if (!partial.comp) {
@@ -267,7 +270,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     }
   }
 
-  if (['combobox', 'number-combobox'].includes(partial.comp)) {
+  if (['combobox', 'number-combobox', 'file-input'].includes(partial.comp)) {
     if (type === 'array') {
       partial.multiple = true
     }

@@ -349,7 +349,8 @@
       "properties": {
         "comp": {"const": "file-input"},
         "label": {"type": "string"},
-        "accept": {"type": "string"}
+        "accept": {"type": "string"},
+        "multiple": {"type": "boolean"}
       }
     },
     "select-items": {

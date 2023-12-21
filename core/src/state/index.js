@@ -338,14 +338,20 @@ export class StatefulLayout {
 
     const transformedData = node.layout.transformData && this.evalNodeExpression(node, node.layout.transformData, data)
 
-    if (isFileLayout(node.layout) && data instanceof File) {
+    if (isFileLayout(node.layout)) {
       if (transformedData) {
         // @ts-ignore
         data.toJSON = () => transformedData
-      } else {
+      } else if (data instanceof File) {
         const fileJSON = { name: data.name, size: data.size, type: data.type }
         // @ts-ignore
         data.toJSON = () => fileJSON
+      } else if (Array.isArray(data)) {
+        for (const file of data) {
+          const fileJSON = { name: file.name, size: file.size, type: file.type }
+          // @ts-ignore
+          file.toJSON = () => fileJSON
+        }
       }
     } else if (transformedData) {
       data = transformedData
