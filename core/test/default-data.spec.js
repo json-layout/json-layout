@@ -58,6 +58,15 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
 
+  it('should use empty value as default data for root simple types', async () => {
+    const compiledLayout = await compile({
+      type: 'string'
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+
+    assert.deepEqual(statefulLayout.data, '')
+  })
+
   it('should use default data when adding new item to array', async () => {
     const compiledLayout = await compile({
       type: 'array',
