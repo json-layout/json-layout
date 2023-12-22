@@ -23,6 +23,8 @@ import {
   type Stepper,
   type List,
   type Combobox,
+  type Markdown,
+  type FileInput,
   type Child
 } from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout, type CompiledLayout } from '../index.js'
@@ -150,3 +152,7 @@ export type StepperNode = StateNode & { layout: Stepper, children: StateNode[] }
 export type ListNode = StateNode & { layout: List, data: any[], children: StateNode[], childrenTrees: SkeletonTree[] }
 
 export type ComboboxNode = Omit<StateNode, 'children'> & { layout: Combobox, data: any[] }
+
+export type FileInputNode = Omit<StateNode, 'children'> & { layout: FileInput, data: object | undefined | null }
+
+export type MarkdownNode = Omit<StateNode, 'children'> & { layout: Markdown, data: string | undefined | null }

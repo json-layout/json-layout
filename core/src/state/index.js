@@ -36,6 +36,8 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').StepperNode} StepperNode
  * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
  * @typedef {import('./types.js').ListNode} ListNode
+ * @typedef {import('./types.js').FileInputNode} FileInputNode
+ * @typedef {import('./types.js').MarkdownNode} MarkdownNode
  * @typedef {import('./types.js').FileRef} FileRef
  */
 
