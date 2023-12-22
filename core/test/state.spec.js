@@ -329,6 +329,26 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(arrNode2.children?.[0].data, 'test')
     })
 
+    it('should manage empty tuples', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: { arr1: { type: 'array', items: [{ title: 'Str 1', type: 'string' }, { title: 'Str2', type: 'string' }] } }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.equal(arrNode.data, undefined)
+      assert.equal(arrNode.layout.comp, 'section')
+      assert.equal(arrNode.children?.length, 2)
+      statefulLayout.input(arrNode.children[0], 'test')
+      const arrNode2 = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode2)
+      assert.notEqual(arrNode, arrNode2)
+      console.log(arrNode2)
+      assert.ok(!arrNode2.error)
+      assert.equal(arrNode2.children?.[0].data, 'test')
+    })
+
     it('should use children info for ordering', async () => {
       const compiledLayout = await compile({
         type: 'object',

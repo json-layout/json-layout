@@ -73,6 +73,13 @@ const produceStateNodeData = produce((draft, parentDataPath, children) => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       if (child.data === undefined) delete draft[child.key]
       else draft[child.key] = child.data
+
+      if (Array.isArray(draft)) {
+        // remove trailing undefined values from tuples
+        while (draft.length && draft[draft.length - 1] === undefined) {
+          draft.pop()
+        }
+      }
     }
   }
 })
