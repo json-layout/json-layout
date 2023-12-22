@@ -36,8 +36,5 @@
   "bugs": {
     "url": "https://github.com/json-layout/json-layout/issues"
   },
-  "homepage": "https://github.com/json-layout/json-layout#readme",
-  "peerDependencies": {
-    "@json-layout/core": "0.5.0"
-  }
+  "homepage": "https://github.com/json-layout/json-layout#readme"
 }
