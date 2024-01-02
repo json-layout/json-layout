@@ -89,11 +89,12 @@ export function makeSkeletonNode (
   }
 
   /** @type {import('./types.js').SkeletonNode} */
-  const node = { key: key ?? '', pointer, parentPointer, pure }
+  const node = { key: key ?? '', pointer, parentPointer, pure, propertyKeys: [] }
   if (schema.type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []
       for (const propertyKey of Object.keys(schema.properties)) {
+        node.propertyKeys.push(propertyKey)
         node.children.push(makeSkeletonNode(
           schema.properties[propertyKey],
           options,
@@ -115,7 +116,7 @@ export function makeSkeletonNode (
     if (schema.allOf) {
       node.children = node.children ?? []
       for (let i = 0; i < schema.allOf.length; i++) {
-        node.children.push(makeSkeletonNode(
+        const allOfNode = makeSkeletonNode(
           schema.allOf[i],
           options,
           validates,
@@ -126,7 +127,9 @@ export function makeSkeletonNode (
           `${pointer}/allOf/${i}`,
           pointer,
           false
-        ))
+        )
+        node.propertyKeys = node.propertyKeys.concat(allOfNode.propertyKeys)
+        node.children.push(allOfNode)
       }
     }
     if (schema.oneOf) {
@@ -156,7 +159,16 @@ export function makeSkeletonNode (
         ))
       }
       node.children = node.children ?? []
-      node.children.push({ key: '$oneOf', pointer: `${pointer}/oneOf`, parentPointer: pointer, childrenTrees, pure: childrenTrees[0].root.pure })
+      const oneOfNode = {
+        key: '$oneOf',
+        pointer: `${pointer}/oneOf`,
+        parentPointer: pointer,
+        childrenTrees,
+        pure: childrenTrees[0].root.pure,
+        propertyKeys: []
+      }
+      node.propertyKeys = node.propertyKeys.concat(oneOfNode.propertyKeys)
+      node.children.push(oneOfNode)
 
       schema.errorMessage.oneOf = options.messages.errorOneOf
     }

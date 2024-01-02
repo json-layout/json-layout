@@ -1,6 +1,6 @@
 // compileStatic is meant to produce a serializable result
 
-import ajvModule from 'ajv'
+import ajvModule from 'ajv/dist/2019.js'
 // import { Parser as ExprEvalParser } from 'expr-eval'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
@@ -37,13 +37,14 @@ const fillOptions = (partialOptions) => {
   let ajv = partialOptions.ajv
   if (!ajv) {
     /** @type {import('ajv').Options} */
-    const ajvOpts = { strict: false, allErrors: true }
+    const ajvOpts = { allErrors: true }
     if (partialOptions.code) ajvOpts.code = { source: true, esm: true, lines: true }
     const newAjv = new Ajv(ajvOpts)
     addFormats.default(newAjv)
     ajvErrors.default(newAjv)
     ajv = newAjv
   }
+  ajv.addKeyword('layout')
 
   let markdown = partialOptions.markdown
   if (!markdown) {

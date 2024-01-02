@@ -344,7 +344,6 @@ for (const compileMode of ['runtime', 'build-time']) {
       const arrNode2 = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode2)
       assert.notEqual(arrNode, arrNode2)
-      console.log(arrNode2)
       assert.ok(!arrNode2.error)
       assert.equal(arrNode2.children?.[0].data, 'test')
     })
@@ -397,6 +396,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         summary: false,
         titleDepth: 2,
         initialValidation: 'withData',
+        removeAdditional: 'error',
         defaultOn: 'empty',
         validateOn: 'input',
         messages: i18n.en,
@@ -412,6 +412,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         summary: false,
         titleDepth: 2,
         initialValidation: 'withData',
+        removeAdditional: 'error',
         defaultOn: 'empty',
         validateOn: 'input',
         messages: i18n.en,

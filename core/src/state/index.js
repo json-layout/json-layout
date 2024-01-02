@@ -70,6 +70,7 @@ function fillOptions (partialOptions, compiledLayout) {
     validateOn: 'input',
     initialValidation: 'withData',
     defaultOn: 'empty',
+    removeAdditional: 'error',
     autofocus: false,
     ...partialOptions,
     messages
@@ -239,12 +240,17 @@ export class StatefulLayout {
    */
   updateState () {
     this.createStateTree()
-    if (this._data !== this._stateTree.root.data || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
+    let nbIter = 0
+    while (this._data !== this._stateTree.root.data || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
+      nbIter += 1
+      if (nbIter > 100) {
+        throw new Error('too many iterations in updateState, the data is probably not stable')
+      }
       logDataBinding('hydrating state tree changed the data, do it again', this._data, this._stateTree.root.data)
       // this is necessary because a first hydration can add default values and change validity, etc
       this._data = this._stateTree.root.data
       this._autofocusTarget = this._lastCreateStateTreeContext.autofocusTarget
-      this.createStateTree()
+      this.createStateTree(true)
     }
     logDataBinding('emit update event', this._data, this._stateTree)
     this.events.emit('update', this)
@@ -252,13 +258,15 @@ export class StatefulLayout {
 
   /**
    * @private
+   * @param {boolean} rehydrate
    */
-  createStateTree () {
+  createStateTree (rehydrate = false) {
     /** @type {CreateStateTreeContext} */
     const createStateTreeContext = {
       activeItems: this.activeItems,
       autofocusTarget: this._autofocusTarget,
       initial: !this._lastCreateStateTreeContext,
+      rehydrate,
       cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {},
       rootData: this._data,
       files: [],
@@ -421,7 +429,6 @@ export class StatefulLayout {
     let appliedQ = false
     if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {
       rawItems = this.evalNodeExpression(node, node.layout.getItems, null)
-      if (!Array.isArray(rawItems)) throw new Error('getItems expression didn\'t return an array')
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
       const url = new URL(this.evalNodeExpression(node, node.layout.getItems.url, null))
@@ -443,6 +450,9 @@ export class StatefulLayout {
       if (node.layout.getItems?.itemsResults) {
         rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
       }
+
+      if (!Array.isArray(rawItems)) throw new Error(`getItems didn't return an array for node ${node.fullKey}, you can define itemsResults to extract the array`)
+
       /** @type {import('@json-layout/vocabulary').SelectItems} */
       const items = rawItems.map((/** @type {any} */ rawItem) => {
         /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
@@ -461,7 +471,7 @@ export class StatefulLayout {
           item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
         }
         if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
-        return item
+        return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
       })
       return [items, appliedQ]
     }

@@ -62,6 +62,7 @@ export interface CreateStateTreeContext {
   activeItems: Record<string, number>
   autofocusTarget: string | null
   initial: boolean
+  rehydrate: boolean
   cacheKeys: Record<string, StateNodeCacheKey>
   rootData: unknown
   nodes: StateNode[]
@@ -105,6 +106,8 @@ export type StateNodeOptions = Required<StateNodeOptionsBase & {
   validateOn: 'input' | 'blur' | 'submit'
   initialValidation: 'never' | 'always' | 'withData'
   defaultOn: 'missing' | 'empty' | 'never'
+  // true is the same as 'unknown', false is the same as 'none'
+  removeAdditional: true | 'unknown' | 'error' | 'none' | false
   messages: LocaleMessages
   autofocus: boolean
 }>

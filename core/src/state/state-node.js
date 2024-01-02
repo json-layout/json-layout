@@ -63,21 +63,36 @@ const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
   Object.assign(draft, options.messages, layoutMessages)
 })
 
-/** @type {(draft: Record<string, unknown>, parentDataPath: string, children: import('../index.js').StateNode[]) => Record<string, unknown>} */
-const produceStateNodeData = produce((draft, parentDataPath, children) => {
-  for (const child of children) {
-    if (parentDataPath === child.dataPath) {
-      if (child.data === undefined) continue
-      Object.assign(draft, child.data)
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      if (child.data === undefined) delete draft[child.key]
-      else draft[child.key] = child.data
+/** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], error?: import('ajv').ErrorObject, propertyKeys?: string[]) => Record<string, unknown>} */
+const produceStateNodeData = produce((draft, parentDataPath, children, error, propertyKeys) => {
+  if (error) {
+    if (error.keyword === 'additionalProperties') {
+      delete draft[error.params.additionalProperty]
+    }
+    if (error.keyword === 'unevaluatedProperties') {
+      delete draft[error.params.unevaluatedProperty]
+    }
+  }
+  if (propertyKeys) {
+    for (const key of Object.keys(draft)) {
+      if (!propertyKeys.includes(key)) delete draft[key]
+    }
+  }
+  if (children) {
+    for (const child of children) {
+      if (parentDataPath === child.dataPath) {
+        if (child.data === undefined) continue
+        Object.assign(draft, child.data)
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        if (child.data === undefined) delete draft[child.key]
+        else draft[child.key] = child.data
 
-      if (Array.isArray(draft)) {
-        // remove trailing undefined values from tuples
-        while (draft.length && draft[draft.length - 1] === undefined) {
-          draft.pop()
+        if (Array.isArray(draft)) {
+          // remove trailing undefined values from tuples
+          while (draft.length && draft[draft.length - 1] === undefined) {
+            draft.pop()
+          }
         }
       }
     }
@@ -352,12 +367,27 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
 
-  let nodeData = children ? produceStateNodeData(/** @type {Record<string, unknown>} */(data ?? {}), dataPath, children) : data
+  let nodeData = children
+    ? produceStateNodeData(
+      /** @type {Record<string, unknown>} */(data ?? {}),
+      dataPath,
+      children,
+      [true, 'error', 'unknown'].includes(options.removeAdditional) ? error : undefined,
+      [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined
+    )
+    : data
+
+  if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
+
   if (layout.constData) {
-    nodeData = evalExpression(compiledLayout.expressions, layout.constData, nodeData, options, display, context.rootData, parentData)
+    if (!context.rehydrate) {
+      nodeData = evalExpression(compiledLayout.expressions, layout.constData, nodeData, options, display, context.rootData, parentData)
+    }
   } else {
     if (layout.defaultData && useDefaultData(nodeData, layout, options)) {
-      nodeData = evalExpression(compiledLayout.expressions, layout.defaultData, nodeData, options, display, context.rootData, parentData)
+      if (!context.rehydrate) {
+        nodeData = evalExpression(compiledLayout.expressions, layout.defaultData, nodeData, options, display, context.rootData, parentData)
+      }
     } else {
       if (isDataEmpty(nodeData)) {
         if (layout.nullable) {
