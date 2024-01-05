@@ -37,7 +37,7 @@ const fillOptions = (partialOptions) => {
   let ajv = partialOptions.ajv
   if (!ajv) {
     /** @type {import('ajv').Options} */
-    const ajvOpts = { allErrors: true }
+    const ajvOpts = { allErrors: true, strict: false }
     if (partialOptions.code) ajvOpts.code = { source: true, esm: true, lines: true }
     const newAjv = new Ajv(ajvOpts)
     addFormats.default(newAjv)
