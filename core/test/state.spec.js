@@ -513,6 +513,7 @@ for (const compileMode of ['runtime', 'build-time']) {
     it('should manage active element in a oneOf', async () => {
       const compiledLayout = await compile({
         type: 'object',
+        unevaluatedProperties: false,
         oneOf: [{
           properties: {
             key: { type: 'string', const: 'key1' },
@@ -548,7 +549,7 @@ for (const compileMode of ['runtime', 'build-time']) {
 
       statefulLayout.activateItem(statefulLayout.stateTree.root.children?.[0], 2)
 
-      // TODO: additional properties should be removed
+      assert.deepEqual(statefulLayout.data, { key: 'key3', str3: 'string 3' })
       assert.equal(statefulLayout.stateTree.root.data.key, 'key3')
       assert.equal(statefulLayout.stateTree.root.children?.[0].data.key, 'key3')
       assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].data.key, 'key3')

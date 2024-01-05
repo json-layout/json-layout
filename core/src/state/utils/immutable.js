@@ -11,6 +11,22 @@ export function shallowProduceArray (previousArray = [], newArray = []) {
 }
 
 /**
+ * @param {Record<string, any>} previousObj
+ * @param {Record<string, any>} newObj
+ * @returns {Record<string, any>}
+ */
+export function shallowProduceObject (previousObj = {}, newObj = {}) {
+  if (!previousObj || !newObj) return newObj
+  const previousKeys = Object.keys(previousObj)
+  const newKeys = Object.keys(newObj)
+  if (previousKeys.length !== newKeys.length) return newObj
+  for (const key of previousKeys) {
+    if (previousObj[key] !== newObj[key]) return newObj
+  }
+  return previousObj
+}
+
+/**
  * @template ItemType
  * @param {any[]} a1
  * @param {any[]} a2

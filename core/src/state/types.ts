@@ -58,6 +58,7 @@ export interface StateTree {
 
 export interface CreateStateTreeContext {
   errors?: ErrorObject[]
+  additionalPropertiesErrors?: ErrorObject[]
   files: FileRef[]
   activeItems: Record<string, number>
   autofocusTarget: string | null

@@ -143,6 +143,7 @@ export function makeSkeletonNode (
       }
       /** @type {import('./types.js').SkeletonTree[]} */
       const childrenTrees = []
+      /** @type {string[]} */
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = schema.type
         const title = schema.oneOf[i].title ?? `option ${i}`
@@ -159,16 +160,14 @@ export function makeSkeletonNode (
         ))
       }
       node.children = node.children ?? []
-      const oneOfNode = {
+      node.children.push({
         key: '$oneOf',
         pointer: `${pointer}/oneOf`,
         parentPointer: pointer,
         childrenTrees,
         pure: childrenTrees[0].root.pure,
         propertyKeys: []
-      }
-      node.propertyKeys = node.propertyKeys.concat(oneOfNode.propertyKeys)
-      node.children.push(oneOfNode)
+      })
 
       schema.errorMessage.oneOf = options.messages.errorOneOf
     }

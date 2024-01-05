@@ -244,6 +244,7 @@ export class StatefulLayout {
     while (this._data !== this._stateTree.root.data || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
       nbIter += 1
       if (nbIter > 100) {
+        console.error('too many iterations in updateState, the data is probably not stable', this._data, this._stateTree.root.data)
         throw new Error('too many iterations in updateState, the data is probably not stable')
       }
       logDataBinding('hydrating state tree changed the data, do it again', this._data, this._stateTree.root.data)

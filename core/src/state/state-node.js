@@ -1,7 +1,7 @@
 import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import { getChildDisplay } from './utils/display.js'
-import { shallowEqualArray, shallowProduceArray } from './utils/immutable.js'
+import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
 
 /**
  * @param {unknown} data
@@ -63,16 +63,8 @@ const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
   Object.assign(draft, options.messages, layoutMessages)
 })
 
-/** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], error?: import('ajv').ErrorObject, propertyKeys?: string[]) => Record<string, unknown>} */
-const produceStateNodeData = produce((draft, parentDataPath, children, error, propertyKeys) => {
-  if (error) {
-    if (error.keyword === 'additionalProperties') {
-      delete draft[error.params.additionalProperty]
-    }
-    if (error.keyword === 'unevaluatedProperties') {
-      delete draft[error.params.unevaluatedProperty]
-    }
-  }
+/** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[]) => Record<string, unknown>} */
+const produceStateNodeData = produce((draft, parentDataPath, children, additionalPropertiesErrors, propertyKeys) => {
   if (propertyKeys) {
     for (const key of Object.keys(draft)) {
       if (!propertyKeys.includes(key)) delete draft[key]
@@ -94,6 +86,18 @@ const produceStateNodeData = produce((draft, parentDataPath, children, error, pr
             draft.pop()
           }
         }
+      }
+    }
+  }
+
+  if (additionalPropertiesErrors) {
+    for (const error of additionalPropertiesErrors) {
+      if (error.instancePath !== parentDataPath) continue
+      if (error.keyword === 'additionalProperties') {
+        delete draft[error.params.additionalProperty]
+      }
+      if (error.keyword === 'unevaluatedProperties') {
+        delete draft[error.params.unevaluatedProperty]
       }
     }
   }
@@ -145,9 +149,10 @@ const matchError = (error, skeleton, dataPath, parentDataPath) => {
  * @param {import('ajv').ErrorObject} error
  * @param {import('../index.js').SkeletonNode} skeleton
  * @param {string} dataPath
+ * @param {string | null} parentDataPath
  * @returns {boolean}
  */
-const matchChildError = (error, skeleton, dataPath) => {
+const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
   if (error.instancePath.startsWith(dataPath) && !(typeof skeleton.key === 'string' && skeleton.key.startsWith('$allOf'))) return true
   return false
 }
@@ -357,10 +362,11 @@ export function createStateNode (
     }
   }
 
-  const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, skeleton, dataPath))
+  const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, skeleton, dataPath, parentDataPath))
+
   // capture errors so that they are not repeated in parent nodes
   if (layout.comp !== 'none') {
-    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath))
+    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath, parentDataPath))
   }
   const validated = validationState.validatedForm ||
     validationState.validatedChildren.includes(fullKey) ||
@@ -372,12 +378,18 @@ export function createStateNode (
       /** @type {Record<string, unknown>} */(data ?? {}),
       dataPath,
       children,
-      [true, 'error', 'unknown'].includes(options.removeAdditional) ? error : undefined,
+      context.additionalPropertiesErrors,
       [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined
     )
     : data
 
-  if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
+  // the producer is not perfect, sometimes data is considered mutated but it is actually the same
+  // we double check here to avoid unnecessary re-renders
+  if (nodeData !== data) {
+    if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
+    // @ts-ignore
+    else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
+  }
 
   if (layout.constData) {
     if (!context.rehydrate) {

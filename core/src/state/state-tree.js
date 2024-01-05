@@ -52,6 +52,9 @@ export function createStateTree (
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
     }
     context.errors = validate.errors
+    if ([true, 'error'].includes(options.removeAdditional)) {
+      context.additionalPropertiesErrors = validate.errors.filter(error => error.keyword === 'additionalProperties' || error.keyword === 'unevaluatedProperties')
+    }
   }
   const root = createStateNode(
     context,

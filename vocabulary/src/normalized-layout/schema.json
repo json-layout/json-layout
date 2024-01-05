@@ -402,9 +402,10 @@
     },
     "one-of-select": {
       "type": "object",
-      "required": ["comp"],
+      "required": ["comp", "label"],
       "properties": {
-        "comp": {"const": "one-of-select"}
+        "comp": {"const": "one-of-select"},
+        "label": {"type": "string"}
       }
     },
     "expression": {
