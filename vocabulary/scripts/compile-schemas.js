@@ -67,8 +67,8 @@ export default ${JSON.stringify(schema, null, 2)}
     // some internal imports to ajv are not translated to asm, we do it here
     // cf https://github.com/ajv-validator/ajv-formats/pull/73
     if (validateCode.includes('require("ajv-formats/dist/formats")')) {
-      validateCode = 'import ajvFormats from "ajv-formats/dist/formats.js";\n' + validateCode
-      validateCode = validateCode.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'ajvFormats.fullFormats')
+      validateCode = 'import { fullFormats } from "ajv-formats/dist/formats.js";\n' + validateCode
+      validateCode = validateCode.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'fullFormats')
     }
     if (validateCode.includes('require("ajv/dist/runtime/ucs2length")')) {
       validateCode = 'import ucs2length from "ajv/dist/runtime/ucs2length.js";\n' + validateCode
