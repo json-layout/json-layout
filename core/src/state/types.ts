@@ -1,4 +1,4 @@
-import { type ErrorObject } from 'ajv'
+import { type ErrorObject } from 'ajv/dist/2019.js'
 import {
   type CompObject,
   type Cols,

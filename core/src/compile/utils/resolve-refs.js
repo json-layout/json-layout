@@ -1,4 +1,4 @@
-import ajvModule from 'ajv'
+import ajvModule from 'ajv/dist/2019.js'
 
 const Ajv = ajvModule.default
 
