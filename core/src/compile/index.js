@@ -38,6 +38,7 @@ const fillOptions = (partialOptions) => {
   if (!ajv) {
     /** @type {import('ajv').Options} */
     const ajvOpts = { allErrors: true, strict: false }
+    if (partialOptions.ajvOptions) Object.assign(ajvOpts, partialOptions.ajvOptions)
     if (partialOptions.code) ajvOpts.code = { source: true, esm: true, lines: true }
     const newAjv = new Ajv(ajvOpts)
     addFormats.default(newAjv)
@@ -48,7 +49,7 @@ const fillOptions = (partialOptions) => {
 
   let markdown = partialOptions.markdown
   if (!markdown) {
-    const markdownIt = new MarkdownIt(partialOptions.markdownIt ?? {})
+    const markdownIt = new MarkdownIt(partialOptions.markdownItOptions ?? {})
     markdown = markdownIt.render.bind(markdownIt)
   }
 

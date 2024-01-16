@@ -21,6 +21,12 @@
         "default": "./src/utils/build.js",
         "types": "./types/utils/build.d.ts"
       }
+    },
+    "./utils/doc-options": {
+      "import": {
+        "default": "./src/utils/doc-options.js",
+        "types": "./types/utils/doc-options.d.ts"
+      }
     }
   },
   "files": [

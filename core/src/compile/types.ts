@@ -9,9 +9,10 @@ export type CompiledExpression = (data: any, options: StateNodeOptionsBase, cont
 
 export interface CompileOptions {
   ajv: ajvModule.default
+  ajvOptions?: ajvModule.Options
   code: boolean
   markdown: (text: string) => string
-  markdownIt?: MarkdownIt.Options
+  markdownItOptions?: MarkdownIt.Options
   locale: string
   messages: LocaleMessages
 }
