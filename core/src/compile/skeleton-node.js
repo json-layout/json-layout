@@ -69,11 +69,16 @@ export function makeSkeletonNode (
     if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)
 
-    if ('const' in schema) compObject.constData = { type: 'js-eval', expr: JSON.stringify(schema.const), pure: true }
-    if (compObject.constData) pushExpression(expressions, compObject.constData)
+    if (schema.const !== undefined && compObject.constData === undefined) compObject.constData = schema.const
+    if (compObject.constData !== undefined && !compObject.getConstData) compObject.getConstData = { type: 'js-eval', expr: 'layout.constData', pure: true }
+    if (compObject.getConstData) pushExpression(expressions, compObject.getConstData)
 
-    if (defaultData && !compObject.defaultData) compObject.defaultData = { type: 'js-eval', expr: JSON.stringify(defaultData), pure: true }
-    if (compObject.defaultData) pushExpression(expressions, compObject.defaultData)
+    if (defaultData !== undefined && compObject.defaultData === undefined) compObject.defaultData = defaultData
+    if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true }
+    if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)
+
+    if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true }
+    if (compObject.getOptions) pushExpression(expressions, compObject.getOptions)
 
     if (compObject.transformData) pushExpression(expressions, compObject.transformData)
 

@@ -38,6 +38,7 @@ import schema from './schema.js'
  * @typedef {import('./types.js').Cols} Cols
  * @typedef {import('./types.js').ColsObj} ColsObj
  * @typedef {import('./types.js').StateNodeOptionsBase} StateNodeOptionsBase
+ * @typedef {import('./types.js').StateNodePropsLib} StateNodePropsLib
  * @typedef {import('./types.js').Slot} Slot
  * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is NormalizedLayout }} ValidateNormalizedLayout
  */

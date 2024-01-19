@@ -40,6 +40,7 @@
         "listActions": {"type": "array", "items": {"type": "string", "enum": ["add", "edit", "delete", "sort", "duplicate"]}},
         "cols": {"$ref": "#/$defs/partial-cols"},
         "props": {"type": "object"},
+        "getProps": {"$ref": "#/$defs/partial-expression"},
         "slots": {
           "type": "object",
           "patternProperties": {
@@ -47,9 +48,12 @@
           }
         },
         "options": {"type": "object"},
+        "getOptions": {"$ref": "#/$defs/partial-expression"},
         "messages": {"type": "object"},
-        "defaultData": {"$ref": "#/$defs/partial-expression"},
-        "constData": {"$ref": "#/$defs/partial-expression"},
+        "defaultData": {},
+        "getDefaultData": {"$ref": "#/$defs/partial-expression"},
+        "constData": {},
+        "getConstData": {"$ref": "#/$defs/partial-expression"},
         "transformData": {"$ref": "#/$defs/partial-expression"},
         "autofocus": {"type": "boolean"}
       }

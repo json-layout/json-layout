@@ -3,6 +3,7 @@ import { ok } from 'assert/strict'
 import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
 import { parse, print } from 'recast'
+import clone from '../utils/clone.js'
 
 /**
  * @param {import('./index.js').CompiledLayout} compiledLayout
@@ -53,7 +54,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
   const ast = parseModule(code)
   ast.exports.compiledLayout = {
     skeletonTree: compiledLayout.skeletonTree,
-    normalizedLayouts: compiledLayout.normalizedLayouts,
+    normalizedLayouts: clone(compiledLayout.normalizedLayouts),
     validates: {},
     validationErrors: compiledLayout.validationErrors,
     expressions: expressionsNodes,

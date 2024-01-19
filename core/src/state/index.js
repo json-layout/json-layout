@@ -66,6 +66,7 @@ function fillOptions (partialOptions, compiledLayout) {
     width: 1000,
     readOnly: false,
     summary: false,
+    density: 'default',
     titleDepth: 2,
     validateOn: 'input',
     initialValidation: 'withData',
@@ -336,7 +337,7 @@ export class StatefulLayout {
     // const parentNode = this._stateTree.traverseNode(this._stateTree.root).find(n => n.fullKey === node.parentFullKey)
     const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
     const parentData = parentNode ? parentNode.data : null
-    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), parentData, this._data)
+    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), node.layout, parentData, this._data)
   }
 
   /**

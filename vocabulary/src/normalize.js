@@ -295,12 +295,14 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
   if (partial.if) partial.if = normalizeExpression(partial.if)
 
   if (!partial.defaultData && schemaFragment.type === 'string' && schemaPath.split('#').pop() === '') {
-    partial.defaultData = '""'
+    partial.defaultData = ''
   }
 
-  if (partial.defaultData !== undefined) partial.defaultData = normalizeExpression(partial.defaultData)
-  if (partial.constData !== undefined) partial.constData = normalizeExpression(partial.constData)
+  if (partial.getOptions !== undefined) partial.getOptions = normalizeExpression(partial.getOptions)
+  if (partial.getDefaultData !== undefined) partial.getDefaultData = normalizeExpression(partial.getDefaultData)
+  if (partial.getConstData !== undefined) partial.getConstData = normalizeExpression(partial.getConstData)
   if (partial.transformData !== undefined) partial.transformData = normalizeExpression(partial.transformData)
+  if (partial.getProps !== undefined) partial.getProps = normalizeExpression(partial.getProps)
 
   if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
   if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {

@@ -25,13 +25,18 @@
         {
           "properties": {
             "if": {"$ref": "#/$defs/expression"},
-            "defaultData": {"$ref": "#/$defs/expression"},
-            "constData": {"$ref": "#/$defs/expression"},
+            "options": {"$ref": "#/$defs/state-node-options-base"},
+            "getOptions": {"$ref": "#/$defs/expression"},
+            "defaultData": {},
+            "getDefaultData": {"$ref": "#/$defs/expression"},
+            "constData": {},
+            "getConstData": {"$ref": "#/$defs/expression"},
             "transformData": {"$ref": "#/$defs/expression"},
             "nullable": {"type": "boolean"},
             "help": {"type": "string"},
             "cols": {"$ref": "#/$defs/cols-obj"},
             "props": {"$ref": "#/$defs/state-node-props-lib"},
+            "getProps": {"$ref": "#/$defs/expression"},
             "slots": {
               "type": "object",
               "allOf": [
@@ -44,8 +49,7 @@
                   }
                 }
               ]
-            },
-            "options": {"$ref": "#/$defs/state-node-options-base"}
+            }
           }
         },
         {
@@ -482,7 +486,8 @@
           "properties": {
             "readOnly": {"type": "boolean", "default": false},
             "summary": {"type": "boolean", "default": false},
-            "titleDepth": {"type": "integer", "minimum": 1, "maximum": 6, "default": 2}
+            "titleDepth": {"type": "integer", "minimum": 1, "maximum": 6, "default": 2},
+            "density": {"type": "string", "enum": ["default", "comfortable", "compact"]}
           }
         }
       ]

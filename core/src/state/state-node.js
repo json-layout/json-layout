@@ -27,8 +27,8 @@ const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -163,14 +163,15 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
  * @param {any} data
  * @param {import('./types.js').StateNodeOptions} options
  * @param {import('./utils/display.js').Display} display
+ * @param {import('@json-layout/vocabulary').CompObject} layout
  * @param {unknown} rootData
  * @param {unknown} parentData
  * @returns {any}
  */
-export function evalExpression (expressions, expression, data, options, display, rootData, parentData) {
+export function evalExpression (expressions, expression, data, options, display, layout, rootData, parentData) {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
-  return expression.pure ? compiledExpression(data, options, options.context, display) : compiledExpression(data, options, options.context, display, rootData, parentData)
+  return expression.pure ? compiledExpression(data, options, options.context, display, layout) : compiledExpression(data, options, options.context, display, layout, rootData, parentData)
 }
 
 /**
@@ -186,13 +187,13 @@ export function evalExpression (expressions, expression, data, options, display,
 const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentData) => {
   if (isSwitchStruct(normalizedLayout)) {
     for (const compObject of normalizedLayout.switch) {
-      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, parentData, rootData)) {
+      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, compObject, parentData, rootData)) {
         return compObject
       }
     }
   } else {
     if (normalizedLayout.if) {
-      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, parentData, rootData)) {
+      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, parentData, rootData)) {
         return normalizedLayout
       }
     } else {
@@ -251,11 +252,11 @@ export function createStateNode (
   const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentData)
   const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
 
-  const options = layout.options
+  const options = layout.getOptions
     ? produceNodeOptions(
       reusedNode?.options ?? /** @type {import('./types.js').StateNodeOptions} */({}),
       parentOptions,
-      layout.options
+      evalExpression(compiledLayout.expressions, layout.getOptions, data, parentOptions, display, layout, context.rootData, parentData)
     )
     : parentOptions
 
@@ -391,14 +392,14 @@ export function createStateNode (
     else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
   }
 
-  if (layout.constData) {
+  if (layout.getConstData) {
     if (!context.rehydrate) {
-      nodeData = evalExpression(compiledLayout.expressions, layout.constData, nodeData, options, display, context.rootData, parentData)
+      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, context.rootData, parentData)
     }
   } else {
-    if (layout.defaultData && useDefaultData(nodeData, layout, options)) {
+    if (layout.getDefaultData && useDefaultData(nodeData, layout, options)) {
       if (!context.rehydrate) {
-        nodeData = evalExpression(compiledLayout.expressions, layout.defaultData, nodeData, options, display, context.rootData, parentData)
+        nodeData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, context.rootData, parentData)
       }
     } else {
       if (isDataEmpty(nodeData)) {
@@ -414,6 +415,11 @@ export function createStateNode (
         }
       }
     }
+  }
+
+  let props
+  if (layout.getProps) {
+    props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, context.rootData, parentData)
   }
 
   const autofocus = isFocusableLayout(layout) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
@@ -433,6 +439,7 @@ export function createStateNode (
     validated,
     options,
     autofocus,
+    props,
     children && shallowProduceArray(reusedNode?.children, children)
   )
 

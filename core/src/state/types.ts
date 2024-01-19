@@ -25,7 +25,8 @@ import {
   type Combobox,
   type Markdown,
   type FileInput,
-  type Child
+  type Child,
+  type StateNodePropsLib
 } from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout, type CompiledLayout } from '../index.js'
 import { type LocaleMessages } from '../i18n/types.js'
@@ -48,6 +49,7 @@ export interface StateNode {
   messages: LocaleMessages
   autofocus?: boolean
   autofocusChild?: string | number
+  props?: StateNodePropsLib
   children?: StateNode[]
 }
 

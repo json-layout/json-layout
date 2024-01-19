@@ -50,6 +50,16 @@ export const runtimeOptions = [
     default: false
   },
   {
+    key: 'density',
+    description: 'Matches the density concept of Material design.',
+    default: 'default',
+    values: {
+      default: 'default',
+      compact: 'compact',
+      comfortable: 'comfortable'
+    }
+  },
+  {
     key: 'context',
     description: 'A contextual data object that can be referenced in expressions',
     default: {}
