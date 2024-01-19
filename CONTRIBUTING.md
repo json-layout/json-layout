@@ -40,7 +40,7 @@ First modify the cross-references in the package.json files of the workspaces (c
 npm --workspaces version minor
 ```
 
-Publish on npm and github:
+Publish on npms:
 
 ```
 npm --workspaces publish
