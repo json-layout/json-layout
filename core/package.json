@@ -6,26 +6,26 @@
   "exports": {
     ".": {
       "import": {
-        "default": "./src/index.js",
-        "types": "./types/index.d.ts"
+        "types": "./types/index.d.ts",
+        "default": "./src/index.js"
       }
     },
     "./src/compile/serialize": {
       "import": {
-        "default": "./src/compile/serialize.js",
-        "types": "./types/compile/serialize.d.ts"
+        "types": "./types/compile/serialize.d.ts",
+        "default": "./src/compile/serialize.js"
       }
     },
     "./utils/build": {
       "import": {
-        "default": "./src/utils/build.js",
-        "types": "./types/utils/build.d.ts"
+        "types": "./types/utils/build.d.ts",
+        "default": "./src/utils/build.js"
       }
     },
     "./utils/doc-options": {
       "import": {
-        "default": "./src/utils/doc-options.js",
-        "types": "./types/utils/doc-options.d.ts"
+        "types": "./types/utils/doc-options.d.ts",
+        "default": "./src/utils/doc-options.js"
       }
     }
   },
