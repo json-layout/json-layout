@@ -54,6 +54,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
     if (autofocusChild) draft.autofocusChild = autofocusChild.key
     else delete draft.autofocusChild
   }
+  draft.props = props
 
   draft.children = children
 })
