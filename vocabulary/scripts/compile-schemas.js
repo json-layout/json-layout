@@ -64,7 +64,7 @@ export default ${JSON.stringify(schema, null, 2)}
     validateCode = validateCode.replace('"use strict";', '')
     validateCode = '// @ts-ignore\n' + validateCode
 
-    // some internal imports to ajv are not translated to asm, we do it here
+    // some internal imports to ajv are not translated to esm, we do it here
     // cf https://github.com/ajv-validator/ajv-formats/pull/73
     if (validateCode.includes('require("ajv-formats/dist/formats")')) {
       validateCode = 'import { fullFormats } from "ajv-formats/dist/formats.js";\n' + validateCode
