@@ -110,4 +110,36 @@ describe('Management of additional properties', () => {
     assert.ok(statefulLayout.valid)
     assert.deepEqual(statefulLayout.data, { str1: 'str1', str2: 'str2' })
   })
+
+  it('should support different values of removeAdditional option on different parts of the schema', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        obj1: {
+          type: 'object',
+          properties: {
+            str1: { type: 'string' }
+          }
+        },
+        obj2: {
+          type: 'object',
+          layout: {
+            options: {
+              removeAdditional: false
+            }
+          },
+          properties: {
+            str1: { type: 'string' }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTree,
+      { removeAdditional: 'unknown' },
+      { obj1: { str1: 'str1', str2: 'str2' }, obj2: { str1: 'str1', str2: 'str2' } }
+    )
+    assert.ok(statefulLayout.valid)
+    assert.deepEqual(statefulLayout.data, { obj1: { str1: 'str1' }, obj2: { str1: 'str1', str2: 'str2' } })
+  })
 })
