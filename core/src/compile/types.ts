@@ -55,6 +55,7 @@ export interface SkeletonNode {
   parentPointer: string | null
   pure: boolean
   propertyKeys: string[]
+  roPropertyKeys: string[]
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
 }

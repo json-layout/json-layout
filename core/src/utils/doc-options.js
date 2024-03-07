@@ -94,7 +94,7 @@ export const runtimeOptions = [
     description: 'Control the use of default values in the form.',
     default: 'empty',
     values: {
-      never: 'Never use the default data',
+      never: 'Never use the default data.',
       missing: 'The default data is used when the property if not defined in the data.',
       empty: 'The default data is used when the property is either undefined of defined but empty (empty string, empty object, etc.).'
     }
@@ -104,14 +104,24 @@ export const runtimeOptions = [
     description: 'Control the way additional data is managed (data that is present in the model but not defined by the schema).',
     default: 'error',
     values: {
-      true: 'Remove all additional properties (alias "unknown")',
-      error: 'Remove additional properties that cause a validation error',
-      false: 'Never remove additional properties (alias "none")'
+      true: 'Remove all additional properties (alias "unknown").',
+      error: 'Remove additional properties that cause a validation error.',
+      false: 'Never remove additional properties (alias "none").'
     }
   },
   {
     key: 'autofocus',
     description: 'Activate autofocus. The focus will be given to the first input of the form.',
     default: false
+  },
+  {
+    key: 'readOnlyPropertiesMode',
+    description: 'Control the way readOnly properties from the schema are managed.',
+    default: 'show',
+    values: {
+      remove: 'Hide the readOnly properties and remove them from the data.',
+      hide: 'Hide the readOnly properties but keep them in the data.',
+      show: 'Show the readOnly properties.'
+    }
   }
 ]

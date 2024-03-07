@@ -298,6 +298,11 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
     partial.defaultData = ''
   }
 
+  if (schemaFragment.readOnly) {
+    partial.options = partial.options ?? {}
+    partial.options.readOnly = true
+  }
+
   if (partial.getOptions !== undefined) partial.getOptions = normalizeExpression(partial.getOptions)
   if (partial.getDefaultData !== undefined) partial.getDefaultData = normalizeExpression(partial.getDefaultData)
   if (partial.getConstData !== undefined) partial.getConstData = normalizeExpression(partial.getConstData)

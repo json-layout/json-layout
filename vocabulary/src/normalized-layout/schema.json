@@ -514,7 +514,12 @@
               "enum": ["missing", "empty", "never"],
               "default": "empty"
             },
-            "autofocus": {"type": "boolean", "default": false}
+            "autofocus": {"type": "boolean", "default": false},
+            "readOnlyPropertiesMode": {
+              "type": "string",
+              "enum": ["remove", "hide", "show"],
+              "default": "show"
+            }
           }
         }
       ]

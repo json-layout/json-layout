@@ -73,6 +73,7 @@ function fillOptions (partialOptions, compiledLayout) {
     defaultOn: 'empty',
     removeAdditional: 'error',
     autofocus: false,
+    readOnlyPropertiesMode: 'show',
     ...partialOptions,
     messages
   }

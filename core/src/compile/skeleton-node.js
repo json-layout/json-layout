@@ -94,12 +94,13 @@ export function makeSkeletonNode (
   }
 
   /** @type {import('./types.js').SkeletonNode} */
-  const node = { key: key ?? '', pointer, parentPointer, pure, propertyKeys: [] }
+  const node = { key: key ?? '', pointer, parentPointer, pure, propertyKeys: [], roPropertyKeys: [] }
   if (schema.type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []
       for (const propertyKey of Object.keys(schema.properties)) {
         node.propertyKeys.push(propertyKey)
+        if (schema.properties[propertyKey].readOnly) node.roPropertyKeys.push(propertyKey)
         node.children.push(makeSkeletonNode(
           schema.properties[propertyKey],
           options,
@@ -134,6 +135,7 @@ export function makeSkeletonNode (
           false
         )
         node.propertyKeys = node.propertyKeys.concat(allOfNode.propertyKeys)
+        node.roPropertyKeys = node.roPropertyKeys.concat(allOfNode.roPropertyKeys)
         node.children.push(allOfNode)
       }
     }
@@ -171,7 +173,8 @@ export function makeSkeletonNode (
         parentPointer: pointer,
         childrenTrees,
         pure: childrenTrees[0].root.pure,
-        propertyKeys: []
+        propertyKeys: [],
+        roPropertyKeys: []
       })
 
       schema.errorMessage.oneOf = options.messages.errorOneOf

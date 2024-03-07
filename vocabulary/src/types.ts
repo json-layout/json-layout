@@ -18,4 +18,5 @@ export interface SchemaFragment {
   maximum?: number
   formatMinimum?: string
   formatMaximum?: string
+  readOnly?: boolean
 }

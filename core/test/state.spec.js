@@ -401,7 +401,8 @@ for (const compileMode of ['runtime', 'build-time']) {
         defaultOn: 'empty',
         validateOn: 'input',
         messages: i18n.en,
-        autofocus: false
+        autofocus: false,
+        readOnlyPropertiesMode: 'show'
       })
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, {
         opt0: 'Opt 0',
@@ -418,7 +419,8 @@ for (const compileMode of ['runtime', 'build-time']) {
         defaultOn: 'empty',
         validateOn: 'input',
         messages: i18n.en,
-        autofocus: false
+        autofocus: false,
+        readOnlyPropertiesMode: 'show'
       })
     })
 

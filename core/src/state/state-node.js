@@ -64,11 +64,16 @@ const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
   Object.assign(draft, options.messages, layoutMessages)
 })
 
-/** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[]) => Record<string, unknown>} */
-const produceStateNodeData = produce((draft, parentDataPath, children, additionalPropertiesErrors, propertyKeys) => {
+/** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>} */
+const produceStateNodeData = produce((draft, parentDataPath, children, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
   if (propertyKeys) {
     for (const key of Object.keys(draft)) {
       if (!propertyKeys.includes(key)) delete draft[key]
+    }
+  }
+  if (removePropertyKeys) {
+    for (const key of removePropertyKeys) {
+      delete draft[key]
     }
   }
   if (children) {
@@ -275,6 +280,10 @@ export function createStateNode (
     let focusChild = context.autofocusTarget === fullKey
     for (let i = 0; i < layout.children.length; i++) {
       const childLayout = layout.children[i]
+      if (
+        ['remove', 'hide'].includes(options.readOnlyPropertiesMode) &&
+        skeleton.roPropertyKeys?.includes(/** @type {string} */(childLayout.key))
+      ) continue
       const childSkeleton = skeleton.children?.find(c => c.key === childLayout.key) ?? skeleton
       const isSameData = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
       const childFullKey = `${fullKey}/${childLayout.key}`
@@ -381,7 +390,8 @@ export function createStateNode (
       dataPath,
       children,
       context.additionalPropertiesErrors,
-      [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined
+      [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined,
+      options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
     )
     : data
 
