@@ -498,7 +498,23 @@
                   "enum": ["unknown", "error", "none"]
                 }
               ]
-            }
+            },
+            "validateOn": {
+              "type": "string",
+              "enum": ["input", "blur", "submit"],
+              "default": "input"
+            },
+            "initialValidation": {
+              "type": "string",
+              "enum": ["never", "always", "withData"],
+              "default": "withData"
+            },
+            "defaultOn": {
+              "type": "string",
+              "enum": ["missing", "empty", "never"],
+              "default": "empty"
+            },
+            "autofocus": {"type": "boolean", "default": false}
           }
         }
       ]

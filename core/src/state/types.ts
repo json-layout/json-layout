@@ -107,11 +107,7 @@ export type StatefulLayoutEvents = {
 // StateNodeOptionsBase come from the vocabulary and should contain all node options that can be set in the layout
 export type StateNodeOptions = Required<StateNodeOptionsBase & {
   context: Record<string, any>
-  validateOn: 'input' | 'blur' | 'submit'
-  initialValidation: 'never' | 'always' | 'withData'
-  defaultOn: 'missing' | 'empty' | 'never'
   messages: LocaleMessages
-  autofocus: boolean
 }>
 
 export type StatefulLayoutOptions = StateNodeOptions & {
