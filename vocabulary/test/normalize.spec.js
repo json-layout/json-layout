@@ -173,10 +173,18 @@ describe('normalize schema fragment function', () => {
     )
   })
 
-  it('should accept a subtitle for a section', () => {
+  it('should accept titles and subtitles for sections', () => {
     assert.deepEqual(
       normalize({ type: 'object', title: 'Title', layout: { subtitle: 'A subtitle' }, properties: {} }, '/prop').layout,
       { comp: 'section', title: 'Title', subtitle: 'A subtitle', children: [] }
+    )
+    assert.deepEqual(
+      normalize({ type: 'object', layout: { title: 'Title' }, properties: {} }, '/prop').layout,
+      { comp: 'section', title: 'Title', children: [] }
+    )
+    assert.deepEqual(
+      normalize({ type: 'object', title: 'Title', layout: { title: null }, properties: {} }, '/prop').layout,
+      { comp: 'section', title: null, children: [] }
     )
   })
 })

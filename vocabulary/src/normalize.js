@@ -243,14 +243,14 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, arr
 
   // @ts-ignore
   if (compositeCompNames.includes(partial.comp)) {
-    partial.title = partial.title ?? schemaFragment.title ?? null
+    if (!('title' in partial)) partial.title = schemaFragment.title ?? null
     partial.children = getChildren(getDefaultChildren(schemaFragment), partial.children)
   } else if (partial.comp === 'list') {
-    partial.title = partial.title ?? schemaFragment.title ?? key
+    if (!('title' in partial)) partial.title = schemaFragment.title ?? key
     partial.listEditMode = partial.listEditMode ?? (schemaFragment.items.type === 'object' ? 'inline-single' : 'inline')
     partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
   } else {
-    partial.label = partial.label ?? schemaFragment.title ?? key
+    if (!('label' in partial)) partial.label = schemaFragment.title ?? key
   }
 
   if (['select', 'autocomplete', 'combobox'].includes(partial.comp) && !partial.items) {
