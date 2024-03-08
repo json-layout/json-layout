@@ -80,6 +80,9 @@ export function makeSkeletonNode (
     if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true }
     if (compObject.getOptions) pushExpression(expressions, compObject.getOptions)
 
+    if (compObject.props !== undefined && !compObject.getProps) compObject.getProps = { type: 'js-eval', expr: 'layout.props', pure: true }
+    if (compObject.getProps) pushExpression(expressions, compObject.getProps)
+
     if (compObject.transformData) pushExpression(expressions, compObject.transformData)
 
     if (isItemsLayout(compObject) && compObject.getItems) {
