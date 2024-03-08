@@ -39,7 +39,7 @@ describe('Autofocus', () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: {
-        str1: { type: 'string', layout: { options: { readOnly: true } } },
+        str1: { type: 'string', layout: { readOnly: true } },
         str2: { type: 'string' }
       }
     })

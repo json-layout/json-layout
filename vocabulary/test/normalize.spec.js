@@ -145,7 +145,7 @@ describe('normalize schema fragment function', () => {
 
   it('should accept lib specific props, slots and options', () => {
     assert.deepEqual(
-      normalize({ type: 'string', layout: { props: { prop1: 'Prop 1' }, slots: { before: 'Before **slot**', component: 'slot-comp' }, options: { opt1: 'Opt 1' } } }, '/prop', (str) => `markdown: ${str}`).layout,
+      normalize({ type: 'string', layout: { props: { prop1: 'Prop 1' }, slots: { before: 'Before **slot**', component: 'slot-comp' }, options: { opt1: 'Opt 1' }, opt2: 'Opt 2' } }, '/prop', (str) => `markdown: ${str}`, ['opt1', 'opt2']).layout,
       {
         comp: 'text-field',
         label: 'prop',
@@ -154,7 +154,7 @@ describe('normalize schema fragment function', () => {
           before: { markdown: 'markdown: Before **slot**' },
           component: { name: 'slot-comp' }
         },
-        options: { opt1: 'Opt 1' }
+        options: { opt1: 'Opt 1', opt2: 'Opt 2' }
       }
     )
   })

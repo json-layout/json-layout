@@ -10,9 +10,7 @@ const example = {
         type: 'object',
         title: 'Section with visible read-only children',
         layout: {
-          options: {
-            readOnlyPropertiesMode: 'show'
-          }
+          readOnlyPropertiesMode: 'show'
         },
         properties: {
           str1: {
@@ -30,9 +28,7 @@ const example = {
         type: 'object',
         title: 'Section with hidden read-only children',
         layout: {
-          options: {
-            readOnlyPropertiesMode: 'hide'
-          }
+          readOnlyPropertiesMode: 'hide'
         },
         properties: {
           str1: {
@@ -50,9 +46,7 @@ const example = {
         type: 'object',
         title: 'Section with read-only children removed from the data',
         layout: {
-          options: {
-            readOnlyPropertiesMode: 'remove'
-          }
+          readOnlyPropertiesMode: 'remove'
         },
         properties: {
           str1: {

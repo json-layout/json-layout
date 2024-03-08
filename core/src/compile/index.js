@@ -61,6 +61,7 @@ const fillOptions = (partialOptions) => {
     ajv,
     code: false,
     markdown,
+    optionsKeys: [],
     ...partialOptions,
     locale,
     messages

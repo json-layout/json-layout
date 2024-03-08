@@ -33,7 +33,12 @@ export function makeSkeletonNode (
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   schema.errorMessage = schema.errorMessage ?? {}
   if (!normalizedLayouts[pointer]) {
-    const normalizationResult = normalizeLayoutFragment(/** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema), pointer, options.markdown)
+    const normalizationResult = normalizeLayoutFragment(
+      /** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema),
+      pointer,
+      options.markdown,
+      options.optionsKeys
+    )
     normalizedLayouts[pointer] = normalizationResult.layout
     if (normalizationResult.errors.length) {
       validationErrors[pointer.replace('_jl#', '/')] = normalizationResult.errors
@@ -145,7 +150,13 @@ export function makeSkeletonNode (
     if (schema.oneOf) {
       const oneOfPointer = `${pointer}/oneOf`
       if (!normalizedLayouts[oneOfPointer]) {
-        const normalizationResult = normalizeLayoutFragment(schema, oneOfPointer, options.markdown, 'oneOf')
+        const normalizationResult = normalizeLayoutFragment(
+          schema,
+          oneOfPointer,
+          options.markdown,
+          options.optionsKeys,
+          'oneOf'
+        )
         normalizedLayouts[oneOfPointer] = normalizationResult.layout
         if (normalizationResult.errors.length) {
           validationErrors[oneOfPointer.replace('_jl#', '/')] = normalizationResult.errors

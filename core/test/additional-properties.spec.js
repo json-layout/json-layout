@@ -124,9 +124,7 @@ describe('Management of additional properties', () => {
         obj2: {
           type: 'object',
           layout: {
-            options: {
-              removeAdditional: false
-            }
+            removeAdditional: false
           },
           properties: {
             str1: { type: 'string' }

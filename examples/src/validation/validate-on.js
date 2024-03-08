@@ -25,13 +25,13 @@ The option \`validateOn\` can have the values \`input\`, \`blur\` and \`submit\`
       },
       str2: {
         type: 'string',
-        layout: { options: { initialValidation: 'never' } },
+        layout: { initialValidation: 'never' },
         title: 'A string property with erroneous initial data and initialValidation=never',
         pattern: '^[A-Z]+$'
       },
       str3: {
         type: 'string',
-        layout: { options: { validateOn: 'blur' } },
+        layout: { validateOn: 'blur' },
         title: 'A string property with validateOn=blur',
         pattern: '^[A-Z]+$'
       }
