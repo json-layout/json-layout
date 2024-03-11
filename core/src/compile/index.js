@@ -6,6 +6,7 @@ import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
 import ajvLocalizeModule from 'ajv-i18n'
 import MarkdownIt from 'markdown-it'
+import { produce } from 'immer'
 import i18n from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveRefs } from './utils/resolve-refs.js'
@@ -28,6 +29,17 @@ const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
 const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalizeModule)
 
 // const exprEvalParser = new ExprEvalParser()
+
+// use Immer for efficient updating with immutability and no-op detection
+/** @type {(draft: PartialCompileOptions, newOptions: PartialCompileOptions) => PartialCompileOptions} */
+export const produceCompileOptions = produce((draft, newOptions) => {
+  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'locale', 'messages', 'optionsKeys']) {
+    // @ts-ignore
+    if (key in newOptions) draft[key] = newOptions[key]
+    // @ts-ignore
+    else delete draft[key]
+  }
+})
 
 /**
  * @param {PartialCompileOptions} partialOptions
