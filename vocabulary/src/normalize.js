@@ -18,7 +18,7 @@ import { validateNormalizedLayout, compositeCompNames } from './normalized-layou
  * @returns {Children}
  */
 function getDefaultChildren (schemaFragment) {
-  const { type } = getType(schemaFragment)
+  const { type } = getSchemaFragmentType(schemaFragment)
   /** @type {Children} */
   const children = []
   if (type === 'object') {
@@ -87,8 +87,8 @@ function getChildren (defaultChildren, partialChildren) {
  * @returns {import('./index.js').ComponentName}
  */
 function getDefaultComp (partial, schemaFragment, arrayChild) {
-  const { type } = getType(schemaFragment)
-  const hasSimpleType = ['string', 'integer', 'number'].includes(type)
+  const { type } = getSchemaFragmentType(schemaFragment)
+  const hasSimpleType = type && ['string', 'integer', 'number'].includes(type)
   if (arrayChild === 'oneOf') return 'one-of-select'
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
@@ -162,8 +162,8 @@ function normalizeExpression (expression, defaultType = 'js-eval') {
  */
 function getItemsFromSchema (schemaFragment) {
   if (!schemaFragment) return null
-  const { type } = getType(schemaFragment)
-  const hasSimpleType = ['string', 'integer', 'number'].includes(type)
+  const { type } = getSchemaFragmentType(schemaFragment)
+  const hasSimpleType = type && ['string', 'integer', 'number'].includes(type)
   if (schemaFragment.enum && hasSimpleType) {
     return schemaFragment.enum.map((/** @type {string} */ value) => ({ key: value + '', title: value + '', value }))
   }
@@ -194,13 +194,36 @@ function getItemsFromSchema (schemaFragment) {
 
 /**
  * @param {SchemaFragment} schemaFragment
- * @returns {{type: string, nullable: boolean}}
+ * @returns {{type: string | undefined, nullable: boolean}}
  */
-const getType = (schemaFragment) => {
+export const getSchemaFragmentType = (schemaFragment) => {
   if (Array.isArray(schemaFragment.type) && schemaFragment.type.length === 2 && schemaFragment.type.includes('null')) {
     const type = schemaFragment.type.find(t => t !== 'null')
     return { type, nullable: true }
   }
+
+  if (!schemaFragment.type && schemaFragment.properties) {
+    return { type: 'object', nullable: false }
+  }
+
+  // case where type is not defined but can be deduced from children oneOf/allOf/anyOf
+  /** @type {any[]} */
+  if (!schemaFragment.type) {
+    /** @type {string[]} */
+    const combinationTypes = []
+    for (const combinationKey of ['allOf', 'anyOf', 'oneOf']) {
+      // @ts-ignore
+      if (schemaFragment[combinationKey]) {
+        // @ts-ignore
+        for (const subSchema of schemaFragment[combinationKey]) {
+          const { type: subType } = getSchemaFragmentType(subSchema)
+          if (subType && !combinationTypes.includes(subType)) combinationTypes.push(subType)
+        }
+      }
+    }
+    if (combinationTypes.length === 1) return { type: combinationTypes[0], nullable: false }
+  }
+
   return { type: schemaFragment.type, nullable: false }
 }
 
@@ -218,7 +241,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, opt
   const errors = []
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
 
-  const { type, nullable } = getType(schemaFragment)
+  const { type, nullable } = getSchemaFragmentType(schemaFragment)
 
   if ('const' in schemaFragment) return { normalized: { comp: 'none' }, errors }
   if (!type) return { normalized: { comp: 'none' }, errors }

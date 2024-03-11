@@ -537,6 +537,9 @@ for (const compileMode of ['runtime', 'build-time']) {
         }]
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { key: 'key2' })
+      assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+      assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
       assert.equal(statefulLayout.stateTree.root.children?.[0].key, '$oneOf')
       assert.equal(statefulLayout.stateTree.root.children?.[0].children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].key, 1)
@@ -557,6 +560,27 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.data.key, 'key3')
       assert.equal(statefulLayout.stateTree.root.children?.[0].data.key, 'key3')
       assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].data.key, 'key3')
+    })
+
+    it('should manage a oneOf with implicit typing', async () => {
+      const compiledLayout = await compile({
+        oneOf: [{
+          properties: {
+            key: { type: 'string', const: 'key1' },
+            str1: { type: 'string' }
+          }
+        }, {
+          properties: {
+            key: { type: 'string', const: 'key2' },
+            str2: { type: 'string' }
+          }
+        }]
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { key: 'key1' })
+      assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+      assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
+      assert.equal(statefulLayout.stateTree.root.children?.[0].key, '$oneOf')
     })
 
     it('should manage a nullable type', async () => {
@@ -584,6 +608,59 @@ for (const compileMode of ['runtime', 'build-time']) {
       statefulLayout.data = { str1: 'test2', str2: 'test3', int1: 11, nb1: 11.11 }
       assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'test2', str2: 'test3', int1: 11, nb1: 11.11 })
       assert.equal(statefulLayout.stateTree.root.children[0].data, 'test2')
+    })
+
+    it('should manage a complex allOf/oneOf schema with tabs', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        layout: 'tabs',
+        required: ['datasetMode', 'message'],
+        allOf: [{
+          title: 'Dataset',
+          oneOf: [{
+            title: 'Create a dataset',
+            required: ['dataset'],
+            properties: {
+              datasetMode: { type: 'string', const: 'create', title: 'Action' },
+              dataset: {
+                type: 'object',
+                required: ['title'],
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string', default: 'Hello world ' }
+                }
+              }
+            }
+          }, {
+            title: 'Update a dataset',
+            required: ['dataset'],
+            properties: {
+              datasetMode: { type: 'string', const: 'update' },
+              dataset: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' }
+                }
+              }
+            }
+          }]
+        }, {
+          title: 'Content',
+          properties: {
+            message: { type: 'string', default: 'world !' }
+          }
+        }]
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      assert.equal(statefulLayout.stateTree.root.layout.comp, 'tabs')
+      assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+      assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'section')
+      assert.equal(statefulLayout.stateTree.root.children[0].layout.title, 'Dataset')
+      assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children[0].children[0].layout.comp, 'one-of-select')
+      assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
+      assert.equal(statefulLayout.stateTree.root.children[1].layout.title, 'Content')
     })
   })
 }

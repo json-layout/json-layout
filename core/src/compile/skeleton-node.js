@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 
 /**
@@ -27,8 +27,7 @@ export function makeSkeletonNode (
   parentPointer,
   required
 ) {
-  // consolidate schema
-  if (!schema.type && schema.properties) schema.type = 'object'
+  const { type, nullable } = getSchemaFragmentType(schema)
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   schema.errorMessage = schema.errorMessage ?? {}
@@ -49,8 +48,9 @@ export function makeSkeletonNode (
   let defaultData
   if ('default' in schema) defaultData = schema.default
   else if (required) {
-    if (schema.type === 'object') defaultData = {}
-    if (schema.type === 'array') defaultData = []
+    if (nullable) defaultData = null
+    else if (type === 'object') defaultData = {}
+    else if (type === 'array') defaultData = []
   }
 
   let pure = true
@@ -103,7 +103,7 @@ export function makeSkeletonNode (
 
   /** @type {import('./types.js').SkeletonNode} */
   const node = { key: key ?? '', pointer, parentPointer, pure, propertyKeys: [], roPropertyKeys: [] }
-  if (schema.type === 'object') {
+  if (type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []
       for (const propertyKey of Object.keys(schema.properties)) {
@@ -166,7 +166,7 @@ export function makeSkeletonNode (
       const childrenTrees = []
       /** @type {string[]} */
       for (let i = 0; i < schema.oneOf.length; i++) {
-        if (!schema.oneOf[i].type) schema.oneOf[i].type = schema.type
+        if (!schema.oneOf[i].type) schema.oneOf[i].type = type
         const title = schema.oneOf[i].title ?? `option ${i}`
         delete schema.oneOf[i].title
         childrenTrees.push(makeSkeletonTree(
@@ -195,7 +195,7 @@ export function makeSkeletonNode (
     }
   }
 
-  if (schema.type === 'array' && schema.items) {
+  if (type === 'array' && schema.items) {
     if (Array.isArray(schema.items)) {
       node.children = schema.items.map((/** @type {any} */ itemSchema, /** @type {number} */ i) => {
         return makeSkeletonNode(
