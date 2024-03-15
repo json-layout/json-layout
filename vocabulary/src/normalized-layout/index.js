@@ -69,6 +69,10 @@ export function isSectionLayout (layout) {
 
 export const compositeCompNames = ['section', 'tabs', 'vertical-tabs', 'expansion-panels', 'stepper']
 
+// these components can received keybord inputs and emit blur events
+// they will be debounced and validateOn=blur is applicable
+export const editableCompNames = ['text-field', 'number-field', 'textarea', 'markdown']
+
 /** @type {(layout: CompObject) => layout is CompositeCompObject} */
 export function isCompositeLayout (layout) {
   return compositeCompNames.includes(layout.comp)

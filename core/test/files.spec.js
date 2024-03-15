@@ -3,12 +3,14 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
 describe('files inputs', () => {
+  const defaultOptions = { debounceInputMs: 0 }
+
   it('should manage a simple file input and store an object', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: { file1: { type: 'object', layout: 'file-input' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
     assert.ok(statefulLayout.stateTree.valid)
     assert.ok(statefulLayout.stateTree.root.children?.[0])
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'file-input')
@@ -26,7 +28,7 @@ describe('files inputs', () => {
       type: 'object',
       properties: { file1: { type: 'array', layout: 'file-input' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
     assert.ok(statefulLayout.stateTree.valid)
     assert.ok(statefulLayout.stateTree.root.children?.[0])
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'file-input')

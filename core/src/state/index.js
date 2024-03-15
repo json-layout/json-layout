@@ -5,7 +5,7 @@ import { produce } from 'immer'
 import { evalExpression, producePatchedData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
-import { isFileLayout, isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
+import { isFileLayout, isGetItemsExpression, isGetItemsFetch, isItemsLayout, editableCompNames } from '@json-layout/vocabulary'
 import { shallowProduceArray } from './utils/immutable.js'
 
 export { Display } from './utils/display.js'
@@ -74,6 +74,7 @@ function fillOptions (partialOptions, compiledLayout) {
     removeAdditional: 'error',
     autofocus: false,
     readOnlyPropertiesMode: 'show',
+    debounceInputMs: 300,
     ...partialOptions,
     messages
   }
@@ -342,11 +343,12 @@ export class StatefulLayout {
   }
 
   /**
+   * @private
    * @param {StateNode} node
    * @param {unknown} data
    * @param {number} [activateKey]
    */
-  input (node, data, activateKey) {
+  applyInput (node, data, activateKey) {
     logDataBinding('received input event from node', node, data)
 
     const transformedData = node.layout.transformData && this.evalNodeExpression(node, node.layout.transformData, data)
@@ -370,7 +372,10 @@ export class StatefulLayout {
       data = transformedData
     }
 
-    if (node.options.validateOn === 'input' && !this.validationState.validatedChildren.includes(node.fullKey)) {
+    if (
+      (node.options.validateOn === 'input' || (node.options.validateOne === 'blur' && !editableCompNames.includes(node.layout.comp))) &&
+       !this.validationState.validatedChildren.includes(node.fullKey)
+    ) {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
     }
     if (activateKey !== undefined) {
@@ -385,7 +390,7 @@ export class StatefulLayout {
     const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
     const newParentValue = producePatchedData(parentNode.data ?? (typeof node.key === 'number' ? [] : {}), node, data)
-    this.input(parentNode, newParentValue)
+    this.applyInput(parentNode, newParentValue)
 
     if (activateKey !== undefined) {
       this.handleAutofocus()
@@ -393,9 +398,46 @@ export class StatefulLayout {
   }
 
   /**
+   * @private
+   * @type {null | [StateNode, unknown, number | undefined, ReturnType<typeof setTimeout>]}
+   */
+  debouncedInput = null
+
+  applyDebouncedInput () {
+    if (this.debouncedInput) {
+      clearTimeout(this.debouncedInput[3])
+      this.applyInput(this.debouncedInput[0], this.debouncedInput[1], this.debouncedInput[2])
+      this.debouncedInput = null
+    }
+  }
+
+  /**
+   * @param {StateNode} node
+   * @param {unknown} data
+   * @param {number} [activateKey]
+   */
+  input (node, data, activateKey) {
+    // debounced data from the same node is cancelled if a new input is received
+    // debounced data from another node is applied immediately
+    if (this.debouncedInput) {
+      if (this.debouncedInput[0] === node) clearTimeout(this.debouncedInput[3])
+      else this.applyDebouncedInput()
+    }
+
+    if (editableCompNames.includes(node.layout.comp) && node.options.debounceInputMs) {
+      this.debouncedInput = [node, data, activateKey, setTimeout(() => this.applyDebouncedInput(), node.options.debounceInputMs)]
+    } else {
+      this.applyInput(node, data, activateKey)
+    }
+  }
+
+  /**
    * @param {StateNode} node
    */
   blur (node) {
+    // debounced data is applied immediately on blur
+    this.applyDebouncedInput()
+
     logDataBinding('received blur event from node', node)
     if (
       (node.options.validateOn === 'input' || node.options.validateOn === 'blur') &&

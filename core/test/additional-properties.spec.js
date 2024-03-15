@@ -3,6 +3,8 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
 describe('Management of additional properties', () => {
+  const defaultOptions = { debounceInputMs: 0 }
+
   it('should keep additional properties by default', async () => {
     const compiledLayout = await compile({
       type: 'object',
@@ -12,7 +14,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      {},
+      defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)
@@ -29,7 +31,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      {},
+      defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)
@@ -46,7 +48,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      {},
+      defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)
@@ -62,7 +64,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      { removeAdditional: 'unknown' },
+      { ...defaultOptions, removeAdditional: 'unknown' },
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)
@@ -83,7 +85,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      { removeAdditional: 'unknown' },
+      { ...defaultOptions, removeAdditional: 'unknown' },
       { str1: 'str1', str2: 'str2', str3: 'str3' }
     )
     assert.ok(statefulLayout.valid)
@@ -104,7 +106,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      { removeAdditional: 'unknown' },
+      { ...defaultOptions, removeAdditional: 'unknown' },
       { str1: 'str1', str2: 'str2', str3: 'str3' }
     )
     assert.ok(statefulLayout.valid)
@@ -134,7 +136,7 @@ describe('Management of additional properties', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      { removeAdditional: 'unknown' },
+      { ...defaultOptions, removeAdditional: 'unknown' },
       { obj1: { str1: 'str1', str2: 'str2' }, obj2: { str1: 'str1', str2: 'str2' } }
     )
     assert.ok(statefulLayout.valid)

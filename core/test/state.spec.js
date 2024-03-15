@@ -13,6 +13,8 @@ for (const compileMode of ['runtime', 'build-time']) {
   /** @type {typeof compileSrc} */
   let compile
 
+  const defaultOptions = { debounceInputMs: 0 }
+
   describe(`stateful layout with compilation at ${compileMode}`, () => {
     /** @type {string} */
     let currentTest
@@ -45,7 +47,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           nb1: { type: 'number' }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
       assert.deepEqual(statefulLayout.stateTree.root.data, {})
       assert.ok(statefulLayout.stateTree.root.children)
@@ -73,7 +75,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str2: { type: 'string' }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       const root1 = statefulLayout.stateTree.root
       assert.ok(root1.children)
 
@@ -117,7 +119,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { str2: 'test' })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
       assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
       assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
@@ -134,7 +136,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str1: { type: 'string', layout: { switch: [{ if: 'options.readOnly', comp: 'text-field' }, { if: '!options.readOnly', comp: 'textarea' }] } }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       assert.equal(statefulLayout.stateTree.root.children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
       assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'textarea')
@@ -147,7 +149,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str1: { type: 'string', layout: { switch: [{ if: 'display.mobile', comp: 'text-field' }, { comp: 'textarea' }] } }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 2000 })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, width: 2000 })
       assert.equal(statefulLayout.stateTree.root.children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children[0].skeleton.key, 'str1')
       assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'textarea')
@@ -166,7 +168,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str2: { type: 'string', layout: { cols: { lg: 6 } } }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 1000 })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, width: 1000 })
       assert.equal(statefulLayout.stateTree.root.options.width, 1000)
       assert.equal(statefulLayout.stateTree.root.cols, 12)
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
@@ -190,7 +192,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str2: { type: 'string' }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { width: 1000 })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, width: 1000 })
       assert.equal(statefulLayout.stateTree.root.options.width, 1000)
       assert.equal(statefulLayout.stateTree.root.cols, 12)
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
@@ -214,7 +216,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           { properties: { str3: { type: 'string' } }, required: ['str3'] }
         ]
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       assert.ok(!statefulLayout.stateTree.valid)
       assert.ok(!statefulLayout.stateTree.root.error)
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
@@ -231,7 +233,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           { title: 'allOf 2', properties: { str3: { type: 'string' } }, required: ['str3'] }
         ]
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       assert.ok(!statefulLayout.stateTree.valid)
       assert.ok(!statefulLayout.stateTree.root.error)
       assert.equal(statefulLayout.stateTree.root.children?.length, 3)
@@ -253,7 +255,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
       assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
       assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {
         arr1: ['Str 1', 'Str 2', 'a']
       })
       const arrNode = statefulLayout.stateTree.root.children?.[0]
@@ -276,7 +278,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
       assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
       assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {
         arr1: ['Str 1', 'Str 2', 'a']
       })
       const arrNode = statefulLayout.stateTree.root.children?.[0]
@@ -308,7 +310,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       })
       assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
       assert.equal(compiledLayout.skeletonTree.root.children[0].children?.length, 2)
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {
         arr1: ['Str 1', 'Str 2']
       })
       const arrNode = statefulLayout.stateTree.root.children?.[0]
@@ -334,7 +336,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         type: 'object',
         properties: { arr1: { type: 'array', items: [{ title: 'Str 1', type: 'string' }, { title: 'Str2', type: 'string' }] } }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.equal(arrNode.data, undefined)
@@ -357,7 +359,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str2: { type: 'string' }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
       assert.equal(statefulLayout.stateTree.root.children?.[0]?.key, 'str2')
       assert.equal(statefulLayout.stateTree.root.children?.[1]?.key, 'str1')
     })
@@ -369,7 +371,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         layout,
         properties: { nb1: { type: 'number' }, nb2: { type: 'number' } }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
       assert.equal(statefulLayout.stateTree.root.children[0].key, '$comp-0')
       assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
@@ -385,7 +387,7 @@ for (const compileMode of ['runtime', 'build-time']) {
 
     it('merge options going down the state tree', async () => {
       const compiledLayout = await compile({ type: 'object', layout: { options: { opt1: 'Opt 1' } }, properties: { str1: { type: 'string', layout: { options: { opt2: 'Opt 2' } } } } })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { opt0: 'Opt 0', opt2: 'Opt 0/2' }, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, opt0: 'Opt 0', opt2: 'Opt 0/2' }, {})
       assert.deepEqual(statefulLayout.stateTree.root.options, {
         opt0: 'Opt 0',
         opt2: 'Opt 0/2',
@@ -402,7 +404,8 @@ for (const compileMode of ['runtime', 'build-time']) {
         validateOn: 'input',
         messages: i18n.en,
         autofocus: false,
-        readOnlyPropertiesMode: 'show'
+        readOnlyPropertiesMode: 'show',
+        debounceInputMs: 0
       })
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, {
         opt0: 'Opt 0',
@@ -420,7 +423,8 @@ for (const compileMode of ['runtime', 'build-time']) {
         validateOn: 'input',
         messages: i18n.en,
         autofocus: false,
-        readOnlyPropertiesMode: 'show'
+        readOnlyPropertiesMode: 'show',
+        debounceInputMs: 0
       })
     })
 
@@ -436,7 +440,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           obj3: { type: 'object', properties: { str1: { type: 'string' } } }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
       assert.deepEqual(statefulLayout.data, {
         obj3: {}
       })
@@ -482,7 +486,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, [{ str1: 'Str 1', str2: 'Str 2' }])
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, [{ str1: 'Str 1', str2: 'Str 2' }])
       assert.equal(statefulLayout.stateTree.root.children?.length, 1)
       assert.deepEqual(statefulLayout.stateTree.root.children[0].data, { str1: 'Str 1', str2: 'Str 2' })
       assert.equal(statefulLayout.stateTree.root.children[0].options.summary, true)
@@ -501,7 +505,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, [{ str1: 'test1' }, { str2: 'test1' }])
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, [{ str1: 'test1' }, { str2: 'test1' }])
       assert.equal(statefulLayout.stateTree.root.children?.[0].options.readOnly, true)
       assert.equal(statefulLayout.stateTree.root.children?.[0].options.summary, true)
       assert.equal(statefulLayout.stateTree.root.children?.[1].options.readOnly, true)
@@ -536,7 +540,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           }
         }]
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { key: 'key2' })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { key: 'key2' })
       assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
       assert.equal(statefulLayout.stateTree.root.children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
@@ -576,7 +580,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           }
         }]
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, { key: 'key1' })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { key: 'key1' })
       assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
       assert.equal(statefulLayout.stateTree.root.children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
@@ -590,7 +594,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           str1: { type: ['string', 'null'] }
         }
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
       assert.deepEqual(statefulLayout.stateTree.root.data, { str1: null })
       assert.ok(statefulLayout.stateTree.root.children)
@@ -652,7 +656,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           }
         }]
       })
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
       assert.equal(statefulLayout.stateTree.root.layout.comp, 'tabs')
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
       assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'section')

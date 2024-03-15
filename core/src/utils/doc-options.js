@@ -123,5 +123,10 @@ export const runtimeOptions = [
       hide: 'Hide the readOnly properties but keep them in the data.',
       show: 'Show the readOnly properties.'
     }
+  },
+  {
+    key: 'debounceInputMs',
+    description: 'The debounce time for the input event of editable fields.',
+    default: 300
   }
 ]

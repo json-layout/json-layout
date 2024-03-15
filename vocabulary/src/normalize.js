@@ -462,7 +462,7 @@ function lighterValidationErrors (errors) {
   return errors.map(e => e.message ?? e.keyword)
 }
 
-const defaultOptionsKeys = ['readOnly', 'summary', 'titleDepth', 'density', 'removeAdditional', 'validateOn', 'initialValidation', 'defaultOn', 'readOnlyPropertiesMode']
+const defaultOptionsKeys = ['readOnly', 'summary', 'titleDepth', 'density', 'removeAdditional', 'validateOn', 'initialValidation', 'defaultOn', 'readOnlyPropertiesMode', 'debounceInputMs']
 
 /**
  * @param {SchemaFragment} schemaFragment

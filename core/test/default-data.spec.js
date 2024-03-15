@@ -3,12 +3,14 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
 describe('default data management', () => {
+  const defaultOptions = { debounceInputMs: 0 }
+
   it('should fill default values when data is empty', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
@@ -26,7 +28,7 @@ describe('default data management', () => {
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { defaultOn: 'missing' }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, defaultOn: 'missing' }, {})
 
     // console.log(JSON.stringify(statefulLayout.data, null, 2))
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
@@ -53,7 +55,7 @@ describe('default data management', () => {
       default: { str1: 'String 1' },
       properties: { str1: { type: 'string' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
@@ -62,7 +64,7 @@ describe('default data management', () => {
     const compiledLayout = await compile({
       type: 'string'
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {}, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, '')
   })
@@ -76,7 +78,7 @@ describe('default data management', () => {
         properties: { str1: { type: 'string' } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
 
     assert.deepEqual(statefulLayout.data, [])
 

@@ -3,6 +3,8 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
 describe('Management of readOnly properties from schema', () => {
+  const defaultOptions = { debounceInputMs: 0 }
+
   it('should keep readOnly properties by default', async () => {
     const compiledLayout = await compile({
       type: 'object',
@@ -13,7 +15,7 @@ describe('Management of readOnly properties from schema', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      {},
+      defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)
@@ -32,7 +34,7 @@ describe('Management of readOnly properties from schema', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      { readOnlyPropertiesMode: 'hide' },
+      { ...defaultOptions, readOnlyPropertiesMode: 'hide' },
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)
@@ -51,7 +53,7 @@ describe('Management of readOnly properties from schema', () => {
     })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTree,
-      { readOnlyPropertiesMode: 'remove' },
+      { ...defaultOptions, readOnlyPropertiesMode: 'remove' },
       { str1: 'str1', str2: 'str2' }
     )
     assert.ok(statefulLayout.valid)

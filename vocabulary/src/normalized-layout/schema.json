@@ -519,6 +519,11 @@
               "type": "string",
               "enum": ["remove", "hide", "show"],
               "default": "show"
+            },
+            "debounceInputMs": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 300
             }
           }
         }
