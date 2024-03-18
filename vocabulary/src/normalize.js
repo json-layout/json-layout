@@ -96,6 +96,7 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
     return type === 'string' ? 'combobox' : 'number-combobox'
   }
+  if (hasSimpleType && partial.separator) return type === 'string' ? 'combobox' : 'number-combobox'
   if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
   if (partial.getItems) {
     if (isPartialGetItemsFetch(partial.getItems)) {
@@ -281,7 +282,6 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, opt
     let items
     if (type === 'array') {
       items = getItemsFromSchema(schemaFragment.items)
-      partial.multiple = true
     } else {
       items = getItemsFromSchema(schemaFragment)
     }
@@ -294,8 +294,8 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, markdown, opt
     }
   }
 
-  if (['combobox', 'number-combobox', 'file-input'].includes(partial.comp)) {
-    if (type === 'array') {
+  if (['select', 'autocomplete', 'combobox', 'number-combobox', 'file-input'].includes(partial.comp)) {
+    if (type === 'array' || partial.separator) {
       partial.multiple = true
     }
   }

@@ -55,7 +55,8 @@
         "constData": {},
         "getConstData": {"$ref": "#/$defs/partial-expression"},
         "transformData": {"$ref": "#/$defs/partial-expression"},
-        "autofocus": {"type": "boolean"}
+        "autofocus": {"type": "boolean"},
+        "separator": {"type": "string"}
       }
     },
     "comp-name": {
