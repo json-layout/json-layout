@@ -10,6 +10,11 @@ const example = {
         type: 'array',
         title: 'An array of strings',
         items: { type: 'string', title: 'String item' }
+      },
+      nbArray1: {
+        type: 'array',
+        title: 'An array of numbers',
+        items: { type: 'number', title: 'Number item' }
       }
     }
   }
