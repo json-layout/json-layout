@@ -247,7 +247,10 @@ export function createStateNode (
 ) {
   /** @type {import('./types.js').StateNodeCacheKey | null} */
   let cacheKey = null
-  if (skeleton.pure && reusedNode) {
+
+  // NOTE we have to exclude nodes with errors from the cache, because context.errors is unpurely modified
+  // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
+  if (skeleton.pure && reusedNode && !reusedNode.error && !reusedNode.childError) {
     cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activeItems, context.initial, data]
     if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) return reusedNode
   }

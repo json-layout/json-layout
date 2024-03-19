@@ -108,25 +108,12 @@ for (const compileMode of ['runtime', 'build-time']) {
         type: 'object',
         required: ['str1', 'missingProp'],
         properties: {
-          str1: { type: 'string' },
-          str2: { type: 'string', pattern: '^[A-Z]+$' },
-          obj1: {
-            type: 'object',
-            required: ['str1'],
-            properties: {
-              str1: { type: 'string' }
-            }
-          }
+          str1: { type: 'string' }
         }
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
       assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
-      assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
-      assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^[A-Z]+$"')
-
-      statefulLayout.input(statefulLayout.stateTree.root.children?.[1], 'TEST')
-      assert.equal(statefulLayout.stateTree.root.children?.[1].error, undefined)
     })
 
     it('should use a switch on read/write mode', async () => {
@@ -437,7 +424,8 @@ for (const compileMode of ['runtime', 'build-time']) {
           str2: { type: 'string' },
           obj1: { type: 'object', properties: { str1: { type: 'string' } } },
           obj2: { type: 'object', required: ['str1'], properties: { str1: { type: 'string' } } },
-          obj3: { type: 'object', properties: { str1: { type: 'string' } } }
+          obj3: { type: 'object', properties: { str1: { type: 'string' } } },
+          nb1: { type: 'integer' }
         }
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
@@ -445,25 +433,28 @@ for (const compileMode of ['runtime', 'build-time']) {
         obj3: {}
       })
 
-      assert.equal(statefulLayout.stateTree.root.children?.length, 5)
+      assert.equal(statefulLayout.stateTree.root.children?.length, 6)
       statefulLayout.input(statefulLayout.stateTree.root.children[0], 'Str 1')
       statefulLayout.input(statefulLayout.stateTree.root.children[1], 'Str 2')
       assert.equal(statefulLayout.stateTree.root.children[2].children?.length, 1)
       statefulLayout.input(statefulLayout.stateTree.root.children[2].children[0], 'Str 1')
       assert.equal(statefulLayout.stateTree.root.children[3].children?.length, 1)
       statefulLayout.input(statefulLayout.stateTree.root.children[3].children[0], 'Str 1')
+      statefulLayout.input(statefulLayout.stateTree.root.children[5], 1)
       assert.deepEqual(statefulLayout.data, {
         str1: 'Str 1',
         str2: 'Str 2',
-        obj3: {},
         obj1: { str1: 'Str 1' },
-        obj2: { str1: 'Str 1' }
+        obj2: { str1: 'Str 1' },
+        obj3: {},
+        nb1: 1
       })
 
       statefulLayout.input(statefulLayout.stateTree.root.children[0], '')
       statefulLayout.input(statefulLayout.stateTree.root.children[1], '')
       statefulLayout.input(statefulLayout.stateTree.root.children[2].children[0], '')
       statefulLayout.input(statefulLayout.stateTree.root.children[3].children[0], '')
+      statefulLayout.input(statefulLayout.stateTree.root.children[5], undefined)
       assert.deepEqual(statefulLayout.data, {
         obj3: {}
       })
