@@ -96,7 +96,7 @@ function getDefaultComp (partial, schemaFragment, arrayChild) {
   if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
     return type === 'string' ? 'combobox' : 'number-combobox'
   }
-  if (hasSimpleType && partial.separator) return type === 'string' ? 'combobox' : 'number-combobox'
+  if (type === 'string' && partial.separator) return 'combobox'
   if (partial.items) return partial.items.length > 20 ? 'autocomplete' : 'select'
   if (partial.getItems) {
     if (isPartialGetItemsFetch(partial.getItems)) {

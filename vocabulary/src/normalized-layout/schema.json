@@ -319,7 +319,6 @@
         "items": {"$ref": "#/$defs/select-items"},
         "getItems": {"$ref": "#/$defs/get-items"},
         "multiple": {"type": "boolean"},
-        "separator": {"type": "string"},
         "step": {"type": "number"},
         "min": {"type": "number"},
         "max": {"type": "number"}
