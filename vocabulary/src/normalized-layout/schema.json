@@ -507,6 +507,16 @@
               "enum": ["input", "blur", "submit"],
               "default": "input"
             },
+            "updateOn": {
+              "type": "string",
+              "enum": ["input", "blur"],
+              "default": "input"
+            },
+            "debounceInputMs": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 300
+            },
             "initialValidation": {
               "type": "string",
               "enum": ["never", "always", "withData"],
@@ -522,11 +532,6 @@
               "type": "string",
               "enum": ["remove", "hide", "show"],
               "default": "show"
-            },
-            "debounceInputMs": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 300
             }
           }
         }

@@ -98,9 +98,8 @@ export interface ValidationState {
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type StatefulLayoutEvents = {
-  // input: { value: unknown, child: { pointer: string, dataPointer: string, value: unknown } }
-  input: unknown
-  'update': StatefulLayout
+  data: any
+  update: StatefulLayout
   autofocus: string
 }
 

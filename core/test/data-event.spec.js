@@ -2,8 +2,8 @@ import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
-describe('debounce input events', () => {
-  it('should apply different debounce mode based on component and options', async () => {
+describe('data update events', () => {
+  it('should apply different debounce mode', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: {
@@ -15,8 +15,8 @@ describe('debounce input events', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
 
     /** @type {unknown[]} */
-    let inputEvents = []
-    statefulLayout.events.on('input', (value) => { inputEvents.push(value) })
+    let dataEvents = []
+    statefulLayout.events.on('data', (value) => { dataEvents.push(value) })
 
     assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 3)
@@ -34,19 +34,45 @@ describe('debounce input events', () => {
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'ab' })
     await new Promise((resolve) => setTimeout(resolve, 300))
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'abc' })
-    assert.deepEqual(inputEvents, [{ str1: 'ab' }, { str1: 'abc' }])
-    inputEvents = []
+    assert.deepEqual(dataEvents, [{ str1: 'ab' }, { str1: 'abc' }])
+    dataEvents = []
 
     // input on str2 is not debounced
     statefulLayout.input(statefulLayout.stateTree.root.children[1], 'test')
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'abc', str2: 'test' })
-    assert.equal(inputEvents.length, 1)
-    inputEvents = []
+    assert.equal(dataEvents.length, 1)
+    dataEvents = []
 
     // input on a checkbox is not debounced
     statefulLayout.input(statefulLayout.stateTree.root.children[2], true)
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'abc', str2: 'test', bool1: true })
-    assert.equal(inputEvents.length, 1)
-    inputEvents = []
+    assert.equal(dataEvents.length, 1)
+    dataEvents = []
+  })
+
+  it('should apply updateOn option', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string', layout: { debounceInputMs: 0 } }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { updateOn: 'blur' })
+
+    /** @type {unknown[]} */
+    const dataEvents = []
+    statefulLayout.events.on('data', (value) => { dataEvents.push(value) })
+
+    assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+
+    // input on str1 is ignored until blur
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'a')
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'ab')
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    statefulLayout.blur(statefulLayout.stateTree.root.children[0])
+    assert.deepEqual(statefulLayout.data, { str1: 'ab' })
+    assert.deepEqual(dataEvents, [{ str1: 'ab' }])
   })
 })

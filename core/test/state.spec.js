@@ -389,10 +389,11 @@ for (const compileMode of ['runtime', 'build-time']) {
         removeAdditional: 'error',
         defaultOn: 'empty',
         validateOn: 'input',
+        updateOn: 'input',
+        debounceInputMs: 0,
         messages: i18n.en,
         autofocus: false,
-        readOnlyPropertiesMode: 'show',
-        debounceInputMs: 0
+        readOnlyPropertiesMode: 'show'
       })
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, {
         opt0: 'Opt 0',
@@ -408,10 +409,11 @@ for (const compileMode of ['runtime', 'build-time']) {
         removeAdditional: 'error',
         defaultOn: 'empty',
         validateOn: 'input',
+        updateOn: 'input',
+        debounceInputMs: 0,
         messages: i18n.en,
         autofocus: false,
-        readOnlyPropertiesMode: 'show',
-        debounceInputMs: 0
+        readOnlyPropertiesMode: 'show'
       })
     })
 

@@ -90,6 +90,20 @@ export const runtimeOptions = [
     }
   },
   {
+    key: 'updateOn',
+    description: 'Control when the new data will be emitted by the form.',
+    default: 'input',
+    values: {
+      input: 'The data will be updated in realtime when the user makes any input (except for the application of debounceInputMs).',
+      blur: 'The data will be updated only when the user interacts with a form input then leaves it.'
+    }
+  },
+  {
+    key: 'debounceInputMs',
+    description: 'The debounce time for the input event of editable fields.',
+    default: 300
+  },
+  {
     key: 'defaultOn',
     description: 'Control the use of default values in the form.',
     default: 'empty',
@@ -123,10 +137,5 @@ export const runtimeOptions = [
       hide: 'Hide the readOnly properties but keep them in the data.',
       show: 'Show the readOnly properties.'
     }
-  },
-  {
-    key: 'debounceInputMs',
-    description: 'The debounce time for the input event of editable fields.',
-    default: 300
   }
 ]
