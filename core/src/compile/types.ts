@@ -1,6 +1,6 @@
 import type ajvModule from 'ajv/dist/2019.js'
 import type MarkdownIt from 'markdown-it'
-import { type CompObject, type NormalizedLayout, type StateNodeOptionsBase } from '@json-layout/vocabulary'
+import { type ComponentInfo, type CompObject, type NormalizedLayout, type StateNodeOptionsBase } from '@json-layout/vocabulary'
 import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv/dist/2019.js'
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
@@ -24,9 +24,13 @@ export interface CompileOptions {
   locale: string
   messages: LocaleMessages
   optionsKeys: string[]
+  components: Record<string, ComponentInfo>
 }
 
-export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & { messages?: Partial<LocaleMessages> }
+export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & {
+  messages?: Partial<LocaleMessages>
+  components?: Record<string, Omit<ComponentInfo, 'name'>>
+}
 
 export interface CompiledLayout {
   options?: CompileOptions

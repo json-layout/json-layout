@@ -3,7 +3,7 @@
   "title": "normalized layout",
   "oneOf": [
     {"$ref": "#/$defs/switch-struct"},
-    {"$ref": "#/$defs/comp-object"}
+    {"$ref": "#/$defs/base-comp-object"}
   ],
   "$defs": {
     "switch-struct": {
@@ -13,142 +13,86 @@
       "properties": {
         "switch": {
           "type": "array",
-          "items": {"$ref": "#/$defs/comp-object"}
+          "items": {"$ref": "#/$defs/base-comp-object"}
         }
       }
     },
-    "comp-object": {
+    "base-comp-object": {
       "type": "object",
       "required": ["comp"],
-      "unevaluatedProperties": false,
-      "allOf": [
-        {
-          "properties": {
-            "if": {"$ref": "#/$defs/expression"},
-            "options": {"$ref": "#/$defs/state-node-options-base"},
-            "getOptions": {"$ref": "#/$defs/expression"},
-            "defaultData": {},
-            "getDefaultData": {"$ref": "#/$defs/expression"},
-            "constData": {},
-            "getConstData": {"$ref": "#/$defs/expression"},
-            "transformData": {"$ref": "#/$defs/expression"},
-            "nullable": {"type": "boolean"},
-            "help": {"type": "string"},
-            "cols": {"$ref": "#/$defs/cols-obj"},
-            "props": {"$ref": "#/$defs/state-node-props-lib"},
-            "getProps": {"$ref": "#/$defs/expression"},
-            "slots": {
-              "type": "object",
-              "allOf": [
-                {"$ref": "#/$defs/state-node-slots-lib"},
-                {
-                  "properties": {
-                    "before": {"$ref": "#/$defs/slot"},
-                    "after": {"$ref": "#/$defs/slot"},
-                    "component": {"$ref": "#/$defs/slot"}
-                  }
-                }
-              ]
+      "properties": {
+        "comp": {"type": "string"},
+        "if": {"$ref": "#/$defs/expression"},
+        "options": {"$ref": "#/$defs/state-node-options-base"},
+        "getOptions": {"$ref": "#/$defs/expression"},
+        "defaultData": {},
+        "getDefaultData": {"$ref": "#/$defs/expression"},
+        "constData": {},
+        "getConstData": {"$ref": "#/$defs/expression"},
+        "transformData": {"$ref": "#/$defs/expression"},
+        "nullable": {"type": "boolean"},
+        "help": {"type": "string"},
+        "cols": {"$ref": "#/$defs/cols-obj"},
+        "props": {"$ref": "#/$defs/state-node-props-lib"},
+        "getProps": {"$ref": "#/$defs/expression"},
+        "slots": {
+          "type": "object",
+          "allOf": [
+            {"$ref": "#/$defs/state-node-slots-lib"},
+            {
+              "properties": {
+                "before": {"$ref": "#/$defs/slot"},
+                "after": {"$ref": "#/$defs/slot"},
+                "component": {"$ref": "#/$defs/slot"}
+              }
             }
-          }
-        },
-        {
-          "discriminator": {"propertyName": "comp"},
-          "oneOf": [
-            {"$ref": "#/$defs/none"},
-            {"$ref": "#/$defs/list"},
-            {"$ref": "#/$defs/text-field"},
-            {"$ref": "#/$defs/number-field"},
-            {"$ref": "#/$defs/textarea"},
-            {"$ref": "#/$defs/markdown"},
-            {"$ref": "#/$defs/checkbox"},
-            {"$ref": "#/$defs/switch"},
-            {"$ref": "#/$defs/slider"},
-            {"$ref": "#/$defs/date-picker"},
-            {"$ref": "#/$defs/date-time-picker"},
-            {"$ref": "#/$defs/time-picker"},
-            {"$ref": "#/$defs/color-picker"},
-            {"$ref": "#/$defs/combobox"},
-            {"$ref": "#/$defs/number-combobox"},
-            {"$ref": "#/$defs/select"},
-            {"$ref": "#/$defs/autocomplete"},
-            {"$ref": "#/$defs/one-of-select"},
-            {"$ref": "#/$defs/section"},
-            {"$ref": "#/$defs/tabs"},
-            {"$ref": "#/$defs/vertical-tabs"},
-            {"$ref": "#/$defs/expansion-panels"},
-            {"$ref": "#/$defs/stepper"},
-            {"$ref": "#/$defs/file-input"}
           ]
         }
+      },
+      "anyOf": [
+        {"$ref": "#/$defs/composite-comp-object"},
+        {"$ref": "#/$defs/simple-comp-object"},
+        {"$ref": "#/$defs/focusable-comp-object"},
+        {"$ref": "#/$defs/items-based-comp-object"}
       ]
     },
     "composite-comp-object": {
       "type": "object",
-      "discriminator": {"propertyName": "comp"},
-      "oneOf": [
-        {"$ref": "#/$defs/section"},
-        {"$ref": "#/$defs/tabs"},
-        {"$ref": "#/$defs/vertical-tabs"},
-        {"$ref": "#/$defs/expansion-panels"}
-      ]
-    },
-    "none": {
-      "type": "object",
-      "required": ["comp"],
+      "required": ["children"],
       "properties": {
-        "comp": {"const": "none"}
-        
-      }
-    },
-    "section": {
-      "type": "object",
-      "required": ["comp", "children"],
-      "properties": {
-        "comp": {"const": "section"},
+        "comp": {"type": "string"},
         "title": {"type": ["string", "null"]},
         "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/children"}
       }
     },
-    "tabs": {
+    "simple-comp-object": {
       "type": "object",
-      "required": ["comp", "children"],
       "properties": {
-        "comp": {"const": "tabs"},
-        "title": {"type": ["string", "null"]},
-        "subtitle": {"type": ["string", "null"]},
-        "children": {"$ref": "#/$defs/children"}
+        "comp": {"type": "string"},
+        "label": {"type": "string"}
       }
     },
-    "vertical-tabs": {
+    "focusable-comp-object": {
       "type": "object",
-      "required": ["comp", "children"],
       "properties": {
-        "comp": {"const": "vertical-tabs"},
-        "title": {"type": ["string", "null"]},
-        "subtitle": {"type": ["string", "null"]},
-        "children": {"$ref": "#/$defs/children"}
+        "label": {"type": "string"},
+        "autofocus": {"type": "boolean"}
       }
     },
-    "expansion-panels": {
+    "items-based-comp-object": {
       "type": "object",
-      "required": ["comp", "children"],
       "properties": {
-        "comp": {"const": "expansion-panels"},
-        "title": {"type": ["string", "null"]},
-        "subtitle": {"type": ["string", "null"]},
-        "children": {"$ref": "#/$defs/children"}
+        "items": {"$ref": "#/$defs/select-items"},
+        "getItems": {"$ref": "#/$defs/get-items"},
+        "multiple": {"type": "boolean"},
+        "separator": {"type": "string"}
       }
     },
-    "stepper": {
+    "multiple-compat-comp-object": {
       "type": "object",
-      "required": ["comp", "children"],
       "properties": {
-        "comp": {"const": "stepper"},
-        "title": {"type": ["string", "null"]},
-        "subtitle": {"type": ["string", "null"]},
-        "children": {"$ref": "#/$defs/children"}
+        "multiple": {"type": "boolean"}
       }
     },
     "child": {
@@ -167,198 +111,6 @@
     "children": {
       "type": "array",
       "items": {"$ref": "#/$defs/child"}
-    },
-    "list": {
-      "type": "object",
-      "required": ["comp", "listEditMode", "listActions"],
-      "properties": {
-        "comp": {"const": "list"},
-        "title": {"type": "string"},
-        "listEditMode": {"type": "string", "enum": ["inline", "inline-single", "menu", "dialog"]},
-        "listActions": {"type": "array", "items": {"type": "string", "enum": ["add", "edit", "delete", "sort", "duplicate"]}},
-        "itemTitle": {"$ref": "#/$defs/expression"},
-        "itemSubtitle": {"$ref": "#/$defs/expression"},
-        "messages": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "addItem": {"type": "string"},
-            "delete": {"type": "string"},
-            "edit": {"type": "string"},
-            "duplicate": {"type": "string"},
-            "sort": {"type": "string"}
-          }
-        }
-      }
-    },
-    "text-field": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "text-field"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"}
-      }
-    },
-    "number-field": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "number-field"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"},
-        "step": {"type": "number"},
-        "min": {"type": "number"},
-        "max": {"type": "number"}
-      }
-    },
-    "textarea": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "textarea"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"}
-      }
-    },
-    "markdown": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "markdown"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"}
-      }
-    },
-    "checkbox": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "checkbox"},
-        "label": {"type": "string"}
-      }
-    },
-    "switch": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "switch"},
-        "label": {"type": "string"}
-      }
-    },
-    "slider": {
-      "type": "object",
-      "required": ["comp", "label", "min", "max"],
-      "properties": {
-        "comp": {"const": "slider"},
-        "label": {"type": "string"},
-        "step": {"type": "number"},
-        "min": {"type": "number"},
-        "max": {"type": "number"}
-      }
-    },
-    "date-picker": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "date-picker"},
-        "label": {"type": "string"},
-        "min": {"type": "string", "format": "date"},
-        "max": {"type": "string", "format": "date"},
-        "format": {"type": "string", "enum": ["date", "date-time"], "default": "date"}
-      }
-    },
-    "date-time-picker": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "date-time-picker"},
-        "label": {"type": "string"},
-        "min": {"type": "string", "format": "date-time"},
-        "max": {"type": "string", "format": "date-time"}
-      }
-    },
-    "time-picker": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "time-picker"},
-        "label": {"type": "string"},
-        "min": {"type": "string", "format": "time"},
-        "max": {"type": "string", "format": "time"}
-      }
-    },
-    "color-picker": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "color-picker"},
-        "label": {"type": "string"}
-      }
-    },
-    "combobox": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "combobox"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"},
-        "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"},
-        "multiple": {"type": "boolean"},
-        "separator": {"type": "string"}
-      }
-    },
-    "number-combobox": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "number-combobox"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"},
-        "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"},
-        "multiple": {"type": "boolean"},
-        "step": {"type": "number"},
-        "min": {"type": "number"},
-        "max": {"type": "number"}
-      }
-    },
-    "select": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "select"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"},
-        "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"},
-        "multiple": {"type": "boolean"},
-        "separator": {"type": "string"}
-      }
-    },
-    "autocomplete": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "autocomplete"},
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"},
-        "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"},
-        "multiple": {"type": "boolean"},
-        "separator": {"type": "string"}
-      }
-    },
-    "file-input": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "file-input"},
-        "label": {"type": "string"},
-        "accept": {"type": "string"},
-        "multiple": {"type": "boolean"}
-      }
     },
     "select-items": {
       "type": "array",
@@ -405,14 +157,6 @@
             ".*": {"$ref": "#/$defs/expression"}
           }
         }
-      }
-    },
-    "one-of-select": {
-      "type": "object",
-      "required": ["comp", "label"],
-      "properties": {
-        "comp": {"const": "one-of-select"},
-        "label": {"type": "string"}
       }
     },
     "expression": {

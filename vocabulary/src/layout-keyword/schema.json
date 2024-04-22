@@ -61,36 +61,7 @@
     },
     "comp-name": {
       "title": "component name",
-      "type": "string",
-      "errorMessage": {
-        "enum": "component name is unknown"
-      },
-      "enum": [
-        "none",
-        "text-field",
-        "number-field",
-        "textarea",
-        "markdown",
-        "checkbox",
-        "switch",
-        "slider",
-        "date-picker",
-        "date-time-picker",
-        "time-picker",
-        "color-picker",
-        "combobox",
-        "number-combobox",
-        "section",
-        "list",
-        "select",
-        "autocomplete",
-        "tabs",
-        "vertical-tabs",
-        "expansion-panels",
-        "stepper",
-        "one-of-select",
-        "file-input"
-      ]
+      "type": "string"
     },
     "partial-child": {
       "type": "object",

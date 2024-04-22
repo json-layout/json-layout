@@ -35,6 +35,7 @@ export function makeSkeletonNode (
     const normalizationResult = normalizeLayoutFragment(
       /** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema),
       pointer,
+      options.components,
       options.markdown,
       options.optionsKeys
     )
@@ -153,6 +154,7 @@ export function makeSkeletonNode (
         const normalizationResult = normalizeLayoutFragment(
           schema,
           oneOfPointer,
+          options.components,
           options.markdown,
           options.optionsKeys,
           'oneOf'

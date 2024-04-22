@@ -11,6 +11,7 @@ import i18n from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveRefs } from './utils/resolve-refs.js'
 import clone from '../utils/clone.js'
+import { standardComponents } from '@json-layout/vocabulary'
 
 export { resolveRefs } from './utils/resolve-refs.js'
 
@@ -69,6 +70,18 @@ const fillOptions = (partialOptions) => {
   const messages = { ...i18n[locale] || i18n.en }
   if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
 
+  const components = standardComponents.reduce((acc, component) => {
+    acc[component.name] = component
+    return acc
+  }, /** @type {Record<string, import('@json-layout/vocabulary').ComponentInfo>} */({}))
+
+  if (partialOptions.components) {
+    for (const componentName of Object.keys(partialOptions.components)) {
+      components[componentName] = { ...partialOptions.components[componentName], name: componentName }
+    }
+    Object.assign(components, partialOptions.components)
+  }
+
   return {
     ajv,
     code: false,
@@ -76,7 +89,8 @@ const fillOptions = (partialOptions) => {
     optionsKeys: [],
     ...partialOptions,
     locale,
-    messages
+    messages,
+    components
   }
 }
 

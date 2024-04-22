@@ -1,40 +1,18 @@
-import validate from './validate.js'
 import schema from './schema.js'
+import {ajv} from '../validate.js'
 
 /**
  * @typedef {import('./types.js').NormalizedLayout} NormalizedLayout
  * @typedef {import('./types.js').SwitchStruct} SwitchStruct
- * @typedef {import('./types.js').CompObject} CompObject
- * @typedef {import('./types.js').Section} Section
- * @typedef {import('./types.js').GetItems} GetItems
- * @typedef {import('./types.js').Expression} Expression
- * @typedef {import('./types.js').Select} Select
- * @typedef {import('./types.js').Autocomplete} Autocomplete
+ * @typedef {import('./types.js').BaseCompObject} BaseCompObject
  * @typedef {import('./types.js').SelectItem} SelectItem
  * @typedef {import('./types.js').SelectItems} SelectItems
  * @typedef {import('./types.js').GetItemsFetch} GetItemsFetch
- * @typedef {import('./types.js').TextField} TextField
- * @typedef {import('./types.js').Textarea} Textarea
- * @typedef {import('./types.js').NumberField} NumberField
- * @typedef {import('./types.js').Slider} Slider
- * @typedef {import('./types.js').Checkbox} Checkbox
- * @typedef {import('./types.js').Switch} Switch
- * @typedef {import('./types.js').DatePicker} DatePicker
- * @typedef {import('./types.js').TimePicker} TimePicker
- * @typedef {import('./types.js').DateTimePicker} DateTimePicker
- * @typedef {import('./types.js').ColorPicker} ColorPicker
- * @typedef {import('./types.js').OneOfSelect} OneOfSelect
  * @typedef {import('./types.js').Child} Child
  * @typedef {import('./types.js').Children} Children
  * @typedef {import('./types.js').CompositeCompObject} CompositeCompObject
- * @typedef {import('./types.js').Tabs} Tabs
- * @typedef {import('./types.js').VerticalTabs} VerticalTabs
- * @typedef {import('./types.js').ExpansionPanels} ExpansionPanels
- * @typedef {import('./types.js').Stepper} Stepper
- * @typedef {import('./types.js').List} List
- * @typedef {import('./types.js').Combobox} Combobox
- * @typedef {import('./types.js').Markdown} Markdown
- * @typedef {import('./types.js').FileInput} FileInput
+ * @typedef {import('./types.js').GetItems} GetItems
+ * @typedef {import('./types.js').Expression} Expression
  * @typedef {import('./types.js').Cols} Cols
  * @typedef {import('./types.js').ColsObj} ColsObj
  * @typedef {import('./types.js').StateNodeOptionsBase} StateNodeOptionsBase
@@ -43,7 +21,7 @@ import schema from './schema.js'
  * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is NormalizedLayout }} ValidateNormalizedLayout
  */
 
-export const /** @type {ValidateNormalizedLayout} */ validateNormalizedLayout = /** @type {any} */ (validate)
+export const /** @type {ValidateNormalizedLayout} */ validateNormalizedLayout = /** @type {any} */ (ajv.getSchema(schema.$id))
 
 export const normalizedLayoutSchema = /** @type {any} */ (schema)
 
@@ -66,8 +44,6 @@ export function childIsCompObject (child) {
 export function isSectionLayout (layout) {
   return layout.comp === 'section'
 }
-
-export const compositeCompNames = ['section', 'tabs', 'vertical-tabs', 'expansion-panels', 'stepper']
 
 // these components can received keybord inputs and emit blur events
 // they will be debounced when validateOn=blur is applicable and data binding will be updated on blur

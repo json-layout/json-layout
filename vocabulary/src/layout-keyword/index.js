@@ -1,5 +1,5 @@
-import validate from './validate.js'
 import schema from './schema.js'
+import {ajv} from '../validate.js'
 
 /**
  * @typedef {import('./types.js').LayoutKeyword} LayoutKeyword
@@ -17,7 +17,7 @@ import schema from './schema.js'
  * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is LayoutKeyword }} ValidateLayoutKeyword
  */
 
-export const /** @type {ValidateLayoutKeyword} */ validateLayoutKeyword = /** @type {any} */ (validate)
+export const /** @type {ValidateLayoutKeyword} */ validateLayoutKeyword = /** @type {any} */ (ajv.getSchema(schema.$id))
 
 export const layoutKeywordSchema = /** @type {any} */ (schema)
 

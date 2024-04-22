@@ -7,7 +7,6 @@ const assertValid = (/** @type {any} */ data) => { assert.ok(validate(data), JSO
 describe('layout keyword validation', () => {
   it('should accept various forms of layout keyword values', async () => {
     assertValid('text-field')
-    assert.ok(!validate('textfield'))
     assertValid(['child1', 'child2'])
     assertValid([{ if: 'display.mdAndDown', comp: 'text-field' }, { if: 'display.lgAndUp', comp: 'textarea' }])
     assertValid([{ if: 'mode == "read"', comp: 'text-field' }, { if: 'mode == "write"', comp: 'textarea' }])
