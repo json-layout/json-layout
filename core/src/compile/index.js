@@ -171,6 +171,7 @@ export function compile (_schema, partialOptions = {}) {
     expressions,
     locale: options.locale,
     messages: options.messages,
+    components: options.components,
     // @ts-ignore
     localizeErrors: ajvLocalize[options.locale] || ajvLocalize.en
   }

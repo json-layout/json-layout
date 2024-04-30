@@ -1,11 +1,11 @@
-import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch } from './layout-keyword/index.js'
+import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch, isPartialChildComposite } from './layout-keyword/index.js'
 import { validateNormalizedLayout } from './normalized-layout/index.js'
 import { getComponentValidate } from './validate.js'
 
 /**
  * @typedef {import('./index.js').Child} Child
  * @typedef {import('./index.js').Children} Children
- * @typedef {import('./index.js').CompObject} CompObject
+ * @typedef {import('./index.js').BaseCompObject} BaseCompObject
  * @typedef {import('./index.js').Expression} Expression
  * @typedef {import('./index.js').NormalizedLayout} NormalizedLayout
  * @typedef {import('./index.js').LayoutKeyword} LayoutKeyword
@@ -67,9 +67,9 @@ function getChildren (defaultChildren, partialChildren) {
         return /** @type {Child} */ (partialChild)
       } else { // a composite component definition, not directly related to a known child
         const child = partialChild
-        if (partialChild.children) {
-          if (!partialChild.comp) child.comp = 'section'
-          child.children = getChildren(defaultChildren, partialChild.children)
+        if (isPartialChildComposite(child)) {
+          if (!child.comp) child.comp = 'section'
+          child.children = getChildren(defaultChildren, child.children)
         }
         if (!('key' in partialChild)) {
           child.key = `$comp-${compI}`
@@ -237,7 +237,7 @@ export const getSchemaFragmentType = (schemaFragment) => {
  * @param {(text: string) => string} markdown
  * @param {string[]} optionsKeys
  * @param {'oneOf'} [arrayChild]
- * @returns {CompObject}
+ * @returns {BaseCompObject}
  */
 function getCompObject (layoutKeyword, schemaFragment, schemaPath, components, markdown, optionsKeys, arrayChild) {
   const key = schemaPath.slice(schemaPath.lastIndexOf('/') + 1)
@@ -406,7 +406,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, components, m
     throw error
   }
 
-  return /** @type {CompObject} */(partial)
+  return /** @type {BaseCompObject} */(partial)
 }
 
 /**
@@ -421,7 +421,7 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, components, m
  */
 function getNormalizedLayout (layoutKeyword, schemaFragment, schemaPath, components, markdown, optionsKeys, arrayChild) {
   if (isPartialSwitch(layoutKeyword)) {
-    /** @type {CompObject[]} */
+    /** @type {BaseCompObject[]} */
     const normalizedSwitchCases = []
     const switchCases = [...layoutKeyword.switch]
     if (!switchCases.find(s => !s.if)) {

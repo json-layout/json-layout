@@ -4,6 +4,20 @@ import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
 import { parse, print } from 'recast'
 import clone from '../utils/clone.js'
+import { isSwitchStruct } from '@json-layout/vocabulary'
+
+/**
+ * @generator
+ * @param {import('./index.js').CompiledLayout} compiledLayout
+ * @yields {import('./types.js').BaseCompObject}
+ * @returns {Generator<import('@json-layout/vocabulary').BaseCompObject>}
+ */
+function * iterCompObject (compiledLayout) {
+  for (const normalizedLayout of Object.values(compiledLayout.normalizedLayouts)) {
+    if (isSwitchStruct(normalizedLayout)) yield * normalizedLayout.switch
+    else yield normalizedLayout
+  }
+}
 
 /**
  * @param {import('./index.js').CompiledLayout} compiledLayout
@@ -51,6 +65,16 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     expressionsNodes.push(builders.raw(fn.id))
   }
 
+  /** @type {Record<string, Omit<import('@json-layout/vocabulary').ComponentInfo, 'schema'>>} */
+  const components = {}
+  for (const compObject of iterCompObject(compiledLayout)) {
+    if (!components[compObject.comp]) {
+      const component = { ...compiledLayout.options.components[compObject.comp] }
+      delete component.schema
+      components[compObject.comp] = component
+    }
+  }
+
   const ast = parseModule(code)
   ast.exports.compiledLayout = {
     skeletonTree: compiledLayout.skeletonTree,
@@ -60,6 +84,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     expressions: expressionsNodes,
     locale: compiledLayout.locale,
     messages: compiledLayout.messages,
+    components,
     localizeErrors: ast.exports.exportLocalizeErrors
   }
   delete ast.exports.exportLocalizeErrors

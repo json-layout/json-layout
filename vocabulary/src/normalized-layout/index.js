@@ -11,6 +11,8 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').Child} Child
  * @typedef {import('./types.js').Children} Children
  * @typedef {import('./types.js').CompositeCompObject} CompositeCompObject
+ * @typedef {import('./types.js').ItemsBasedCompObject} ItemsBasedCompObject
+ * @typedef {import('./types.js').FocusableCompObject} FocusableCompObject
  * @typedef {import('./types.js').GetItems} GetItems
  * @typedef {import('./types.js').Expression} Expression
  * @typedef {import('./types.js').Cols} Cols
@@ -30,53 +32,29 @@ export function isSwitchStruct (layout) {
   return typeof layout === 'object' && 'switch' in layout
 }
 
-/** @type {(layout: NormalizedLayout) => layout is CompObject} */
+/** @type {(layout: NormalizedLayout) => layout is BaseCompObject} */
 export function isCompObject (layout) {
   return !isSwitchStruct(layout)
 }
 
 /** @type {(child: Child) => child is Child & CompositeCompObject} */
 export function childIsCompObject (child) {
-  return !!child.comp
+  return 'comp' in child
 }
 
-/** @type {(layout: CompObject) => layout is Section} */
-export function isSectionLayout (layout) {
-  return layout.comp === 'section'
+/** @type {(layout: BaseCompObject, components: Record<string, import('../types.js').ComponentInfo>) => layout is CompositeCompObject} */
+export function isCompositeLayout (layout, components) {
+  return !!components[layout.comp]?.composite
 }
 
-// these components can received keybord inputs and emit blur events
-// they will be debounced when validateOn=blur is applicable and data binding will be updated on blur
-export const editableCompNames = ['text-field', 'number-field', 'textarea', 'markdown']
-
-/** @type {(layout: CompObject) => layout is CompositeCompObject} */
-export function isCompositeLayout (layout) {
-  return compositeCompNames.includes(layout.comp)
+/** @type {(layout: BaseCompObject, components: Record<string, import('../types.js').ComponentInfo>) => layout is FocusableCompObject} */
+export function isFocusableLayout (layout, components) {
+  return !!components[layout.comp]?.focusable
 }
 
-/** @type {(layout: CompObject) => layout is TextField} */
-export function isTextFieldLayout (layout) {
-  return layout.comp === 'text-field'
-}
-
-/** @type {(layout: CompObject) => layout is Select} */
-export function isSelectLayout (layout) {
-  return layout.comp === 'select'
-}
-
-/** @type {(layout: CompObject) => layout is FileInput} */
-export function isFileLayout (layout) {
-  return layout.comp === 'file-input'
-}
-
-/** @type {(layout: CompObject) => layout is CompObject & {autofocus: boolean}} */
-export function isFocusableLayout (layout) {
-  return ['text-field', 'number-field', 'textarea', 'select', 'combobox', 'number-combobox', 'autocomplete', 'markdown'].includes(layout.comp)
-}
-
-/** @type {(layout: CompObject) => layout is Select | Combobox | Autocomplete} */
-export function isItemsLayout (layout) {
-  return layout.comp === 'select' || layout.comp === 'combobox' || layout.comp === 'autocomplete'
+/** @type {(layout: BaseCompObject, components: Record<string, import('../types.js').ComponentInfo>) => layout is ItemsBasedCompObject} */
+export function isItemsLayout (layout, components) {
+  return !!components[layout.comp]?.itemsBased
 }
 
 /** @type {(getItems: GetItems) => getItems is Expression} */

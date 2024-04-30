@@ -24,7 +24,8 @@ export interface SchemaFragment {
 export interface ComponentInfo {
   name: string
   composite?: boolean
-  debouncable?: boolean
+  shouldDebounce?: boolean
+  emitsBlur?: boolean
   focusable?: boolean
   itemsBased?: boolean
   multipleCompat?: boolean

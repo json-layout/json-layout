@@ -5,6 +5,8 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').LayoutKeyword} LayoutKeyword
  * @typedef {import('./types.js').ComponentName} ComponentName
  * @typedef {import('./types.js').PartialChildren} PartialChildren
+ * @typedef {import('./types.js').PartialChild} PartialChild
+ * @typedef {import('./types.js').PartialChildComposite} PartialChildComposite
  * @typedef {import('./types.js').PartialSwitch} PartialSwitch
  * @typedef {import('./types.js').PartialCompObject} PartialCompObject
  * @typedef {import('./types.js').PartialGetItems} PartialGetItems
@@ -34,6 +36,11 @@ export function isPartialSwitch (layoutKeyword) {
 /** @type {(layoutKeyword: LayoutKeyword) => layoutKeyword is PartialChildren} */
 export function isPartialChildren (layoutKeyword) {
   return Array.isArray(layoutKeyword)
+}
+
+/** @type {(partialChild: PartialChild) => partialChild is PartialChildComposite} */
+export function isPartialChildComposite (partialChild) {
+  return typeof partialChild !== 'string' && "children" in partialChild
 }
 
 /** @type {(layoutKeyword: LayoutKeyword) => layoutKeyword is PartialCompObject} */

@@ -16,7 +16,7 @@ const isDataEmpty = (data) => {
 
 /**
  * @param {unknown} data
- * @param {import('@json-layout/vocabulary').CompObject} layout
+ * @param {import('@json-layout/vocabulary').BaseCompObject} layout
  * @param {import('./types.js').StateNodeOptions} options
  * @returns {boolean}
  */
@@ -27,7 +27,7 @@ const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').CompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
 const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
@@ -169,7 +169,7 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
  * @param {any} data
  * @param {import('./types.js').StateNodeOptions} options
  * @param {import('./utils/display.js').Display} display
- * @param {import('@json-layout/vocabulary').CompObject} layout
+ * @param {import('@json-layout/vocabulary').BaseCompObject} layout
  * @param {unknown} rootData
  * @param {unknown} parentData
  * @returns {any}
@@ -188,7 +188,7 @@ export function evalExpression (expressions, expression, data, options, display,
  * @param {unknown} data
  * @param {unknown} rootData
  * @param {unknown} parentData
- * @returns {import('@json-layout/vocabulary').CompObject}
+ * @returns {import('@json-layout/vocabulary').BaseCompObject}
  */
 const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentData) => {
   if (isSwitchStruct(normalizedLayout)) {
@@ -275,7 +275,7 @@ export function createStateNode (
 
   /** @type {import('./types.js').StateNode[] | undefined} */
   let children
-  if (isCompositeLayout(layout)) {
+  if (isCompositeLayout(layout, compiledLayout.components)) {
     // TODO: make this type casting safe using prior validation
     const objectData = /** @type {Record<string, unknown>} */(data ?? {})
     const childrenOptions = produceCompositeChildrenOptions(options, layout)
@@ -436,7 +436,7 @@ export function createStateNode (
     props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, context.rootData, parentData)
   }
 
-  const autofocus = isFocusableLayout(layout) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
+  const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,

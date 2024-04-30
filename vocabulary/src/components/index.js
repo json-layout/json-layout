@@ -73,18 +73,21 @@ export const standardComponents = [
   },
   {
     name: 'text-field',
-    debouncable: true,
-    focusable: true
+    shouldDebounce: true,
+    focusable: true,
+    emitsBlur: true
   },
   {
     name: 'textarea',
-    debouncable: true,
-    focusable: true
+    shouldDebounce: true,
+    focusable: true,
+    emitsBlur: true
   },
   {
     name: 'number-field',
-    debouncable: true,
+    shouldDebounce: true,
     focusable: true,
+    emitsBlur: true,
     schema: {
       properties: {
         step: { type: 'number' },

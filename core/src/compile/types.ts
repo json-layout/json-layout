@@ -42,6 +42,7 @@ export interface CompiledLayout {
   expressions: CompiledExpression[]
   locale: string
   messages: LocaleMessages
+  components: Record<string, Omit<ComponentInfo, 'schema'>>
   localizeErrors: (errors: ajvModule.ErrorObject[]) => void
 }
 

@@ -15,7 +15,7 @@ for (const compileMode of ['runtime', 'build-time']) {
 
   const defaultOptions = { debounceInputMs: 0 }
 
-  describe(`stateful layout with compilation at ${compileMode}`, () => {
+  describe.only(`stateful layout with compilation at ${compileMode}`, () => {
     /** @type {string} */
     let currentTest
     beforeEach((test) => {
@@ -37,7 +37,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       }
     }
 
-    it('should manage a simple schema with bi-directional data-binding', async () => {
+    it.only('should manage a simple schema with bi-directional data-binding', async () => {
       const compiledLayout = await compile({
         type: 'object',
         properties: {

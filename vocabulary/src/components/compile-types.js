@@ -32,7 +32,17 @@ const compileTsOptions = {
  * @returns {string}
  */
 export function getComponentTypesCodeImport (from) {
-  return `import { BaseCompObject, CompositeCompObject, SimpleCompObject, FocusableCompObject, DebouncableCompObject, Expression } from \'${from}\'\n`
+  return `import type {
+  BaseCompObject,
+  CompositeCompObject,
+  SimpleCompObject,
+  FocusableCompObject,
+  ItemsBasedCompObject,
+  Expression,
+  Children,
+  GetItems,
+  SelectItems
+} from '${from}'\n`
 }
 
 /**

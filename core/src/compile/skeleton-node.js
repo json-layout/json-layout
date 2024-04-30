@@ -91,7 +91,7 @@ export function makeSkeletonNode (
 
     if (compObject.transformData) pushExpression(expressions, compObject.transformData)
 
-    if (isItemsLayout(compObject) && compObject.getItems) {
+    if (isItemsLayout(compObject, options.components) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
       if (isGetItemsFetch(compObject.getItems)) pushExpression(expressions, compObject.getItems.url)
       if (compObject.getItems.itemTitle) pushExpression(expressions, compObject.getItems.itemTitle)

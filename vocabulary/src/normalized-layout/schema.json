@@ -1,11 +1,15 @@
 {
   "$id": "https://json-layout.github.io/normalized-layout-keyword",
-  "title": "normalized layout",
-  "oneOf": [
-    {"$ref": "#/$defs/switch-struct"},
-    {"$ref": "#/$defs/base-comp-object"}
-  ],
   "$defs": {
+    "normalized-layout": {
+      "title": "normalized layout",
+      "type": "object",
+      "unevaluatedProperties": false,
+      "oneOf": [
+        {"$ref": "#/$defs/switch-struct"},
+        {"$ref": "#/$defs/base-comp-object"}
+      ]
+    },
     "switch-struct": {
       "type": "object",
       "required": ["switch"],
@@ -48,64 +52,110 @@
             }
           ]
         }
-      },
-      "anyOf": [
-        {"$ref": "#/$defs/composite-comp-object"},
-        {"$ref": "#/$defs/simple-comp-object"},
-        {"$ref": "#/$defs/focusable-comp-object"},
-        {"$ref": "#/$defs/items-based-comp-object"}
-      ]
+      }
     },
     "composite-comp-object": {
+      "allOf": [
+        {"$ref": "#/$defs/base-comp-object"},
+        {
+          "type": "object",
+          "required": ["children", "comp"],
+          "properties": {
+            "comp": {"type": "string"},
+            "title": {"type": ["string", "null"]},
+            "subtitle": {"type": ["string", "null"]},
+            "children": {"$ref": "#/$defs/children"}
+          }
+        }
+      ]
+    },
+    "simple-comp-object": {
+      "allOf": [
+        {"$ref": "#/$defs/base-comp-object"},
+        {
+          "type": "object",
+          "required": ["comp"],
+          "properties": {
+            "comp": {"type": "string"},
+            "label": {"type": "string"}
+          }
+        }
+      ]
+    },
+    "focusable-comp-object": {
+      "allOf": [
+        {"$ref": "#/$defs/base-comp-object"},
+        {
+          "type": "object",
+          "required": ["comp"],
+          "properties": {
+            "comp": {"type": "string"},
+            "label": {"type": "string"},
+            "autofocus": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "items-based-comp-object": {
+      "allOf": [
+        {"$ref": "#/$defs/base-comp-object"},
+        {
+          "type": "object",
+          "required": ["comp"],
+          "properties": {
+            "comp": {"type": "string"},
+            "items": {"$ref": "#/$defs/select-items"},
+            "getItems": {"$ref": "#/$defs/get-items"},
+            "multiple": {"type": "boolean"},
+            "separator": {"type": "string"}
+          }
+        }
+      ]
+    },
+    "multiple-compat-comp-object": {
+      "allOf": [
+        {"$ref": "#/$defs/base-comp-object"},
+        {
+          "type": "object",
+          "required": ["comp"],
+          "properties": {
+            "comp": {"type": "string"},
+            "multiple": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "child-ref": {
       "type": "object",
-      "required": ["children"],
+      "required": ["key"],
+      "additionalProperties": false,
       "properties": {
+        "key": {"type": ["string", "integer"]},
+        "cols": {"$ref": "#/$defs/cols-obj"}
+      }
+    },
+    "child-composite": {
+      "type": "object",
+      "required": ["key", "children"],
+      "properties": {
+        "key": {"type": ["string", "integer"]},
+        "cols": {"$ref": "#/$defs/cols-obj"},
         "comp": {"type": "string"},
         "title": {"type": ["string", "null"]},
         "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/children"}
       }
     },
-    "simple-comp-object": {
-      "type": "object",
-      "properties": {
-        "comp": {"type": "string"},
-        "label": {"type": "string"}
-      }
-    },
-    "focusable-comp-object": {
-      "type": "object",
-      "properties": {
-        "label": {"type": "string"},
-        "autofocus": {"type": "boolean"}
-      }
-    },
-    "items-based-comp-object": {
-      "type": "object",
-      "properties": {
-        "items": {"$ref": "#/$defs/select-items"},
-        "getItems": {"$ref": "#/$defs/get-items"},
-        "multiple": {"type": "boolean"},
-        "separator": {"type": "string"}
-      }
-    },
-    "multiple-compat-comp-object": {
-      "type": "object",
-      "properties": {
-        "multiple": {"type": "boolean"}
-      }
-    },
     "child": {
+      "title": "Child",
       "type": "object",
-      "unevaluatedProperties": false,
-      "required": ["key"],
-      "properties": {
-        "key": {"type": ["string", "integer"]},
-        "cols": {"$ref": "#/$defs/cols-obj"}
-      },
-      "anyOf": [
-        {},
-        {"$ref": "#/$defs/composite-comp-object"}
+      "oneOf": [
+        {
+          "$ref": "#/$defs/child-ref"
+        },
+        {
+          "$ref": "#/$defs/child-composite"
+        }
       ]
     },
     "children": {

@@ -40,6 +40,7 @@ export default ${JSON.stringify(schema, null, 2)}
   const { getComponentTypesCode, getComponentTypesCodeImport } = await import('../src/components/compile-types.js')
   let componentTypesCode = getComponentTypesCodeImport('../normalized-layout/types.js')
   for (const component of standardComponents) {
+    console.log(component.name)
     const schema = getComponentSchema(component)
     componentTypesCode += await getComponentTypesCode(schema, component.name, false)
   }
