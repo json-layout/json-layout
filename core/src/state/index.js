@@ -5,7 +5,7 @@ import { produce } from 'immer'
 import { evalExpression, producePatchedData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
-import { isFileLayout, isGetItemsExpression, isGetItemsFetch, isItemsLayout, editableCompNames } from '@json-layout/vocabulary'
+import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
 import { shallowProduceArray } from './utils/immutable.js'
 
 export { Display } from './utils/display.js'
@@ -37,15 +37,14 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
  * @typedef {import('./types.js').ListNode} ListNode
  * @typedef {import('./types.js').FileInputNode} FileInputNode
- * @typedef {import('./types.js').MarkdownNode} MarkdownNode
  * @typedef {import('./types.js').FileRef} FileRef
  */
 
 /** @type {(node: StateNode | undefined) => node is SectionNode} */
 export const isSection = (node) => !!node && node.layout.comp === 'section'
 
-/** @type {(node: StateNode | undefined) => node is SelectNode | ComboboxNode | AutocompleteNode} */
-export const isItemsNode = (node) => !!node && isItemsLayout(node.layout)
+/** @type {(node: StateNode | undefined, components: Record<string, import('@json-layout/vocabulary').ComponentInfo>) => node is SelectNode | ComboboxNode | AutocompleteNode} */
+export const isItemsNode = (node, components) => !!node && isItemsLayout(node.layout, components)
 
 const logDataBinding = debug('jl:data-binding')
 
@@ -380,7 +379,7 @@ export class StatefulLayout {
 
     const transformedData = node.layout.transformData && this.evalNodeExpression(node, node.layout.transformData, data)
 
-    if (isFileLayout(node.layout)) {
+    if (node.layout.comp === 'file-input') {
       if (transformedData) {
         // @ts-ignore
         data.toJSON = () => transformedData
@@ -449,15 +448,16 @@ export class StatefulLayout {
       else this.applyDebouncedInput()
     }
 
-    const isEditableComp = editableCompNames.includes(node.layout.comp)
+    const emitsBlur = this.compiledLayout.components[node.layout.comp]?.emitsBlur
 
-    if (node.options.updateOn === 'blur' && isEditableComp) {
+    if (node.options.updateOn === 'blur' && emitsBlur) {
       this._dataWaitingForBlur = true
     }
 
-    const validated = node.options.validateOn === 'input' || (node.options.validateOn === 'blur' && !isEditableComp)
+    const validated = node.options.validateOn === 'input' || (node.options.validateOn === 'blur' && !emitsBlur)
 
-    if (isEditableComp && node.options.debounceInputMs) {
+    const shouldDebounce = this.compiledLayout.components[node.layout.comp]?.shouldDebounce
+    if (shouldDebounce && node.options.debounceInputMs) {
       this.debouncedInput = [node, data, validated, activateKey, setTimeout(() => this.applyDebouncedInput(), node.options.debounceInputMs)]
     } else {
       this.applyInput(node, data, validated, activateKey)
@@ -505,7 +505,9 @@ export class StatefulLayout {
    * @returns {Promise<[import('@json-layout/vocabulary').SelectItems, boolean]>}
    */
   async getSourceItems (node, q = '') {
-    if (!isItemsNode(node)) throw new Error('node is not a component with an items list')
+    if (!isItemsNode(node, this._compiledLayout.components)) {
+      throw new Error('node is not a component with an items list')
+    }
 
     if (node.layout.items) return [node.layout.items, false]
 

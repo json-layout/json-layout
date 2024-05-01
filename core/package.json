@@ -35,7 +35,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test:single": "node --no-experimental-fetch --test --test-only test/*.spec.js",
+    "test:only": "node --no-experimental-fetch --test --test-only test/*.spec.js",
     "test": "node --no-experimental-fetch --test test/*.spec.js",
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
     "lint": "eslint . --fix",
@@ -75,7 +75,7 @@
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/node-fetch": "^2.6.5",
-    "json-schema-to-typescript": "^13.1.1",
+    "json-schema-to-typescript": "^14.0.0",
     "nock": "^13.3.3",
     "node-fetch": "^2.7.0"
   }

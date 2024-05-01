@@ -20,3 +20,14 @@ export interface SchemaFragment {
   formatMaximum?: string
   readOnly?: boolean
 }
+
+export interface ComponentInfo {
+  name: string
+  composite?: boolean
+  shouldDebounce?: boolean
+  emitsBlur?: boolean
+  focusable?: boolean
+  itemsBased?: boolean
+  multipleCompat?: boolean
+  schema?: any
+}

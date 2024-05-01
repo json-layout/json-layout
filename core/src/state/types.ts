@@ -1,6 +1,6 @@
 import { type ErrorObject } from 'ajv/dist/2019.js'
 import {
-  type CompObject,
+  type BaseCompObject,
   type Cols,
   type StateNodeOptionsBase,
   type TextField,
@@ -23,7 +23,6 @@ import {
   type Stepper,
   type List,
   type Combobox,
-  type Markdown,
   type FileInput,
   type Child,
   type StateNodePropsLib
@@ -38,7 +37,7 @@ export interface StateNode {
   dataPath: string
   parentDataPath: string | null
   skeleton: SkeletonNode
-  layout: CompObject
+  layout: BaseCompObject
   cols: Cols
   data: unknown
   error: string | undefined
@@ -154,5 +153,3 @@ export type ListNode = StateNode & { layout: List, data: any[], children: StateN
 export type ComboboxNode = Omit<StateNode, 'children'> & { layout: Combobox, data: any[] }
 
 export type FileInputNode = Omit<StateNode, 'children'> & { layout: FileInput, data: object | undefined | null }
-
-export type MarkdownNode = Omit<StateNode, 'children'> & { layout: Markdown, data: string | undefined | null }

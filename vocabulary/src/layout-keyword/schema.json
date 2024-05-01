@@ -1,16 +1,18 @@
 {
   "$id": "https://json-layout.github.io/layout-keyword",
-  "title": "layout keyword",
-  "errorMessage": {
-    "anyOf": "layout keyword must be a string with a valid component name, or a more complete object definition, or an array of children, or a switch structure"
-  },
-  "anyOf": [
-    {"$ref": "#/$defs/comp-name"},
-    {"$ref": "#/$defs/partial-children"},
-    {"$ref": "#/$defs/partial-comp-object"},
-    {"$ref": "#/$defs/partial-switch"}
-  ],
   "$defs": {
+    "layout-keyword": {
+      "title": "layout keyword",
+      "errorMessage": {
+        "anyOf": "layout keyword must be a string with a valid component name, or a more complete object definition, or an array of children, or a switch structure"
+      },
+      "anyOf": [
+        {"$ref": "#/$defs/comp-name"},
+        {"$ref": "#/$defs/partial-children"},
+        {"$ref": "#/$defs/partial-comp-object"},
+        {"$ref": "#/$defs/partial-switch"}
+      ]
+    },
     "partial-switch": {
       "type": "object",
       "required": ["switch"],
@@ -61,56 +63,39 @@
     },
     "comp-name": {
       "title": "component name",
-      "type": "string",
-      "errorMessage": {
-        "enum": "component name is unknown"
-      },
-      "enum": [
-        "none",
-        "text-field",
-        "number-field",
-        "textarea",
-        "markdown",
-        "checkbox",
-        "switch",
-        "slider",
-        "date-picker",
-        "date-time-picker",
-        "time-picker",
-        "color-picker",
-        "combobox",
-        "number-combobox",
-        "section",
-        "list",
-        "select",
-        "autocomplete",
-        "tabs",
-        "vertical-tabs",
-        "expansion-panels",
-        "stepper",
-        "one-of-select",
-        "file-input"
-      ]
+      "type": "string"
     },
-    "partial-child": {
+    "partial-child-ref": {
       "type": "object",
-      "unevaluatedProperties": false,
+      "required": ["key"],
+      "additionalProperties": false,
       "properties": {
         "key": {"type": ["string", "integer"]},
         "cols": {"$ref": "#/$defs/partial-cols"}
-      },
-      "allOf": [
-        {"$ref": "#/$defs/partial-comp-object"},
-        {}
+      }
+    },
+    "partial-child-composite": {
+      "type": "object",
+      "required": ["children"],
+      "properties": {
+        "comp": {"type": "string"},
+        "title": {"type": ["string", "null"]},
+        "subtitle": {"type": ["string", "null"]},
+        "children": {"$ref": "#/$defs/partial-children"},
+        "cols": {"$ref": "#/$defs/partial-cols"}
+      }
+    },
+    "partial-child": {
+      "anyOf": [
+        {"type": "string"},
+        {"$ref": "#/$defs/partial-child-ref"},
+        {"$ref": "#/$defs/partial-child-composite"}
       ]
     },
     "partial-children": {
       "type": "array",
       "items": {
-        "oneOf": [
-          {"type": "string"},
-          {"$ref": "#/$defs/partial-child"}
-        ]
+        "$ref": "#/$defs/partial-child"
       }
     },
     "partial-expression": {
