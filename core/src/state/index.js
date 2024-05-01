@@ -43,8 +43,8 @@ export { Display } from './utils/display.js'
 /** @type {(node: StateNode | undefined) => node is SectionNode} */
 export const isSection = (node) => !!node && node.layout.comp === 'section'
 
-/** @type {(node: StateNode | undefined) => node is SelectNode | ComboboxNode | AutocompleteNode} */
-export const isItemsNode = (node) => !!node && isItemsLayout(node.layout)
+/** @type {(node: StateNode | undefined, components: Record<string, import('@json-layout/vocabulary').ComponentInfo>) => node is SelectNode | ComboboxNode | AutocompleteNode} */
+export const isItemsNode = (node, components) => !!node && isItemsLayout(node.layout, components)
 
 const logDataBinding = debug('jl:data-binding')
 
@@ -505,7 +505,9 @@ export class StatefulLayout {
    * @returns {Promise<[import('@json-layout/vocabulary').SelectItems, boolean]>}
    */
   async getSourceItems (node, q = '') {
-    if (!isItemsNode(node)) throw new Error('node is not a component with an items list')
+    if (!isItemsNode(node, this._compiledLayout.components)) {
+      throw new Error('node is not a component with an items list')
+    }
 
     if (node.layout.items) return [node.layout.items, false]
 

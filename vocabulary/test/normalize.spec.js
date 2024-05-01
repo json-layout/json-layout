@@ -48,6 +48,11 @@ describe('normalize schema fragment function', () => {
     assert.deepEqual(normalize({ type: 'integer' }, '/prop', components).layout, { comp: 'number-field', label: 'prop', step: 1 })
   })
 
+  it('should accept layout as a string', () => {
+    assert.deepEqual(normalize({ type: 'object', layout: 'file-input' }, '/prop', components).layout, { comp: 'file-input', label: 'prop' })
+    assert.deepEqual(normalize({ type: 'array', layout: 'file-input' }, '/prop', components).layout, { comp: 'file-input', label: 'prop', multiple: true })
+  })
+
   it('should handle "none" display', () => {
     assert.deepEqual(normalize({ type: 'number', layout: 'none' }, '/prop', components).layout, { comp: 'none' })
   })

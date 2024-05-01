@@ -216,6 +216,9 @@ export function getComponentSchema (component) {
   if (component.itemsBased) {
     schema.allOf.push({ $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/items-based-comp-object' })
   }
+  if (component.multipleCompat) {
+    schema.allOf.push({ $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/multiple-compat-comp-object' })
+  }
   if (component.schema) {
     schema.allOf.push(component.schema)
   }
