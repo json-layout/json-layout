@@ -34,7 +34,7 @@ const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalize
 // use Immer for efficient updating with immutability and no-op detection
 /** @type {(draft: PartialCompileOptions, newOptions: PartialCompileOptions) => PartialCompileOptions} */
 export const produceCompileOptions = produce((draft, newOptions) => {
-  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'locale', 'messages', 'optionsKeys']) {
+  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'locale', 'messages', 'optionsKeys', 'components']) {
     // @ts-ignore
     if (key in newOptions) draft[key] = newOptions[key]
     // @ts-ignore
@@ -159,6 +159,10 @@ export function compile (_schema, partialOptions = {}) {
       // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/restrict-plus-operands
       expressions.push(/** @type {CompiledExpression} */(new Function(...expressionsParams, 'return `' + expression.expr + '`')))
     }
+  }
+
+  if (Object.keys(validationErrors).length) {
+    console.error('JSON layout encountered some validation errors:', validationErrors)
   }
 
   return {
