@@ -132,6 +132,43 @@ describe('normalize schema fragment function', () => {
     )
   })
 
+  it('should manage a select of subtypes based on a oneOf', () => {
+    /** @type {any} */
+    const schema = {
+      type: 'object',
+      title: 'Subtypes section',
+      oneOf: [{
+        key: { type: 'string', const: 'val1', title: 'Key' },
+        str1: { type: 'string' }
+      }, {
+        key: { type: 'string', const: 'val2' },
+        str2: { type: 'string' }
+      }]
+    }
+    assert.deepEqual(
+      normalize(schema, '/prop', components).layout,
+      {
+        comp: 'section',
+        title: 'Subtypes section',
+        children: [{ key: '$oneOf' }]
+      }
+    )
+    assert.deepEqual(
+      normalize(schema, '/prop', components, undefined, undefined, 'oneOf').layout,
+      {
+        comp: 'one-of-select'
+      }
+    )
+    schema.oneOfLayout = { label: 'Select a subtype' }
+    assert.deepEqual(
+      normalize(schema, '/prop', components, undefined, undefined, 'oneOf').layout,
+      {
+        comp: 'one-of-select',
+        label: 'Select a subtype'
+      }
+    )
+  })
+
   it('should manage combobox with examples on simple types', () => {
     assert.deepEqual(
       normalize({ type: 'string', examples: ['val1', 'val2'] }, '/prop', components).layout,

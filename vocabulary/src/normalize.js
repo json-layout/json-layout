@@ -273,7 +273,9 @@ function getCompObject (layoutKeyword, schemaFragment, schemaPath, components, m
     partial.listEditMode = partial.listEditMode ?? (schemaFragment.items.type === 'object' ? 'inline-single' : 'inline')
     partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
   } else {
-    if (!('label' in partial)) partial.label = schemaFragment.title ?? key
+    if (!('label' in partial) && partial.comp !== 'one-of-select') {
+      partial.label = schemaFragment.title ?? key
+    }
   }
 
   if (component.itemsBased && !partial.items) {
