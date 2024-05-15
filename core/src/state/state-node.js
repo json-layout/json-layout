@@ -159,7 +159,8 @@ const matchError = (error, skeleton, dataPath, parentDataPath) => {
  * @returns {boolean}
  */
 const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
-  if (error.instancePath.startsWith(dataPath) && !(typeof skeleton.key === 'string' && skeleton.key.startsWith('$allOf'))) return true
+  if (!error.schemaPath.startsWith(skeleton.pointer)) return false
+  if (error.instancePath.startsWith(dataPath)) return true
   return false
 }
 
@@ -376,11 +377,18 @@ export function createStateNode (
     }
   }
 
-  const error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath)) ?? context.errors?.find(error => matchChildError(error, skeleton, dataPath, parentDataPath))
+  let error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath))
+  if (!error) {
+    error = context.errors?.find(error => matchChildError(error, skeleton, dataPath, parentDataPath))
+  }
 
   // capture errors so that they are not repeated in parent nodes
   if (layout.comp !== 'none') {
-    if (error) context.errors = context.errors?.filter(error => !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath, parentDataPath))
+    if (error) {
+      context.errors = context.errors?.filter(error => {
+        return !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath, parentDataPath)
+      })
+    }
   }
   const validated = validationState.validatedForm ||
     validationState.validatedChildren.includes(fullKey) ||

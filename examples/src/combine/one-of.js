@@ -10,8 +10,16 @@ const example = {
       label: 'Select a subschema'
     },
     oneOf: [
-      { title: 'oneOf 1', properties: { key: { const: 'oneOf1' }, str1: { type: 'string' } } },
-      { title: 'oneOf 2', properties: { key: { const: 'oneOf2' }, str2: { type: 'string' } } }
+      {
+        title: 'oneOf 1',
+        required: ['str1'],
+        properties: { key: { const: 'oneOf1' }, str1: { type: 'string' } }
+      },
+      {
+        title: 'oneOf 2',
+        required: ['str2'],
+        properties: { key: { const: 'oneOf2' }, str2: { type: 'string' } }
+      }
     ]
   }
 }
