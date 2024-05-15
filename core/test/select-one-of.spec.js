@@ -112,6 +112,8 @@ describe('Special cases of oneOfs', () => {
 
     assert.ok(!statefulLayout.stateTree.root.children[0].error)
     assert.ok(statefulLayout.stateTree.root.children[0].childError)
+    assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
+    assert.ok(!statefulLayout.stateTree.root.children[0].children[0].error)
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].children?.length, 1)
     assert.ok(!statefulLayout.stateTree.root.children[0].children[0].children[0].error)
     assert.ok(statefulLayout.stateTree.root.children[0].children[0].children[0].childError)

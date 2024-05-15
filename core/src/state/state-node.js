@@ -319,6 +319,14 @@ export function createStateNode (
     /** @type {number} */
     const activeChildTreeIndex = fullKey in context.activeItems ? context.activeItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
     if (activeChildTreeIndex !== -1) {
+      context.errors = context.errors?.filter(error => {
+        const originalError = error.params?.errors?.[0] ?? error
+        // if an item was selected, remove the oneOf error
+        if (originalError.schemaPath === skeleton.pointer && originalError.keyword === 'oneOf') return false
+        // also remove the errors from other children of the oneOf
+        if (!originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
+        return true
+      })
       context.activeItems = produce(context.activeItems, draft => { draft[fullKey] = activeChildTreeIndex })
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
