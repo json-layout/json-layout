@@ -324,7 +324,7 @@ export function createStateNode (
         // if an item was selected, remove the oneOf error
         if (originalError.schemaPath === skeleton.pointer && originalError.keyword === 'oneOf') return false
         // also remove the errors from other children of the oneOf
-        if (!originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
+        if (originalError.schemaPath.startsWith(skeleton.pointer) && !originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
         return true
       })
       context.activeItems = produce(context.activeItems, draft => { draft[fullKey] = activeChildTreeIndex })
