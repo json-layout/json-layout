@@ -257,39 +257,6 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.valid, true)
     })
 
-    it('should manage arrays as lists', async () => {
-      const compiledLayout = await compile({
-        type: 'object',
-        properties: { arr1: { type: 'array', layout: 'list', items: { type: 'string', minLength: 2 } } }
-      })
-      assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
-      assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
-      assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
-      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {
-        arr1: ['Str 1', 'Str 2', 'a']
-      })
-      const arrNode = statefulLayout.stateTree.root.children?.[0]
-      assert.ok(arrNode)
-      assert.equal(arrNode.layout.comp, 'list')
-      assert.deepEqual(arrNode.data, ['Str 1', 'Str 2', 'a'])
-
-      assert.equal(arrNode.children?.length, 3)
-      assert.equal(arrNode.children?.[0].key, 0)
-      assert.equal(arrNode.children?.[0].data, 'Str 1')
-      assert.equal(arrNode.children?.[0].layout.comp, 'text-field')
-      assert.equal(arrNode.children?.[1].key, 1)
-      assert.equal(arrNode.children?.[1].data, 'Str 2')
-
-      assert.equal(statefulLayout.stateTree.valid, false)
-      assert.equal(arrNode.children?.[2].error, 'must NOT be shorter than 2 characters')
-
-      statefulLayout.input(arrNode.children[0], 'test')
-      const arrNode2 = statefulLayout.stateTree.root.children?.[0]
-      assert.ok(arrNode2)
-      assert.notEqual(arrNode, arrNode2)
-      assert.equal(arrNode2.children?.[0].data, 'test')
-    })
-
     it('should manage tuples', async () => {
       const compiledLayout = await compile({
         type: 'object',

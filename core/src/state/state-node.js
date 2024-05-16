@@ -85,13 +85,12 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         if (child.data === undefined) delete draft[child.key]
         else draft[child.key] = child.data
-
-        if (Array.isArray(draft)) {
-          // remove trailing undefined values from tuples
-          while (draft.length && draft[draft.length - 1] === undefined) {
-            draft.pop()
-          }
-        }
+      }
+    }
+    if (Array.isArray(draft)) {
+      // remove trailing undefined values from tuples
+      while (draft.length && draft[draft.length - 1] === undefined) {
+        draft.pop()
       }
     }
   }
@@ -253,7 +252,9 @@ export function createStateNode (
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
   if (skeleton.pure && reusedNode && !reusedNode.error && !reusedNode.childError) {
     cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activeItems, context.initial, data]
-    if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) return reusedNode
+    if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
+      return reusedNode
+    }
   }
 
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
@@ -378,7 +379,7 @@ export function createStateNode (
         itemData,
         arrayData,
         validationState,
-        reusedNode?.children?.[0]
+        reusedNode?.children?.[i]
       )
       if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
       children.push(child)
