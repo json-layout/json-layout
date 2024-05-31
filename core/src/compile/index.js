@@ -143,7 +143,7 @@ export function compile (_schema, partialOptions = {}) {
   for (const expression of expressionsDefinitions) {
     const expressionsParams = expression.pure
       ? ['data', 'options', 'context', 'display', 'layout']
-      : ['data', 'options', 'context', 'display', 'layout', 'parentData', 'rootData']
+      : ['data', 'options', 'context', 'display', 'layout', 'rootData', 'parent']
     /* if (expression.type === 'expr-eval') {
       expressions.push(exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')))
     } */

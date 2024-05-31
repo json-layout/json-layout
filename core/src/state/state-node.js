@@ -171,13 +171,15 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
  * @param {import('./utils/display.js').Display} display
  * @param {import('@json-layout/vocabulary').BaseCompObject} layout
  * @param {unknown} rootData
- * @param {unknown} parentData
+ * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @returns {any}
  */
-export function evalExpression (expressions, expression, data, options, display, layout, rootData, parentData) {
+export function evalExpression (expressions, expression, data, options, display, layout, rootData, parentContext) {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
-  return expression.pure ? compiledExpression(data, options, options.context, display, layout) : compiledExpression(data, options, options.context, display, layout, rootData, parentData)
+  return expression.pure
+    ? compiledExpression(data, options, options.context, display, layout)
+    : compiledExpression(data, options, options.context, display, layout, rootData, parentContext)
 }
 
 /**
@@ -187,19 +189,19 @@ export function evalExpression (expressions, expression, data, options, display,
  * @param {import('./utils/display.js').Display} display
  * @param {unknown} data
  * @param {unknown} rootData
- * @param {unknown} parentData
+ * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @returns {import('@json-layout/vocabulary').BaseCompObject}
  */
-const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentData) => {
+const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentContext) => {
   if (isSwitchStruct(normalizedLayout)) {
     for (const compObject of normalizedLayout.switch) {
-      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, compObject, parentData, rootData)) {
+      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, compObject, rootData, parentContext)) {
         return compObject
       }
     }
   } else {
     if (normalizedLayout.if) {
-      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, parentData, rootData)) {
+      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, rootData, parentContext)) {
         return normalizedLayout
       }
     } else {
@@ -223,7 +225,7 @@ const getCompObject = (normalizedLayout, options, compiledLayout, display, data,
  * @param {import('@json-layout/vocabulary').Child | null} childDefinition
  * @param {import('./utils/display.js').Display} parentDisplay
  * @param {unknown} data
- * @param {unknown} parentData
+ * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @param {import('./types.js').ValidationState} validationState
  * @param {import('./types.js').StateNode} [reusedNode]
  * @returns {import('./types.js').StateNode}
@@ -241,7 +243,7 @@ export function createStateNode (
   childDefinition,
   parentDisplay,
   data,
-  parentData,
+  parentContext,
   validationState,
   reusedNode
 ) {
@@ -260,14 +262,14 @@ export function createStateNode (
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
     ? childDefinition
     : compiledLayout.normalizedLayouts[skeleton.pointer]
-  const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentData)
+  const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentContext)
   const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
 
   const options = layout.getOptions
     ? produceNodeOptions(
       reusedNode?.options ?? /** @type {import('./types.js').StateNodeOptions} */({}),
       parentOptions,
-      evalExpression(compiledLayout.expressions, layout.getOptions, data, parentOptions, display, layout, context.rootData, parentData)
+      evalExpression(compiledLayout.expressions, layout.getOptions, data, parentOptions, display, layout, context.rootData, parentContext)
     )
     : parentOptions
 
@@ -306,7 +308,7 @@ export function createStateNode (
         childLayout,
         display,
         isSameData ? objectData : objectData[childLayout.key],
-        objectData,
+        { parent: parentContext, data: objectData },
         validationState,
         reusedNode?.children?.[i]
       )
@@ -346,7 +348,7 @@ export function createStateNode (
           null,
           display,
           data,
-          data,
+          { parent: parentContext, data },
           validationState,
           reusedNode?.children?.[0]
         )
@@ -377,7 +379,7 @@ export function createStateNode (
         null,
         display,
         itemData,
-        arrayData,
+        { parent: parentContext, data: arrayData },
         validationState,
         reusedNode?.children?.[i]
       )
@@ -425,12 +427,12 @@ export function createStateNode (
 
   if (layout.getConstData) {
     if (!context.rehydrate) {
-      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, context.rootData, parentData)
+      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, context.rootData, parentContext)
     }
   } else {
     if (layout.getDefaultData && useDefaultData(nodeData, layout, options)) {
       if (!context.rehydrate) {
-        nodeData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, context.rootData, parentData)
+        nodeData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, context.rootData, parentContext)
       }
     } else {
       if (isDataEmpty(nodeData)) {
@@ -450,7 +452,7 @@ export function createStateNode (
 
   let props
   if (layout.getProps) {
-    props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, context.rootData, parentData)
+    props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, context.rootData, parentContext)
   }
 
   const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey

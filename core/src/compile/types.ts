@@ -5,6 +5,11 @@ import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv/
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
 
+export interface ParentContextExpression {
+  data: unknown
+  parent: ParentContextExpression | undefined | null
+}
+
 export type CompiledExpression = (
   data: any,
   options: StateNodeOptionsBase,
@@ -12,7 +17,7 @@ export type CompiledExpression = (
   display: Display,
   layout: BaseCompObject,
   rootData?: unknown,
-  parentData?: unknown
+  parent?: ParentContextExpression | null
 ) => any
 
 export interface CompileOptions {

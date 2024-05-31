@@ -356,15 +356,26 @@ export class StatefulLayout {
   /**
    * @private
    * @param {StateNode} node
+   * @returns {import('../compile/types.js').ParentContextExpression | null}
+   */
+  getParentContextExpression (node) {
+    const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
+    if (!parentNode) return null
+    return {
+      parent: this.getParentContextExpression(parentNode),
+      data: parentNode.data
+    }
+  }
+
+  /**
+   * @private
+   * @param {StateNode} node
    * @param {import('@json-layout/vocabulary').Expression} expression
    * @param {any} data
    * @returns {any}
    */
-  evalNodeExpression = (node, expression, data) => {
-    // const parentNode = this._stateTree.traverseNode(this._stateTree.root).find(n => n.fullKey === node.parentFullKey)
-    const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
-    const parentData = parentNode ? parentNode.data : null
-    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), node.layout, parentData, this._data)
+  evalNodeExpression (node, expression, data) {
+    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), node.layout, this._data, this.getParentContextExpression(node))
   }
 
   /**
