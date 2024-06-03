@@ -2,7 +2,7 @@
 const example = {
   title: 'Enums and oneOfs',
   id: 'enums-one-ofs',
-  description: 'Simple enums and oneOf expressions are rendered using a `select` components. If more than 20 items are returned the select will be replaced by a autocomplete component. If the data type is an array these components will be used in `multiple` mode.',
+  description: 'Simple enums and oneOf expressions are rendered using a `select` components. If more than 20 items are returned the select will be replaced by a `autocomplete` component. If the data type is an array these components will be used in `multiple` mode.',
   schema: {
     type: 'object',
     properties: {

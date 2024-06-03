@@ -1,6 +1,6 @@
 import simpleProperties from './simple-properties/index.js'
 import formats from './formats/index.js'
-import selects from './selects/index.js'
+import selection from './selection/index.js'
 import files from './files/index.js'
 import arrays from './arrays/index.js'
 import composite from './composite/index.js'
@@ -19,7 +19,7 @@ import dev from './_dev/index.js'
 export const examples = [
   simpleProperties,
   formats,
-  selects,
+  selection,
   files,
   arrays,
   composite,

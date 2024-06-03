@@ -112,6 +112,8 @@ export type StatefulLayoutOptions = StateNodeOptions & {
   width: number
 }
 
+// TODO: compose types based on component attributes (composite, itemsBased, etc.) ?
+
 export type TextFieldNode = Omit<StateNode, 'children'> & { layout: TextField, data: string | undefined | null }
 
 export type TextareaNode = Omit<StateNode, 'children'> & { layout: Textarea, data: string | undefined | null }
@@ -139,6 +141,12 @@ export type OneOfSelectNode = StateNode & { layout: OneOfSelect, data: Record<st
 export type SelectNode = Omit<StateNode, 'children'> & { layout: Select, data: any }
 
 export type AutocompleteNode = Omit<StateNode, 'children'> & { layout: Autocomplete, data: any }
+
+export type RadioGroupNode = Omit<StateNode, 'children'> & { layout: Select, data: any }
+
+export type CheckboxGroupNode = Omit<StateNode, 'children'> & { layout: Select, data: any }
+
+export type SwitchGroupNode = Omit<StateNode, 'children'> & { layout: Select, data: any }
 
 export type TabsNode = StateNode & { layout: Tabs, children: StateNode[] }
 

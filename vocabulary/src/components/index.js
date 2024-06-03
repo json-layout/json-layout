@@ -175,6 +175,20 @@ export const standardComponents = [
     }
   },
   {
+    name: 'checkbox-group',
+    itemsBased: true,
+    multipleCompat: true
+  },
+  {
+    name: 'switch-group',
+    itemsBased: true,
+    multipleCompat: true
+  },
+  {
+    name: 'radio-group',
+    itemsBased: true
+  },
+  {
     name: 'file-input',
     focusable: true,
     multipleCompat: true,

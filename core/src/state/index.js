@@ -23,6 +23,9 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').SectionNode} SectionNode
  * @typedef {import('./types.js').SelectNode} SelectNode
  * @typedef {import('./types.js').AutocompleteNode} AutocompleteNode
+ * @typedef {import('./types.js').RadioGroupNode} RadioGroupNode
+ * @typedef {import('./types.js').CheckboxGroupNode} CheckboxGroupNode
+ * @typedef {import('./types.js').SwitchGroupNode} SwitchGroupNode
  * @typedef {import('./types.js').ComboboxNode} ComboboxNode
  * @typedef {import('./types.js').CheckboxNode} CheckboxNode
  * @typedef {import('./types.js').SwitchNode} SwitchNode

@@ -30,4 +30,5 @@ export interface ComponentInfo {
   itemsBased?: boolean
   multipleCompat?: boolean
   schema?: any
+  labelOptional?: boolean
 }
