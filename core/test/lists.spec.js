@@ -2,7 +2,7 @@ import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
-describe.only('Management of props from layout', () => {
+describe('Management of props from layout', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
   it('should manage array of strings as a list if requested', async () => {

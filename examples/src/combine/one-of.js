@@ -2,7 +2,7 @@
 const example = {
   title: 'One of',
   id: 'one-of',
-  description: 'A oneOf instructions is transformed into a select to chose the active subschema.',
+  description: 'A oneOf keyword on an object property is transformed into a select to chose the active subschema.',
   schema: {
     type: 'object',
     title: 'An object with a oneOf',

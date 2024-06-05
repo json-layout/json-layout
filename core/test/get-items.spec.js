@@ -159,37 +159,4 @@ describe('get select items', () => {
       { title: 'VAL2', key: 'val2', value: { prop1: 'val2', prop2: 'val2' } }
     ])
   })
-
-  it('should manage a select from a oneOf with condition', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
-    const compiledLayout = await compile({
-      type: 'string',
-      oneOf: [
-        {
-          title: 'Create',
-          properties: {
-            action: { type: 'string', const: 'create' }
-          }
-        },
-        {
-          title: 'Update',
-          properties: {
-            action: { type: 'string', const: 'update' }
-          }
-        }
-      ],
-      layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2.toUpperCase()' } }
-    })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { domain: 'test.com' } }, {})
-    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
-    const nockScope = nock('http://test.com')
-      .get('/test')
-      .reply(200, { results: [{ prop1: 'val1', prop2: 'val1' }, { prop1: 'val2', prop2: 'val2' }] })
-    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
-    assert.ok(nockScope.isDone())
-    assert.deepEqual(items, [
-      { title: 'VAL1', key: 'val1', value: { prop1: 'val1', prop2: 'val1' } },
-      { title: 'VAL2', key: 'val2', value: { prop1: 'val2', prop2: 'val2' } }
-    ])
-  })
 })

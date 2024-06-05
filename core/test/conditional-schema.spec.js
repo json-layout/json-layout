@@ -31,24 +31,24 @@ describe('conditional schema support', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
-    assert.equal(statefulLayout.stateTree.root.children?.length, 3)
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
 
     // input that satisfies the if condition
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
     assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
-    assert.equal(statefulLayout.stateTree.root.children[2].layout.comp, 'none')
-    assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 3)
+    assert.equal(statefulLayout.stateTree.root.children[1].key, '$then')
+    assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 1)
     statefulLayout.input(statefulLayout.stateTree.root.children[1].children[0], 'hello')
     assert.deepEqual(statefulLayout.data, { str1: 'test', str2: 'hello' })
 
     // input that satisfies the else condition
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'not test')
-    assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'none')
-    assert.equal(statefulLayout.stateTree.root.children[2].layout.comp, 'section')
-    assert.deepEqual(statefulLayout.data, { str1: 'test' })
-    assert.equal(statefulLayout.stateTree.root.children[2].children?.length, 3)
-    statefulLayout.input(statefulLayout.stateTree.root.children[2].children[0], 'hello')
-    assert.deepEqual(statefulLayout.data, { str1: 'test', str3: 'hello' })
+    assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children[1].key, '$else')
+    assert.deepEqual(statefulLayout.data, { str1: 'not test' })
+    assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 1)
+    statefulLayout.input(statefulLayout.stateTree.root.children[1].children[0], 'hello')
+    assert.deepEqual(statefulLayout.data, { str1: 'not test', str3: 'hello' })
   })
 
   it('should display properties from a dependentSchema', async () => {
@@ -67,13 +67,61 @@ describe('conditional schema support', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
-    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
-    assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'none')
 
     // input that satisfies the dependency
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
     assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
+  })
+
+  it('should combine if/then/else and dependentSchema', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string' }
+      },
+      dependentSchemas: {
+        str1: {
+          if: {
+            properties: { str1: { const: 'test' } }
+          },
+          then: {
+            properties: {
+              str2: { type: 'string' }
+            }
+          },
+          else: {
+            properties: {
+              str3: { type: 'string' }
+            }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+
+    // input that satisfies the if condition
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+    assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 1) // the $then and $else children
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].key, '$then')
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].children?.length, 1)
+    statefulLayout.input(statefulLayout.stateTree.root.children[1].children[0].children[0], 'hello')
+    assert.deepEqual(statefulLayout.data, { str1: 'test', str2: 'hello' })
+
+    // input that satisfies the else condition
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'not test')
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].key, '$else')
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].children?.length, 1)
+    statefulLayout.input(statefulLayout.stateTree.root.children[1].children[0].children[0], 'hello')
+    assert.deepEqual(statefulLayout.data, { str1: 'not test', str3: 'hello' })
   })
 
   it('should manage errors coming from dependentRequired', async () => {

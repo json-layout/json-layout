@@ -15,6 +15,7 @@ import { makeSkeletonTree } from './skeleton-tree.js'
  * @param {boolean} required
  * @param {string} [condition]
  * @param {boolean} [dependent]
+ * @param {string} [knownType]
  * @returns {import('./types.js').SkeletonNode}
  */
 export function makeSkeletonNode (
@@ -29,9 +30,10 @@ export function makeSkeletonNode (
   parentPointer,
   required,
   condition,
-  dependent
+  dependent,
+  knownType
 ) {
-  const { type, nullable } = getSchemaFragmentType(schema)
+  const { type, nullable } = knownType ? { type: knownType, nullable: false } : getSchemaFragmentType(schema)
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   schema.errorMessage = schema.errorMessage ?? {}
@@ -41,7 +43,10 @@ export function makeSkeletonNode (
       pointer,
       options.components,
       options.markdown,
-      options.optionsKeys
+      options.optionsKeys,
+      undefined,
+      type,
+      nullable
     )
     normalizedLayouts[pointer] = normalizationResult.layout
     if (normalizationResult.errors.length) {
@@ -72,13 +77,6 @@ export function makeSkeletonNode (
       expression.ref = expressions.length
       expressions.push(expression)
     }
-  }
-
-  if (condition) {
-    if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')
-    if (normalizedLayout.if) throw new Error('If not allowed in conditional schema')
-    normalizedLayout.if = { type: 'js-eval', expr: condition, pure: true }
-    pushExpression(expressions, normalizedLayout.if)
   }
 
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
@@ -115,6 +113,13 @@ export function makeSkeletonNode (
 
   /** @type {import('./types.js').SkeletonNode} */
   const node = { key: key ?? '', pointer, parentPointer, pure, propertyKeys: [], roPropertyKeys: [] }
+
+  if (condition) {
+    if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')
+    node.condition = { type: 'js-eval', expr: condition, pure: true }
+    pushExpression(expressions, node.condition)
+  }
+
   if (type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []
@@ -158,7 +163,9 @@ export function makeSkeletonNode (
             dependentPointer,
             pointer,
             false,
-            `"${propertyKey}" in data`
+            `"${propertyKey}" in data`,
+            undefined,
+            'object'
           ))
         }
       }
@@ -176,7 +183,10 @@ export function makeSkeletonNode (
           `$allOf-${i}`,
           `${pointer}/allOf/${i}`,
           pointer,
-          false
+          false,
+          undefined,
+          undefined,
+          'object'
         )
         node.propertyKeys = node.propertyKeys.concat(allOfNode.propertyKeys)
         node.roPropertyKeys = node.roPropertyKeys.concat(allOfNode.roPropertyKeys)
@@ -192,7 +202,9 @@ export function makeSkeletonNode (
           options.components,
           options.markdown,
           options.optionsKeys,
-          'oneOf'
+          'oneOf',
+          type,
+          nullable
         )
         normalizedLayouts[oneOfPointer] = normalizationResult.layout
         if (normalizationResult.errors.length) {
@@ -245,7 +257,9 @@ export function makeSkeletonNode (
           `${pointer}/then`,
           pointer,
           false,
-          `validates["${pointer}/if"](data)`
+          `validates["${pointer}/if"](data)`,
+          undefined,
+          'object'
         ))
       }
       if (schema.else) {
@@ -261,7 +275,9 @@ export function makeSkeletonNode (
           `${pointer}/else`,
           pointer,
           false,
-          `!validates["${pointer}/if"](data)`
+          `!validates["${pointer}/if"](data)`,
+          undefined,
+          'object'
         ))
       }
     }

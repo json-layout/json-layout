@@ -3,7 +3,7 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
 describe('Special cases of oneOfs', () => {
-  const defaultOptions = { debounceInputMs: 0 }
+  const defaultOptions = { debounceInputMs: 0, removeAdditional: true }
 
   it('should display proper validation errors for a specific oneOf', async () => {
     const compiledLayout = await compile(
@@ -121,5 +121,74 @@ describe('Special cases of oneOfs', () => {
     assert.ok(!statefulLayout.stateTree.root.children[0].children[0].children[0].children[0].error)
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children[1].children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children[1].children[0].error, 'required information')
+  })
+
+  it('should manage active element in a oneOf', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      unevaluatedProperties: false,
+      oneOf: [{
+        properties: {
+          key: { type: 'string', const: 'key1' },
+          str1: { type: 'string' }
+        }
+      }, {
+        properties: {
+          key: { type: 'string', const: 'key2' },
+          str2: { type: 'string' },
+          str3: { type: 'string', const: 'string 3' }
+        }
+      }, {
+        properties: {
+          key: { type: 'string', const: 'key3' },
+          str3: { type: 'string' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { key: 'key2' })
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].key, '$oneOf')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].key, 1)
+    assert.deepEqual(statefulLayout.stateTree.root.data, { key: 'key2', str3: 'string 3' })
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { key: 'key2', str3: 'string 3' })
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[0].children?.[0].data, { key: 'key2', str3: 'string 3' })
+
+    assert.ok(statefulLayout.stateTree.root.children?.[0].children?.[0].children?.[1])
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[0].children?.[0].children?.[1], 'string 2')
+
+    assert.deepEqual(statefulLayout.stateTree.root.data, { key: 'key2', str2: 'string 2', str3: 'string 3' })
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { key: 'key2', str2: 'string 2', str3: 'string 3' })
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[0].children?.[0].data, { key: 'key2', str2: 'string 2', str3: 'string 3' })
+
+    statefulLayout.activateItem(statefulLayout.stateTree.root.children?.[0], 2)
+
+    assert.deepEqual(statefulLayout.data, { key: 'key3', str3: 'string 3' })
+    assert.equal(statefulLayout.stateTree.root.data.key, 'key3')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].data.key, 'key3')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].data.key, 'key3')
+  })
+
+  it('should manage a oneOf with implicit typing', async () => {
+    const compiledLayout = await compile({
+      oneOf: [{
+        properties: {
+          key: { type: 'string', const: 'key1' },
+          str1: { type: 'string' }
+        }
+      }, {
+        properties: {
+          key: { type: 'string', const: 'key2' },
+          str2: { type: 'string' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { key: 'key1' })
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].key, '$oneOf')
   })
 })

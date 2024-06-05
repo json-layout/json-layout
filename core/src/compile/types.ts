@@ -1,6 +1,6 @@
 import type ajvModule from 'ajv/dist/2019.js'
 import type MarkdownIt from 'markdown-it'
-import { type ComponentInfo, type BaseCompObject, type NormalizedLayout, type StateNodeOptionsBase } from '@json-layout/vocabulary'
+import { type ComponentInfo, type BaseCompObject, type NormalizedLayout, type StateNodeOptionsBase, type Expression } from '@json-layout/vocabulary'
 import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv/dist/2019.js'
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
@@ -68,6 +68,7 @@ export interface SkeletonNode {
   pure: boolean
   propertyKeys: string[]
   roPropertyKeys: string[]
+  condition?: Expression
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
 }

@@ -145,7 +145,6 @@ const produceCompositeChildrenOptions = produce((draft, section) => {
  */
 const matchError = (error, skeleton, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
-  if (dataPath === '/str2') console.log('matchError ?', originalError, parentDataPath === originalError.instancePath, originalError.params, skeleton.key)
   if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
   if (originalError.instancePath === dataPath && originalError.schemaPath === skeleton.pointer) return true
   return false
@@ -294,6 +293,11 @@ export function createStateNode (
         skeleton.roPropertyKeys?.includes(/** @type {string} */(childLayout.key))
       ) continue
       const childSkeleton = skeleton.children?.find(c => c.key === childLayout.key) ?? skeleton
+      if (childSkeleton.condition) {
+        if (!evalExpression(compiledLayout.expressions, childSkeleton.condition, objectData, parentOptions, display, layout, compiledLayout.validates, context.rootData, parentContext)) {
+          continue
+        }
+      }
       const isSameData = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
       const childFullKey = `${fullKey}/${childLayout.key}`
       if (focusChild) context.autofocusTarget = childFullKey
