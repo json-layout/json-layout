@@ -13,6 +13,7 @@ import { makeSkeletonTree } from './skeleton-tree.js'
  * @param {string} pointer
  * @param {string | null} parentPointer
  * @param {boolean} required
+ * @param {string} [condition]
  * @returns {import('./types.js').SkeletonNode}
  */
 export function makeSkeletonNode (
@@ -25,7 +26,8 @@ export function makeSkeletonNode (
   key,
   pointer,
   parentPointer,
-  required
+  required,
+  condition
 ) {
   const { type, nullable } = getSchemaFragmentType(schema)
 
@@ -68,6 +70,13 @@ export function makeSkeletonNode (
       expression.ref = expressions.length
       expressions.push(expression)
     }
+  }
+
+  if (condition) {
+    if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')
+    if (normalizedLayout.if) throw new Error('If not allowed in conditional schema')
+    normalizedLayout.if = { type: 'js-eval', expr: condition, pure: true }
+    pushExpression(expressions, normalizedLayout.if)
   }
 
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
@@ -125,6 +134,29 @@ export function makeSkeletonNode (
         if (schema?.required?.includes(propertyKey)) {
           schema.errorMessage.required = schema.errorMessage.required ?? {}
           schema.errorMessage.required[propertyKey] = options.messages.errorRequired
+        }
+        if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
+          // TODO: check that it is really this key that ajv uses in this case
+          schema.errorMessage.required = schema.errorMessage.required ?? {}
+          schema.errorMessage.required[propertyKey] = options.messages.errorRequired
+        }
+
+        if (schema.dependentSchemas?.[propertyKey] || (schema.dependencies?.[propertyKey] && !Array.isArray(schema.dependencies[propertyKey]))) {
+          const dependentSchema = schema.dependentSchemas?.[propertyKey] ?? schema.dependencies[propertyKey]
+          const dependentPointer = schema.dependentSchemas?.[propertyKey] ? `${pointer}/dependentSchemas/${propertyKey}` : `${pointer}/dependencies/${propertyKey}`
+          node.children.push(makeSkeletonNode(
+            dependentSchema,
+            options,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            `$deps-${propertyKey}`,
+            dependentPointer,
+            pointer,
+            false,
+            `"${propertyKey}" in data`
+          ))
         }
       }
     }
@@ -194,6 +226,41 @@ export function makeSkeletonNode (
       })
 
       schema.errorMessage.oneOf = options.messages.errorOneOf
+    }
+    if (schema.if) {
+      validates.push(`${pointer}/if`)
+      if (schema.then) {
+        node.children = node.children ?? []
+        node.children.push(makeSkeletonNode(
+          schema.then,
+          options,
+          validates,
+          validationErrors,
+          normalizedLayouts,
+          expressions,
+          '$then',
+          `${pointer}/then`,
+          pointer,
+          false,
+          `validates["${pointer}/if"](data)`
+        ))
+      }
+      if (schema.else) {
+        node.children = node.children ?? []
+        node.children.push(makeSkeletonNode(
+          schema.else,
+          options,
+          validates,
+          validationErrors,
+          normalizedLayouts,
+          expressions,
+          '$else',
+          `${pointer}/else`,
+          pointer,
+          false,
+          `!validates["${pointer}/if"](data)`
+        ))
+      }
     }
   }
 

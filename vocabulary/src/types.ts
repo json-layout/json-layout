@@ -19,6 +19,11 @@ export interface SchemaFragment {
   formatMinimum?: string
   formatMaximum?: string
   readOnly?: boolean
+  if?: any
+  then?: any
+  else?: any
+  dependencies?: Record<string, any>
+  dependentSchemas?: Record<string, any>
 }
 
 export interface ComponentInfo {

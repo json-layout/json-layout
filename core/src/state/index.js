@@ -371,14 +371,13 @@ export class StatefulLayout {
   }
 
   /**
-   * @private
    * @param {StateNode} node
    * @param {import('@json-layout/vocabulary').Expression} expression
    * @param {any} data
    * @returns {any}
    */
   evalNodeExpression (node, expression, data) {
-    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), node.layout, this._data, this.getParentContextExpression(node))
+    return evalExpression(this.compiledLayout.expressions, expression, data, node.options, new Display(node.width), node.layout, this.compiledLayout.validates, this._data, this.getParentContextExpression(node))
   }
 
   /**

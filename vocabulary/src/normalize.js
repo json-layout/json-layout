@@ -23,18 +23,34 @@ function getDefaultChildren (schemaFragment) {
   /** @type {Children} */
   const children = []
   if (type === 'object') {
-    if (schemaFragment.properties) {
-      for (const key of Object.keys(schemaFragment.properties)) {
-        children.push({ key })
+    for (const key of Object.keys(schemaFragment)) {
+      if (key === 'properties') {
+        for (const key of Object.keys(schemaFragment.properties ?? {})) {
+          children.push({ key })
+          if (schemaFragment.dependencies?.[key] && !Array.isArray(schemaFragment.dependencies[key])) {
+            children.push({ key: `$deps-${key}` })
+          }
+          if (schemaFragment.dependentSchemas && schemaFragment.dependentSchemas[key]) {
+            children.push({ key: `$deps-${key}` })
+          }
+        }
       }
-    }
-    if (schemaFragment.allOf?.length) {
-      for (let i = 0; i < schemaFragment.allOf.length; i++) {
-        children.push({ key: `$allOf-${i}` })
+      if (key === 'allOf') {
+        if (schemaFragment.allOf?.length) {
+          for (let i = 0; i < schemaFragment.allOf.length; i++) {
+            children.push({ key: `$allOf-${i}` })
+          }
+        }
       }
-    }
-    if (schemaFragment.oneOf) {
-      children.push({ key: '$oneOf' })
+      if (key === 'oneOf') {
+        children.push({ key: '$oneOf' })
+      }
+      if (key === 'then' && schemaFragment.if) {
+        children.push({ key: '$then' })
+      }
+      if (key === 'else' && schemaFragment.if) {
+        children.push({ key: '$else' })
+      }
     }
   }
   if (type === 'array' && Array.isArray(schemaFragment.items)) {

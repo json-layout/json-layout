@@ -170,16 +170,18 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
  * @param {import('./types.js').StateNodeOptions} options
  * @param {import('./utils/display.js').Display} display
  * @param {import('@json-layout/vocabulary').BaseCompObject} layout
+ * @param {Record<string, import('ajv').ValidateFunction>} validates
  * @param {unknown} rootData
  * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @returns {any}
  */
-export function evalExpression (expressions, expression, data, options, display, layout, rootData, parentContext) {
+export function evalExpression (expressions, expression, data, options, display, layout, validates, rootData, parentContext) {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
+  console.log('evalExpression', expression, data, compiledExpression(data, options, options.context, display, layout, validates))
   return expression.pure
-    ? compiledExpression(data, options, options.context, display, layout)
-    : compiledExpression(data, options, options.context, display, layout, rootData, parentContext)
+    ? compiledExpression(data, options, options.context, display, layout, validates)
+    : compiledExpression(data, options, options.context, display, layout, validates, rootData, parentContext)
 }
 
 /**
@@ -195,13 +197,13 @@ export function evalExpression (expressions, expression, data, options, display,
 const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentContext) => {
   if (isSwitchStruct(normalizedLayout)) {
     for (const compObject of normalizedLayout.switch) {
-      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, compObject, rootData, parentContext)) {
+      if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, compObject, compiledLayout.validates, rootData, parentContext)) {
         return compObject
       }
     }
   } else {
     if (normalizedLayout.if) {
-      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, rootData, parentContext)) {
+      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
         return normalizedLayout
       }
     } else {
@@ -269,7 +271,7 @@ export function createStateNode (
     ? produceNodeOptions(
       reusedNode?.options ?? /** @type {import('./types.js').StateNodeOptions} */({}),
       parentOptions,
-      evalExpression(compiledLayout.expressions, layout.getOptions, data, parentOptions, display, layout, context.rootData, parentContext)
+      evalExpression(compiledLayout.expressions, layout.getOptions, data, parentOptions, display, layout, compiledLayout.validates, context.rootData, parentContext)
     )
     : parentOptions
 
@@ -427,12 +429,12 @@ export function createStateNode (
 
   if (layout.getConstData) {
     if (!context.rehydrate) {
-      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, context.rootData, parentContext)
+      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
     }
   } else {
     if (layout.getDefaultData && useDefaultData(nodeData, layout, options)) {
       if (!context.rehydrate) {
-        nodeData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, context.rootData, parentContext)
+        nodeData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
       }
     } else {
       if (isDataEmpty(nodeData)) {
@@ -452,7 +454,7 @@ export function createStateNode (
 
   let props
   if (layout.getProps) {
-    props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, context.rootData, parentContext)
+    props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
   }
 
   const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
