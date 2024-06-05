@@ -14,6 +14,7 @@ import { makeSkeletonTree } from './skeleton-tree.js'
  * @param {string | null} parentPointer
  * @param {boolean} required
  * @param {string} [condition]
+ * @param {boolean} [dependent]
  * @returns {import('./types.js').SkeletonNode}
  */
 export function makeSkeletonNode (
@@ -27,7 +28,8 @@ export function makeSkeletonNode (
   pointer,
   parentPointer,
   required,
-  condition
+  condition,
+  dependent
 ) {
   const { type, nullable } = getSchemaFragmentType(schema)
 
@@ -56,7 +58,7 @@ export function makeSkeletonNode (
     else if (type === 'array') defaultData = []
   }
 
-  let pure = true
+  let pure = !dependent
   /**
    * @param {import('@json-layout/vocabulary').Expression[]} expressions
    * @param {import('@json-layout/vocabulary').Expression} expression
@@ -119,6 +121,7 @@ export function makeSkeletonNode (
       for (const propertyKey of Object.keys(schema.properties)) {
         node.propertyKeys.push(propertyKey)
         if (schema.properties[propertyKey].readOnly) node.roPropertyKeys.push(propertyKey)
+        const dependent = schema.dependentRequired && Object.values(schema.dependentRequired).some(dependentProperties => dependentProperties.includes(propertyKey))
         node.children.push(makeSkeletonNode(
           schema.properties[propertyKey],
           options,
@@ -129,16 +132,16 @@ export function makeSkeletonNode (
           propertyKey,
           `${pointer}/properties/${propertyKey}`,
           pointer,
-          schema.required?.includes(propertyKey)
+          schema.required?.includes(propertyKey),
+          undefined,
+          dependent
         ))
         if (schema?.required?.includes(propertyKey)) {
           schema.errorMessage.required = schema.errorMessage.required ?? {}
           schema.errorMessage.required[propertyKey] = options.messages.errorRequired
         }
         if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
-          // TODO: check that it is really this key that ajv uses in this case
-          schema.errorMessage.required = schema.errorMessage.required ?? {}
-          schema.errorMessage.required[propertyKey] = options.messages.errorRequired
+          schema.errorMessage.dependentRequired = options.messages.errorRequired
         }
 
         if (schema.dependentSchemas?.[propertyKey] || (schema.dependencies?.[propertyKey] && !Array.isArray(schema.dependencies[propertyKey]))) {

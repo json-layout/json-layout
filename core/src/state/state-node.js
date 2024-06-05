@@ -145,6 +145,7 @@ const produceCompositeChildrenOptions = produce((draft, section) => {
  */
 const matchError = (error, skeleton, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
+  if (dataPath === '/str2') console.log('matchError ?', originalError, parentDataPath === originalError.instancePath, originalError.params, skeleton.key)
   if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
   if (originalError.instancePath === dataPath && originalError.schemaPath === skeleton.pointer) return true
   return false
@@ -178,7 +179,6 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
 export function evalExpression (expressions, expression, data, options, display, layout, validates, rootData, parentContext) {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
-  console.log('evalExpression', expression, data, compiledExpression(data, options, options.context, display, layout, validates))
   return expression.pure
     ? compiledExpression(data, options, options.context, display, layout, validates)
     : compiledExpression(data, options, options.context, display, layout, validates, rootData, parentContext)
