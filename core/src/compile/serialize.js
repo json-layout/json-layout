@@ -2,7 +2,6 @@
 import { ok } from 'assert/strict'
 import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
-import { parse, print } from 'recast'
 import clone from '../utils/clone.js'
 import { isSwitchStruct } from '@json-layout/vocabulary'
 
@@ -59,10 +58,13 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
   i = 0
   const expressionsNodes = []
   for (const expression of compiledLayout.expressions) {
+    const id = `expression${i++}`
+    code += expression.toString().replace('function anonymous', `function ${id}`)
+    /* Previous code based on recast/esprima, suffered syntax limitations
     const fn = parse(expression.toString()).program.body[0]
-    fn.id = `expression${i++}`
-    code += `\n${print(fn)}\n`
-    expressionsNodes.push(builders.raw(fn.id))
+    fn.id = id
+    code += `\n${print(fn)}\n` */
+    expressionsNodes.push(builders.raw(id))
   }
 
   /** @type {Record<string, Omit<import('@json-layout/vocabulary').ComponentInfo, 'schema'>>} */

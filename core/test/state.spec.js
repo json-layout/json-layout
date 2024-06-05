@@ -147,6 +147,35 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
     })
 
+    it('should use a switch on data', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          str1: { type: 'string', enum: ['short', 'long'] },
+          str2: {
+            type: 'string',
+            layout: {
+              switch: [
+                { if: { expr: 'parent.data?.str1 === "short"', pure: false }, comp: 'text-field' },
+                { if: { expr: 'parent.data?.str1 === "long"', pure: false }, comp: 'textarea' },
+                { comp: 'none' }
+              ]
+            }
+          }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+      assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+      assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
+      assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'select')
+      assert.equal(statefulLayout.stateTree.root.children[1].key, 'str2')
+      assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'none')
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], 'short')
+      assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'text-field')
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], 'long')
+      assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'textarea')
+    })
+
     it('should manage a simple responsive grid', async () => {
       const compiledLayout = await compile({
         type: 'object',

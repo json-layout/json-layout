@@ -8,7 +8,7 @@ const example = {
     title: 'An object with a string that depends on another',
     properties: {
       str1: { type: 'string' },
-      str2: { type: 'string', layout: { if: 'data?.str1?.length > 3' } }
+      str2: { type: 'string', layout: { if: { expr: 'parent.data?.str1?.length > 3', pure: false } } }
     }
   }
 }

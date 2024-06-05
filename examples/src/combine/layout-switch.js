@@ -1,7 +1,7 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'Layout "if" keyword',
-  id: 'layout-if',
+  title: 'Layout switch',
+  id: 'layout-switch',
   description: 'You can use a layout `switch` expression to apply a different layout based on some condition.',
   schema: {
     type: 'object',
@@ -11,8 +11,8 @@ const example = {
       str2: {
         type: 'string',
         layout: [
-          { if: 'data?.str1 === "short"', comp: 'text-field' },
-          { if: 'data?.str1 === "long"', comp: 'textarea' }
+          { if: { expr: 'parent.data?.str1 === "short"', pure: false }, comp: 'text-field' },
+          { if: { expr: 'parent.data?.str1 === "long"', pure: false }, comp: 'textarea' }
         ]
       }
     }
