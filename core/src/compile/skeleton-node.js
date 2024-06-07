@@ -112,7 +112,16 @@ export function makeSkeletonNode (
   }
 
   /** @type {import('./types.js').SkeletonNode} */
-  const node = { key: key ?? '', pointer, parentPointer, pure, propertyKeys: [], roPropertyKeys: [] }
+  const node = {
+    key: key ?? '',
+    pointer,
+    parentPointer,
+    pure,
+    propertyKeys: [],
+    roPropertyKeys: [],
+    nullable,
+    required
+  }
 
   if (condition) {
     if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')

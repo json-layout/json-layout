@@ -71,4 +71,6 @@ export interface SkeletonNode {
   condition?: Expression
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
   childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
+  required?: boolean
+  nullable?: boolean
 }
