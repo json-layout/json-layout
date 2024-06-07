@@ -120,7 +120,7 @@ export function makeSkeletonNode (
     propertyKeys: [],
     roPropertyKeys: [],
     nullable,
-    required
+    required: required && !nullable
   }
 
   if (condition) {
