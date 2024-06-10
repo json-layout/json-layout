@@ -32,8 +32,9 @@ export const compileOptions = [
   },
   {
     key: 'messages',
-    description: 'The locale messages. You wan overwrite only the key you want to change.',
-    default: en
+    description: 'The locale messages. You can overwrite only the keys you want to change.',
+    default: {},
+    values: en
   }
 ]
 
