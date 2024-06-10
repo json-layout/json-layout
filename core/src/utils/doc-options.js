@@ -110,8 +110,8 @@ export const runtimeOptions = [
     default: 'empty',
     values: {
       never: 'Never use the default data.',
-      missing: 'The default data is used when the property if not defined in the data.',
-      empty: 'The default data is used when the property is either undefined of defined but empty (empty string, empty object, etc.).'
+      missing: 'The default data is used when the property is not defined in the data.',
+      empty: 'The default data is used when the property is either undefined or empty (empty string, empty object, etc.).'
     }
   },
   {
