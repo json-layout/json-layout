@@ -1,9 +1,14 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
+import nock from 'nock'
+import fetch from 'node-fetch'
 import { compile, StatefulLayout } from '../src/index.js'
 // import Debug from 'debug'
 
 // const debug = Debug('test')
+
+// @ts-ignore
+global.fetch = fetch
 
 const defaultOptions = { debounceInputMs: 0, removeAdditional: true }
 
@@ -74,6 +79,50 @@ describe('conditional schema support', () => {
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
     assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
+  })
+
+  it('should mix depdendent schemas and expressions', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        obj1: { type: 'object', layout: { items: [{ value: 'val1', title: 'Val 1' }, { value: 'val2', title: 'Val 2' }] } }
+      },
+      dependentSchemas: {
+        obj1: {
+          properties: {
+            // eslint-disable-next-line no-template-curly-in-string
+            str1: { type: 'string', layout: { getItems: { url: { expr: 'http://test.com/${rootData.obj1.value}', pure: false } } } }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'select')
+
+    const obj1Items = await statefulLayout.getItems(statefulLayout.stateTree.root.children[0])
+
+    // input that satisfies the dependency
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], obj1Items[0])
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+    assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].layout.comp, 'select')
+    assert.equal(statefulLayout.stateTree.root.children[1].children[0].itemsCacheKey, 'http://test.com/val1')
+    const nockScope = nock('http://test.com')
+      .get('/val1')
+      .reply(200, ['val1', 'val2'])
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root.children[1].children[0])
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+
+    // empty the dependency
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], null)
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
   })
 
   it('should combine if/then/else and dependentSchema', async () => {

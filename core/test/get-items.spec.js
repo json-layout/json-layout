@@ -8,7 +8,7 @@ import { compile, StatefulLayout } from '../src/index.js'
 // @ts-ignore
 global.fetch = fetch
 
-describe.only('get select items', () => {
+describe('get select items', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
   it('should manage a select with enum', async () => {

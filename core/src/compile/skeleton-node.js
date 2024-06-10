@@ -172,7 +172,7 @@ export function makeSkeletonNode (
             dependentPointer,
             pointer,
             false,
-            `"${propertyKey}" in data`,
+            `data["${propertyKey}"] !== undefined`,
             undefined,
             'object'
           ))
