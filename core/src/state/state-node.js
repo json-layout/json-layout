@@ -179,9 +179,16 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
 export function evalExpression (expressions, expression, data, options, display, layout, validates, rootData, parentContext) {
   if (expression.ref === undefined) throw new Error('expression was not compiled : ' + JSON.stringify(expression))
   const compiledExpression = expressions[expression.ref]
-  return expression.pure
-    ? compiledExpression(data, options, options.context, display, layout, validates)
-    : compiledExpression(data, options, options.context, display, layout, validates, rootData, parentContext)
+  try {
+    if (expression.pure) {
+      return compiledExpression(data, options, options.context, display, layout, validates)
+    } else {
+      return compiledExpression(data, options, options.context, display, layout, validates, rootData, parentContext)
+    }
+  } catch (err) {
+    console.warn('json-layout: failed to evaluate expression', err, { expression, data, context: options.context, display, rootData, parent: parentContext })
+    throw new Error('json-layout: failed to evaluate expression')
+  }
 }
 
 /**
@@ -317,7 +324,7 @@ export function createStateNode (
         isSameData ? objectData : objectData[childLayout.key],
         { parent: parentContext, data: objectData },
         validationState,
-        reusedNode?.children?.[i]
+        reusedNode?.children?.find(c => c.fullKey === childFullKey)
       )
       if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
       children.push(child)
@@ -472,10 +479,18 @@ export function createStateNode (
       if (layout.getItems.immutable && reusedNode?.itemsCacheKey) {
         itemsCacheKey = reusedNode.itemsCacheKey
       } else {
-        itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+        try {
+          itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+        } catch (err) {
+          itemsCacheKey = null
+        }
       }
     } else if (layout.getItems && isGetItemsFetch(layout.getItems)) {
-      itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+      try {
+        itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+      } catch (err) {
+        itemsCacheKey = null
+      }
     }
   }
 

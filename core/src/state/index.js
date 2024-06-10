@@ -532,6 +532,8 @@ export class StatefulLayout {
       throw new Error('node is not a component with an items list')
     }
 
+    if (node.itemsCacheKey === null) return { appliedQ: false, items: [] }
+
     let appliedQ = false
     let rawItems
     if (node.layout.items || (node.layout.getItems && isGetItemsExpression(node.layout.getItems))) {
