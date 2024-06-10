@@ -259,7 +259,7 @@ export class StatefulLayout {
   updateState () {
     this.createStateTree()
     let nbIter = 0
-    while (this._data !== this._stateTree.root.data || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
+    while (this._data !== (this._stateTree.root.data ?? null) || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
       nbIter += 1
       if (nbIter > 100) {
         console.error('too many iterations in updateState, the data is probably not stable', this._data, this._stateTree.root.data)
@@ -267,7 +267,7 @@ export class StatefulLayout {
       }
       logDataBinding('hydrating state tree changed the data, do it again', this._data, this._stateTree.root.data)
       // this is necessary because a first hydration can add default values and change validity, etc
-      this._data = this._stateTree.root.data
+      this._data = this._stateTree.root.data ?? null
       this._autofocusTarget = this._lastCreateStateTreeContext.autofocusTarget
       this.createStateTree(true)
     }
