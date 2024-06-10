@@ -304,8 +304,9 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
     if (items) {
       if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
         partial.getItems.expr = JSON.stringify(items)
+        partial.getItems.immutable = true
       } else {
-        partial.getItems = JSON.stringify(items)
+        partial.getItems = { expr: JSON.stringify(items), immutable: true }
       }
     }
   }

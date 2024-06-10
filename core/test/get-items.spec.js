@@ -8,7 +8,7 @@ import { compile, StatefulLayout } from '../src/index.js'
 // @ts-ignore
 global.fetch = fetch
 
-describe('get select items', () => {
+describe.only('get select items', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
   it('should manage a select with enum', async () => {
@@ -23,6 +23,15 @@ describe('get select items', () => {
       { title: 'val1', key: 'val1', value: 'val1' },
       { title: 'val2', key: 'val2', value: 'val2' }
     ])
+
+    // when the node is mutated its cache key is not mutated and items are not recreated
+    statefulLayout.input(statefulLayout.stateTree.root, 'val1')
+    const items2 = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.equal(items, items2)
+
+    const items3 = await statefulLayout.getItems(statefulLayout.stateTree.root, 'val1')
+    assert.equal(items3.length, 1)
+    assert.equal(items3[0], items[0])
   })
 
   it('should manage a combobox with examples', async () => {
@@ -89,6 +98,16 @@ describe('get select items', () => {
       { title: 'VAL1', key: 'val1', value: 'val1' },
       { title: 'VAL2', key: 'val2', value: 'val2' }
     ])
+
+    // when the node is mutated its cache key is not mutated and items are not recreated
+    statefulLayout.input(statefulLayout.stateTree.root, 'val1')
+    const items2 = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.equal(items, items2)
+
+    // the q parameter is transmitted in the URL so cache still works
+    const items3 = await statefulLayout.getItems(statefulLayout.stateTree.root, 'val1')
+    assert.equal(items3.length, 1)
+    assert.equal(items3[0], items[0])
   })
 
   it('should manage a autocomplete with getItems as fetch url with q param', async () => {
@@ -106,6 +125,11 @@ describe('get select items', () => {
       { title: 'val2', key: 'val2', value: 'val2' }
     ])
 
+    // when the node is mutated its cache key is not mutated and items are not recreated
+    statefulLayout.input(statefulLayout.stateTree.root, 'val1')
+    const items2 = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.equal(items, items2)
+
     nockScope = nock('http://test.com')
       .get('/test?query=val1')
       .reply(200, ['val1'])
@@ -121,7 +145,7 @@ describe('get select items', () => {
     const compiledLayout = await compile({ type: 'string', layout: { comp: 'autocomplete', getItems: { url: 'http://${options.context.domain}/test' } } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
-    let nockScope = nock('http://test.com')
+    const nockScope = nock('http://test.com')
       .get('/test')
       .reply(200, ['val1', 'val2'])
     let items = await statefulLayout.getItems(statefulLayout.stateTree.root)
@@ -131,11 +155,7 @@ describe('get select items', () => {
       { title: 'val2', key: 'val2', value: 'val2' }
     ])
 
-    nockScope = nock('http://test.com')
-      .get('/test')
-      .reply(200, ['val1', 'val2'])
     items = await statefulLayout.getItems(statefulLayout.stateTree.root, 'val1')
-    assert.ok(nockScope.isDone())
     assert.deepEqual(items, [
       { title: 'val1', key: 'val1', value: 'val1' }
     ])

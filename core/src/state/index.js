@@ -517,24 +517,28 @@ export class StatefulLayout {
 
   /**
    * @private
+   * @type {Record<string, {key: any, appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}>}
+   */
+  _itemsCache = {}
+
+  /**
+   * @private
    * @param {StateNode} node
    * @param {string} q
-   * @returns {Promise<[import('@json-layout/vocabulary').SelectItems, boolean]>}
+   * @returns {Promise<{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}>}
    */
-  async getSourceItems (node, q = '') {
+  async getItemsWithoutCache (node, q = '') {
     if (!isItemsNode(node, this._compiledLayout.components)) {
       throw new Error('node is not a component with an items list')
     }
 
-    if (node.layout.items) return [node.layout.items, false]
-
-    let rawItems
     let appliedQ = false
-    if (node.layout.getItems && isGetItemsExpression(node.layout.getItems)) {
-      rawItems = this.evalNodeExpression(node, node.layout.getItems, null)
+    let rawItems
+    if (node.layout.items || (node.layout.getItems && isGetItemsExpression(node.layout.getItems))) {
+      rawItems = node.itemsCacheKey
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
-      const url = new URL(this.evalNodeExpression(node, node.layout.getItems.url, null))
+      const url = new URL(node.itemsCacheKey)
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
         for (const searchParam of url.searchParams.entries()) {
@@ -549,36 +553,37 @@ export class StatefulLayout {
       rawItems = await (await fetch(url)).json()
     }
 
-    if (rawItems) {
-      if (node.layout.getItems?.itemsResults) {
-        rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
-      }
-
-      if (!Array.isArray(rawItems)) throw new Error(`getItems didn't return an array for node ${node.fullKey}, you can define itemsResults to extract the array`)
-
-      /** @type {import('@json-layout/vocabulary').SelectItems} */
-      const items = rawItems.map((/** @type {any} */ rawItem) => {
-        /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
-        const item = {}
-        if (typeof rawItem === 'object') {
-          item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
-          item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : rawItem.key
-          item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : rawItem.title
-          item.value = item.value ?? item.key
-          item.key = item.key ?? item.value + ''
-          item.title = item.title ?? item.key
-          if (!item.icon && rawItem.icon) item.icon = rawItem.icon
-        } else {
-          item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : rawItem
-          item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : item.value
-          item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
-        }
-        if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
-        return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
-      })
-      return [items, appliedQ]
+    if (!rawItems) {
+      throw new Error(`node ${node.fullKey} is missing items or getItems parameters`)
     }
-    throw new Error(`node ${node.fullKey} is missing items or getItems parameters`)
+    if (node.layout.getItems?.itemsResults) {
+      rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
+    }
+
+    if (!Array.isArray(rawItems)) throw new Error(`getItems didn't return an array for node ${node.fullKey}, you can define itemsResults to extract the array`)
+
+    /** @type {import('@json-layout/vocabulary').SelectItems} */
+    const items = rawItems.map((/** @type {any} */ rawItem) => {
+      /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
+      const item = {}
+      if (typeof rawItem === 'object') {
+        item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
+        item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : rawItem.key
+        item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : rawItem.title
+        item.value = item.value ?? item.key
+        item.key = item.key ?? item.value + ''
+        item.title = item.title ?? item.key
+        if (!item.icon && rawItem.icon) item.icon = rawItem.icon
+      } else {
+        item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : rawItem
+        item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : item.value
+        item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
+      }
+      if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
+      return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
+    })
+
+    return { appliedQ, items }
   }
 
   /**
@@ -587,9 +592,23 @@ export class StatefulLayout {
    * @returns {Promise<import('@json-layout/vocabulary').SelectItems>}
    */
   async getItems (node, q = '') {
-    const [sourceItems, appliedQ] = await this.getSourceItems(node, q)
-    if (q && !appliedQ) return sourceItems.filter(item => item.title.toLowerCase().includes(q.toLowerCase()))
-    return sourceItems
+    /** @type {{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}} */
+    let itemsResult
+    if (
+      this._itemsCache[node.fullKey] &&
+      this._itemsCache[node.fullKey].key === node.itemsCacheKey &&
+      (!q || !this._itemsCache[node.fullKey].appliedQ)
+    ) {
+      itemsResult = this._itemsCache[node.fullKey]
+    } else {
+      itemsResult = await this.getItemsWithoutCache(node, q)
+      if (!q || !itemsResult.appliedQ) {
+        this._itemsCache[node.fullKey] = { key: node.itemsCacheKey, ...itemsResult }
+      }
+    }
+
+    if (q && !itemsResult.appliedQ) return itemsResult.items.filter(item => item.title.toLowerCase().includes(q.toLowerCase()))
+    return itemsResult.items
   }
 
   /**

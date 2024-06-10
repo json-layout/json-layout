@@ -185,7 +185,8 @@
           "itemTitle": {"$ref": "#/$defs/expression"},
           "itemKey": {"$ref": "#/$defs/expression"},
           "itemValue": {"$ref": "#/$defs/expression"},
-          "itemIcon": {"$ref": "#/$defs/expression"}
+          "itemIcon": {"$ref": "#/$defs/expression"},
+          "immutable": {"type": "boolean"}
         }
       },
       {

@@ -1,4 +1,4 @@
-import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout } from '@json-layout/vocabulary'
+import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import { getChildDisplay } from './utils/display.js'
 import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
@@ -27,8 +27,8 @@ const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, itemsCacheKey, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -43,6 +43,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.cols = cols
   draft.data = data
   draft.error = error
+  draft.itemsCacheKey = itemsCacheKey
   draft.childError = children && (children.findIndex(c => c.error || c.childError) !== -1)
   draft.validated = validated
   if (autofocus) {
@@ -461,6 +462,23 @@ export function createStateNode (
     props = evalExpression(compiledLayout.expressions, layout.getProps, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
   }
 
+  /** @type {any} */
+  let itemsCacheKey
+  if (isItemsLayout(layout, compiledLayout.components)) {
+    // TODO: prefetch items or preresolve url and store a key whose changes can be monitored to re-trigger actual fetch
+    if (layout.items) itemsCacheKey = layout.items
+    else if (layout.getItems?.immutable && reusedNode?.itemsCacheKey) itemsCacheKey = reusedNode.itemsCacheKey
+    else if (layout.getItems && isGetItemsExpression(layout.getItems)) {
+      if (layout.getItems.immutable && reusedNode?.itemsCacheKey) {
+        itemsCacheKey = reusedNode.itemsCacheKey
+      } else {
+        itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+      }
+    } else if (layout.getItems && isGetItemsFetch(layout.getItems)) {
+      itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+    }
+  }
+
   const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
@@ -479,6 +497,7 @@ export function createStateNode (
     options,
     autofocus,
     props,
+    itemsCacheKey,
     children && shallowProduceArray(reusedNode?.children, children)
   )
 

@@ -49,6 +49,7 @@ export interface StateNode {
   autofocus?: boolean
   autofocusChild?: string | number
   props?: StateNodePropsLib
+  itemsCacheKey: any
   children?: StateNode[]
 }
 
