@@ -119,6 +119,7 @@ function getDefaultComp (partial, schemaFragment, type, arrayChild) {
     if (isPartialGetItemsFetch(partial.getItems)) {
       if (partial.getItems.qSearchParam) return 'autocomplete'
       if (typeof partial.getItems.url === 'string' && partial.getItems.url.includes('{q}')) return 'autocomplete'
+      if (typeof partial.getItems.url === 'object' && typeof partial.getItems.url.expr === 'string' && partial.getItems.url.expr.includes('{q}')) return 'autocomplete'
     }
     return 'select'
   }
