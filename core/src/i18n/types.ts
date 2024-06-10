@@ -7,6 +7,7 @@ export interface StateOptionsMessages {
   addItem: string
   delete: string
   edit: string
+  close: string
   duplicate: string
   sort: string
   up: string

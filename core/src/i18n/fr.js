@@ -5,6 +5,7 @@ export default {
   addItem: 'Ajouter un élément',
   delete: 'Supprimer',
   edit: 'Éditer',
+  close: 'Fermer',
   duplicate: 'Dupliquer',
   sort: 'Trier',
   up: 'Décaler vers le haut',
