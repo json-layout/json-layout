@@ -150,13 +150,6 @@ export function makeSkeletonNode (
           undefined,
           dependent
         ))
-        if (schema?.required?.includes(propertyKey)) {
-          schema.errorMessage.required = schema.errorMessage.required ?? {}
-          schema.errorMessage.required[propertyKey] = options.messages.errorRequired
-        }
-        if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
-          schema.errorMessage.dependentRequired = options.messages.errorRequired
-        }
 
         if (schema.dependentSchemas?.[propertyKey] || (schema.dependencies?.[propertyKey] && !Array.isArray(schema.dependencies[propertyKey]))) {
           const dependentSchema = schema.dependentSchemas?.[propertyKey] ?? schema.dependencies[propertyKey]
@@ -288,6 +281,16 @@ export function makeSkeletonNode (
           undefined,
           'object'
         ))
+      }
+    }
+
+    for (const propertyKey of node.propertyKeys) {
+      if (schema?.required?.includes(propertyKey)) {
+        schema.errorMessage.required = schema.errorMessage.required ?? {}
+        schema.errorMessage.required[propertyKey] = options.messages.errorRequired
+      }
+      if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
+        schema.errorMessage.dependentRequired = options.messages.errorRequired
       }
     }
   }
