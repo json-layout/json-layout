@@ -566,23 +566,7 @@ export class StatefulLayout {
 
     /** @type {import('@json-layout/vocabulary').SelectItems} */
     const items = rawItems.map((/** @type {any} */ rawItem) => {
-      /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
-      const item = {}
-      if (typeof rawItem === 'object') {
-        item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
-        item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : rawItem.key
-        item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : rawItem.title
-        item.value = item.value ?? item.key
-        item.key = item.key ?? item.value + ''
-        item.title = item.title ?? item.key
-        if (!item.icon && rawItem.icon) item.icon = rawItem.icon
-      } else {
-        item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : rawItem
-        item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : item.value
-        item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
-      }
-      if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
-      return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
+      return this.prepareSelectItem(node, rawItem)
     })
 
     return { appliedQ, items }
@@ -611,6 +595,31 @@ export class StatefulLayout {
 
     if (q && !itemsResult.appliedQ) return itemsResult.items.filter(item => item.title.toLowerCase().includes(q.toLowerCase()))
     return itemsResult.items
+  }
+
+  /**
+   * @param {StateNode} node
+   * @param {any} rawItem
+   * @returns {import('@json-layout/vocabulary').SelectItem}
+   */
+  prepareSelectItem (node, rawItem) {
+    /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
+    const item = {}
+    if (typeof rawItem === 'object') {
+      item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
+      item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : rawItem.key
+      item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : rawItem.title
+      item.value = item.value ?? item.key
+      item.key = item.key ?? item.value + ''
+      item.title = item.title ?? item.key
+      if (!item.icon && rawItem.icon) item.icon = rawItem.icon
+    } else {
+      item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : rawItem
+      item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : item.value
+      item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
+    }
+    if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
+    return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
   }
 
   /**

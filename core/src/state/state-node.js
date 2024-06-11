@@ -472,7 +472,7 @@ export function createStateNode (
   /** @type {any} */
   let itemsCacheKey
   if (isItemsLayout(layout, compiledLayout.components)) {
-    // TODO: prefetch items or preresolve url and store a key whose changes can be monitored to re-trigger actual fetch
+    // prefetch items or preresolve url and store a key whose changes can be monitored to re-trigger actual fetch
     if (layout.items) itemsCacheKey = layout.items
     else if (layout.getItems?.immutable && reusedNode?.itemsCacheKey) itemsCacheKey = reusedNode.itemsCacheKey
     else if (layout.getItems && isGetItemsExpression(layout.getItems)) {
