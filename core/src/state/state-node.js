@@ -337,7 +337,7 @@ export function createStateNode (
   if (key === '$oneOf' && skeleton.childrenTrees) {
     // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
     /** @type {number} */
-    const activeChildTreeIndex = fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
+    const activeChildTreeIndex = fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].root.pointer](data))
     if (activeChildTreeIndex !== -1) {
       context.errors = context.errors?.filter(error => {
         const originalError = error.params?.errors?.[0] ?? error
@@ -349,7 +349,7 @@ export function createStateNode (
       })
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
-      const activeChildTree = skeleton.childrenTrees[activeChildTreeIndex]
+      const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
       children = [
         createStateNode(
           context,
@@ -374,7 +374,7 @@ export function createStateNode (
 
   if (layout.comp === 'list') {
     const arrayData = /** @type {unknown[]} */(data ?? [])
-    const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0]?.root)
+    const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root)
     const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
     children = []
     let focusChild = context.autofocusTarget === fullKey
@@ -422,6 +422,7 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
 
+  /** @type {unknown} */
   let nodeData = typeof data === 'object' && !(data instanceof File)
     ? produceStateNodeData(
       /** @type {Record<string, unknown>} */(data ?? {}),

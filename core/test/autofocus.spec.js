@@ -13,7 +13,7 @@ describe('Autofocus', () => {
         str2: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
     assert.deepEqual(statefulLayout.stateTree.root.autofocus, undefined)
     assert.ok(statefulLayout.stateTree.root.children)
     assert.equal(statefulLayout.stateTree.root.children.length, 2)
@@ -29,7 +29,7 @@ describe('Autofocus', () => {
         str2: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, autofocus: true })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, autofocus: true })
     assert.deepEqual(statefulLayout.stateTree.root.autofocus, undefined)
     assert.ok(statefulLayout.stateTree.root.children)
     assert.equal(statefulLayout.stateTree.root.children.length, 2)
@@ -45,7 +45,7 @@ describe('Autofocus', () => {
         str2: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, autofocus: true })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, autofocus: true })
     assert.deepEqual(statefulLayout.stateTree.root.autofocus, undefined)
     assert.ok(statefulLayout.stateTree.root.children)
     assert.equal(statefulLayout.stateTree.root.children.length, 2)
@@ -61,7 +61,7 @@ describe('Autofocus', () => {
         str2: { type: 'string', layout: { autofocus: true } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, autofocus: true })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, autofocus: true })
     assert.deepEqual(statefulLayout.stateTree.root.autofocus, undefined)
     assert.ok(statefulLayout.stateTree.root.children)
     assert.equal(statefulLayout.stateTree.root.children.length, 2)
@@ -79,7 +79,7 @@ describe('Autofocus', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, [{ str1: 'test1' }, { str1: 'test2' }, { str1: 'test3' }, { str1: 'test4' }])
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, [{ str1: 'test1' }, { str1: 'test2' }, { str1: 'test3' }, { str1: 'test4' }])
     assert.equal(statefulLayout.stateTree.root.children?.[0].options.readOnly, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].options.summary, true)
     assert.equal(statefulLayout.stateTree.root.children?.[1].options.readOnly, true)
@@ -108,7 +108,7 @@ describe('Autofocus', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, autofocus: true }, { arr1: [{ str1: 'test1' }, { str1: 'test2' }, { str1: 'test3' }, { str1: 'test4' }] })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, autofocus: true }, { arr1: [{ str1: 'test1' }, { str1: 'test2' }, { str1: 'test3' }, { str1: 'test4' }] })
     assert.equal(statefulLayout.stateTree.root.children?.[0].autofocus, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[1].autofocus, true)
     assert.equal(statefulLayout.stateTree.root.children?.[2].autofocus, undefined)

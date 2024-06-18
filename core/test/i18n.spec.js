@@ -11,6 +11,7 @@ describe('internationalization', () => {
 
   it('should resolve refs with injected locale variables', async () => {
     const compiled = compile({ type: 'object', properties: { str1: { type: 'string', title: { $ref: '#/$defs/i18n/~$locale~/str1' } } }, $defs: { i18n: { en: { str1: 'String 1' } } } })
+    console.log(compiled.normalizedLayouts)
     assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str1']))
     assert.ok(compiled.normalizedLayouts['_jl#/properties/str1'].comp === 'text-field')
     assert.equal(compiled.normalizedLayouts['_jl#/properties/str1']?.label, 'String 1')
@@ -18,7 +19,7 @@ describe('internationalization', () => {
 
   it('should return validation errors internationalized by ajv', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, -10)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, -10)
     assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
   })
 
@@ -29,7 +30,7 @@ describe('internationalization', () => {
     await writeFile(filePath, code + '\nexport default compiledLayout;')
     const serializedLayout = (await import(filePath)).default
 
-    const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTree, defaultOptions, -10)
+    const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
     assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
   })
 
@@ -41,7 +42,7 @@ describe('internationalization', () => {
         array2: { type: 'array', items: { type: 'string' }, layout: { comp: 'list', messages: { addItem: 'Add item to array 2' } } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, -10)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, -10)
     assert.equal(statefulLayout.stateTree.root.children?.[0].messages.addItem, 'Add item to array 1')
     assert.equal(statefulLayout.stateTree.root.children?.[1].messages.addItem, 'Add item to array 2')
   })

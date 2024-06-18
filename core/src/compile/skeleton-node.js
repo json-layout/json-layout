@@ -3,14 +3,17 @@ import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetIte
 import { makeSkeletonTree } from './skeleton-tree.js'
 
 /**
- * @param {any} schema
+ * @param {any} rawSchema
+ * @param {string} sourceSchemaId
  * @param {import('./index.js').CompileOptions} options
+ * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
+ * @param {Record<string, import('./types.js').SkeletonTree>} skeletonTrees
  * @param {string[]} validates
  * @param {Record<string, string[]>} validationErrors
  * @param {Record<string, import('@json-layout/vocabulary').NormalizedLayout>} normalizedLayouts
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
  * @param {string | number} key
- * @param {string} pointer
+ * @param {string} currentPointer
  * @param {string | null} parentPointer
  * @param {boolean} required
  * @param {string} [condition]
@@ -19,24 +22,36 @@ import { makeSkeletonTree } from './skeleton-tree.js'
  * @returns {import('./types.js').SkeletonNode}
  */
 export function makeSkeletonNode (
-  schema,
+  rawSchema,
+  sourceSchemaId,
   options,
+  getJSONRef,
+  skeletonTrees,
   validates,
   validationErrors,
   normalizedLayouts,
   expressions,
   key,
-  pointer,
+  currentPointer,
   parentPointer,
   required,
   condition,
   dependent,
   knownType
 ) {
+  let schemaId = sourceSchemaId
+  let schema = rawSchema
+  let pointer = currentPointer
+  let refFragment
+  if (schema.$ref) {
+    [refFragment, schemaId, pointer] = getJSONRef(sourceSchemaId, schema.$ref)
+    schema = {...rawSchema, ...refFragment}
+    delete schema.$ref
+  }
   const { type, nullable } = knownType ? { type: knownType, nullable: false } : getSchemaFragmentType(schema)
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
-  schema.errorMessage = schema.errorMessage ?? {}
+  rawSchema.errorMessage = rawSchema.errorMessage ?? {}
   if (!normalizedLayouts[pointer]) {
     const normalizationResult = normalizeLayoutFragment(
       /** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema),
@@ -138,7 +153,10 @@ export function makeSkeletonNode (
         const dependent = schema.dependentRequired && Object.values(schema.dependentRequired).some(dependentProperties => dependentProperties.includes(propertyKey))
         node.children.push(makeSkeletonNode(
           schema.properties[propertyKey],
+          schemaId,
           options,
+          getJSONRef,
+          skeletonTrees,
           validates,
           validationErrors,
           normalizedLayouts,
@@ -156,7 +174,10 @@ export function makeSkeletonNode (
           const dependentPointer = schema.dependentSchemas?.[propertyKey] ? `${pointer}/dependentSchemas/${propertyKey}` : `${pointer}/dependencies/${propertyKey}`
           node.children.push(makeSkeletonNode(
             dependentSchema,
+            schemaId,
             options,
+            getJSONRef,
+            skeletonTrees,
             validates,
             validationErrors,
             normalizedLayouts,
@@ -177,7 +198,10 @@ export function makeSkeletonNode (
       for (let i = 0; i < schema.allOf.length; i++) {
         const allOfNode = makeSkeletonNode(
           schema.allOf[i],
+          schemaId,
           options,
+          getJSONRef,
+          skeletonTrees,
           validates,
           validationErrors,
           normalizedLayouts,
@@ -213,23 +237,32 @@ export function makeSkeletonNode (
           validationErrors[oneOfPointer.replace('_jl#', '/')] = normalizationResult.errors
         }
       }
-      /** @type {import('./types.js').SkeletonTree[]} */
+      /** @type {string[]} */
       const childrenTrees = []
       /** @type {string[]} */
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = type
         const title = schema.oneOf[i].title ?? `option ${i}`
         delete schema.oneOf[i].title
-        childrenTrees.push(makeSkeletonTree(
-          schema.oneOf[i],
-          options,
-          validates,
-          validationErrors,
-          normalizedLayouts,
-          expressions,
-          `${oneOfPointer}/${i}`,
-          title
-        ))
+        const childTreePointer = `${oneOfPointer}/${i}`
+        if (!skeletonTrees[childTreePointer]) {
+          // @ts-ignore
+          skeletonTrees[childTreePointer] = 'recursing'
+          skeletonTrees[childTreePointer] = makeSkeletonTree(
+            schema.oneOf[i],
+            schemaId,
+            options,
+            getJSONRef,
+            skeletonTrees,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            childTreePointer,
+            title
+          )
+        }
+        childrenTrees.push(childTreePointer)
       }
       node.children = node.children ?? []
       node.children.push({
@@ -237,7 +270,7 @@ export function makeSkeletonNode (
         pointer: `${pointer}/oneOf`,
         parentPointer: pointer,
         childrenTrees,
-        pure: childrenTrees[0].root.pure,
+        pure: skeletonTrees[childrenTrees[0]]?.root.pure,
         propertyKeys: [],
         roPropertyKeys: []
       })
@@ -250,7 +283,10 @@ export function makeSkeletonNode (
         node.children = node.children ?? []
         node.children.push(makeSkeletonNode(
           schema.then,
+          schemaId,
           options,
+          getJSONRef,
+          skeletonTrees,
           validates,
           validationErrors,
           normalizedLayouts,
@@ -268,7 +304,10 @@ export function makeSkeletonNode (
         node.children = node.children ?? []
         node.children.push(makeSkeletonNode(
           schema.else,
+          schemaId,
           options,
+          getJSONRef,
+          skeletonTrees,
           validates,
           validationErrors,
           normalizedLayouts,
@@ -300,7 +339,10 @@ export function makeSkeletonNode (
       node.children = schema.items.map((/** @type {any} */ itemSchema, /** @type {number} */ i) => {
         return makeSkeletonNode(
           itemSchema,
+          schemaId,
           options,
+          getJSONRef,
+          skeletonTrees,
           validates,
           validationErrors,
           normalizedLayouts,
@@ -312,23 +354,34 @@ export function makeSkeletonNode (
         )
       })
     } else {
-      node.childrenTrees = [
-        makeSkeletonTree(
+      const childTreePointer = `${pointer}/items`
+      if (!skeletonTrees[childTreePointer]) {
+        // @ts-ignore
+        skeletonTrees[childTreePointer] = 'recursing'
+        skeletonTrees[childTreePointer] = makeSkeletonTree(
           schema.items,
+          schemaId,
           options,
+          getJSONRef,
+          skeletonTrees,
           validates,
           validationErrors,
           normalizedLayouts,
           expressions,
-          `${pointer}/items`,
+          childTreePointer,
           schema.items.title
         )
-      ]
+      }
+      node.childrenTrees = [childTreePointer]
     }
   }
 
-  for (const child of node.children || []) if (!child.pure) node.pure = false
-  for (const childTree of node.childrenTrees || []) if (!childTree.root.pure) node.pure = false
+  for (const child of node.children || []) {
+    if (!child.pure) node.pure = false
+  }
+  for (const childTree of node.childrenTrees || []) {
+    if (!skeletonTrees[childTree]?.root?.pure) node.pure = false
+  }
 
   return node
 }

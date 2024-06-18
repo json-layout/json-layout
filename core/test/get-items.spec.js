@@ -16,7 +16,7 @@ describe('get select items', () => {
       type: 'string',
       enum: ['val1', 'val2']
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
     assert.deepEqual(items, [
@@ -39,7 +39,7 @@ describe('get select items', () => {
       type: 'string',
       examples: ['val1', 'val2']
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'combobox')
     const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
     assert.deepEqual(items, [
@@ -53,7 +53,7 @@ describe('get select items', () => {
       type: 'string',
       layout: { items: ['val1', 'val2'] }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
     assert.deepEqual(items, [
@@ -64,7 +64,7 @@ describe('get select items', () => {
 
   it('should manage a select with getItems as a simple expression', async () => {
     const compiledLayout = await compile({ type: 'string', layout: { getItems: 'options.context.items' } })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { items: ['val1', 'val2'] } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { items: ['val1', 'val2'] } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
     assert.deepEqual(items, [
@@ -75,7 +75,7 @@ describe('get select items', () => {
 
   it('should manage a select with getItems as a more complex expression', async () => {
     const compiledLayout = await compile({ type: 'string', layout: { getItems: 'options.context.items.map(item => ({title: item.toUpperCase(), key: item, value: item}))' } })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { items: ['val1', 'val2'] } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { items: ['val1', 'val2'] } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
     assert.deepEqual(items, [
@@ -87,7 +87,7 @@ describe('get select items', () => {
   it('should manage a select with getItems as fetch instruction', async () => {
     // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemTitle: 'data.toUpperCase()' } } })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { domain: 'test.com' } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const nockScope = nock('http://test.com')
       .get('/test')
@@ -113,7 +113,7 @@ describe('get select items', () => {
   it('should manage a autocomplete with getItems as fetch url with q param', async () => {
     // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'http://${options.context.domain}/test?query={q}' } } })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { domain: 'test.com' } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
     let nockScope = nock('http://test.com')
       .get('/test')
@@ -143,7 +143,7 @@ describe('get select items', () => {
   it('should manage a autocomplete with getItems as fetch url without q param', async () => {
     // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({ type: 'string', layout: { comp: 'autocomplete', getItems: { url: 'http://${options.context.domain}/test' } } })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { domain: 'test.com' } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
     const nockScope = nock('http://test.com')
       .get('/test')
@@ -167,7 +167,7 @@ describe('get select items', () => {
       type: 'object',
       layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2.toUpperCase()' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const nockScope = nock('http://test.com')
       .get('/test')
@@ -190,7 +190,7 @@ describe('get select items', () => {
       },
       layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const nockScope = nock('http://test.com')
       .get('/test')
@@ -202,7 +202,6 @@ describe('get select items', () => {
       { title: 'val2', key: 'val2', value: { prop1: 'val2', prop2: 'val2', ignoreProp: 'val2' } }
     ])
     statefulLayout.input(statefulLayout.stateTree.root, items[0].value)
-    console.log(statefulLayout.data)
     assert.deepEqual(statefulLayout.data, { prop1: 'val1', prop2: 'val1' })
   })
 })

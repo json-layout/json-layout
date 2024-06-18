@@ -97,7 +97,7 @@ describe('Special cases of oneOfs', () => {
         ]
       })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,
       {}
     )
@@ -145,7 +145,7 @@ describe('Special cases of oneOfs', () => {
         }
       }]
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { key: 'key2' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key2' })
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
@@ -185,7 +185,7 @@ describe('Special cases of oneOfs', () => {
         }
       }]
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { key: 'key1' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1' })
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')

@@ -13,7 +13,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { str2: 'test' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
     assert.equal(statefulLayout.stateTree.valid, false)
     assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
   })
@@ -27,7 +27,7 @@ describe('stateful layout validation state', () => {
         str2: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { str2: 'test' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
     assert.equal(statefulLayout.stateTree.valid, false)
     assert.equal(statefulLayout.stateTree.root.error, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
@@ -64,7 +64,7 @@ describe('stateful layout validation state', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.valid, false)
     assert.equal(statefulLayout.stateTree.root.error, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, undefined)
@@ -104,7 +104,7 @@ describe('stateful layout validation state', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.valid, true)
   })
 })

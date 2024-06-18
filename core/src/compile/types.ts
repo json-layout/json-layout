@@ -41,7 +41,8 @@ export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & 
 export interface CompiledLayout {
   options?: CompileOptions
   schema?: SchemaObject
-  skeletonTree: SkeletonTree
+  mainTree: string,
+  skeletonTrees: Record<string, SkeletonTree>
   validates: Record<string, ValidateFunction>
   validationErrors: Record<string, string[]>
   normalizedLayouts: Record<string, NormalizedLayout>
@@ -70,7 +71,7 @@ export interface SkeletonNode {
   roPropertyKeys: string[]
   condition?: Expression
   children?: SkeletonNode[] // optional children in the case of arrays and object nodes
-  childrenTrees?: SkeletonTree[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
+  childrenTrees?: string[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
   required?: boolean
   nullable?: boolean
 }

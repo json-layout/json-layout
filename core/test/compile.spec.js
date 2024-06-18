@@ -19,7 +19,7 @@ describe('compile schema function', () => {
     const filePath = resolve('tmp/compiled.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')
     const serializedLayout = (await import(filePath)).default
-    assert.deepEqual(serializedLayout.skeletonTree, compiledLayout.skeletonTree)
+    assert.deepEqual(serializedLayout.skeletonTrees[serializedLayout.mainTree], compiledLayout.skeletonTrees[compiledLayout.mainTree])
     assert.deepEqual(serializedLayout.normalizedLayouts, compiledLayout.normalizedLayouts)
     // console.log(serializedLayout)
   })
@@ -33,8 +33,8 @@ describe('compile schema function', () => {
 
   it('should resolve refs', async () => {
     const compiled = compile({ type: 'object', properties: { str1: { $ref: '#/$defs/str1' } }, $defs: { str1: { type: 'string', title: 'String 1' } } })
-    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str1']))
-    assert.ok(compiled.normalizedLayouts['_jl#/properties/str1'].comp === 'text-field')
-    assert.equal(compiled.normalizedLayouts['_jl#/properties/str1'].label, 'String 1')
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/$defs/str1']))
+    assert.equal(compiled.normalizedLayouts['_jl#/$defs/str1'].comp, 'text-field')
+    assert.equal(compiled.normalizedLayouts['_jl#/$defs/str1'].label, 'String 1')
   })
 })

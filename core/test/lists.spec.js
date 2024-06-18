@@ -10,10 +10,10 @@ describe('Management of props from layout', () => {
       type: 'object',
       properties: { arr1: { type: 'array', layout: 'list', items: { type: 'string', minLength: 2 } } }
     })
-    assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
-    assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
-    assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {
+    assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children?.length, 1)
+    assert.ok(!compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].children)
+    assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].childrenTrees?.length, 1)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
       arr1: ['Str 1', 'Str 2', 'a']
     })
     const arrNode = statefulLayout.stateTree.root.children?.[0]
@@ -43,10 +43,10 @@ describe('Management of props from layout', () => {
       type: 'object',
       properties: { arr1: { type: 'array', items: { type: 'object', properties: { str1: { type: 'string' } } } } }
     })
-    assert.equal(compiledLayout.skeletonTree.root.children?.length, 1)
-    assert.ok(!compiledLayout.skeletonTree.root.children[0].children)
-    assert.equal(compiledLayout.skeletonTree.root.children[0].childrenTrees?.length, 1)
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {
+    assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children?.length, 1)
+    assert.ok(!compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].children)
+    assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].childrenTrees?.length, 1)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
       arr1: [{ str1: 'val1' }]
     })
     const arrNode = statefulLayout.stateTree.root.children?.[0]

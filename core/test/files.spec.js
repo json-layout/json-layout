@@ -10,7 +10,7 @@ describe('files inputs', () => {
       type: 'object',
       properties: { file1: { type: 'object', layout: 'file-input' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.ok(statefulLayout.stateTree.valid)
     assert.ok(statefulLayout.stateTree.root.children?.[0])
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'file-input')
@@ -28,7 +28,7 @@ describe('files inputs', () => {
       type: 'object',
       properties: { file1: { type: 'array', layout: 'file-input' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.ok(statefulLayout.stateTree.valid)
     assert.ok(statefulLayout.stateTree.root.children?.[0])
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'file-input')

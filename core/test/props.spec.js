@@ -10,7 +10,7 @@ describe('Management of props from layout', () => {
       type: 'string',
       layout: { props: { appendIcon: 'mdi-heart' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, '')
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, '')
     assert.ok(statefulLayout.valid)
     assert.deepEqual(statefulLayout.stateTree.root.props, { appendIcon: 'mdi-heart' })
   })
@@ -20,7 +20,7 @@ describe('Management of props from layout', () => {
       type: 'string',
       layout: { getProps: 'data === "vjsf" ? {appendIcon: "mdi-heart"} : {}' }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, '')
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, '')
     assert.ok(statefulLayout.valid)
     assert.deepEqual(statefulLayout.stateTree.root.props, {})
     statefulLayout.input(statefulLayout.stateTree.root, 'vjsf')

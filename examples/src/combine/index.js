@@ -4,13 +4,14 @@ import layoutIf from './layout-if.js'
 import layoutSwitch from './layout-switch.js'
 import depedentSchemas from './dependent-schemas.js'
 import ifThenElse from './if-then-else.js'
+import recursion from './recursion.js'
 
 /** @type {import('../types.js').JSONLayoutExamplesCategory} */
 const category = {
   title: 'Combinations',
   id: 'combine',
   description: 'This section contains examples of combining schemas and layout options using conditions and higher level keywords than simple properties.',
-  examples: [oneOf, allOf, layoutIf, layoutSwitch, depedentSchemas, ifThenElse]
+  examples: [oneOf, allOf, layoutIf, layoutSwitch, depedentSchemas, ifThenElse, recursion]
 }
 
 export default category

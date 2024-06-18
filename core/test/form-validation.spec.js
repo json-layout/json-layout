@@ -13,7 +13,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.root.validated, false)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required information')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
@@ -32,7 +32,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, validateOn: 'blur' }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, validateOn: 'blur' }, {})
     assert.equal(statefulLayout.stateTree.root.validated, false)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required information')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
@@ -55,7 +55,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, validateOn: 'submit' }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, validateOn: 'submit' }, {})
     assert.equal(statefulLayout.stateTree.root.validated, false)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required information')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
@@ -91,7 +91,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, { str1: 'test1' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: 'test1' })
     assert.equal(statefulLayout.stateTree.root.validated, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'must match pattern "^[A-Z]+$"')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
@@ -105,7 +105,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, initialValidation: 'always' }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'always' }, {})
     assert.equal(statefulLayout.stateTree.root.validated, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required information')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
@@ -119,7 +119,7 @@ describe('stateful layout validation state', () => {
         str1: { type: 'string', pattern: '^[A-Z]+$' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, initialValidation: 'never' }, { str1: 'test1' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'never' }, { str1: 'test1' })
     assert.equal(statefulLayout.stateTree.root.validated, false)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'must match pattern "^[A-Z]+$"')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
@@ -139,7 +139,7 @@ describe('stateful layout validation state', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, initialValidation: 'never' }, { obj1: { str1: 'test1' } })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'never' }, { obj1: { str1: 'test1' } })
     assert.equal(statefulLayout.stateTree.root.childError, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].childError, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'must match pattern "^[A-Z]+$"')

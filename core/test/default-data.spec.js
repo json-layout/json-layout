@@ -10,7 +10,7 @@ describe('default data management', () => {
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
@@ -28,7 +28,7 @@ describe('default data management', () => {
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, defaultOn: 'missing' }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, defaultOn: 'missing' }, {})
 
     // console.log(JSON.stringify(statefulLayout.data, null, 2))
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
@@ -55,7 +55,7 @@ describe('default data management', () => {
       default: { str1: 'String 1' },
       properties: { str1: { type: 'string' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
@@ -64,7 +64,7 @@ describe('default data management', () => {
     const compiledLayout = await compile({
       type: 'string'
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, '')
   })
@@ -78,7 +78,7 @@ describe('default data management', () => {
         properties: { str1: { type: 'string' } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
 
     assert.deepEqual(statefulLayout.data, [])
 

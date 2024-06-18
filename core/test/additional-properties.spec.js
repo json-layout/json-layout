@@ -13,7 +13,7 @@ describe('Management of additional properties', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
@@ -30,7 +30,7 @@ describe('Management of additional properties', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
@@ -47,7 +47,7 @@ describe('Management of additional properties', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
@@ -63,7 +63,7 @@ describe('Management of additional properties', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       { ...defaultOptions, removeAdditional: 'unknown' },
       { str1: 'str1', str2: 'str2' }
     )
@@ -84,7 +84,7 @@ describe('Management of additional properties', () => {
       }]
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       { ...defaultOptions, removeAdditional: 'unknown' },
       { str1: 'str1', str2: 'str2', str3: 'str3' }
     )
@@ -105,7 +105,7 @@ describe('Management of additional properties', () => {
       }]
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       { ...defaultOptions, removeAdditional: 'unknown' },
       { str1: 'str1', str2: 'str2', str3: 'str3' }
     )
@@ -135,7 +135,7 @@ describe('Management of additional properties', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       { ...defaultOptions, removeAdditional: 'unknown' },
       { obj1: { str1: 'str1', str2: 'str2' }, obj2: { str1: 'str1', str2: 'str2' } }
     )

@@ -79,7 +79,8 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
 
   const ast = parseModule(code)
   ast.exports.compiledLayout = {
-    skeletonTree: compiledLayout.skeletonTree,
+    mainTree: compiledLayout.mainTree,
+    skeletonTrees: clone(compiledLayout.skeletonTrees),
     normalizedLayouts: clone(compiledLayout.normalizedLayouts),
     validates: {},
     validationErrors: compiledLayout.validationErrors,

@@ -14,7 +14,7 @@ describe('Impure expressions', () => {
         str3: { type: 'string', layout: { if: { expr: 'rootData?.str2', pure: false } } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
     assert.equal(statefulLayout.stateTree.root.children?.length, 3)
     assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
@@ -40,7 +40,7 @@ describe('Impure expressions', () => {
         str5: { type: 'string' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
     assert.equal(statefulLayout.stateTree.root.children?.length, 5)
     assert.equal(statefulLayout.stateTree.root.children[0].key, 'str1')
     assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
@@ -77,7 +77,7 @@ describe('Impure expressions', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, defaultOptions)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
     assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].layout.comp, 'text-field')

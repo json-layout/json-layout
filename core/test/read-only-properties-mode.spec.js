@@ -14,7 +14,7 @@ describe('Management of readOnly properties from schema', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,
       { str1: 'str1', str2: 'str2' }
     )
@@ -33,7 +33,7 @@ describe('Management of readOnly properties from schema', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       { ...defaultOptions, readOnlyPropertiesMode: 'hide' },
       { str1: 'str1', str2: 'str2' }
     )
@@ -52,7 +52,7 @@ describe('Management of readOnly properties from schema', () => {
       }
     })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       { ...defaultOptions, readOnlyPropertiesMode: 'remove' },
       { str1: 'str1', str2: 'str2' }
     )

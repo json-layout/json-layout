@@ -9,11 +9,9 @@ import MarkdownIt from 'markdown-it'
 import { produce } from 'immer'
 import i18n from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
-import { resolveRefs } from './utils/resolve-refs.js'
+import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import clone from '../utils/clone.js'
 import { standardComponents } from '@json-layout/vocabulary'
-
-export { resolveRefs } from './utils/resolve-refs.js'
 
 /**
  * @typedef {import('./types.js').SkeletonTree} SkeletonTree
@@ -103,9 +101,8 @@ export function compile (_schema, partialOptions = {}) {
   const options = fillOptions(partialOptions)
 
   const schema = /** @type {import('ajv').SchemaObject} */(clone(_schema))
-
   schema.$id = schema.$id ?? '_jl'
-  resolveRefs(schema, options.ajv, options.locale)
+  const getJSONRef = resolveLocaleRefs(schema, options.ajv, options.locale)
 
   /** @type {string[]} */
   const validatePointers = []
@@ -115,18 +112,26 @@ export function compile (_schema, partialOptions = {}) {
   const expressionsDefinitions = []
   /** @type {Record<string, string[]>} */
   const validationErrors = {}
+  /** @type {Record<string, import('./types.js').SkeletonTree>} */
+  const skeletonTrees = {}
 
-  const skeletonTree = makeSkeletonTree(
+  // makeSkeletonTree also mutates the schema (adding some error messages)
+  const mainTreePointer = `${schema.$id}#`
+  // @ts-ignore
+  skeletonTrees[mainTreePointer] = 'recursing'
+  skeletonTrees[mainTreePointer] = makeSkeletonTree(
     schema,
+    schema.$id,
     options,
+    getJSONRef,
+    skeletonTrees,
     validatePointers,
     validationErrors,
     normalizedLayouts,
     expressionsDefinitions,
-    `${schema.$id}#`,
+    mainTreePointer,
     'main'
   )
-
   options.ajv.addSchema(schema)
 
   const uriResolver = options.ajv.opts.uriResolver
@@ -168,7 +173,8 @@ export function compile (_schema, partialOptions = {}) {
   return {
     options,
     schema,
-    skeletonTree,
+    mainTree: mainTreePointer,
+    skeletonTrees,
     validates,
     validationErrors,
     normalizedLayouts,

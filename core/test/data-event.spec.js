@@ -12,7 +12,7 @@ describe('data update events', () => {
         bool1: { type: 'boolean' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {})
 
     /** @type {unknown[]} */
     let dataEvents = []
@@ -57,7 +57,7 @@ describe('data update events', () => {
         str1: { type: 'string', layout: { debounceInputMs: 0 } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { updateOn: 'blur' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { updateOn: 'blur' })
 
     /** @type {unknown[]} */
     const dataEvents = []

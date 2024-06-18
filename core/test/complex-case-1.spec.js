@@ -46,7 +46,7 @@ describe('A complex case from a data-fair processing', () => {
         $id: '_jl'
       })
     const statefulLayout = new StatefulLayout(
-      compiledLayout, compiledLayout.skeletonTree,
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,
       { title: 'test2', scheduling: { type: 'trigger' }, active: true, config: { datasetMode: 'create', dataset: { title: 'test' } } }
     )
