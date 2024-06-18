@@ -159,7 +159,6 @@ const matchError = (error, skeleton, dataPath, parentDataPath) => {
  * @returns {boolean}
  */
 const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
-  console.log(error.schemaPath)
   if (!(
     error.schemaPath === skeleton.pointer ||
     error.schemaPath.startsWith(skeleton.pointer + '/')
