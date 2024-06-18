@@ -167,7 +167,7 @@ describe('get select items', () => {
       type: 'object',
       layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2.toUpperCase()' } }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, context: { domain: 'test.com' } }, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const nockScope = nock('http://test.com')
       .get('/test')
@@ -178,5 +178,31 @@ describe('get select items', () => {
       { title: 'VAL1', key: 'val1', value: { prop1: 'val1', prop2: 'val1' } },
       { title: 'VAL2', key: 'val2', value: { prop1: 'val2', prop2: 'val2' } }
     ])
+  })
+
+  it('should manage a select and remove additional properties from result', async () => {
+    // eslint-disable-next-line no-template-curly-in-string
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        prop1: { type: 'string' },
+        prop2: { type: 'string' }
+      },
+      layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2' } }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTree, { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const nockScope = nock('http://test.com')
+      .get('/test')
+      .reply(200, { results: [{ prop1: 'val1', prop2: 'val1', ignoreProp: 'val1' }, { prop1: 'val2', prop2: 'val2', ignoreProp: 'val2' }] })
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: { prop1: 'val1', prop2: 'val1', ignoreProp: 'val1' } },
+      { title: 'val2', key: 'val2', value: { prop1: 'val2', prop2: 'val2', ignoreProp: 'val2' } }
+    ])
+    statefulLayout.input(statefulLayout.stateTree.root, items[0].value)
+    console.log(statefulLayout.data)
+    assert.deepEqual(statefulLayout.data, { prop1: 'val1', prop2: 'val1' })
   })
 })

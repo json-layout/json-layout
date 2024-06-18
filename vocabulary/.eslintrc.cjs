@@ -11,7 +11,7 @@ module.exports = {
       extends: 'standard-with-typescript'
     }
   ],
-  ignorePatterns: ['/node_modules', '/types', '/src/layout-keyword', '/src/normalized-layout', '.eslintrc.cjs'],
+  ignorePatterns: ['/node_modules', '/types', '/src/layout-keyword', '/src/normalized-layout', '.eslintrc.cjs', 'src/components/types.ts'],
   plugins: ['jsdoc'],
   rules: {
     'jsdoc/require-param-description': 0,
