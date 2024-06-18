@@ -67,7 +67,7 @@ const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
 
 /** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>} */
 const produceStateNodeData = produce((draft, parentDataPath, children, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
-  if (propertyKeys && propertyKeys.length) {
+  if (propertyKeys && (propertyKeys.length || children?.length)) {
     for (const key of Object.keys(draft)) {
       if (!propertyKeys.includes(key)) delete draft[key]
     }
@@ -422,7 +422,7 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
 
-  let nodeData = typeof data === 'object'
+  let nodeData = typeof data === 'object' && !(data instanceof File)
     ? produceStateNodeData(
       /** @type {Record<string, unknown>} */(data ?? {}),
       dataPath,
