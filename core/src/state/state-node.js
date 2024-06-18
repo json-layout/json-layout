@@ -262,7 +262,7 @@ export function createStateNode (
   // NOTE we have to exclude nodes with errors from the cache, because context.errors is unpurely modified
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
   if (skeleton.pure && reusedNode && !reusedNode.error && !reusedNode.childError) {
-    cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activeItems, context.initial, data]
+    cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activatedItems, context.initial, data]
     if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
       return reusedNode
     }
@@ -334,7 +334,7 @@ export function createStateNode (
   if (key === '$oneOf' && skeleton.childrenTrees) {
     // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
     /** @type {number} */
-    const activeChildTreeIndex = fullKey in context.activeItems ? context.activeItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
+    const activeChildTreeIndex = fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[childTree.root.pointer](data))
     if (activeChildTreeIndex !== -1) {
       context.errors = context.errors?.filter(error => {
         const originalError = error.params?.errors?.[0] ?? error
@@ -344,7 +344,6 @@ export function createStateNode (
         if (originalError.schemaPath.startsWith(skeleton.pointer) && !originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
         return true
       })
-      context.activeItems = produce(context.activeItems, draft => { draft[fullKey] = activeChildTreeIndex })
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
       const activeChildTree = skeleton.childrenTrees[activeChildTreeIndex]
@@ -382,7 +381,7 @@ export function createStateNode (
       if (focusChild) context.autofocusTarget = childFullKey
       const child = createStateNode(
         context,
-        (layout.listEditMode === 'inline-single' && context.activeItems[fullKey] === i) ? options : listItemOptions,
+        (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
         compiledLayout,
         i,
         childFullKey,

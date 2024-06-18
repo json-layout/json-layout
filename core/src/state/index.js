@@ -227,7 +227,7 @@ export class StatefulLayout {
     this._previousAutofocusTarget = null
     this._data = data
     this.initValidationState()
-    this.activeItems = {}
+    this.activatedItems = {}
     this.updateState()
     this.handleAutofocus()
   }
@@ -295,7 +295,7 @@ export class StatefulLayout {
   createStateTree (rehydrate = false) {
     /** @type {CreateStateTreeContext} */
     const createStateTreeContext = {
-      activeItems: this.activeItems,
+      activatedItems: this.activatedItems,
       autofocusTarget: this._autofocusTarget,
       initial: !this._lastCreateStateTreeContext,
       rehydrate,
@@ -322,7 +322,6 @@ export class StatefulLayout {
         validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey)
       }
     }
-    this.activeItems = createStateTreeContext.activeItems
     this.files = shallowProduceArray(this.files, createStateTreeContext.files)
   }
 
@@ -416,7 +415,7 @@ export class StatefulLayout {
     }
 
     if (activateKey !== undefined) {
-      this.activeItems = produce(this.activeItems, draft => { draft[node.fullKey] = activateKey })
+      this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = activateKey })
       this._autofocusTarget = node.fullKey + '/' + activateKey
     }
     if (node.parentFullKey === null) {
@@ -625,14 +624,14 @@ export class StatefulLayout {
   /**
    * @type {Record<string, number>}
    */
-  activeItems
+  activatedItems
 
   /**
    * @param {StateNode} node
    * @param {number} key
    */
   activateItem (node, key) {
-    this.activeItems = produce(this.activeItems, draft => { draft[node.fullKey] = key })
+    this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = key })
     this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
       this.input(node, undefined)
@@ -646,7 +645,12 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   deactivateItem (node) {
-    this.activeItems = produce(this.activeItems, draft => { delete draft[node.fullKey] })
+    // also deactivate children oneOf for example
+    this.activatedItems = produce(this.activatedItems, draft => {
+      for (const key in draft) {
+        if (key.startsWith(node.fullKey)) delete draft[key]
+      }
+    })
     this.updateState()
   }
 
