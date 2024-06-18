@@ -1,6 +1,6 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'Items HTTP requests',
+  title: 'Items from HTTP requests',
   id: 'http',
   description: 'It is also possible to fetch items from HTTP requests by defining the expression `getItems.url`.',
   schema: {
