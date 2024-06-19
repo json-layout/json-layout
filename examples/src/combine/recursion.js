@@ -15,6 +15,9 @@ const example = {
             type: 'array',
             items: {
               $ref: '#/$defs/recursiveObject'
+            },
+            layout: {
+              if: '!options.summary || data?.length > 0'
             }
           }
         }
