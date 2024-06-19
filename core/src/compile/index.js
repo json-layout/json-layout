@@ -13,6 +13,8 @@ import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import clone from '../utils/clone.js'
 import { standardComponents } from '@json-layout/vocabulary'
 
+export { resolveLocaleRefs } from './utils/resolve-refs.js'
+
 /**
  * @typedef {import('./types.js').SkeletonTree} SkeletonTree
  * @typedef {import('./types.js').SkeletonNode} SkeletonNode

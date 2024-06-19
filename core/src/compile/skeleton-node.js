@@ -1,6 +1,7 @@
 // import Debug from 'debug'
 import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
+import { partialResolveRefs } from './utils/resolve-refs.js'
 
 /**
  * @param {any} rawSchema
@@ -48,6 +49,7 @@ export function makeSkeletonNode (
     schema = {...rawSchema, ...refFragment}
     delete schema.$ref
   }
+  schema = partialResolveRefs(schema, schemaId, getJSONRef)
   const { type, nullable } = knownType ? { type: knownType, nullable: false } : getSchemaFragmentType(schema)
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)

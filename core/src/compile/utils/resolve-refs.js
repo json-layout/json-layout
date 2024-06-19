@@ -1,5 +1,5 @@
 import ajvModule from 'ajv/dist/2019.js'
-
+import clone from '../../utils/clone.js'
 
 /**
  * @param {Record<string, import('ajv').SchemaObject>} schemas
@@ -74,4 +74,57 @@ const recurseResolveLocale = (schemaFragment, schemaId, getJSONRef, locale, recu
       }
     }
   }
+}
+
+/**
+ * partially resolve a schema but not recursively, used for layout normalization
+ * @param {import('ajv').SchemaObject} schema
+ * @param {string} schemaId
+ * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
+ */
+export function partialResolveRefs (schema, schemaId, getJSONRef) {
+  let clonedSchema = null
+  if (schema.items && schema.items.$ref) {
+    const [refFragment] = getJSONRef(schemaId, schema.items.$ref)
+    clonedSchema = clonedSchema ?? clone(schema)
+    clonedSchema.items = { ...refFragment, ... schema.items }
+  }
+  if (schema.properties) {
+    for (const key in schema.properties) {
+      if (schema.properties[key].$ref) {
+        const [refFragment] = getJSONRef(schemaId, schema.properties[key].$ref)
+        clonedSchema = clonedSchema ?? clone(schema)
+        clonedSchema.properties[key] = { ...refFragment, ... schema.properties[key] }
+      }
+    }
+  }
+  if (schema.oneOf) {
+    for (let i = 0; i < schema.oneOf.length; i++) {
+      if (schema.oneOf[i].$ref) {
+        const [refFragment] = getJSONRef(schemaId, schema.oneOf[i].$ref)
+        clonedSchema = clonedSchema ?? clone(schema)
+        clonedSchema.oneOf[i] = { ...refFragment, ... schema.oneOf[i] }
+      }
+    }
+  }
+  if (schema.anyOf) {
+    for (let i = 0; i < schema.anyOf.length; i++) {
+      if (schema.anyOf[i].$ref) {
+        const [refFragment] = getJSONRef(schemaId, schema.anyOf[i].$ref)
+        clonedSchema = clonedSchema ?? clone(schema)
+        clonedSchema.anyOf[i] = { ...refFragment, ... schema.anyOf[i] }
+      }
+    }
+  }
+  if (schema.allOf) {
+    for (let i = 0; i < schema.allOf.length; i++) {
+      if (schema.allOf[i].$ref) {
+        const [refFragment] = getJSONRef(schemaId, schema.allOf[i].$ref)
+        clonedSchema = clonedSchema ?? clone(schema)
+        clonedSchema.allOf[i] = { ...refFragment, ... schema.allOf[i] }
+      }
+    }
+  }
+
+  return clonedSchema ?? schema
 }

@@ -11,7 +11,6 @@ describe('internationalization', () => {
 
   it('should resolve refs with injected locale variables', async () => {
     const compiled = compile({ type: 'object', properties: { str1: { type: 'string', title: { $ref: '#/$defs/i18n/~$locale~/str1' } } }, $defs: { i18n: { en: { str1: 'String 1' } } } })
-    console.log(compiled.normalizedLayouts)
     assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str1']))
     assert.ok(compiled.normalizedLayouts['_jl#/properties/str1'].comp === 'text-field')
     assert.equal(compiled.normalizedLayouts['_jl#/properties/str1']?.label, 'String 1')

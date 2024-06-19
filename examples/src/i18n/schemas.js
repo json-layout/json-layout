@@ -6,7 +6,7 @@ const example = {
   
 These refs will be resolved by replacing \`~$locale~\` with the current locale, and if the resolution fails it will attempted again with *en*.
 
-Warning: this resolution method is not a part of JSON schema or any other specification, schemas that use it will be incompatible with other tooling. You might want to use our method \`resolveLocale\` in your code:
+Warning: this resolution method is not a part of JSON schema or any other specification, schemas that use it will be incompatible with other tooling. You might want to use our method \`resolveLocaleRefs\` in your code:
 
 \`\`\`js
 import {resolveLocaleRefs} from '@json-layout/core
