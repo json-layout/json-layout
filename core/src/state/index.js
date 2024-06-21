@@ -227,6 +227,7 @@ export class StatefulLayout {
     this._autofocusTarget = this.options.autofocus ? '' : null
     this._previousAutofocusTarget = null
     this._data = data
+    this._previousData = data
     this.initValidationState()
     this.activatedItems = {}
     this.updateState()
