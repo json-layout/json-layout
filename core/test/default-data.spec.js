@@ -5,6 +5,27 @@ import { compile, StatefulLayout } from '../src/index.js'
 describe('default data management', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
+  it('should create empty root object', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: { str1: { type: 'string' } }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
+
+    assert.deepEqual(statefulLayout.data, {})
+  })
+
+  it('should not recreate empty root object', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: { str1: { type: 'string' } }
+    })
+    const initialData = {}
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, initialData)
+
+    assert.equal(statefulLayout.data, initialData)
+  })
+
   it('should fill default values when data is empty', async () => {
     const compiledLayout = await compile({
       type: 'object',
@@ -23,7 +44,7 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'test' })
   })
 
-  it('should fill default values when data is empty', async () => {
+  it('should fill default values when data is missing', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
@@ -64,7 +85,7 @@ describe('default data management', () => {
     const compiledLayout = await compile({
       type: 'string'
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
 
     assert.deepEqual(statefulLayout.data, '')
   })

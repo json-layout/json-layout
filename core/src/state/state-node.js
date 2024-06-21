@@ -449,7 +449,10 @@ export function createStateNode (
   } else {
     if (layout.getDefaultData && useDefaultData(nodeData, layout, options)) {
       if (!context.rehydrate) {
-        nodeData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+        const defaultData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+        if (nodeData === undefined || !isDataEmpty(defaultData)) {
+          nodeData = defaultData
+        }
       }
     } else {
       if (isDataEmpty(nodeData)) {
