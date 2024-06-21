@@ -218,6 +218,7 @@ export class StatefulLayout {
    * @param {unknown} [data]
    */
   constructor (compiledLayout, skeletonTree, options, data) {
+    logDataBinding('create stateful layout', compiledLayout, skeletonTree, options, data)
     this._compiledLayout = compiledLayout
     this.skeletonTree = skeletonTree
     /** @type {import('mitt').Emitter<StatefulLayoutEvents>} */

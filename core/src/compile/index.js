@@ -12,6 +12,7 @@ import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import clone from '../utils/clone.js'
 import { standardComponents } from '@json-layout/vocabulary'
+import { shallowEqualArray } from '../state/utils/immutable.js'
 
 export { resolveLocaleRefs } from './utils/resolve-refs.js'
 
@@ -36,9 +37,18 @@ const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalize
 export const produceCompileOptions = produce((draft, newOptions) => {
   for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'locale', 'messages', 'optionsKeys', 'components']) {
     // @ts-ignore
-    if (key in newOptions) draft[key] = newOptions[key]
-    // @ts-ignore
-    else delete draft[key]
+    if (key in newOptions) {
+      // components is problematic because it is an object with nested objects
+      // simply compare there keys instead of the whole object
+      if (key === 'components' && shallowEqualArray(Object.keys(draft.components ?? []), Object.keys(newOptions.components ?? []))) {
+        continue
+      }
+      // @ts-ignore
+      draft[key] = newOptions[key]
+    } else {
+      // @ts-ignore
+      delete draft[key]
+    }
   }
 })
 

@@ -28,11 +28,12 @@ export function shallowProduceObject (previousObj = {}, newObj = {}) {
 
 /**
  * @template ItemType
- * @param {any[]} a1
- * @param {any[]} a2
+ * @param {any[] | null | undefined} a1
+ * @param {any[] | null | undefined} a2
  * @returns {boolean}
  */
 export function shallowEqualArray (a1 = [], a2 = []) {
+  if (!a1 || !a2) return a1 === a2
   if (a1.length !== a2.length) return false
   for (let i = 0; i < a1.length; i++) { if (a1[i] !== a2[i]) return false }
   return true
