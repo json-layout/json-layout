@@ -389,7 +389,10 @@ for (const compileMode of ['runtime', 'build-time']) {
         debounceInputMs: 0,
         messages: i18n.en,
         autofocus: false,
-        readOnlyPropertiesMode: 'show'
+        readOnlyPropertiesMode: 'show',
+        onData: statefulLayout.stateTree.root.options.onData,
+        onUpdate: statefulLayout.stateTree.root.options.onUpdate,
+        onAutofocus: statefulLayout.stateTree.root.options.onAutofocus
       })
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, {
         opt0: 'Opt 0',
@@ -409,7 +412,10 @@ for (const compileMode of ['runtime', 'build-time']) {
         debounceInputMs: 0,
         messages: i18n.en,
         autofocus: false,
-        readOnlyPropertiesMode: 'show'
+        readOnlyPropertiesMode: 'show',
+        onData: statefulLayout.stateTree.root.children?.[0].options.onData,
+        onUpdate: statefulLayout.stateTree.root.children?.[0].options.onUpdate,
+        onAutofocus: statefulLayout.stateTree.root.children?.[0].options.onAutofocus
       })
     })
 

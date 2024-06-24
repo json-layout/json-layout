@@ -1,5 +1,4 @@
 // eslint-disable-next-line import/no-named-default
-import mittModule from 'mitt'
 import debug from 'debug'
 import { produce } from 'immer'
 import { evalExpression, producePatchedData } from './state-node.js'
@@ -14,7 +13,6 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').StateNode} StateNode
  * @typedef {import('./types.js').StateTree} StateTree
  * @typedef {import('./types.js').StatefulLayoutOptions} StatefulLayoutOptions
- * @typedef {import('./types.js').StatefulLayoutEvents} StatefulLayoutEvents
  * @typedef {import('./types.js').CreateStateTreeContext} CreateStateTreeContext
  * @typedef {import('./types.js').TextFieldNode} TextFieldNode
  * @typedef {import('./types.js').TextareaNode} TextareaNode
@@ -51,10 +49,6 @@ export const isItemsNode = (node, components) => !!node && isItemsLayout(node.la
 
 const logDataBinding = debug('jl:data-binding')
 
-// ugly fix of modules whose default export were wrongly declared
-// @ts-ignore
-const mitt = /** @type {typeof mittModule.default} */ (mittModule)
-
 /**
  * @param {Partial<StatefulLayoutOptions>} partialOptions
  * @param {import('../index.js').CompiledLayout} compiledLayout
@@ -78,18 +72,15 @@ function fillOptions (partialOptions, compiledLayout) {
     removeAdditional: 'error',
     autofocus: false,
     readOnlyPropertiesMode: 'show',
+    onAutofocus: () => {},
+    onUpdate: () => {},
+    onData: () => {},
     ...partialOptions,
     messages
   }
 }
 
 export class StatefulLayout {
-  /**
-   * @readonly
-   * @type {import('mitt').Emitter<StatefulLayoutEvents>}
-   */
-  events
-
   /**
    * @private
    * @readonly
@@ -221,8 +212,6 @@ export class StatefulLayout {
     logDataBinding('create stateful layout', compiledLayout, skeletonTree, options, data)
     this._compiledLayout = compiledLayout
     this.skeletonTree = skeletonTree
-    /** @type {import('mitt').Emitter<StatefulLayoutEvents>} */
-    this.events = mitt()
     this.prepareOptions(options)
     this._autofocusTarget = this.options.autofocus ? '' : null
     this._previousAutofocusTarget = null
@@ -274,7 +263,7 @@ export class StatefulLayout {
       this.createStateTree(true)
     }
     logDataBinding('emit update event', this._data, this._stateTree)
-    this.events.emit('update', this)
+    this.options.onUpdate(this)
     this.emitData()
   }
 
@@ -285,7 +274,7 @@ export class StatefulLayout {
     // emit data event only if the data has changed, as it is immutable this simple comparison should suffice
     if (!this._dataWaitingForBlur && this._data !== this._previousData) {
       logDataBinding('emit data event', this._data)
-      this.events.emit('data', this._data)
+      this.options.onData(this._data)
       this._previousData = this._data
     }
   }
@@ -606,20 +595,22 @@ export class StatefulLayout {
   prepareSelectItem (node, rawItem) {
     /** @type {Partial<import('@json-layout/vocabulary').SelectItem>} */
     const item = {}
+    /** @type {import('@json-layout/vocabulary').ItemsBasedCompObject} */
+    const layout = node.layout
     if (typeof rawItem === 'object') {
-      item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : (node.layout.getItems?.returnObjects ? rawItem : rawItem.value)
-      item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : rawItem.key
-      item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : rawItem.title
+      item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : (layout.getItems?.returnObjects ? rawItem : rawItem.value)
+      item.key = layout.getItems?.itemKey ? this.evalNodeExpression(node, layout.getItems.itemKey, rawItem) : rawItem.key
+      item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : rawItem.title
       item.value = item.value ?? item.key
       item.key = item.key ?? item.value + ''
       item.title = item.title ?? item.key
       if (!item.icon && rawItem.icon) item.icon = rawItem.icon
     } else {
-      item.value = node.layout.getItems?.itemValue ? this.evalNodeExpression(node, node.layout.getItems.itemValue, rawItem) : rawItem
-      item.key = node.layout.getItems?.itemKey ? this.evalNodeExpression(node, node.layout.getItems.itemKey, rawItem) : item.value
-      item.title = node.layout.getItems?.itemTitle ? this.evalNodeExpression(node, node.layout.getItems.itemTitle, rawItem) : item.value
+      item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : rawItem
+      item.key = layout.getItems?.itemKey ? this.evalNodeExpression(node, layout.getItems.itemKey, rawItem) : item.value
+      item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : item.value
     }
-    if (node.layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, node.layout.getItems?.itemIcon, rawItem)
+    if (layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, layout.getItems?.itemIcon, rawItem)
     return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
   }
 
@@ -662,7 +653,7 @@ export class StatefulLayout {
       this._previousAutofocusTarget = autofocusTarget
       setTimeout(() => {
         logDataBinding('emit autofocus event', autofocusTarget)
-        this.events.emit('autofocus', autofocusTarget)
+        this.options.onAutofocus(autofocusTarget)
       })
     }
   }

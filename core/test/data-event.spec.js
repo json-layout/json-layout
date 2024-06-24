@@ -12,11 +12,11 @@ describe('data update events', () => {
         bool1: { type: 'boolean' }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {})
-
     /** @type {unknown[]} */
     let dataEvents = []
-    statefulLayout.events.on('data', (value) => { dataEvents.push(value) })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+      onData: (value) => { dataEvents.push(value) }
+    })
 
     assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 3)
@@ -34,7 +34,7 @@ describe('data update events', () => {
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'ab' })
     await new Promise((resolve) => setTimeout(resolve, 300))
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'abc' })
-    assert.deepEqual(dataEvents, [{ str1: 'ab' }, { str1: 'abc' }])
+    assert.deepEqual(dataEvents, [{}, { str1: 'ab' }, { str1: 'abc' }])
     dataEvents = []
 
     // input on str2 is not debounced
@@ -57,11 +57,12 @@ describe('data update events', () => {
         str1: { type: 'string', layout: { debounceInputMs: 0 } }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { updateOn: 'blur' })
-
     /** @type {unknown[]} */
     const dataEvents = []
-    statefulLayout.events.on('data', (value) => { dataEvents.push(value) })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+      updateOn: 'blur',
+      onData: (value) => { dataEvents.push(value) }
+    })
 
     assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
@@ -73,6 +74,6 @@ describe('data update events', () => {
     await new Promise((resolve) => setTimeout(resolve, 300))
     statefulLayout.blur(statefulLayout.stateTree.root.children[0])
     assert.deepEqual(statefulLayout.data, { str1: 'ab' })
-    assert.deepEqual(dataEvents, [{ str1: 'ab' }])
+    assert.deepEqual(dataEvents, [{}, { str1: 'ab' }])
   })
 })

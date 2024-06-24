@@ -96,17 +96,13 @@ export interface ValidationState {
   validatedChildren: string[]
 }
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export type StatefulLayoutEvents = {
-  data: any
-  update: StatefulLayout
-  autofocus: string
-}
-
 // StateNodeOptionsBase come from the vocabulary and should contain all node options that can be set in the layout
 export type StateNodeOptions = Required<StateNodeOptionsBase & {
   context: Record<string, any>
   messages: LocaleMessages
+  onData: (data: any) => void
+  onUpdate: (data: StatefulLayout) => void
+  onAutofocus: (key: string) => void
 }>
 
 export type StatefulLayoutOptions = StateNodeOptions & {

@@ -68,8 +68,7 @@
     "debug": "^4.3.4",
     "immer": "^10.0.3",
     "magicast": "^0.3.3",
-    "markdown-it": "^13.0.2",
-    "mitt": "^3.0.1"
+    "markdown-it": "^13.0.2"
   },
   "devDependencies": {
     "@types/debug": "^4.1.7",
