@@ -422,24 +422,28 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
 
+  let nodeData = data
+
+  if (nodeData === null && !layout.nullable) nodeData = undefined
+
   /** @type {unknown} */
-  let nodeData = typeof data === 'object' && !(data instanceof File)
-    ? produceStateNodeData(
-      /** @type {Record<string, unknown>} */(data ?? {}),
+  if (typeof nodeData === 'object' && !(nodeData instanceof File)) {
+    nodeData = produceStateNodeData(
+      /** @type {Record<string, unknown>} */(nodeData ?? {}),
       dataPath,
       children,
       context.additionalPropertiesErrors,
       [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined,
       options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
     )
-    : data
 
-  // the producer is not perfect, sometimes data is considered mutated but it is actually the same
-  // we double check here to avoid unnecessary re-renders
-  if (nodeData !== data) {
-    if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
-    // @ts-ignore
-    else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
+    // the producer is not perfect, sometimes data is considered mutated but it is actually the same
+    // we double check here to avoid unnecessary re-renders
+    if (nodeData !== data) {
+      if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
+      // @ts-ignore
+      else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
+    }
   }
 
   if (layout.getConstData) {

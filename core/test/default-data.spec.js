@@ -15,6 +15,15 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, {})
   })
 
+  it('should create empty root string', async () => {
+    const compiledLayout = await compile({
+      type: 'string'
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
+    assert.equal(statefulLayout.stateTree.root.layout.defaultData, '')
+    assert.equal(statefulLayout.data, '')
+  })
+
   it('should not recreate empty root object', async () => {
     const compiledLayout = await compile({
       type: 'object',
