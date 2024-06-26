@@ -44,19 +44,21 @@ export function makeSkeletonNode (
   let schema = rawSchema
   let refPointer = pointer
   let refFragment
+  rawSchema.__pointer = pointer
   if (schema.$ref) {
     [refFragment, schemaId, refPointer] = getJSONRef(sourceSchemaId, schema.$ref)
+    refFragment.__pointer = refPointer
     schema = { ...rawSchema, ...refFragment }
     delete schema.$ref
   }
-  schema = partialResolveRefs(schema, schemaId, getJSONRef)
-  const { type, nullable } = knownType ? { type: knownType, nullable: false } : getSchemaFragmentType(schema)
+  const resolvedSchema = partialResolveRefs(schema, schemaId, getJSONRef)
+  const { type, nullable } = knownType ? { type: knownType, nullable: false } : getSchemaFragmentType(resolvedSchema)
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   rawSchema.errorMessage = rawSchema.errorMessage ?? {}
   if (!normalizedLayouts[pointer]) {
     const normalizationResult = normalizeLayoutFragment(
-      /** @type {import('@json-layout/vocabulary').SchemaFragment} */(schema),
+      /** @type {import('@json-layout/vocabulary').SchemaFragment} */(resolvedSchema),
       pointer,
       options.components,
       options.markdown,

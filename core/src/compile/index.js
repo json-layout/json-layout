@@ -60,7 +60,7 @@ const fillOptions = (partialOptions) => {
   let ajv = partialOptions.ajv
   if (!ajv) {
     /** @type {import('ajv').Options} */
-    const ajvOpts = { allErrors: true, strict: false }
+    const ajvOpts = { allErrors: true, strict: false, verbose: true }
     if (partialOptions.ajvOptions) Object.assign(ajvOpts, partialOptions.ajvOptions)
     if (partialOptions.code) ajvOpts.code = { source: true, esm: true, lines: true }
     const newAjv = new Ajv(ajvOpts)

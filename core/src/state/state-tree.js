@@ -52,6 +52,16 @@ export function createStateTree (
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
     }
     context.errors = validate.errors
+    if (context.errors.length) {
+      for (const error of context.errors) {
+        const originalError = error.params?.errors?.[0] ?? error
+        // work around this issue https://github.com/ajv-validator/ajv/issues/512
+        if (originalError?.parentSchema.__pointer) {
+          originalError.schemaPath = originalError?.parentSchema.__pointer
+          if (originalError.keyword === 'oneOf') originalError.schemaPath += '/oneOf'
+        }
+      }
+    }
     if ([true, 'error'].includes(options.removeAdditional)) {
       context.additionalPropertiesErrors = validate.errors.filter(error => error.keyword === 'additionalProperties' || error.keyword === 'unevaluatedProperties')
     }

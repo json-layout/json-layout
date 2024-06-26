@@ -161,14 +161,15 @@ const matchError = (error, skeleton, dataPath, parentDataPath) => {
  * @returns {boolean}
  */
 const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
+  const originalError = error.params?.errors?.[0] ?? error
   if (!(
-    error.schemaPath === skeleton.pointer ||
-    error.schemaPath.startsWith(skeleton.pointer + '/')
+    originalError.schemaPath === skeleton.pointer ||
+    originalError.schemaPath.startsWith(skeleton.pointer + '/')
   ) && !(
-    error.schemaPath === skeleton.refPointer ||
-    error.schemaPath.startsWith(skeleton.refPointer + '/')
+    originalError.schemaPath === skeleton.refPointer ||
+    originalError.schemaPath.startsWith(skeleton.refPointer + '/')
   )) return false
-  if (error.instancePath.startsWith(dataPath)) return true
+  if (originalError.instancePath.startsWith(dataPath)) return true
   return false
 }
 
