@@ -81,6 +81,7 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
   ast.exports.compiledLayout = {
     mainTree: compiledLayout.mainTree,
     skeletonTrees: clone(compiledLayout.skeletonTrees),
+    skeletonNodes: clone(compiledLayout.skeletonNodes),
     normalizedLayouts: clone(compiledLayout.normalizedLayouts),
     validates: {},
     validationErrors: compiledLayout.validationErrors,

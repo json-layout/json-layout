@@ -138,6 +138,7 @@ const produceCompositeChildrenOptions = produce((draft, section) => {
 })
 
 /**
+ * should match if an error belongs to this exact node
  * @param {import('ajv').ErrorObject} error
  * @param {import('../index.js').SkeletonNode} skeleton
  * @param {string} dataPath
@@ -147,11 +148,12 @@ const produceCompositeChildrenOptions = produce((draft, section) => {
 const matchError = (error, skeleton, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
   if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
-  if (originalError.instancePath === dataPath && originalError.schemaPath === skeleton.pointer) return true
+  if (originalError.instancePath === dataPath && (originalError.schemaPath === skeleton.pointer || originalError.schemaPath === skeleton.refPointer)) return true
   return false
 }
 
 /**
+ * should match if an error belongs to a child of the current node but the child was not displayed
  * @param {import('ajv').ErrorObject} error
  * @param {import('../index.js').SkeletonNode} skeleton
  * @param {string} dataPath
@@ -162,6 +164,9 @@ const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
   if (!(
     error.schemaPath === skeleton.pointer ||
     error.schemaPath.startsWith(skeleton.pointer + '/')
+  ) && !(
+    error.schemaPath === skeleton.refPointer ||
+    error.schemaPath.startsWith(skeleton.refPointer + '/')
   )) return false
   if (error.instancePath.startsWith(dataPath)) return true
   return false
@@ -303,7 +308,9 @@ export function createStateNode (
         ['remove', 'hide'].includes(options.readOnlyPropertiesMode) &&
         skeleton.roPropertyKeys?.includes(/** @type {string} */(childLayout.key))
       ) continue
-      const childSkeleton = skeleton.children?.find(c => c.key === childLayout.key) ?? skeleton
+      let childSkeleton = skeleton
+      const childSkeletonKey = skeleton.children?.find(c => compiledLayout.skeletonNodes[c].key === childLayout.key)
+      if (childSkeletonKey !== undefined) childSkeleton = compiledLayout.skeletonNodes[childSkeletonKey]
       if (childSkeleton.condition) {
         if (!evalExpression(compiledLayout.expressions, childSkeleton.condition, objectData, parentOptions, display, layout, compiledLayout.validates, context.rootData, parentContext)) {
           continue
@@ -337,16 +344,19 @@ export function createStateNode (
   if (key === '$oneOf' && skeleton.childrenTrees) {
     // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
     /** @type {number} */
-    const activeChildTreeIndex = fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].root.pointer](data))
+    const activeChildTreeIndex = fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].root](data))
     if (activeChildTreeIndex !== -1) {
       context.errors = context.errors?.filter(error => {
         const originalError = error.params?.errors?.[0] ?? error
+        // console.log(originalError.schemaPath, skeleton.pointer, skeleton.refPointer)
         // if an item was selected, remove the oneOf error
-        if (originalError.schemaPath === skeleton.pointer && originalError.keyword === 'oneOf') return false
+        if ((originalError.schemaPath === skeleton.pointer || originalError.schemaPath === skeleton.refPointer) && originalError.keyword === 'oneOf') return false
         // also remove the errors from other children of the oneOf
         if (originalError.schemaPath.startsWith(skeleton.pointer) && !originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
+        if (originalError.schemaPath.startsWith(skeleton.refPointer) && !originalError.schemaPath.startsWith(skeleton.refPointer + '/' + activeChildTreeIndex)) return false
         return true
       })
+      // console.log(context.errors?.map(error => error.params?.errors?.[0] ?? error))
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
       const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
@@ -360,7 +370,7 @@ export function createStateNode (
           fullKey,
           dataPath,
           dataPath,
-          activeChildTree.root,
+          compiledLayout.skeletonNodes[activeChildTree.root],
           null,
           display,
           data,
@@ -374,7 +384,7 @@ export function createStateNode (
 
   if (layout.comp === 'list') {
     const arrayData = /** @type {unknown[]} */(data ?? [])
-    const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root)
+    const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root])
     const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
     children = []
     let focusChild = context.autofocusTarget === fullKey

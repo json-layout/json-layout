@@ -9,13 +9,13 @@ import { partialResolveRefs } from './utils/resolve-refs.js'
  * @param {import('./index.js').CompileOptions} options
  * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
  * @param {Record<string, import('./types.js').SkeletonTree>} skeletonTrees
+ * @param {Record<string, import('./types.js').SkeletonNode>} skeletonNodes
  * @param {string[]} validates
  * @param {Record<string, string[]>} validationErrors
  * @param {Record<string, import('@json-layout/vocabulary').NormalizedLayout>} normalizedLayouts
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
  * @param {string | number} key
- * @param {string} currentPointer
- * @param {string | null} parentPointer
+ * @param {string} pointer
  * @param {boolean} required
  * @param {string} [condition]
  * @param {boolean} [dependent]
@@ -28,13 +28,13 @@ export function makeSkeletonNode (
   options,
   getJSONRef,
   skeletonTrees,
+  skeletonNodes,
   validates,
   validationErrors,
   normalizedLayouts,
   expressions,
   key,
-  currentPointer,
-  parentPointer,
+  pointer,
   required,
   condition,
   dependent,
@@ -42,11 +42,11 @@ export function makeSkeletonNode (
 ) {
   let schemaId = sourceSchemaId
   let schema = rawSchema
-  let pointer = currentPointer
+  let refPointer = pointer
   let refFragment
   if (schema.$ref) {
-    [refFragment, schemaId, pointer] = getJSONRef(sourceSchemaId, schema.$ref)
-    schema = {...rawSchema, ...refFragment}
+    [refFragment, schemaId, refPointer] = getJSONRef(sourceSchemaId, schema.$ref)
+    schema = { ...rawSchema, ...refFragment }
     delete schema.$ref
   }
   schema = partialResolveRefs(schema, schemaId, getJSONRef)
@@ -132,7 +132,7 @@ export function makeSkeletonNode (
   const node = {
     key: key ?? '',
     pointer,
-    parentPointer,
+    refPointer,
     pure,
     propertyKeys: [],
     roPropertyKeys: [],
@@ -153,72 +153,88 @@ export function makeSkeletonNode (
         node.propertyKeys.push(propertyKey)
         if (schema.properties[propertyKey].readOnly) node.roPropertyKeys.push(propertyKey)
         const dependent = schema.dependentRequired && Object.values(schema.dependentRequired).some(dependentProperties => dependentProperties.includes(propertyKey))
-        node.children.push(makeSkeletonNode(
-          schema.properties[propertyKey],
-          schemaId,
-          options,
-          getJSONRef,
-          skeletonTrees,
-          validates,
-          validationErrors,
-          normalizedLayouts,
-          expressions,
-          propertyKey,
-          `${pointer}/properties/${propertyKey}`,
-          pointer,
-          schema.required?.includes(propertyKey),
-          undefined,
-          dependent
-        ))
-
-        if (schema.dependentSchemas?.[propertyKey] || (schema.dependencies?.[propertyKey] && !Array.isArray(schema.dependencies[propertyKey]))) {
-          const dependentSchema = schema.dependentSchemas?.[propertyKey] ?? schema.dependencies[propertyKey]
-          const dependentPointer = schema.dependentSchemas?.[propertyKey] ? `${pointer}/dependentSchemas/${propertyKey}` : `${pointer}/dependencies/${propertyKey}`
-          node.children.push(makeSkeletonNode(
-            dependentSchema,
+        const childPointer = `${refPointer}/properties/${propertyKey}`
+        if (!skeletonNodes[childPointer]) {
+          // @ts-ignore
+          skeletonNodes[childPointer] = 'recursing'
+          skeletonNodes[childPointer] = makeSkeletonNode(
+            schema.properties[propertyKey],
             schemaId,
             options,
             getJSONRef,
             skeletonTrees,
+            skeletonNodes,
             validates,
             validationErrors,
             normalizedLayouts,
             expressions,
-            `$deps-${propertyKey}`,
-            dependentPointer,
-            pointer,
-            false,
-            `data["${propertyKey}"] !== undefined`,
+            propertyKey,
+            childPointer,
+            schema.required?.includes(propertyKey),
             undefined,
-            'object'
-          ))
+            dependent
+          )
+        }
+        node.children.push(childPointer)
+
+        if (schema.dependentSchemas?.[propertyKey] || (schema.dependencies?.[propertyKey] && !Array.isArray(schema.dependencies[propertyKey]))) {
+          const dependentSchema = schema.dependentSchemas?.[propertyKey] ?? schema.dependencies[propertyKey]
+          const dependentPointer = schema.dependentSchemas?.[propertyKey] ? `${refPointer}/dependentSchemas/${propertyKey}` : `${refPointer}/dependencies/${propertyKey}`
+          if (!skeletonNodes[dependentPointer]) {
+            // @ts-ignore
+            skeletonNodes[dependentPointer] = 'recursing'
+            skeletonNodes[dependentPointer] = makeSkeletonNode(
+              dependentSchema,
+              schemaId,
+              options,
+              getJSONRef,
+              skeletonTrees,
+              skeletonNodes,
+              validates,
+              validationErrors,
+              normalizedLayouts,
+              expressions,
+              `$deps-${propertyKey}`,
+              dependentPointer,
+              false,
+              `data["${propertyKey}"] !== undefined`,
+              undefined,
+              'object'
+            )
+          }
+          node.children.push(dependentPointer)
         }
       }
     }
     if (schema.allOf) {
-      node.children = node.children ?? []
       for (let i = 0; i < schema.allOf.length; i++) {
-        const allOfNode = makeSkeletonNode(
-          schema.allOf[i],
-          schemaId,
-          options,
-          getJSONRef,
-          skeletonTrees,
-          validates,
-          validationErrors,
-          normalizedLayouts,
-          expressions,
-          `$allOf-${i}`,
-          `${pointer}/allOf/${i}`,
-          pointer,
-          false,
-          undefined,
-          undefined,
-          'object'
-        )
-        node.propertyKeys = node.propertyKeys.concat(allOfNode.propertyKeys)
-        node.roPropertyKeys = node.roPropertyKeys.concat(allOfNode.roPropertyKeys)
-        node.children.push(allOfNode)
+        const childPointer = `${refPointer}/allOf/${i}`
+        if (!skeletonNodes[childPointer]) {
+          // @ts-ignore
+          skeletonNodes[childPointer] = 'recursing'
+          skeletonNodes[childPointer] = makeSkeletonNode(
+            schema.allOf[i],
+            schemaId,
+            options,
+            getJSONRef,
+            skeletonTrees,
+            skeletonNodes,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            `$allOf-${i}`,
+            childPointer,
+            false,
+            undefined,
+            undefined,
+            'object'
+          )
+        }
+        node.propertyKeys = node.propertyKeys.concat(skeletonNodes[childPointer].propertyKeys)
+        node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[childPointer].roPropertyKeys)
+        node.children = node.children ?? []
+        node.children.push(childPointer)
       }
     }
     if (schema.oneOf) {
@@ -256,6 +272,7 @@ export function makeSkeletonNode (
             options,
             getJSONRef,
             skeletonTrees,
+            skeletonNodes,
             validates,
             validationErrors,
             normalizedLayouts,
@@ -266,95 +283,119 @@ export function makeSkeletonNode (
         }
         childrenTrees.push(childTreePointer)
       }
+      if (!skeletonNodes[oneOfPointer]) {
+        skeletonNodes[oneOfPointer] = {
+          key: '$oneOf',
+          pointer: oneOfPointer,
+          refPointer: oneOfPointer,
+          childrenTrees,
+          pure: skeletonNodes[skeletonTrees[childrenTrees[0]]?.root].pure,
+          propertyKeys: [],
+          roPropertyKeys: []
+        }
+      }
       node.children = node.children ?? []
-      node.children.push({
-        key: '$oneOf',
-        pointer: `${pointer}/oneOf`,
-        parentPointer: pointer,
-        childrenTrees,
-        pure: skeletonTrees[childrenTrees[0]]?.root.pure,
-        propertyKeys: [],
-        roPropertyKeys: []
-      })
+      node.children.push(oneOfPointer)
 
-      schema.errorMessage.oneOf = options.messages.errorOneOf
+      rawSchema.errorMessage.oneOf = options.messages.errorOneOf
     }
     if (schema.if) {
       validates.push(`${pointer}/if`)
       if (schema.then) {
+        const childPointer = `${refPointer}/then`
+        if (!skeletonNodes[childPointer]) {
+          // @ts-ignore
+          skeletonNodes[childPointer] = 'recursing'
+          skeletonNodes[childPointer] = makeSkeletonNode(
+            schema.then,
+            schemaId,
+            options,
+            getJSONRef,
+            skeletonTrees,
+            skeletonNodes,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            '$then',
+            childPointer,
+            false,
+            `validates["${pointer}/if"](data)`,
+            undefined,
+            'object'
+          )
+        }
         node.children = node.children ?? []
-        node.children.push(makeSkeletonNode(
-          schema.then,
-          schemaId,
-          options,
-          getJSONRef,
-          skeletonTrees,
-          validates,
-          validationErrors,
-          normalizedLayouts,
-          expressions,
-          '$then',
-          `${pointer}/then`,
-          pointer,
-          false,
-          `validates["${pointer}/if"](data)`,
-          undefined,
-          'object'
-        ))
+        node.children.push(childPointer)
       }
       if (schema.else) {
+        const childPointer = `${refPointer}/else`
+        if (!skeletonNodes[childPointer]) {
+          // @ts-ignore
+          skeletonNodes[childPointer] = 'recursing'
+          skeletonNodes[childPointer] = makeSkeletonNode(
+            schema.else,
+            schemaId,
+            options,
+            getJSONRef,
+            skeletonTrees,
+            skeletonNodes,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            '$else',
+            childPointer,
+            false,
+            `!validates["${pointer}/if"](data)`,
+            undefined,
+            'object'
+          )
+        }
         node.children = node.children ?? []
-        node.children.push(makeSkeletonNode(
-          schema.else,
-          schemaId,
-          options,
-          getJSONRef,
-          skeletonTrees,
-          validates,
-          validationErrors,
-          normalizedLayouts,
-          expressions,
-          '$else',
-          `${pointer}/else`,
-          pointer,
-          false,
-          `!validates["${pointer}/if"](data)`,
-          undefined,
-          'object'
-        ))
+        node.children.push(childPointer)
       }
     }
 
     for (const propertyKey of node.propertyKeys) {
       if (schema?.required?.includes(propertyKey)) {
-        schema.errorMessage.required = schema.errorMessage.required ?? {}
-        schema.errorMessage.required[propertyKey] = options.messages.errorRequired
+        rawSchema.errorMessage.required = rawSchema.errorMessage.required ?? {}
+        rawSchema.errorMessage.required[propertyKey] = options.messages.errorRequired
       }
       if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
-        schema.errorMessage.dependentRequired = options.messages.errorRequired
+        rawSchema.errorMessage.dependentRequired = options.messages.errorRequired
       }
     }
   }
 
   if (type === 'array' && schema.items) {
     if (Array.isArray(schema.items)) {
-      node.children = schema.items.map((/** @type {any} */ itemSchema, /** @type {number} */ i) => {
-        return makeSkeletonNode(
-          itemSchema,
-          schemaId,
-          options,
-          getJSONRef,
-          skeletonTrees,
-          validates,
-          validationErrors,
-          normalizedLayouts,
-          expressions,
-          i,
-          `${pointer}/items/${i}`,
-          pointer,
-          true
-        )
-      })
+      node.children = node.children ?? []
+      for (let i = 0; i < schema.items.length; i++) {
+        /** @type {any} */
+        const itemSchema = schema.items[i]
+        const childPointer = `${refPointer}/items/${i}`
+        if (!skeletonNodes[childPointer]) {
+          // @ts-ignore
+          skeletonNodes[childPointer] = 'recursing'
+          skeletonNodes[childPointer] = makeSkeletonNode(
+            itemSchema,
+            schemaId,
+            options,
+            getJSONRef,
+            skeletonTrees,
+            skeletonNodes,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            i,
+            childPointer,
+            true
+          )
+        }
+        node.children.push(childPointer)
+      }
     } else {
       const childTreePointer = `${pointer}/items`
       if (!skeletonTrees[childTreePointer]) {
@@ -366,6 +407,7 @@ export function makeSkeletonNode (
           options,
           getJSONRef,
           skeletonTrees,
+          skeletonNodes,
           validates,
           validationErrors,
           normalizedLayouts,
@@ -378,11 +420,12 @@ export function makeSkeletonNode (
     }
   }
 
-  for (const child of node.children || []) {
+  for (const childPointer of node.children || []) {
+    const child = skeletonNodes[childPointer]
     if (!child.pure) node.pure = false
   }
   for (const childTree of node.childrenTrees || []) {
-    if (!skeletonTrees[childTree]?.root?.pure) node.pure = false
+    if (!skeletonNodes[skeletonTrees[childTree]?.root]?.pure) node.pure = false
   }
 
   return node

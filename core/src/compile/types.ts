@@ -41,8 +41,9 @@ export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & 
 export interface CompiledLayout {
   options?: CompileOptions
   schema?: SchemaObject
-  mainTree: string,
+  mainTree: string
   skeletonTrees: Record<string, SkeletonTree>
+  skeletonNodes: Record<string, SkeletonNode>
   validates: Record<string, ValidateFunction>
   validationErrors: Record<string, string[]>
   normalizedLayouts: Record<string, NormalizedLayout>
@@ -57,7 +58,7 @@ export interface CompiledLayout {
 // it will be used to instantiate a StateLayoutTree with 1 validation context
 export interface SkeletonTree {
   title: string
-  root: SkeletonNode
+  root: string
 }
 
 // a skeleton node is a light recursive structure
@@ -65,12 +66,12 @@ export interface SkeletonTree {
 export interface SkeletonNode {
   key: string | number
   pointer: string
-  parentPointer: string | null
+  refPointer: string
   pure: boolean
   propertyKeys: string[]
   roPropertyKeys: string[]
   condition?: Expression
-  children?: SkeletonNode[] // optional children in the case of arrays and object nodes
+  children?: string[] // optional children in the case of arrays and object nodes
   childrenTrees?: string[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
   required?: boolean
   nullable?: boolean

@@ -33,8 +33,8 @@ describe('compile schema function', () => {
 
   it('should resolve refs', async () => {
     const compiled = compile({ type: 'object', properties: { str1: { $ref: '#/$defs/str1' } }, $defs: { str1: { type: 'string', title: 'String 1' } } })
-    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/$defs/str1']))
-    assert.equal(compiled.normalizedLayouts['_jl#/$defs/str1'].comp, 'text-field')
-    assert.equal(compiled.normalizedLayouts['_jl#/$defs/str1'].label, 'String 1')
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str1']))
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/str1'].comp, 'text-field')
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/str1'].label, 'String 1')
   })
 })

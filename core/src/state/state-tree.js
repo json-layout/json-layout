@@ -45,7 +45,7 @@ export function createStateTree (
   validationState,
   reusedStateTree
 ) {
-  const validate = compiledLayout.validates[skeleton.root.pointer]
+  const validate = compiledLayout.validates[skeleton.root]
   const valid = validate(data)
   if (validate.errors) {
     for (const error of validate.errors) {
@@ -65,7 +65,7 @@ export function createStateTree (
     null,
     '',
     null,
-    skeleton.root,
+    compiledLayout.skeletonNodes[skeleton.root],
     null,
     display,
     data,

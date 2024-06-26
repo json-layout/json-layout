@@ -268,9 +268,12 @@ for (const compileMode of ['runtime', 'build-time']) {
         type: 'object',
         properties: { arr1: { type: 'array', items: { type: 'string', minLength: 2 } } }
       })
-      assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children?.length, 1)
-      assert.ok(!compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].children)
-      assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].childrenTrees?.length, 1)
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      assert.equal(root.children?.length, 1)
+      const children = root.children.map(c => compiledLayout.skeletonNodes[c])
+      assert.ok(!children[0].children)
+      assert.equal(children[0].childrenTrees?.length, 1)
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
         arr1: ['Str 1', 'Str 2', 'a']
       })
@@ -291,8 +294,11 @@ for (const compileMode of ['runtime', 'build-time']) {
         type: 'object',
         properties: { arr1: { type: 'array', items: [{ title: 'Str 1', type: 'string' }, { title: 'Str2', type: 'string' }] } }
       })
-      assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children?.length, 1)
-      assert.equal(compiledLayout.skeletonTrees[compiledLayout.mainTree].root.children[0].children?.length, 2)
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      assert.equal(root.children?.length, 1)
+      const children = root.children.map(c => compiledLayout.skeletonNodes[c])
+      assert.equal(children[0].children?.length, 2)
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
         arr1: ['Str 1', 'Str 2']
       })

@@ -2,10 +2,10 @@ import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
-describe('Special cases of oneOfs', () => {
+describe.only('Special cases of oneOfs', () => {
   const defaultOptions = { debounceInputMs: 0, removeAdditional: true }
 
-  it('should display proper validation errors for a specific oneOf', async () => {
+  it.only('should display proper validation errors for a specific oneOf', async () => {
     const compiledLayout = await compile(
       {
         type: 'object',

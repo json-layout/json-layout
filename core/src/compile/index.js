@@ -126,6 +126,8 @@ export function compile (_schema, partialOptions = {}) {
   const validationErrors = {}
   /** @type {Record<string, import('./types.js').SkeletonTree>} */
   const skeletonTrees = {}
+  /** @type {Record<string, import('./types.js').SkeletonNode>} */
+  const skeletonNodes = {}
 
   // makeSkeletonTree also mutates the schema (adding some error messages)
   const mainTreePointer = `${schema.$id}#`
@@ -137,6 +139,7 @@ export function compile (_schema, partialOptions = {}) {
     options,
     getJSONRef,
     skeletonTrees,
+    skeletonNodes,
     validatePointers,
     validationErrors,
     normalizedLayouts,
@@ -187,6 +190,7 @@ export function compile (_schema, partialOptions = {}) {
     schema,
     mainTree: mainTreePointer,
     skeletonTrees,
+    skeletonNodes,
     validates,
     validationErrors,
     normalizedLayouts,
