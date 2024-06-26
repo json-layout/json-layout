@@ -6,6 +6,7 @@ const example = {
   
 Warning: recursion can easily create infinite loops.`,
   schema: {
+    required: ['recursiveObject1', 'recursiveObject2'],
     properties: {
       recursiveObject1: { $ref: '#/$defs/recursiveObject1' },
       recursiveObject2: { $ref: '#/$defs/recursiveObject2' }
@@ -14,8 +15,9 @@ Warning: recursion can easily create infinite loops.`,
       recursiveObject1: {
         type: 'object',
         title: 'An object with an array of children of the same type',
+        required: ['key'],
         properties: {
-          key: { type: 'string' },
+          key: { type: 'string', pattern: '^[A-Z]+$' },
           children: {
             type: 'array',
             items: {
@@ -31,11 +33,13 @@ Warning: recursion can easily create infinite loops.`,
         type: 'object',
         title: 'An object with a conditional recursive child',
         description: 'Without the condition on the recursive child this example will create an infinite loop.',
+        required: ['key'],
         properties: {
-          key: { type: 'string' },
+          key: { type: 'string', pattern: '^[A-Z]+$' },
           activeChild: { type: 'boolean', title: 'show recursive child' },
           child: {
             $ref: '#/$defs/recursiveObject2',
+            default: {},
             layout: {
               if: {
                 pure: false,
