@@ -125,11 +125,6 @@ export const runtimeOptions = [
     }
   },
   {
-    key: 'autofocus',
-    description: 'Activate autofocus. The focus will be given to the first input of the form.',
-    default: false
-  },
-  {
     key: 'readOnlyPropertiesMode',
     description: 'Control the way readOnly properties from the schema are managed.',
     default: 'show',
@@ -138,5 +133,10 @@ export const runtimeOptions = [
       hide: 'Hide the readOnly properties but keep them in the data.',
       show: 'Show the readOnly properties.'
     }
+  },
+  {
+    key: 'autofocus',
+    description: 'Activate autofocus. The focus will be given to the first input of the form.',
+    default: false
   }
 ]

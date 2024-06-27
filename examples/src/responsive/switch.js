@@ -9,12 +9,12 @@ This object can be used in a \`switch\` to change the component or any other lay
     type: 'object',
     layout: {
       switch: [{
-        if: 'display.mobile',
+        if: 'display.smAndDown',
         comp: 'expansion-panels',
-        title: 'Expansion panels in small containers'
+        title: 'Expansion panels when small (try increasing width)'
       }, {
         comp: 'tabs',
-        title: 'Tabs in large containers'
+        title: 'Tabs when large (try decreasing width)'
       }]
     },
     properties: {
