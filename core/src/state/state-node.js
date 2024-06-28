@@ -447,7 +447,7 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(nodeData))
 
   /** @type {unknown} */
-  if (typeof nodeData === 'object' && !(nodeData instanceof File)) {
+  if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
     nodeData = produceStateNodeData(
       /** @type {Record<string, unknown>} */(nodeData ?? {}),
       dataPath,
