@@ -295,6 +295,10 @@ export class StatefulLayout {
       files: [],
       nodes: []
     }
+
+    // @ts-ignore
+    if (this._options._debugCache) createStateTreeContext._debugCache = this._lastCreateStateTreeContext?._debugCache ?? {}
+
     this._stateTree = createStateTree(
       createStateTreeContext,
       this._options,

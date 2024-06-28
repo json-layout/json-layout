@@ -270,11 +270,20 @@ export function createStateNode (
 
   // NOTE we have to exclude nodes with errors from the cache, because context.errors is unpurely modified
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
-  if (skeleton.pure && reusedNode && !reusedNode.error && !reusedNode.childError) {
-    cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validationState, context.activatedItems, context.initial, data]
-    if (context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
+  if (skeleton.pure && !reusedNode?.error && !reusedNode?.childError) {
+    const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.includes(fullKey)
+    cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validatedCacheKey, context.activatedItems, context.initial, data]
+    if (reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
+      // @ts-ignore
+      if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['hit'])
       return reusedNode
+    } else {
+      // @ts-ignore
+      if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['miss'])
     }
+  } else {
+    // @ts-ignore
+    if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['skip'])
   }
 
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
@@ -428,14 +437,14 @@ export function createStateNode (
       })
     }
   }
+
+  let nodeData = data
+  if (nodeData === null && !layout.nullable) nodeData = undefined
+
   const validated = validationState.validatedForm ||
     validationState.validatedChildren.includes(fullKey) ||
     (validationState.initialized === false && options.initialValidation === 'always') ||
-    (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(data))
-
-  let nodeData = data
-
-  if (nodeData === null && !layout.nullable) nodeData = undefined
+    (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(nodeData))
 
   /** @type {unknown} */
   if (typeof nodeData === 'object' && !(nodeData instanceof File)) {

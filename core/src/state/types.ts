@@ -76,7 +76,7 @@ export interface FileRef {
   dataPath: string
 }
 
-// [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentWidth, validationState, activatedItems, initial, data]
+// [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentWidth, validated, activatedItems, initial, data]
 export type StateNodeCacheKey = [
   StateNodeOptions,
   CompiledLayout,
@@ -84,7 +84,7 @@ export type StateNodeCacheKey = [
   SkeletonNode,
   Child | null,
   number,
-  ValidationState,
+  boolean,
   Record<string, number>,
   boolean,
   unknown
