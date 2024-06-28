@@ -68,14 +68,26 @@ describe('default data management', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, { obj1: { str1: 'String 1' } })
+  })
 
-    // reuse default value if property is emptied
-    /* assert.ok(statefulLayout.stateTree.root.children)
-    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], '')
-    assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
+  it('should fill default values when data in tuples is empty', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        arr1: {
+          type: 'array',
+          items: [{
+            type: 'object',
+            properties: {
+              str1: { type: 'string', default: 'String 1' }
+            }
+          }]
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
 
-    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test')
-    assert.deepEqual(statefulLayout.data, { str1: 'test' }) */
+    assert.deepEqual(statefulLayout.data, { arr1: [{ str1: 'String 1' }] })
   })
 
   it('should fill default values when data is missing', async () => {

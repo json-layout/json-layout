@@ -449,7 +449,7 @@ export function createStateNode (
   /** @type {unknown} */
   if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
     nodeData = produceStateNodeData(
-      /** @type {Record<string, unknown>} */(nodeData ?? {}),
+      /** @type {Record<string, unknown>} */(nodeData ?? (typeof children?.[0]?.key === 'number' ? [] : {})),
       dataPath,
       children,
       context.additionalPropertiesErrors,
