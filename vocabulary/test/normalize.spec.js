@@ -137,6 +137,7 @@ describe('normalize schema fragment function', () => {
     const schema = {
       type: 'object',
       title: 'Subtypes section',
+      description: 'A section with subtypes',
       oneOf: [{
         key: { type: 'string', const: 'val1', title: 'Key' },
         str1: { type: 'string' }
@@ -150,6 +151,7 @@ describe('normalize schema fragment function', () => {
       {
         comp: 'section',
         title: 'Subtypes section',
+        subtitle: 'A section with subtypes',
         children: [{ key: '$oneOf' }]
       }
     )

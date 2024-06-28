@@ -413,8 +413,17 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
     }
   }
 
-  if (schemaFragment.description && !partial.help) partial.help = schemaFragment.description
+  if (schemaFragment.description) {
+    if (component.composite && !!partial.title) {
+      if (partial.subtitle === undefined) {
+        partial.subtitle = schemaFragment.description
+      }
+    } else if (partial.help === undefined && arrayChild !== 'oneOf') {
+      partial.help = schemaFragment.description
+    }
+  }
   if (partial.help) partial.help = markdown(partial.help).trim()
+  if (partial.subtitle) partial.subtitle = markdown(partial.subtitle).trim()
 
   if (typeof partial.cols === 'number') partial.cols = { xs: partial.cols }
   if (typeof partial.cols === 'object' && partial.cols.xs === undefined) partial.cols.xs = 12

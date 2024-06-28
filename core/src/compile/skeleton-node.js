@@ -100,7 +100,6 @@ export function makeSkeletonNode (
 
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
   for (const compObject of compObjects) {
-    if (schema.description && !compObject.help) compObject.help = schema.description
     if (compObject.if) pushExpression(expressions, compObject.if)
 
     if (schema.const !== undefined && compObject.constData === undefined) compObject.constData = schema.const
