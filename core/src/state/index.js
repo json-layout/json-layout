@@ -38,6 +38,7 @@ export { Display } from './utils/display.js'
  * @typedef {import('./types.js').OneOfSelectNode} OneOfSelectNode
  * @typedef {import('./types.js').ListNode} ListNode
  * @typedef {import('./types.js').FileInputNode} FileInputNode
+ * @typedef {import('./types.js').CardNode} CardNode
  * @typedef {import('./types.js').FileRef} FileRef
  */
 
@@ -63,6 +64,7 @@ function fillOptions (partialOptions, compiledLayout) {
     readOnly: false,
     summary: false,
     density: 'default',
+    indent: false,
     titleDepth: 2,
     validateOn: 'input',
     initialValidation: 'withData',

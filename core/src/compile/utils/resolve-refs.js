@@ -6,8 +6,7 @@ import clone from '../../utils/clone.js'
  * @param {ajvModule.default} ajv
  * @returns {(schemaId: string, ref: string) => [any, string, string]}
  */
-const prepareGetJSONRef = (schemas, ajv) => 
-{
+const prepareGetJSONRef = (schemas, ajv) => {
   return (sourceSchemaId, ref) => {
     const fullRef = ajv.opts.uriResolver.resolve(sourceSchemaId, ref)
     const [schemaId, pointer] = fullRef.split('#')
@@ -87,14 +86,14 @@ export function partialResolveRefs (schema, schemaId, getJSONRef) {
   if (schema.items && schema.items.$ref) {
     const [refFragment] = getJSONRef(schemaId, schema.items.$ref)
     clonedSchema = clonedSchema ?? clone(schema)
-    clonedSchema.items = { ...refFragment, ... schema.items }
+    clonedSchema.items = { ...refFragment, ...schema.items }
   }
   if (schema.properties) {
     for (const key in schema.properties) {
       if (schema.properties[key].$ref) {
         const [refFragment] = getJSONRef(schemaId, schema.properties[key].$ref)
         clonedSchema = clonedSchema ?? clone(schema)
-        clonedSchema.properties[key] = { ...refFragment, ... schema.properties[key] }
+        clonedSchema.properties[key] = { ...refFragment, ...schema.properties[key] }
       }
     }
   }
@@ -103,7 +102,7 @@ export function partialResolveRefs (schema, schemaId, getJSONRef) {
       if (schema.oneOf[i].$ref) {
         const [refFragment] = getJSONRef(schemaId, schema.oneOf[i].$ref)
         clonedSchema = clonedSchema ?? clone(schema)
-        clonedSchema.oneOf[i] = { ...refFragment, ... schema.oneOf[i] }
+        clonedSchema.oneOf[i] = { ...refFragment, ...schema.oneOf[i] }
       }
     }
   }
@@ -112,7 +111,7 @@ export function partialResolveRefs (schema, schemaId, getJSONRef) {
       if (schema.anyOf[i].$ref) {
         const [refFragment] = getJSONRef(schemaId, schema.anyOf[i].$ref)
         clonedSchema = clonedSchema ?? clone(schema)
-        clonedSchema.anyOf[i] = { ...refFragment, ... schema.anyOf[i] }
+        clonedSchema.anyOf[i] = { ...refFragment, ...schema.anyOf[i] }
       }
     }
   }
@@ -121,7 +120,7 @@ export function partialResolveRefs (schema, schemaId, getJSONRef) {
       if (schema.allOf[i].$ref) {
         const [refFragment] = getJSONRef(schemaId, schema.allOf[i].$ref)
         clonedSchema = clonedSchema ?? clone(schema)
-        clonedSchema.allOf[i] = { ...refFragment, ... schema.allOf[i] }
+        clonedSchema.allOf[i] = { ...refFragment, ...schema.allOf[i] }
       }
     }
   }
