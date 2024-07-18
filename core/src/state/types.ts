@@ -24,6 +24,7 @@ import {
   type List,
   type Combobox,
   type FileInput,
+  type Card,
   type Child,
   type StateNodePropsLib
 } from '@json-layout/vocabulary'
@@ -158,3 +159,5 @@ export type ListNode = StateNode & { layout: List, data: any[], children: StateN
 export type ComboboxNode = Omit<StateNode, 'children'> & { layout: Combobox, data: any[] }
 
 export type FileInputNode = Omit<StateNode, 'children'> & { layout: FileInput, data: object | undefined | null }
+
+export type CardNode = StateNode & { layout: Card, children: StateNode[] }

@@ -1,7 +1,7 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'Section',
-  id: 'section',
+  title: 'Sections',
+  id: 'sections',
   description: `The default component used to render an object is a section.
   
 The title of the section can be derived from the \`title\` attribute of the object or from \`layout.title\`. An empty or null title will make the section into a simple container for its children.

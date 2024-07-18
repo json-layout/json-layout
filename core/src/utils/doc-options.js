@@ -61,6 +61,16 @@ export const runtimeOptions = [
     }
   },
   {
+    key: 'indent',
+    description: 'The indentation of the nested sections of the form.',
+    default: false,
+    values: {
+      true: 'The nested sections are indented.',
+      false: 'The nested sections are not indented.',
+      number: 'The nested sections are indented with the given number of spaces.'
+    }
+  },
+  {
     key: 'context',
     description: 'A contextual data object that can be referenced in expressions',
     default: {}

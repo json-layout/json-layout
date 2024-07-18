@@ -20,6 +20,7 @@
  * @typedef {import('./types.js').List} List
  * @typedef {import('./types.js').Combobox} Combobox
  * @typedef {import('./types.js').FileInput} FileInput
+ * @typedef {import('./types.js').Card} Card
  */
 
 /** @type {import('../types.js').ComponentInfo[]} */
@@ -45,6 +46,10 @@ export const standardComponents = [
   },
   {
     name: 'stepper',
+    composite: true
+  },
+  {
+    name: 'card',
     composite: true
   },
   {

@@ -1,7 +1,7 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'Section described in parent',
-  id: 'section-parent',
+  title: 'Sections described in parent',
+  id: 'sections-parent',
   description: `You might want to organize your properties into sections without adding actual object containers in your data.
   
   To do so you can define sections in the \`layout.children\` attribute of the parent node.`,

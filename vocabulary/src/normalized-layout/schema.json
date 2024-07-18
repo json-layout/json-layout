@@ -286,6 +286,7 @@
             "summary": {"type": "boolean", "default": false},
             "titleDepth": {"type": "integer", "minimum": 1, "maximum": 6, "default": 2},
             "density": {"type": "string", "enum": ["default", "comfortable", "compact"], "default": "default"},
+            "indent": {"type": ["boolean", "integer"]},
             "removeAdditional": {
               "description": "true is the same as 'unknown', false is the same as 'none'",
               "default": "error",

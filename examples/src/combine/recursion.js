@@ -9,7 +9,8 @@ Warning: recursion can easily create infinite loops.`,
     required: ['recursiveObject1', 'recursiveObject2'],
     properties: {
       recursiveObject1: { $ref: '#/$defs/recursiveObject1' },
-      recursiveObject2: { $ref: '#/$defs/recursiveObject2' }
+      recursiveObject2: { $ref: '#/$defs/recursiveObject2' },
+      recursiveObject3: { $ref: '#/$defs/recursiveObject3' }
     },
     $defs: {
       recursiveObject1: {
@@ -31,8 +32,8 @@ Warning: recursion can easily create infinite loops.`,
       },
       recursiveObject2: {
         type: 'object',
-        title: 'An object with a conditional recursive child',
-        description: 'Without the condition on the recursive child this example will create an infinite loop.',
+        title: 'An object with a recursive child in a card',
+        description: 'Without the condition on the recursive child (expressed using the if keyword) this example will create an infinite loop.',
         required: ['key'],
         properties: {
           key: { type: 'string', pattern: '^[A-Z]+$' },
@@ -44,6 +45,28 @@ Warning: recursion can easily create infinite loops.`,
               if: {
                 pure: false,
                 expr: 'parent.data.activeChild'
+              },
+              comp: 'card'
+            }
+          }
+        }
+      },
+      recursiveObject3: {
+        type: 'object',
+        title: 'An object with a recursive child in a indented section',
+        description: 'Without the condition on the recursive child (expressed using the dependencies keyword) this example will create an infinite loop.',
+        required: ['key'],
+        layout: { options: {indent: true} },
+        properties: {
+          key: { type: 'string', pattern: '^[A-Z]+$' },
+          activeChild: { type: 'boolean', title: 'show recursive child' }
+        },
+        dependencies: {
+          activeChild: {
+            properties: {
+              child: {
+                $ref: '#/$defs/recursiveObject3',
+                default: {}
               }
             }
           }
