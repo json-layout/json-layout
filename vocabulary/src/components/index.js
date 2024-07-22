@@ -204,7 +204,12 @@ export const standardComponents = [
     }
   },
   {
-    name: 'one-of-select'
+    name: 'one-of-select',
+    schema: {
+      properties: {
+        emptyData: { type: 'boolean' }
+      }
+    }
   }
 ]
 

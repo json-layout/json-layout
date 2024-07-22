@@ -329,6 +329,47 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].data.key, 'key3')
   })
 
+  it('should clear content of oneOf based on layout.clearData parameter', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        str: { type: 'string' },
+      },
+      oneOfLayout: {
+        emptyData: true
+      },
+      oneOf: [{
+        properties: {
+          key: { type: 'string', const: 'key1' },
+          str1: { type: 'string' }
+        }
+      }, {
+        properties: {
+          key: { type: 'string', const: 'key2' },
+          str1: { type: 'string' },
+          str2: { type: 'string', const: 'string 3' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: false }, { str: 'Str', key: 'key1' })
+    assert.deepEqual(statefulLayout.data, { str: 'Str', key: 'key1' })
+
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+    const selectNode = statefulLayout.stateTree.root.children?.[1]
+    assert.equal(selectNode.layout.comp, 'one-of-select')
+    assert.equal(selectNode.key, '$oneOf')
+    assert.equal(selectNode.children?.length, 1)
+    assert.equal(selectNode.children?.[0].key, 0)
+    assert.ok(selectNode.children?.[0].children?.[0])
+    assert.equal(selectNode.children?.[0].children?.[1].key, 'str1')
+    statefulLayout.input(selectNode.children?.[0].children?.[1], 'string 1')
+    assert.deepEqual(statefulLayout.data, { str: 'Str', str1: 'string 1', key: 'key1' })
+
+    statefulLayout.activateItem(statefulLayout.stateTree.root.children?.[1], 1)
+
+    assert.deepEqual(statefulLayout.data, { str: 'Str', key: 'key2', str2: 'string 3' })
+  })
+
   it('should manage a oneOf with implicit typing', async () => {
     const compiledLayout = await compile({
       oneOf: [{
