@@ -1,7 +1,10 @@
 import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
 import { produce } from 'immer'
+import debug from 'debug'
 import { getChildDisplay } from './utils/display.js'
 import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
+
+const logStateNode = debug('jl:state-node')
 
 /**
  * @param {unknown} data
@@ -265,6 +268,8 @@ export function createStateNode (
   validationState,
   reusedNode
 ) {
+  logStateNode('createStateNode', fullKey)
+
   /** @type {import('./types.js').StateNodeCacheKey | null} */
   let cacheKey = null
 
@@ -274,14 +279,17 @@ export function createStateNode (
     const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.includes(fullKey)
     cacheKey = [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validatedCacheKey, context.activatedItems, context.initial, data]
     if (reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
+      logStateNode('createStateNode cache hit', fullKey)
       // @ts-ignore
       if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['hit'])
       return reusedNode
     } else {
+      logStateNode('createStateNode cache miss', fullKey)
       // @ts-ignore
       if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['miss'])
     }
   } else {
+    logStateNode('createStateNode cache skip', fullKey)
     // @ts-ignore
     if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['skip'])
   }
@@ -360,10 +368,12 @@ export function createStateNode (
         const originalError = error.params?.errors?.[0] ?? error
         // console.log(originalError.schemaPath, skeleton.pointer, skeleton.refPointer)
         // if an item was selected, remove the oneOf error
-        if ((originalError.schemaPath === skeleton.pointer || originalError.schemaPath === skeleton.refPointer) && originalError.keyword === 'oneOf') return false
+        if (matchError(error, skeleton, dataPath, parentDataPath)) return false
         // also remove the errors from other children of the oneOf
-        if (originalError.schemaPath.startsWith(skeleton.pointer) && !originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
-        if (originalError.schemaPath.startsWith(skeleton.refPointer) && !originalError.schemaPath.startsWith(skeleton.refPointer + '/' + activeChildTreeIndex)) return false
+        if (matchChildError(error, skeleton, dataPath, parentDataPath)) {
+          if (originalError.schemaPath.startsWith(skeleton.pointer) && !originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
+          if (originalError.schemaPath.startsWith(skeleton.refPointer) && !originalError.schemaPath.startsWith(skeleton.refPointer + '/' + activeChildTreeIndex)) return false
+        }
         return true
       })
       // console.log(context.errors?.map(error => error.params?.errors?.[0] ?? error))
@@ -426,7 +436,8 @@ export function createStateNode (
 
   let error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath))
   if (!error) {
-    error = context.errors?.find(error => matchChildError(error, skeleton, dataPath, parentDataPath))
+    // findLast here is important because we want to keep the error of the highest child (deepest errors are listed first)
+    error = context.errors?.findLast(error => matchChildError(error, skeleton, dataPath, parentDataPath))
   }
 
   // capture errors so that they are not repeated in parent nodes

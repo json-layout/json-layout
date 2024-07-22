@@ -56,7 +56,6 @@ Warning: recursion can easily create infinite loops.`,
         title: 'An object with a recursive child in a indented section',
         description: 'Without the condition on the recursive child (expressed using the dependencies keyword) this example will create an infinite loop.',
         required: ['key'],
-        layout: { options: {indent: true} },
         properties: {
           key: { type: 'string', pattern: '^[A-Z]+$' },
           activeChild: { type: 'boolean', title: 'show recursive child' }
@@ -66,7 +65,8 @@ Warning: recursion can easily create infinite loops.`,
             properties: {
               child: {
                 $ref: '#/$defs/recursiveObject3',
-                default: {}
+                default: {},
+                layout: { options: {indent: true} }
               }
             }
           }

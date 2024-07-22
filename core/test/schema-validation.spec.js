@@ -107,4 +107,16 @@ describe('stateful layout validation state', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
     assert.equal(statefulLayout.stateTree.valid, true)
   })
+
+  it('should return a proper error for a simple oneOf', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string', oneOf: [{ const: 'val1', title: 'title 1' }, { const: 'val2', title: 'title 1' }] }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: 'test' })
+    assert.equal(statefulLayout.stateTree.valid, false)
+    assert.equal(statefulLayout.stateTree.root.children?.[0]?.error, 'chose one')
+  })
 })

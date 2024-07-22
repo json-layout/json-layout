@@ -264,6 +264,11 @@ export class StatefulLayout {
       this._autofocusTarget = this._lastCreateStateTreeContext.autofocusTarget
       this.createStateTree(true)
     }
+
+    if (!this._stateTree.valid && !this._stateTree.root.error && !this._stateTree.root.childError) {
+      console.error('JSON layout failed to assign validation error to a node', this._lastCreateStateTreeContext.allErrors)
+    }
+
     logDataBinding('emit update event', this._data, this._stateTree)
     this.options.onUpdate(this)
     this.emitData()

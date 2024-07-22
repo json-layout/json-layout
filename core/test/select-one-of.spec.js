@@ -123,6 +123,164 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children[1].children[0].error, 'required information')
   })
 
+  it('should manage error of a shared information across oneOf elements', async () => {
+    const compiledLayout = await compile(
+      {
+        type: 'object',
+        properties: {
+          rules: {
+            type: 'array',
+            items: {
+              type: 'object',
+              oneOf: [
+                {
+                  title: 'Mensuel',
+                  properties: {
+                    type: {
+                      const: 'monthly'
+                    },
+                    dayOfWeek: {
+                      type: 'string',
+                      const: '*'
+                    },
+                    dayOfMonth: {
+                      title: 'Jour du mois (de 1 à 28)',
+                      type: 'integer',
+                      minimum: 1,
+                      maximum: 28,
+                      default: 1,
+                      'x-cols': 6,
+                      'x-class': 'pr-1'
+                    }
+                  }
+                },
+                {
+                  title: 'Hebdomadaire',
+                  properties: {
+                    type: {
+                      const: 'weekly'
+                    },
+                    dayOfWeek: {
+                      title: 'Jour de la semaine',
+                      type: 'string',
+                      oneOf: [{
+                        const: '1',
+                        title: 'lundi'
+                      }, {
+                        const: '2',
+                        title: 'mardi'
+                      }, {
+                        const: '3',
+                        title: 'mercredi'
+                      }, {
+                        const: '4',
+                        title: 'jeudi'
+                      }, {
+                        const: '5',
+                        title: 'vendredi'
+                      }, {
+                        const: '6',
+                        title: 'samedi'
+                      }, {
+                        const: '0',
+                        title: 'dimanche'
+                      }],
+                      default: '1',
+                      'x-cols': 6,
+                      'x-class': 'pr-1'
+                    },
+                    hour: {
+                      title: 'Heure de la journée (de 0 à 23)',
+                      type: 'integer',
+                      minimum: 0,
+                      maximum: 23,
+                      default: 0,
+                      'x-cols': 6,
+                      'x-class': 'pl-1'
+                    }
+                  }
+                },
+                {
+                  title: 'Journalier',
+                  properties: {
+                    type: {
+                      const: 'daily'
+                    },
+                    dayOfWeek: {
+                      type: 'string',
+                      const: '*'
+                    },
+                    hour: {
+                      title: 'Heure de la journée (de 0 à 23)',
+                      type: 'integer',
+                      minimum: 0,
+                      maximum: 23,
+                      default: 0,
+                      'x-cols': 6,
+                      'x-class': 'pr-1'
+                    },
+                    timeZone: {
+                      type: 'string',
+                      title: 'Fuseau horaire',
+                      default: 'Europe/Paris',
+                      layout: {
+                        comp: 'autocomplete',
+                        cols: 6,
+                        getItems: 'context.utcs'
+                      }
+                    },
+                    minute: {
+                      title: 'Minute (de 0 à 59)',
+                      type: 'integer',
+                      minimum: 0,
+                      maximum: 59,
+                      default: 0,
+                      'x-cols': 6,
+                      'x-class': 'pr-1'
+                    },
+                    dayOfMonth: {
+                      type: 'string',
+                      const: '*'
+                    },
+                    month: {
+                      type: 'string',
+                      const: '*'
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+
+      }
+    )
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      defaultOptions,
+      { rules: [{}, {}] }
+    )
+
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[0].key, 'rules')
+    assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 2)
+    const item0 = statefulLayout.stateTree.root.children[0].children[0]
+    assert.equal(item0.key, 0)
+    assert.equal(item0.children?.length, 1)
+    assert.deepEqual(item0.data, { type: 'monthly', dayOfWeek: '*', dayOfMonth: 1 })
+
+    let item1 = statefulLayout.stateTree.root.children[0].children[1]
+    assert.equal(item1.key, 1)
+    assert.equal(item1.children?.length, 1)
+    assert.deepEqual(item1.data, { type: 'monthly', dayOfWeek: '*', dayOfMonth: 1 })
+    statefulLayout.activateItem(item1.children[0], 1)
+    item1 = statefulLayout.stateTree.root.children[0].children[1]
+    assert.deepEqual(item1.data, { type: 'weekly', dayOfWeek: '*', hour: 0 })
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(item1.children?.[0]?.children?.[0].children?.[1]?.key, 'dayOfWeek')
+    assert.equal(item1.children?.[0]?.children?.[0].children?.[1]?.error, 'chose one')
+  })
+
   it('should manage active element in a oneOf', async () => {
     const compiledLayout = await compile({
       type: 'object',

@@ -60,6 +60,7 @@ export interface StateTree {
 }
 
 export interface CreateStateTreeContext {
+  allErrors?: ErrorObject[]
   errors?: ErrorObject[]
   additionalPropertiesErrors?: ErrorObject[]
   files: FileRef[]

@@ -147,6 +147,10 @@ export function makeSkeletonNode (
     pushExpression(expressions, node.condition)
   }
 
+  if (schema.oneOf) {
+    rawSchema.errorMessage.oneOf = options.messages.errorOneOf
+  }
+
   if (type === 'object') {
     if (schema.properties) {
       node.children = node.children ?? []
@@ -297,8 +301,6 @@ export function makeSkeletonNode (
       }
       node.children = node.children ?? []
       node.children.push(oneOfPointer)
-
-      rawSchema.errorMessage.oneOf = options.messages.errorOneOf
     }
     if (schema.if) {
       validates.push(`${pointer}/if`)

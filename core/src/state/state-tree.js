@@ -51,7 +51,7 @@ export function createStateTree (
     for (const error of validate.errors) {
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
     }
-    context.errors = validate.errors
+    context.errors = context.allErrors = validate.errors
     if (context.errors.length) {
       for (const error of context.errors) {
         const originalError = error.params?.errors?.[0] ?? error
