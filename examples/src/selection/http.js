@@ -14,8 +14,8 @@ const example = {
             // eslint-disable-next-line no-template-curly-in-string
             url: 'https://koumoul.com/data-fair/api/v1/datasets?status=finalized&select=id,title&owner=${context.owner.type}:${context.owner.id}',
             itemsResults: 'data.results',
-            itemTitle: 'data.title',
-            itemValue: 'data.id'
+            itemTitle: 'item.title',
+            itemValue: 'item.id'
           }
         }
       },
@@ -27,8 +27,8 @@ const example = {
             // eslint-disable-next-line no-template-curly-in-string
             url: 'https://koumoul.com/data-fair/api/v1/datasets?status=finalized&select=id,title&q={q}&owner=${context.owner.type}:${context.owner.id}',
             itemsResults: 'data.results',
-            itemTitle: 'data.title',
-            itemKey: 'data.id'
+            itemTitle: 'item.title',
+            itemKey: 'item.id'
           }
         }
       }

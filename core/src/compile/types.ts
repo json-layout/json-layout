@@ -12,6 +12,7 @@ export interface ParentContextExpression {
 
 export type CompiledExpression = (
   data: any,
+  dataAlias: any,
   options: StateNodeOptionsBase,
   context: object,
   display: Display,

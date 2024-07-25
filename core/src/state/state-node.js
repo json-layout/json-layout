@@ -193,12 +193,19 @@ export function evalExpression (expressions, expression, data, options, display,
   const compiledExpression = expressions[expression.ref]
   try {
     if (expression.pure) {
-      return compiledExpression(data, options, options.context, display, layout, validates)
+      return compiledExpression(data, data, options, options.context, display, layout, validates)
     } else {
-      return compiledExpression(data, options, options.context, display, layout, validates, rootData, parentContext)
+      return compiledExpression(data, data, options, options.context, display, layout, validates, rootData, parentContext)
     }
   } catch (err) {
-    console.warn('json-layout: failed to evaluate expression', err, { expression, data, context: options.context, display, rootData, parent: parentContext })
+    /** @type {any} */
+    const info = { expression, data, context: options.context, display }
+    info[expression.dataAlias] = data
+    if (!expression.pure) {
+      info.rootData = rootData
+      info.parent = parentContext
+    }
+    console.warn('json-layout: failed to evaluate expression', err, info)
     throw new Error('json-layout: failed to evaluate expression')
   }
 }

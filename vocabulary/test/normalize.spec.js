@@ -27,8 +27,8 @@ describe('normalize schema fragment function', () => {
       normalize({ type: 'string', layout: { switch: [{ if: 'read', comp: 'text-field' }, { if: 'write', comp: 'textarea' }] } }, '/prop', components).layout,
       {
         switch: [
-          { ...defaultTextFieldComp, if: { type: 'js-eval', expr: 'read', pure: true } },
-          { ...defaultTextareaComp, if: { type: 'js-eval', expr: 'write', pure: true } },
+          { ...defaultTextFieldComp, if: { type: 'js-eval', expr: 'read', pure: true, dataAlias: 'value' } },
+          { ...defaultTextareaComp, if: { type: 'js-eval', expr: 'write', pure: true, dataAlias: 'value' } },
           { ...defaultTextFieldComp }
         ]
       }
@@ -94,7 +94,7 @@ describe('normalize schema fragment function', () => {
       {
         comp: 'select',
         label: 'prop',
-        getItems: { type: 'js-eval', expr: JSON.stringify([{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }]), pure: true, immutable: true }
+        getItems: { type: 'js-eval', expr: JSON.stringify([{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }]), pure: true, immutable: true, dataAlias: 'value' }
       }
     )
 
@@ -103,7 +103,7 @@ describe('normalize schema fragment function', () => {
       {
         comp: 'select',
         label: 'prop',
-        getItems: { type: 'js-eval', expr: JSON.stringify([{ const: 'val1', title: 'Val 1', key: 'val1', value: 'val1' }, { const: 'val2', key: 'val2', title: 'val2', value: 'val2' }]), pure: true, immutable: true }
+        getItems: { type: 'js-eval', expr: JSON.stringify([{ const: 'val1', title: 'Val 1', key: 'val1', value: 'val1' }, { const: 'val2', key: 'val2', title: 'val2', value: 'val2' }]), pure: true, immutable: true, dataAlias: 'value' }
       }
     )
 
@@ -116,7 +116,14 @@ describe('normalize schema fragment function', () => {
   it('should manage select with getItems', () => {
     assert.deepEqual(
       normalize({ type: 'string', layout: { getItems: 'context.items' } }, '/prop', components).layout,
-      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval', pure: true } }
+      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval', pure: true, dataAlias: 'value' } }
+    )
+  })
+
+  it('should manage select with getItems from URL', () => {
+    assert.deepEqual(
+      normalize({ type: 'string', layout: { getItems: { url: 'http://test.com/${parent.data.path}' } } }, '/prop', components).layout,
+      { comp: 'select', label: 'prop', getItems: { url: { expr: 'http://test.com/${parent.data.path}', type: 'js-tpl', pure: false, dataAlias: 'value' } } }
     )
   })
 
@@ -127,7 +134,7 @@ describe('normalize schema fragment function', () => {
         comp: 'select',
         label: 'prop',
         multiple: true,
-        getItems: { type: 'js-eval', expr: JSON.stringify([{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }]), pure: true, immutable: true }
+        getItems: { type: 'js-eval', expr: JSON.stringify([{ key: 'val1', title: 'val1', value: 'val1' }, { key: 'val2', title: 'val2', value: 'val2' }]), pure: true, immutable: true, dataAlias: 'value' }
       }
     )
   })
@@ -174,7 +181,7 @@ describe('normalize schema fragment function', () => {
   it('should manage combobox with examples on simple types', () => {
     assert.deepEqual(
       normalize({ type: 'string', examples: ['val1', 'val2'] }, '/prop', components).layout,
-      { comp: 'combobox', label: 'prop', getItems: { type: 'js-eval', expr: '[{"key":"val1","title":"val1","value":"val1"},{"key":"val2","title":"val2","value":"val2"}]', pure: true, immutable: true } }
+      { comp: 'combobox', label: 'prop', getItems: { type: 'js-eval', expr: '[{"key":"val1","title":"val1","value":"val1"},{"key":"val2","title":"val2","value":"val2"}]', pure: true, immutable: true, dataAlias: 'value' } }
     )
   })
 
@@ -194,7 +201,7 @@ describe('normalize schema fragment function', () => {
           {}
         ]
       }, '/prop', components).layout,
-      { comp: 'combobox', label: 'prop', getItems: { type: 'js-eval', expr: '[{"const":"value1","title":"Value 1","key":"value1","value":"value1"},{"const":"value2","title":"Value 2","key":"value2","value":"value2"}]', pure: true, immutable: true } }
+      { comp: 'combobox', label: 'prop', getItems: { type: 'js-eval', expr: '[{"const":"value1","title":"Value 1","key":"value1","value":"value1"},{"const":"value2","title":"Value 2","key":"value2","value":"value2"}]', pure: true, immutable: true, dataAlias: 'value' } }
     )
   })
 
@@ -217,7 +224,7 @@ describe('normalize schema fragment function', () => {
   it('should manage nullable', () => {
     assert.deepEqual(
       normalize({ type: 'string', layout: { getItems: 'context.items' } }, '/prop', components).layout,
-      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval', pure: true } }
+      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval', pure: true, dataAlias: 'value' } }
     )
   })
 
