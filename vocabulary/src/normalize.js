@@ -374,6 +374,10 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
   if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
   if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
     if (type === 'object') partial.getItems.returnObjects = true
+    if (type === 'array') {
+      const { type: itemsType } = getSchemaFragmentType(schemaFragment.items)
+      if (itemsType === 'object') partial.getItems.returnObjects = true
+    }
     if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle, 'js-eval', 'item')
     if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey, 'js-eval', 'item')
     if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue, 'js-eval', 'item')
