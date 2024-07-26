@@ -188,7 +188,7 @@ describe('get select items', () => {
         prop1: { type: 'string' },
         prop2: { type: 'string' }
       },
-      layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2' } }
+      layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
@@ -203,5 +203,60 @@ describe('get select items', () => {
     ])
     statefulLayout.input(statefulLayout.stateTree.root, items[0].value)
     assert.deepEqual(statefulLayout.data, { prop1: 'val1', prop2: 'val1' })
+  })
+
+  it('should manage a multiple select', async () => {
+    // eslint-disable-next-line no-template-curly-in-string
+    const compiledLayout = await compile({
+      type: 'array',
+      layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } },
+      items: {
+        type: 'object'
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const nockScope = nock('http://test.com')
+      .get('/test')
+      .reply(200, { results: [{ prop1: 'val1', prop2: 'val1', unknownProp: 'val1' }, { prop1: 'val2', prop2: 'val2', unknownProp: 'val2' }] })
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: { prop1: 'val1', prop2: 'val1', unknownProp: 'val1' } },
+      { title: 'val2', key: 'val2', value: { prop1: 'val2', prop2: 'val2', unknownProp: 'val2' } }
+    ])
+    statefulLayout.input(statefulLayout.stateTree.root, [items[0].value])
+    assert.equal(statefulLayout.valid, true)
+    assert.deepEqual(statefulLayout.data, [{ prop1: 'val1', prop2: 'val1', unknownProp: 'val1' }])
+  })
+
+  it('should manage a multiple select and remove additional properties from result', async () => {
+    // eslint-disable-next-line no-template-curly-in-string
+    const compiledLayout = await compile({
+      type: 'array',
+      layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } },
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          prop1: { type: 'string' },
+          prop2: { type: 'string' }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const nockScope = nock('http://test.com')
+      .get('/test')
+      .reply(200, { results: [{ prop1: 'val1', prop2: 'val1', ignoreProp: 'val1' }, { prop1: 'val2', prop2: 'val2', ignoreProp: 'val2' }] })
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: { prop1: 'val1', prop2: 'val1', ignoreProp: 'val1' } },
+      { title: 'val2', key: 'val2', value: { prop1: 'val2', prop2: 'val2', ignoreProp: 'val2' } }
+    ])
+    statefulLayout.input(statefulLayout.stateTree.root, [items[0].value])
+    assert.equal(statefulLayout.valid, true)
+    assert.deepEqual(statefulLayout.data, [{ prop1: 'val1', prop2: 'val1' }])
   })
 })
