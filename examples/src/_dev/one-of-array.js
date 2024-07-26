@@ -16,6 +16,9 @@ const example = {
         },
         items: {
           type: 'object',
+          oneOfLayout: {
+            emptyData: true
+          },
           oneOf: [
             {
               title: 'Mensuel',

@@ -333,7 +333,7 @@ describe('Special cases of oneOfs', () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: {
-        str: { type: 'string' },
+        str: { type: 'string' }
       },
       oneOfLayout: {
         emptyData: true
