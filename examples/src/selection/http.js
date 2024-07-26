@@ -33,6 +33,7 @@ const example = {
         },
         items: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             id: {
               type: 'string'
