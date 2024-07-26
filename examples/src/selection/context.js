@@ -27,9 +27,9 @@ const example = {
           getItems: {
             expr: 'options.context.selectItems2',
             itemsResults: 'data.results',
-            itemTitle: 'data.label',
-            itemValue: 'data.id',
-            itemIcon: '"mdi-" + data.icon'
+            itemTitle: 'item.label',
+            itemValue: 'item.id',
+            itemIcon: '"mdi-" + item.icon'
           }
         }
       }

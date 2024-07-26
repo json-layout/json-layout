@@ -167,12 +167,23 @@ function getPartialCompObject (layoutKeyword) {
 
 /**
  * @param {import("./index.js").PartialExpression} expression
+ * @returns {boolean}
+ */
+function looksPure (expression) {
+  const expr = typeof expression === 'string' ? expression : expression.expr
+  return !expr.includes('rootData.') && !expr.includes('rootData[') && !expr.includes('parent.data') && !expr.includes('parent.parent')
+}
+
+/**
+ * @param {import("./index.js").PartialExpression} expression
  * @param {Expression['type']} defaultType
+ * @param {string} defaultDataAlias
  * @returns {Expression}
  */
-function normalizeExpression (expression, defaultType = 'js-eval') {
-  if (typeof expression === 'string') return { type: defaultType, expr: expression, pure: true }
-  else return { pure: true, type: defaultType, ...expression }
+function normalizeExpression (expression, defaultType = 'js-eval', defaultDataAlias = 'value') {
+  const defaultPure = looksPure(expression)
+  if (typeof expression === 'string') return { type: defaultType, expr: expression, pure: defaultPure, dataAlias: defaultDataAlias }
+  else return { pure: defaultPure, type: defaultType, dataAlias: defaultDataAlias, ...expression }
 }
 
 /**
@@ -363,11 +374,15 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
   if (partial.getItems && isPartialGetItemsExpr(partial.getItems)) partial.getItems = normalizeExpression(partial.getItems)
   if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
     if (type === 'object') partial.getItems.returnObjects = true
-    if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle)
-    if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey)
-    if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue)
-    if (partial.getItems.itemIcon) partial.getItems.itemIcon = normalizeExpression(partial.getItems.itemIcon)
-    if (partial.getItems.itemsResults) partial.getItems.itemsResults = normalizeExpression(partial.getItems.itemsResults)
+    if (type === 'array') {
+      const { type: itemsType } = getSchemaFragmentType(schemaFragment.items)
+      if (itemsType === 'object') partial.getItems.returnObjects = true
+    }
+    if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle, 'js-eval', 'item')
+    if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey, 'js-eval', 'item')
+    if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue, 'js-eval', 'item')
+    if (partial.getItems.itemIcon) partial.getItems.itemIcon = normalizeExpression(partial.getItems.itemIcon, 'js-eval', 'item')
+    if (partial.getItems.itemsResults) partial.getItems.itemsResults = normalizeExpression(partial.getItems.itemsResults, 'js-eval', 'body')
   }
   if (partial.getItems && isPartialGetItemsFetch(partial.getItems)) {
     partial.getItems.url = normalizeExpression(partial.getItems.url, 'js-tpl')

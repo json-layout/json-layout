@@ -68,6 +68,29 @@ const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
   Object.assign(draft, options.messages, layoutMessages)
 })
 
+/** @type {(draft: unknown[], children: import('../index.js').StateNode[]) => unknown[]} */
+const produceStateNodeDataChildrenArray = produce((draft, children) => {
+  for (const child of children) {
+    const key = /** @type {number} */(child.key)
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    if (child.data === undefined) delete draft[key]
+    else draft[key] = child.data
+  }
+  // remove trailing undefined values from tuples
+  while (draft.length && draft[draft.length - 1] === undefined) {
+    draft.pop()
+  }
+})
+
+/** @type {(draft: Record<string, unknown>[], parentDataPath: string, additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>[]} */
+const produceStateNodeDataArray = produce((draft, parentDataPath, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
+  for (let i = 0; i < draft.length; i++) {
+    if (!(draft[i] instanceof File)) {
+      draft[i] = produceStateNodeData(draft[i], parentDataPath + '/' + i, undefined, additionalPropertiesErrors, propertyKeys, removePropertyKeys)
+    }
+  }
+})
+
 /** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>} */
 const produceStateNodeData = produce((draft, parentDataPath, children, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
   if (propertyKeys && (propertyKeys.length || children?.length)) {
@@ -193,12 +216,19 @@ export function evalExpression (expressions, expression, data, options, display,
   const compiledExpression = expressions[expression.ref]
   try {
     if (expression.pure) {
-      return compiledExpression(data, options, options.context, display, layout, validates)
+      return compiledExpression(data, data, options, options.context, display, layout, validates)
     } else {
-      return compiledExpression(data, options, options.context, display, layout, validates, rootData, parentContext)
+      return compiledExpression(data, data, options, options.context, display, layout, validates, rootData, parentContext)
     }
   } catch (err) {
-    console.warn('json-layout: failed to evaluate expression', err, { expression, data, context: options.context, display, rootData, parent: parentContext })
+    /** @type {any} */
+    const info = { expression, data, context: options.context, display }
+    info[expression.dataAlias] = data
+    if (!expression.pure) {
+      info.rootData = rootData
+      info.parent = parentContext
+    }
+    console.warn('json-layout: failed to evaluate expression', err, info)
     throw new Error('json-layout: failed to evaluate expression')
   }
 }
@@ -457,24 +487,41 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(nodeData))
 
-  /** @type {unknown} */
-  if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
+  if (typeof children?.[0]?.key === 'number' && layout.comp !== 'one-of-select') {
+    // case of an array of children nodes
+    nodeData = produceStateNodeDataChildrenArray(
+      /** @type {unknown[]} */(nodeData ?? []),
+      children
+    )
+  } else if (Array.isArray(nodeData)) {
+    // case of an array without children nodes, so a select of objects for example
+    const itemsSkeletonTree = skeleton.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton.childrenTrees?.[0]]
+    const itemsSkeletonNode = (itemsSkeletonTree && compiledLayout.skeletonNodes[itemsSkeletonTree.root]) || null
+    nodeData = produceStateNodeDataArray(
+      /** @type {Record<string, unknown>[]} */(nodeData ?? []),
+      dataPath,
+      context.additionalPropertiesErrors,
+      [true, 'unknown'].includes(options.removeAdditional) ? itemsSkeletonNode?.propertyKeys : undefined,
+      options.readOnlyPropertiesMode === 'remove' ? itemsSkeletonNode?.roPropertyKeys : undefined
+    )
+  } else if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
+    // case of an object base on children nodes or not
     nodeData = produceStateNodeData(
-      /** @type {Record<string, unknown>} */(nodeData ?? (typeof children?.[0]?.key === 'number' ? [] : {})),
+      /** @type {Record<string, unknown>} */(nodeData ?? {}),
       dataPath,
       children,
       context.additionalPropertiesErrors,
       [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined,
       options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
     )
+  }
 
-    // the producer is not perfect, sometimes data is considered mutated but it is actually the same
-    // we double check here to avoid unnecessary re-renders
-    if (nodeData !== data) {
-      if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
-      // @ts-ignore
-      else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
-    }
+  // the producer is not perfect, sometimes data is considered mutated but it is actually the same
+  // we double check here to avoid unnecessary re-renders
+  if (nodeData !== data) {
+    if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
+    // @ts-ignore
+    else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
   }
 
   if (layout.getConstData) {

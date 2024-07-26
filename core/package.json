@@ -36,7 +36,7 @@
   ],
   "scripts": {
     "test:only": "node --no-experimental-fetch --test --test-only test/*.spec.js",
-    "test": "node --no-experimental-fetch --test test/*.spec.js",
+    "test": "mkdir -p tmp && node --no-experimental-fetch --test test/*.spec.js",
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
     "lint": "eslint . --fix",
     "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",

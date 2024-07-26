@@ -14,8 +14,33 @@ const example = {
             // eslint-disable-next-line no-template-curly-in-string
             url: 'https://koumoul.com/data-fair/api/v1/datasets?status=finalized&select=id,title&owner=${context.owner.type}:${context.owner.id}',
             itemsResults: 'data.results',
-            itemTitle: 'data.title',
-            itemValue: 'data.id'
+            itemTitle: 'item.title',
+            itemValue: 'item.id'
+          }
+        }
+      },
+      fromUrlMultiple: {
+        type: 'array',
+        title: 'A select of multiple objects from a URL',
+        layout: {
+          getItems: {
+            // eslint-disable-next-line no-template-curly-in-string
+            url: 'https://koumoul.com/data-fair/api/v1/datasets?status=finalized&select=id,title&owner=${context.owner.type}:${context.owner.id}',
+            itemsResults: 'data.results',
+            itemTitle: 'item.title',
+            itemKey: 'item.id'
+          }
+        },
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            id: {
+              type: 'string'
+            },
+            title: {
+              type: 'string'
+            }
           }
         }
       },
@@ -27,8 +52,8 @@ const example = {
             // eslint-disable-next-line no-template-curly-in-string
             url: 'https://koumoul.com/data-fair/api/v1/datasets?status=finalized&select=id,title&q={q}&owner=${context.owner.type}:${context.owner.id}',
             itemsResults: 'data.results',
-            itemTitle: 'data.title',
-            itemKey: 'data.id'
+            itemTitle: 'item.title',
+            itemKey: 'item.id'
           }
         }
       }

@@ -103,17 +103,17 @@ export function makeSkeletonNode (
     if (compObject.if) pushExpression(expressions, compObject.if)
 
     if (schema.const !== undefined && compObject.constData === undefined) compObject.constData = schema.const
-    if (compObject.constData !== undefined && !compObject.getConstData) compObject.getConstData = { type: 'js-eval', expr: 'layout.constData', pure: true }
+    if (compObject.constData !== undefined && !compObject.getConstData) compObject.getConstData = { type: 'js-eval', expr: 'layout.constData', pure: true, dataAlias: 'value' }
     if (compObject.getConstData) pushExpression(expressions, compObject.getConstData)
 
     if (defaultData !== undefined && compObject.defaultData === undefined) compObject.defaultData = defaultData
-    if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true }
+    if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
     if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)
 
-    if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true }
+    if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true, dataAlias: 'value' }
     if (compObject.getOptions) pushExpression(expressions, compObject.getOptions)
 
-    if (compObject.props !== undefined && !compObject.getProps) compObject.getProps = { type: 'js-eval', expr: 'layout.props', pure: true }
+    if (compObject.props !== undefined && !compObject.getProps) compObject.getProps = { type: 'js-eval', expr: 'layout.props', pure: true, dataAlias: 'value' }
     if (compObject.getProps) pushExpression(expressions, compObject.getProps)
 
     if (compObject.transformData) pushExpression(expressions, compObject.transformData)
@@ -143,7 +143,7 @@ export function makeSkeletonNode (
 
   if (condition) {
     if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')
-    node.condition = { type: 'js-eval', expr: condition, pure: true }
+    node.condition = { type: 'js-eval', expr: condition, pure: true, dataAlias: 'value' }
     pushExpression(expressions, node.condition)
   }
 

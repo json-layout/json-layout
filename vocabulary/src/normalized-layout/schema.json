@@ -212,7 +212,7 @@
     },
     "expression": {
       "type": "object",
-      "required": ["type", "expr", "pure"],
+      "required": ["type", "expr", "pure", "dataAlias"],
       "properties": {
         "type": {
           "type": "string",
@@ -223,6 +223,9 @@
         },
         "pure": {
           "type": "boolean"
+        },
+        "dataAlias": {
+          "type": "string"
         },
         "ref": {
           "type": "integer",
