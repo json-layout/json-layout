@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
@@ -74,14 +74,6 @@ export function makeSkeletonNode (
   }
   const normalizedLayout = normalizedLayouts[pointer]
 
-  let defaultData
-  if ('default' in schema) defaultData = schema.default
-  else if (required) {
-    if (nullable) defaultData = null
-    else if (type === 'object') defaultData = {}
-    else if (type === 'array') defaultData = []
-  }
-
   let pure = !dependent
   /**
    * @param {import('@json-layout/vocabulary').Expression[]} expressions
@@ -106,6 +98,13 @@ export function makeSkeletonNode (
     if (compObject.constData !== undefined && !compObject.getConstData) compObject.getConstData = { type: 'js-eval', expr: 'layout.constData', pure: true, dataAlias: 'value' }
     if (compObject.getConstData) pushExpression(expressions, compObject.getConstData)
 
+    let defaultData
+    if ('default' in schema) defaultData = schema.default
+    else if (required) {
+      if (nullable) defaultData = null
+      else if (type === 'object' && isCompositeLayout(compObject, options.components)) defaultData = {}
+      else if (type === 'array') defaultData = []
+    }
     if (defaultData !== undefined && compObject.defaultData === undefined) compObject.defaultData = defaultData
     if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
     if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)

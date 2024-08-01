@@ -153,4 +153,20 @@ describe('default data management', () => {
 
     assert.deepEqual(statefulLayout.data, [{ str1: 'String 1' }])
   })
+
+  it('should not insert an empty object as default data for a select node', async () => {
+    // eslint-disable-next-line no-template-curly-in-string
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['select1'],
+      properties: {
+        select1: {
+          type: 'object',
+          layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
+    assert.deepEqual(statefulLayout.data, {})
+  })
 })
