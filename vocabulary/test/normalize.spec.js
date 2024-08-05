@@ -299,5 +299,19 @@ describe('normalize schema fragment function', () => {
         listEditMode: 'inline-single'
       }
     )
+    assert.deepEqual(
+      normalize(schema, '/prop', components, undefined, undefined, 'patternPropertiesKey').layout,
+      {
+        comp: 'text-field'
+      }
+    )
+    schema.patternPropertiesKeyLayout = { label: 'Name' }
+    assert.deepEqual(
+      normalize(schema, '/prop', components, undefined, undefined, 'patternPropertiesKey').layout,
+      {
+        comp: 'text-field',
+        label: 'Name'
+      }
+    )
   })
 })

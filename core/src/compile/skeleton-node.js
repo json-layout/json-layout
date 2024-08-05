@@ -261,7 +261,6 @@ export function makeSkeletonNode (
       }
       /** @type {string[]} */
       const childrenTrees = []
-      /** @type {string[]} */
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = type
         const title = schema.oneOf[i].title ?? `option ${i}`
@@ -293,13 +292,97 @@ export function makeSkeletonNode (
           pointer: oneOfPointer,
           refPointer: oneOfPointer,
           childrenTrees,
-          pure: skeletonNodes[skeletonTrees[childrenTrees[0]]?.root].pure,
+          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
           propertyKeys: [],
           roPropertyKeys: []
         }
       }
       node.children = node.children ?? []
       node.children.push(oneOfPointer)
+    }
+    if (schema.patternProperties) {
+      const patternPropertiesPointer = `${pointer}/patternProperties`
+      if (!normalizedLayouts[patternPropertiesPointer]) {
+        const normalizationResult = normalizeLayoutFragment(
+          schema,
+          patternPropertiesPointer,
+          options.components,
+          options.markdown,
+          options.optionsKeys,
+          'patternProperties',
+          type,
+          nullable
+        )
+        normalizedLayouts[patternPropertiesPointer] = normalizationResult.layout
+        if (normalizationResult.errors.length) {
+          validationErrors[patternPropertiesPointer.replace('_jl#', '/')] = normalizationResult.errors
+        }
+      }
+      const patternPropertiesKeyPointer = `${pointer}/patternPropertiesKey`
+      if (!normalizedLayouts[patternPropertiesKeyPointer]) {
+        const normalizationResult = normalizeLayoutFragment(
+          schema,
+          patternPropertiesKeyPointer,
+          options.components,
+          options.markdown,
+          options.optionsKeys,
+          'patternPropertiesKey',
+          type,
+          nullable
+        )
+        normalizedLayouts[patternPropertiesKeyPointer] = normalizationResult.layout
+        if (normalizationResult.errors.length) {
+          validationErrors[patternPropertiesKeyPointer.replace('_jl#', '/')] = normalizationResult.errors
+        }
+      }
+      /** @type {string[]} */
+      const childrenTrees = []
+      for (const pattern of Object.keys(schema.patternProperties)) {
+        const childTreePointer = `${patternPropertiesPointer}/${pattern}`
+        if (!skeletonTrees[childTreePointer]) {
+          // @ts-ignore
+          skeletonTrees[childTreePointer] = 'recursing'
+          skeletonTrees[childTreePointer] = makeSkeletonTree(
+            schema.patternProperties[pattern],
+            schemaId,
+            options,
+            getJSONRef,
+            skeletonTrees,
+            skeletonNodes,
+            validates,
+            validationErrors,
+            normalizedLayouts,
+            expressions,
+            childTreePointer,
+            'pattern ' + pattern
+          )
+        }
+        childrenTrees.push(childTreePointer)
+      }
+      if (!skeletonNodes[patternPropertiesPointer]) {
+        skeletonNodes[patternPropertiesPointer] = {
+          key: '$patternProperties',
+          pointer: patternPropertiesPointer,
+          refPointer: patternPropertiesPointer,
+          childrenTrees,
+          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
+          propertyKeys: [],
+          roPropertyKeys: []
+        }
+      }
+      node.children = node.children ?? []
+      node.children.push(patternPropertiesPointer)
+      if (!skeletonNodes[patternPropertiesKeyPointer]) {
+        skeletonNodes[patternPropertiesKeyPointer] = {
+          key: '$patternPropertiesKey',
+          pointer: patternPropertiesKeyPointer,
+          refPointer: patternPropertiesKeyPointer,
+          pure: true,
+          propertyKeys: [],
+          roPropertyKeys: []
+        }
+      }
+      node.children.push(patternPropertiesKeyPointer)
     }
     if (schema.if) {
       validates.push(`${pointer}/if`)

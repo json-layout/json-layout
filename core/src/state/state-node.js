@@ -391,8 +391,7 @@ export function createStateNode (
 
   if (key === '$oneOf' && skeleton.childrenTrees) {
     // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
-    /** @type {number} */
-    const activeChildTreeIndex = fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].root](data))
+    const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].root](data)))
     if (activeChildTreeIndex !== -1) {
       context.errors = context.errors?.filter(error => {
         const originalError = error.params?.errors?.[0] ?? error
@@ -433,22 +432,54 @@ export function createStateNode (
   }
 
   if (layout.comp === 'list') {
-    const arrayData = /** @type {unknown[]} */(data ?? [])
-    const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root])
-    const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
-    children = []
-    let focusChild = context.autofocusTarget === fullKey
-    for (let i = 0; i < arrayData.length; i++) {
-      const itemData = arrayData[i]
-      const childFullKey = `${fullKey}/${i}`
-      if (focusChild) context.autofocusTarget = childFullKey
-      const child = createStateNode(
-        context,
-        (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
-        compiledLayout,
-        i,
-        childFullKey,
-        fullKey,
+    if (layout.indexed) {
+      const objectData = /** @type {Record<string, unknown>} */(data ?? [])
+      const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
+      children = []
+      let focusChild = context.autofocusTarget === fullKey
+      for (const key of Object.keys(objectData)) {
+        // TODO get childSkeleton based on pattern matching
+        const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root])
+        const itemData = objectData[key]
+        const childFullKey = `${fullKey}/${key}`
+        if (focusChild) context.autofocusTarget = childFullKey
+        const child = createStateNode(
+          context,
+          (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === key) ? options : listItemOptions,
+          compiledLayout,
+          key,
+          childFullKey,
+          fullKey,
+        `${dataPath}/${key}`,
+        dataPath,
+        childSkeleton,
+        null,
+        display,
+        itemData,
+        { parent: parentContext, data: objectData },
+        validationState,
+        reusedNode?.children?.find(c => c.key === key)
+        )
+        if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
+        children.push(child)
+      }
+    } else {
+      const arrayData = /** @type {unknown[]} */(data ?? [])
+      const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root])
+      const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
+      children = []
+      let focusChild = context.autofocusTarget === fullKey
+      for (let i = 0; i < arrayData.length; i++) {
+        const itemData = arrayData[i]
+        const childFullKey = `${fullKey}/${i}`
+        if (focusChild) context.autofocusTarget = childFullKey
+        const child = createStateNode(
+          context,
+          (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
+          compiledLayout,
+          i,
+          childFullKey,
+          fullKey,
         `${dataPath}/${i}`,
         dataPath,
         childSkeleton,
@@ -458,9 +489,10 @@ export function createStateNode (
         { parent: parentContext, data: arrayData },
         validationState,
         reusedNode?.children?.[i]
-      )
-      if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
-      children.push(child)
+        )
+        if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
+        children.push(child)
+      }
     }
   }
 

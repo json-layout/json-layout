@@ -104,13 +104,14 @@ function getChildren (defaultChildren, partialChildren) {
  * @param {PartialCompObject} partial
  * @param {SchemaFragment} schemaFragment
  * @param {string | undefined} type
- * @param {'oneOf' | 'patternProperties'} [schemaChild]
+ * @param {'oneOf' | 'patternProperties' | 'patternPropertiesKey'} [schemaChild]
  * @returns {import('./index.js').ComponentName}
  */
 function getDefaultComp (partial, schemaFragment, type, schemaChild) {
   const hasSimpleType = type && ['string', 'integer', 'number'].includes(type)
   if (schemaChild === 'oneOf') return 'one-of-select'
   if (schemaChild === 'patternProperties') return 'list'
+  if (schemaChild === 'patternPropertiesKey') return 'text-field'
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.examples) return type === 'string' ? 'combobox' : 'number-combobox'
@@ -270,7 +271,7 @@ export const getSchemaFragmentType = (schemaFragment) => {
  * @param {Record<string, import('./types.js').ComponentInfo>} components
  * @param {(text: string) => string} markdown
  * @param {string[]} optionsKeys
- * @param {'oneOf' | 'patternProperties'} [schemaChild]
+ * @param {'oneOf' | 'patternProperties' | 'patternPropertiesKey'} [schemaChild]
  * @returns {BaseCompObject}
  */
 function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPath, components, markdown, optionsKeys, schemaChild) {
@@ -303,6 +304,7 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
   } else if (partial.comp === 'list') {
     if (schemaChild === 'patternProperties') {
       partial.listEditMode = partial.listEditMode ?? 'inline-single'
+      partial.indexed = true
     } else {
       if (!('title' in partial)) partial.title = schemaFragment.title ?? key
       const { type: itemsType } = getSchemaFragmentType(schemaFragment.items)
@@ -310,7 +312,7 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
     }
     partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
   } else {
-    if (!('label' in partial) && partial.comp !== 'one-of-select') {
+    if (!('label' in partial) && !schemaChild) {
       partial.label = schemaFragment.title ?? key
     }
   }
@@ -471,7 +473,7 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
  * @param {Record<string, import('./types.js').ComponentInfo>} components
  * @param {(text: string) => string} markdown
  * @param {string[]} optionsKeys
- * @param {'oneOf' | 'patternProperties'} [schemaChild]
+ * @param {'oneOf' | 'patternProperties' | 'patternPropertiesKey'} [schemaChild]
  * @returns {NormalizedLayout}}
  */
 function getNormalizedLayout (layoutKeyword, schemaFragment, type, nullable, schemaPath, components, markdown, optionsKeys, schemaChild) {
@@ -538,7 +540,7 @@ const defaultOptionsKeys = ['readOnly', 'summary', 'titleDepth', 'density', 'rem
  * @param {Record<string, import('./types.js').ComponentInfo>} components
  * @param {(text: string) => string} markdown
  * @param {string[]} [optionsKeys]
- * @param {'oneOf' | 'patternProperties'} [schemaChild]
+ * @param {'oneOf' | 'patternProperties' | 'patternPropertiesKey'} [schemaChild]
  * @returns {NormalizedLayout}
  */
 function normalizeValidLayoutFragment (schemaFragment, type, nullable, schemaPath, components, markdown, optionsKeys, schemaChild) {
@@ -548,6 +550,8 @@ function normalizeValidLayoutFragment (schemaFragment, type, nullable, schemaPat
     layoutKeyword = schemaFragment.oneOfLayout ?? {}
   } else if (schemaChild === 'patternProperties') {
     layoutKeyword = schemaFragment.patternPropertiesLayout ?? {}
+  } else if (schemaChild === 'patternPropertiesKey') {
+    layoutKeyword = schemaFragment.patternPropertiesKeyLayout ?? {}
   } else {
     layoutKeyword = schemaFragment.layout ?? {}
   }
@@ -572,7 +576,7 @@ function normalizeValidLayoutFragment (schemaFragment, type, nullable, schemaPat
  * @param {Record<string, import('./types.js').ComponentInfo>} components
  * @param {(text: string) => string} markdown
  * @param {string[]} [optionsKeys]
- * @param {'oneOf' | 'patternProperties'} [schemaChild]
+ * @param {'oneOf' | 'patternProperties' | 'patternPropertiesKey'} [schemaChild]
  * @param {string | undefined} [knownType]
  * @param {boolean} [knownNullable]
  * @returns {{layout: NormalizedLayout, errors: string[]}}
