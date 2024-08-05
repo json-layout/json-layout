@@ -249,4 +249,55 @@ describe('normalize schema fragment function', () => {
       { comp: 'section', title: null, children: [] }
     )
   })
+
+  it('should manage a list of pattern properties', () => {
+    /** @type {any} */
+    const schema = {
+      type: 'object',
+      title: 'Pattern properties section',
+      patternProperties: {
+        '.*': {
+          type: 'string'
+        }
+      }
+    }
+    assert.deepEqual(
+      normalize(schema, '/prop', components).layout,
+      {
+        comp: 'section',
+        title: 'Pattern properties section',
+        children: [{ key: '$patternProperties' }]
+      }
+    )
+    assert.deepEqual(
+      normalize(schema, '/prop', components, undefined, undefined, 'patternProperties').layout,
+      {
+        comp: 'list',
+        listActions: [
+          'add',
+          'edit',
+          'delete',
+          'duplicate',
+          'sort'
+        ],
+        listEditMode: 'inline-single'
+      }
+    )
+    schema.patternPropertiesLayout = { title: 'Add a pattern property' }
+    assert.deepEqual(
+      normalize(schema, '/prop', components, undefined, undefined, 'patternProperties').layout,
+      {
+        comp: 'list',
+        title: 'Add a pattern property',
+        listActions: [
+          'add',
+          'edit',
+          'delete',
+          'duplicate',
+          'sort'
+        ],
+        listEditMode: 'inline-single'
+      }
+    )
+  })
 })

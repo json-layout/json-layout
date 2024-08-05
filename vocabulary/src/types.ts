@@ -3,11 +3,13 @@ import { type LayoutKeyword } from './layout-keyword/types.js'
 export interface SchemaFragment {
   layout?: LayoutKeyword
   oneOfLayout?: LayoutKeyword
+  patternPropertiesLayout?: LayoutKeyword
   type: string
   format?: string
   title?: string
   description?: string
   properties?: Record<string, any>
+  patternProperties?: Record<string, any>
   oneOf?: any[]
   anyOf?: any[]
   allOf?: any[]
