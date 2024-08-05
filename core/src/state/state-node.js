@@ -3,6 +3,7 @@ import { produce } from 'immer'
 import debug from 'debug'
 import { getChildDisplay } from './utils/display.js'
 import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
+import { getRegexp } from './utils/regexps.js'
 
 const logStateNode = debug('jl:state-node')
 
@@ -105,6 +106,8 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
   }
   if (children) {
     for (const child of children) {
+      console.log('child', child.key)
+      if (typeof child.key === 'number') continue
       if (parentDataPath === child.dataPath) {
         if (child.data === undefined) continue
         Object.assign(draft, child.data)
@@ -112,12 +115,6 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         if (child.data === undefined) delete draft[child.key]
         else draft[child.key] = child.data
-      }
-    }
-    if (Array.isArray(draft)) {
-      // remove trailing undefined values from tuples
-      while (draft.length && draft[draft.length - 1] === undefined) {
-        draft.pop()
       }
     }
   }
@@ -437,31 +434,64 @@ export function createStateNode (
       const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
       children = []
       let focusChild = context.autofocusTarget === fullKey
-      for (const key of Object.keys(objectData)) {
-        // TODO get childSkeleton based on pattern matching
-        const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root])
-        const itemData = objectData[key]
-        const childFullKey = `${fullKey}/${key}`
-        if (focusChild) context.autofocusTarget = childFullKey
-        const child = createStateNode(
+      const keyChildSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton.children?.[0] && compiledLayout.skeletonNodes[skeleton.children?.[0]])
+      const keys = Object.keys(objectData)
+      for (let i = 0; i < keys.length; i++) {
+        const itemData = objectData[keys[i]]
+        const keyChildFullKey = `${fullKey}/${i}`
+        if (focusChild) context.autofocusTarget = keyChildFullKey
+        const keyChild = createStateNode(
           context,
-          (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === key) ? options : listItemOptions,
+          (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
           compiledLayout,
-          key,
-          childFullKey,
+          i,
+          keyChildFullKey,
           fullKey,
-        `${dataPath}/${key}`,
-        dataPath,
-        childSkeleton,
-        null,
-        display,
-        itemData,
-        { parent: parentContext, data: objectData },
-        validationState,
-        reusedNode?.children?.find(c => c.key === key)
+          `${dataPath}/${keys[i]}`,
+          dataPath,
+          keyChildSkeleton,
+          null,
+          display,
+          itemData,
+          { parent: parentContext, data: objectData },
+          validationState,
+          reusedNode?.children?.find(c => c.key === i)
         )
-        if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
-        children.push(child)
+        if (keyChild.autofocus || keyChild.autofocusChild !== undefined) focusChild = false
+        children.push(keyChild)
+
+        let valueChildSkeleton = /** @type {import('../index.js').SkeletonNode | null} */ null
+        if (skeleton?.childrenTrees?.length === 1) {
+          valueChildSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees[0]]?.root]
+        } else {
+          for (const childTreeKey of skeleton?.childrenTrees ?? []) {
+            const childSkeletonNode = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[childTreeKey]?.root]
+            const regexp = getRegexp(/** @type {string} */(childSkeletonNode.key))
+            if (keys[i].match(regexp)) valueChildSkeleton = childSkeletonNode
+          }
+        }
+        if (valueChildSkeleton) {
+          const valueChildFullKey = `${fullKey}/${keys[i]}`
+          const valueChild = createStateNode(
+            context,
+            (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
+            compiledLayout,
+            keys[i],
+            valueChildFullKey,
+            fullKey,
+          `${dataPath}/${keys[i]}`,
+          dataPath,
+          valueChildSkeleton,
+          null,
+          display,
+          itemData,
+          { parent: parentContext, data: objectData },
+          validationState,
+          reusedNode?.children?.find(c => c.key === keys[i])
+          )
+          if (valueChild.autofocus || valueChild.autofocusChild !== undefined) focusChild = false
+          children.push(valueChild)
+        }
       }
     } else {
       const arrayData = /** @type {unknown[]} */(data ?? [])
@@ -480,15 +510,15 @@ export function createStateNode (
           i,
           childFullKey,
           fullKey,
-        `${dataPath}/${i}`,
-        dataPath,
-        childSkeleton,
-        null,
-        display,
-        itemData,
-        { parent: parentContext, data: arrayData },
-        validationState,
-        reusedNode?.children?.[i]
+          `${dataPath}/${i}`,
+          dataPath,
+          childSkeleton,
+          null,
+          display,
+          itemData,
+          { parent: parentContext, data: arrayData },
+          validationState,
+          reusedNode?.children?.[i]
         )
         if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
         children.push(child)
@@ -519,7 +549,7 @@ export function createStateNode (
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(nodeData))
 
-  if (typeof children?.[0]?.key === 'number' && layout.comp !== 'one-of-select') {
+  if (typeof children?.[0]?.key === 'number' && layout.comp !== 'one-of-select' && !layout.indexed) {
     // case of an array of children nodes
     nodeData = produceStateNodeDataChildrenArray(
       /** @type {unknown[]} */(nodeData ?? []),

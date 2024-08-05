@@ -359,19 +359,6 @@ export function makeSkeletonNode (
         }
         childrenTrees.push(childTreePointer)
       }
-      if (!skeletonNodes[patternPropertiesPointer]) {
-        skeletonNodes[patternPropertiesPointer] = {
-          key: '$patternProperties',
-          pointer: patternPropertiesPointer,
-          refPointer: patternPropertiesPointer,
-          childrenTrees,
-          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
-          propertyKeys: [],
-          roPropertyKeys: []
-        }
-      }
-      node.children = node.children ?? []
-      node.children.push(patternPropertiesPointer)
       if (!skeletonNodes[patternPropertiesKeyPointer]) {
         skeletonNodes[patternPropertiesKeyPointer] = {
           key: '$patternPropertiesKey',
@@ -382,7 +369,20 @@ export function makeSkeletonNode (
           roPropertyKeys: []
         }
       }
-      node.children.push(patternPropertiesKeyPointer)
+      if (!skeletonNodes[patternPropertiesPointer]) {
+        skeletonNodes[patternPropertiesPointer] = {
+          key: '$patternProperties',
+          pointer: patternPropertiesPointer,
+          refPointer: patternPropertiesPointer,
+          childrenTrees,
+          children: [patternPropertiesKeyPointer],
+          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
+          propertyKeys: [],
+          roPropertyKeys: []
+        }
+      }
+      node.children = node.children ?? []
+      node.children.push(patternPropertiesPointer)
     }
     if (schema.if) {
       validates.push(`${pointer}/if`)
