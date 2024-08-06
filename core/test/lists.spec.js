@@ -3,7 +3,7 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 import { getNodeBuilder } from './utils/state-tree.js'
 
-describe.only('Management of props from layout', () => {
+describe('Management of props from layout', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
   it('should manage array of strings as a list if requested', async () => {
@@ -42,7 +42,7 @@ describe.only('Management of props from layout', () => {
     assert.equal(arrNode2.children?.[0].data, 'test')
   })
 
-  it.only('should manage array of dates as a list', async () => {
+  it('should manage array of dates as a list', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: { arr1: { type: 'array', items: { type: 'string', format: 'date' } } }
@@ -58,7 +58,7 @@ describe.only('Management of props from layout', () => {
     assert.deepEqual(statefulLayout.data, { arr1: [null] })
     assert.equal(statefulLayout.valid, false)
     assert.equal(getNode('arr1.0').error, 'must be string')
-    assert.equal(getNode('arr1.0').layout.label, null)
+    assert.equal(getNode('arr1.0').layout.label, '')
   })
 
   it('should manage array of objects as a list', async () => {

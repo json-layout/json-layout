@@ -59,6 +59,7 @@ export function makeSkeletonNode (
   rawSchema.errorMessage = rawSchema.errorMessage ?? {}
   if (!normalizedLayouts[pointer]) {
     const normalizationResult = normalizeLayoutFragment(
+      key,
       /** @type {import('@json-layout/vocabulary').SchemaFragment} */(resolvedSchema),
       pointer,
       options.components,
@@ -246,6 +247,7 @@ export function makeSkeletonNode (
       const oneOfPointer = `${pointer}/oneOf`
       if (!normalizedLayouts[oneOfPointer]) {
         const normalizationResult = normalizeLayoutFragment(
+          '',
           schema,
           oneOfPointer,
           options.components,
@@ -305,6 +307,7 @@ export function makeSkeletonNode (
       const patternPropertiesPointer = `${pointer}/patternProperties`
       if (!normalizedLayouts[patternPropertiesPointer]) {
         const normalizationResult = normalizeLayoutFragment(
+          '',
           schema,
           patternPropertiesPointer,
           options.components,
