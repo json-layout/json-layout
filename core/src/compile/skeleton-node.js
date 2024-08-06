@@ -340,7 +340,14 @@ export function makeSkeletonNode (
             childTreePointer,
             'pattern ' + pattern
           )
-          normalizedLayouts[skeletonNodes[skeletonTrees[childTreePointer].root].pointer].nullable = true
+          const childLayout = normalizedLayouts[skeletonNodes[skeletonTrees[childTreePointer].root].pointer]
+          if (isSwitchStruct(childLayout)) {
+            for (const switchCase of childLayout.switch) {
+              switchCase.nullable = true
+            }
+          } else {
+            childLayout.nullable = true
+          }
         }
         childrenTrees.push(childTreePointer)
       }

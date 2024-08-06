@@ -11,6 +11,18 @@ const example = {
         title: 'An object accepting any property key for string values',
         patternProperties: {
           '.*': {
+            type: 'string'
+          }
+        }
+      },
+      obj2: {
+        type: 'object',
+        title: 'An object accepting str_* or nb_* properties',
+        patternProperties: {
+          'str_(.*)': {
+            type: 'string'
+          },
+          'nb_(.*)': {
             type: 'number'
           }
         }
@@ -19,7 +31,11 @@ const example = {
   },
   data: {
     obj1: {
-      key1: 1
+      key: 'value'
+    },
+    obj2: {
+      str_1: 'String 1',
+      nb_1: 1
     }
   }
 }

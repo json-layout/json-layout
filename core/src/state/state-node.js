@@ -1,4 +1,4 @@
-import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch } from '@json-layout/vocabulary'
+import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch, isListLayout } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import debug from 'debug'
 import { getChildDisplay } from './utils/display.js'
@@ -130,11 +130,11 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
   }
 })
 
-/** @type {(draft: Record<string, unknown>, parentData: Record<string, unknown>, propertyKeys: string[], patterns: RegExp[]) => Record<string, unknown>} */
+/** @type {(draft: Record<string, unknown>, parentData: Record<string, unknown>, propertyKeys: string[], patterns: string[]) => Record<string, unknown>} */
 const producePatternPropertiesData = produce((draft, parentData, propertyKeys, patterns) => {
   for (const key of Object.keys(parentData)) {
     if (propertyKeys.includes(key)) continue
-    if (!patterns.some(p => !!key.match(p))) continue
+    if (!patterns.some(p => !!key.match(getRegexp(p)))) continue
     draft[key] = parentData[key]
   }
   for (const key of Object.keys(draft)) {
@@ -376,16 +376,12 @@ export function createStateNode (
       if (focusChild) context.autofocusTarget = childFullKey
       let childData = isSameDataPath ? objectData : objectData[childLayout.key]
       if (childLayout.key === '$patternProperties') {
-        const patterns = []
-        for (const childTreeKey of childSkeleton?.childrenTrees ?? []) {
-          const patternSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[childTreeKey]?.root]
-          patterns.push(getRegexp(/** @type {string} */(patternSkeleton.pointer.replace(childSkeleton.pointer + '/', ''))))
-        }
+        const childNormalizedLayout = /** @type {import('@json-layout/vocabulary').List} */(compiledLayout.normalizedLayouts[childSkeleton.pointer])
         childData = producePatternPropertiesData(
           /** @type {Record<string, unknown>} */(reusedNode?.children?.find(c => c.key === '$patternProperties')?.data ?? {}),
           /** @type {Record<string, unknown>} */(objectData),
           skeleton.propertyKeys,
-          patterns
+          childNormalizedLayout.indexed ?? []
         )
       }
       const child = createStateNode(
@@ -452,7 +448,7 @@ export function createStateNode (
     }
   }
 
-  if (layout.comp === 'list') {
+  if (isListLayout(layout)) {
     if (layout.indexed) {
       const objectData = /** @type {Record<string, unknown>} */(data ?? [])
       const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
@@ -465,10 +461,13 @@ export function createStateNode (
         if (skeleton?.childrenTrees?.length === 1) {
           valueChildSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees[0]]?.root]
         } else {
-          for (const childTreeKey of skeleton?.childrenTrees ?? []) {
-            const childSkeletonNode = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[childTreeKey]?.root]
-            const regexp = getRegexp(/** @type {string} */(childSkeletonNode.pointer.replace(skeleton.pointer + '/', '')))
-            if (childKey.match(regexp)) valueChildSkeleton = childSkeletonNode
+          for (let p = 0; p < layout.indexed.length; p++) {
+            const pattern = layout.indexed[p]
+            const childTreeKey = skeleton?.childrenTrees?.[p]
+            if (!childTreeKey) throw new Error(`missing skeleton tree for pattern ${pattern}`)
+            if (childKey.match(getRegexp(pattern))) {
+              valueChildSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[childTreeKey]?.root]
+            }
           }
         }
         if (valueChildSkeleton) {

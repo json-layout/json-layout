@@ -8,6 +8,7 @@ import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layo
 import { shallowProduceArray } from './utils/immutable.js'
 
 export { Display } from './utils/display.js'
+export { getRegexp } from './utils/regexps.js'
 
 /**
  * @typedef {import('./types.js').StateNode} StateNode

@@ -272,13 +272,12 @@ describe('normalize schema fragment function', () => {
       normalize(schema, '/prop', components, undefined, undefined, 'patternProperties').layout,
       {
         comp: 'list',
-        indexed: true,
+        indexed: ['.*'],
         title: 'Pattern properties section',
         listActions: [
           'add',
           'edit',
-          'delete',
-          'sort'
+          'delete'
         ],
         listEditMode: 'inline'
       }
@@ -288,13 +287,12 @@ describe('normalize schema fragment function', () => {
       normalize(schema, '/prop', components, undefined, undefined, 'patternProperties').layout,
       {
         comp: 'list',
-        indexed: true,
+        indexed: ['.*'],
         title: 'Add a pattern property',
         listActions: [
           'add',
           'edit',
-          'delete',
-          'sort'
+          'delete'
         ],
         listEditMode: 'inline'
       }

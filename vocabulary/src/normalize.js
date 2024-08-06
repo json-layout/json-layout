@@ -299,9 +299,10 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
   if (nullable) partial.nullable = nullable
 
   if (component.composite) {
-    partial.children = getChildren(getDefaultChildren(schemaFragment, type), partial.children)
+    const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children)
+    partial.children = children
     if (!('title' in partial)) {
-      if (partial.children.length === 1 && partial.children[0].key === '$patternProperties') {
+      if (children.length === 1 && children[0].key === '$patternProperties') {
         // if we only have patternProperties in this object, reserve the title for the sub-component
       } else {
         partial.title = schemaFragment.title ?? null
@@ -321,8 +322,8 @@ function getCompObject (layoutKeyword, schemaFragment, type, nullable, schemaPat
         if (patternType === 'object') hasObjectChild = true
       }
       partial.listEditMode = partial.listEditMode ?? (hasObjectChild ? 'inline-single' : 'inline')
-      partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'sort']
-      partial.indexed = true
+      partial.listActions = partial.listActions ?? ['add', 'edit', 'delete']
+      partial.indexed = Object.keys(schemaFragment.patternProperties ?? {})
     } else {
       if (!('title' in partial)) partial.title = schemaFragment.title ?? key
       const { type: itemsType } = getSchemaFragmentType(schemaFragment.items)
