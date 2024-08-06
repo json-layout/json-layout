@@ -2,7 +2,7 @@
 const example = {
   title: 'Indexed lists (patternProperties)',
   id: 'indexed-lists',
-  description: 'Dynamic properties expressed with patternProperties are displayed as a spacial kind of list.',
+  description: 'Dynamic properties expressed with patternProperties are displayed as a different kind of list.',
   schema: {
     type: 'object',
     properties: {
