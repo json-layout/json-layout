@@ -3,9 +3,12 @@
  */
 export function getNodeBuilder (statefulLayout) {
   /**
-   * @param {(string | number)[]} [childrenKeys]
+   * @param {(string | number)[] | string} [childrenKeys]
    */
   return (childrenKeys = []) => {
+    if (typeof childrenKeys === 'string') {
+      childrenKeys = childrenKeys.split('.').map(p => isNaN(Number(p)) ? p : Number(p))
+    }
     /** @type {import('../../src/index.js').StateNode | undefined} */
     let node = statefulLayout.stateTree.root
     for (const childKey of childrenKeys) {

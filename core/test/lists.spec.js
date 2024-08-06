@@ -1,8 +1,9 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
+import { getNodeBuilder } from './utils/state-tree.js'
 
-describe('Management of props from layout', () => {
+describe.only('Management of props from layout', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
   it('should manage array of strings as a list if requested', async () => {
@@ -39,6 +40,25 @@ describe('Management of props from layout', () => {
     assert.ok(arrNode2)
     assert.notEqual(arrNode, arrNode2)
     assert.equal(arrNode2.children?.[0].data, 'test')
+  })
+
+  it.only('should manage array of dates as a list', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: { arr1: { type: 'array', items: { type: 'string', format: 'date' } } }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
+      arr1: []
+    })
+    assert.equal(statefulLayout.valid, true)
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(getNode().layout.comp, 'section')
+    assert.equal(getNode('arr1').layout.comp, 'list')
+    statefulLayout.input(getNode('arr1'), [undefined])
+    assert.deepEqual(statefulLayout.data, { arr1: [null] })
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(getNode('arr1.0').error, 'must be string')
+    assert.equal(getNode('arr1.0').layout.label, null)
   })
 
   it('should manage array of objects as a list', async () => {

@@ -483,6 +483,14 @@ export function makeSkeletonNode (
         )
       }
       node.childrenTrees = [childTreePointer]
+      const childLayout = normalizedLayouts[skeletonNodes[skeletonTrees[childTreePointer].root].pointer]
+      if (isSwitchStruct(childLayout)) {
+        for (const switchCase of childLayout.switch) {
+          switchCase.nullable = true
+        }
+      } else {
+        childLayout.nullable = true
+      }
     }
   }
 
