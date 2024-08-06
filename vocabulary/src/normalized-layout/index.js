@@ -47,6 +47,11 @@ export function isCompositeLayout (layout, components) {
   return !!components[layout.comp]?.composite
 }
 
+/** @type {(layout: BaseCompObject) => layout is import('../components/types.js').List} */
+export function isListLayout (layout) {
+  return layout.comp === 'list'
+}
+
 /** @type {(layout: BaseCompObject, components: Record<string, import('../types.js').ComponentInfo>) => layout is FocusableCompObject} */
 export function isFocusableLayout (layout, components) {
   return !!components[layout.comp]?.focusable

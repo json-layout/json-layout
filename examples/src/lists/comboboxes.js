@@ -1,8 +1,8 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'Simple property as items',
-  id: 'single-property',
-  description: 'Any field can be displayed as items in a list.',
+  title: 'Comboboxes (lists of chips)',
+  id: 'comboboxes',
+  description: 'Simple strings and numbers can be displayed as comboboxes.',
   schema: {
     type: 'object',
     properties: {
@@ -15,8 +15,20 @@ const example = {
         type: 'array',
         title: 'An array of numbers',
         items: { type: 'number', title: 'Number item' }
+      },
+      strSep1: {
+        type: 'string',
+        title: 'A string with values separated by a comma',
+        layout: {
+          separator: ','
+        }
       }
     }
+  },
+  data: {
+    strArray1: ['one', 'two', 'three'],
+    nbArray1: [1, 2, 3],
+    strSep1: 'one,two,three'
   }
 }
 

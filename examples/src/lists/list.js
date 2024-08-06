@@ -1,11 +1,19 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'Objects as items',
-  id: 'object-items',
-  description: 'The items can also be complex objects.',
+  title: 'Editable lists',
+  id: 'lists',
+  description: 'A more complex list component is also available.',
   schema: {
     type: 'object',
     properties: {
+      dateArray1: {
+        type: 'array',
+        title: 'An array of dates',
+        items: {
+          type: 'string',
+          format: 'date'
+        }
+      },
       objArray1: {
         type: 'array',
         title: 'An array of objects',
