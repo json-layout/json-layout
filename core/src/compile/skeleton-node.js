@@ -52,7 +52,8 @@ export function makeSkeletonNode (
     delete schema.$ref
   }
   const resolvedSchema = partialResolveRefs(schema, schemaId, getJSONRef)
-  const { type, nullable } = knownType ? { type: knownType, nullable: false } : getSchemaFragmentType(resolvedSchema)
+  let { type, nullable } = getSchemaFragmentType(resolvedSchema)
+  if (knownType) type = knownType
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   rawSchema.errorMessage = rawSchema.errorMessage ?? {}
@@ -318,23 +319,6 @@ export function makeSkeletonNode (
           validationErrors[patternPropertiesPointer.replace('_jl#', '/')] = normalizationResult.errors
         }
       }
-      const patternPropertiesKeyPointer = `${pointer}/patternPropertiesKey`
-      if (!normalizedLayouts[patternPropertiesKeyPointer]) {
-        const normalizationResult = normalizeLayoutFragment(
-          schema,
-          patternPropertiesKeyPointer,
-          options.components,
-          options.markdown,
-          options.optionsKeys,
-          'patternPropertiesKey',
-          type,
-          nullable
-        )
-        normalizedLayouts[patternPropertiesKeyPointer] = normalizationResult.layout
-        if (normalizationResult.errors.length) {
-          validationErrors[patternPropertiesKeyPointer.replace('_jl#', '/')] = normalizationResult.errors
-        }
-      }
       /** @type {string[]} */
       const childrenTrees = []
       for (const pattern of Object.keys(schema.patternProperties)) {
@@ -356,18 +340,9 @@ export function makeSkeletonNode (
             childTreePointer,
             'pattern ' + pattern
           )
+          normalizedLayouts[skeletonNodes[skeletonTrees[childTreePointer].root].pointer].nullable = true
         }
         childrenTrees.push(childTreePointer)
-      }
-      if (!skeletonNodes[patternPropertiesKeyPointer]) {
-        skeletonNodes[patternPropertiesKeyPointer] = {
-          key: '$patternPropertiesKey',
-          pointer: patternPropertiesKeyPointer,
-          refPointer: patternPropertiesKeyPointer,
-          pure: true,
-          propertyKeys: [],
-          roPropertyKeys: []
-        }
       }
       if (!skeletonNodes[patternPropertiesPointer]) {
         skeletonNodes[patternPropertiesPointer] = {
@@ -375,7 +350,6 @@ export function makeSkeletonNode (
           pointer: patternPropertiesPointer,
           refPointer: patternPropertiesPointer,
           childrenTrees,
-          children: [patternPropertiesKeyPointer],
           pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
           propertyKeys: [],
           roPropertyKeys: []

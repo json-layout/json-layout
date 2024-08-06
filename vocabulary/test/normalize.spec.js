@@ -265,7 +265,6 @@ describe('normalize schema fragment function', () => {
       normalize(schema, '/prop', components).layout,
       {
         comp: 'section',
-        title: 'Pattern properties section',
         children: [{ key: '$patternProperties' }]
       }
     )
@@ -273,14 +272,15 @@ describe('normalize schema fragment function', () => {
       normalize(schema, '/prop', components, undefined, undefined, 'patternProperties').layout,
       {
         comp: 'list',
+        indexed: true,
+        title: 'Pattern properties section',
         listActions: [
           'add',
           'edit',
           'delete',
-          'duplicate',
           'sort'
         ],
-        listEditMode: 'inline-single'
+        listEditMode: 'inline'
       }
     )
     schema.patternPropertiesLayout = { title: 'Add a pattern property' }
@@ -288,29 +288,15 @@ describe('normalize schema fragment function', () => {
       normalize(schema, '/prop', components, undefined, undefined, 'patternProperties').layout,
       {
         comp: 'list',
+        indexed: true,
         title: 'Add a pattern property',
         listActions: [
           'add',
           'edit',
           'delete',
-          'duplicate',
           'sort'
         ],
-        listEditMode: 'inline-single'
-      }
-    )
-    assert.deepEqual(
-      normalize(schema, '/prop', components, undefined, undefined, 'patternPropertiesKey').layout,
-      {
-        comp: 'text-field'
-      }
-    )
-    schema.patternPropertiesKeyLayout = { label: 'Name' }
-    assert.deepEqual(
-      normalize(schema, '/prop', components, undefined, undefined, 'patternPropertiesKey').layout,
-      {
-        comp: 'text-field',
-        label: 'Name'
+        listEditMode: 'inline'
       }
     )
   })

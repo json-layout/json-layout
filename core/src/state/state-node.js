@@ -106,8 +106,6 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
   }
   if (children) {
     for (const child of children) {
-      console.log('child', child.key)
-      if (typeof child.key === 'number') continue
       if (parentDataPath === child.dataPath) {
         if (child.data === undefined) continue
         Object.assign(draft, child.data)
@@ -129,6 +127,18 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
         delete draft[error.params.unevaluatedProperty]
       }
     }
+  }
+})
+
+/** @type {(draft: Record<string, unknown>, parentData: Record<string, unknown>, propertyKeys: string[], patterns: RegExp[]) => Record<string, unknown>} */
+const producePatternPropertiesData = produce((draft, parentData, propertyKeys, patterns) => {
+  for (const key of Object.keys(parentData)) {
+    if (propertyKeys.includes(key)) continue
+    if (!patterns.some(p => !!key.match(p))) continue
+    draft[key] = parentData[key]
+  }
+  for (const key of Object.keys(draft)) {
+    if (!(key in parentData)) delete draft[key]
   }
 })
 
@@ -361,9 +371,23 @@ export function createStateNode (
           continue
         }
       }
-      const isSameData = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
+      const isSameDataPath = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
       const childFullKey = `${fullKey}/${childLayout.key}`
       if (focusChild) context.autofocusTarget = childFullKey
+      let childData = isSameDataPath ? objectData : objectData[childLayout.key]
+      if (childLayout.key === '$patternProperties') {
+        const patterns = []
+        for (const childTreeKey of childSkeleton?.childrenTrees ?? []) {
+          const patternSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[childTreeKey]?.root]
+          patterns.push(getRegexp(/** @type {string} */(patternSkeleton.pointer.replace(childSkeleton.pointer + '/', ''))))
+        }
+        childData = producePatternPropertiesData(
+          /** @type {Record<string, unknown>} */(reusedNode?.children?.find(c => c.key === '$patternProperties')?.data ?? {}),
+          /** @type {Record<string, unknown>} */(objectData),
+          skeleton.propertyKeys,
+          patterns
+        )
+      }
       const child = createStateNode(
         context,
         childrenOptions,
@@ -371,12 +395,12 @@ export function createStateNode (
         childLayout.key,
         childFullKey,
         fullKey,
-        isSameData ? dataPath : `${dataPath}/${childLayout.key}`,
+        isSameDataPath ? dataPath : `${dataPath}/${childLayout.key}`,
         dataPath,
         childSkeleton,
         childLayout,
         display,
-        isSameData ? objectData : objectData[childLayout.key],
+        childData,
         { parent: parentContext, data: objectData },
         validationState,
         reusedNode?.children?.find(c => c.fullKey === childFullKey)
@@ -434,60 +458,38 @@ export function createStateNode (
       const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
       children = []
       let focusChild = context.autofocusTarget === fullKey
-      const keyChildSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton.children?.[0] && compiledLayout.skeletonNodes[skeleton.children?.[0]])
-      const keys = Object.keys(objectData)
-      for (let i = 0; i < keys.length; i++) {
-        const itemData = objectData[keys[i]]
-        const keyChildFullKey = `${fullKey}/${i}`
-        if (focusChild) context.autofocusTarget = keyChildFullKey
-        const keyChild = createStateNode(
-          context,
-          (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
-          compiledLayout,
-          i,
-          keyChildFullKey,
-          fullKey,
-          `${dataPath}/${keys[i]}`,
-          dataPath,
-          keyChildSkeleton,
-          null,
-          display,
-          itemData,
-          { parent: parentContext, data: objectData },
-          validationState,
-          reusedNode?.children?.find(c => c.key === i)
-        )
-        if (keyChild.autofocus || keyChild.autofocusChild !== undefined) focusChild = false
-        children.push(keyChild)
-
+      const childrenKeys = Object.keys(objectData)
+      for (let i = 0; i < childrenKeys.length; i++) {
+        const childKey = childrenKeys[i]
         let valueChildSkeleton = /** @type {import('../index.js').SkeletonNode | null} */ null
         if (skeleton?.childrenTrees?.length === 1) {
           valueChildSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees[0]]?.root]
         } else {
           for (const childTreeKey of skeleton?.childrenTrees ?? []) {
             const childSkeletonNode = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[childTreeKey]?.root]
-            const regexp = getRegexp(/** @type {string} */(childSkeletonNode.key))
-            if (keys[i].match(regexp)) valueChildSkeleton = childSkeletonNode
+            const regexp = getRegexp(/** @type {string} */(childSkeletonNode.pointer.replace(skeleton.pointer + '/', '')))
+            if (childKey.match(regexp)) valueChildSkeleton = childSkeletonNode
           }
         }
         if (valueChildSkeleton) {
-          const valueChildFullKey = `${fullKey}/${keys[i]}`
+          const childFullKey = `${fullKey}/${childKey}`
+          if (focusChild) context.autofocusTarget = childFullKey
           const valueChild = createStateNode(
             context,
             (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
             compiledLayout,
-            keys[i],
-            valueChildFullKey,
+            childKey,
+            childFullKey,
             fullKey,
-          `${dataPath}/${keys[i]}`,
-          dataPath,
-          valueChildSkeleton,
-          null,
-          display,
-          itemData,
-          { parent: parentContext, data: objectData },
-          validationState,
-          reusedNode?.children?.find(c => c.key === keys[i])
+            `${dataPath}/${childKey}`,
+            dataPath,
+            valueChildSkeleton,
+            null,
+            display,
+            objectData[childKey],
+            { parent: parentContext, data: objectData },
+            validationState,
+            reusedNode?.children?.find(c => c.key === childKey)
           )
           if (valueChild.autofocus || valueChild.autofocusChild !== undefined) focusChild = false
           children.push(valueChild)
@@ -568,12 +570,13 @@ export function createStateNode (
     )
   } else if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
     // case of an object base on children nodes or not
+    const removeAdditional = [true, 'unknown'].includes(options.removeAdditional) || children?.some(c => c.key === '$patternProperties')
     nodeData = produceStateNodeData(
       /** @type {Record<string, unknown>} */(nodeData ?? {}),
       dataPath,
       children,
       context.additionalPropertiesErrors,
-      [true, 'unknown'].includes(options.removeAdditional) ? skeleton.propertyKeys : undefined,
+      removeAdditional ? skeleton.propertyKeys : undefined,
       options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
     )
   }
@@ -675,6 +678,15 @@ export function createStateNode (
 export const producePatchedData = produce((draft, node, data) => {
   if (node.dataPath === node.parentDataPath) {
     Object.assign(draft, data)
+
+    // remove properties that previously came from this merged child and were removed
+    if (node.data && typeof data === 'object' && data !== null) {
+      for (const key of Object.keys(node.data)) {
+        if (!(key in data)) {
+          delete draft[key]
+        }
+      }
+    }
   } else {
     draft[node.key] = data
   }

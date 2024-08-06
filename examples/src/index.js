@@ -2,7 +2,7 @@ import simpleProperties from './simple-properties/index.js'
 import formats from './formats/index.js'
 import selection from './selection/index.js'
 import files from './files/index.js'
-import arrays from './arrays/index.js'
+import lists from './lists/index.js'
 import composite from './composite/index.js'
 import responsive from './responsive/index.js'
 import density from './density/index.js'
@@ -21,7 +21,7 @@ export const examples = [
   formats,
   selection,
   files,
-  arrays,
+  lists,
   composite,
   responsive,
   density,
