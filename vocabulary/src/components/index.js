@@ -81,13 +81,23 @@ export const standardComponents = [
     name: 'text-field',
     shouldDebounce: true,
     focusable: true,
-    emitsBlur: true
+    emitsBlur: true,
+    schema: {
+      properties: {
+        placeholder: { type: 'string' }
+      }
+    }
   },
   {
     name: 'textarea',
     shouldDebounce: true,
     focusable: true,
-    emitsBlur: true
+    emitsBlur: true,
+    schema: {
+      properties: {
+        placeholder: { type: 'string' }
+      }
+    }
   },
   {
     name: 'number-field',
@@ -98,7 +108,8 @@ export const standardComponents = [
       properties: {
         step: { type: 'number' },
         min: { type: 'number' },
-        max: { type: 'number' }
+        max: { type: 'number' },
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -200,7 +211,8 @@ export const standardComponents = [
     multipleCompat: true,
     schema: {
       properties: {
-        accept: { type: 'string' }
+        accept: { type: 'string' },
+        placeholder: { type: 'string' }
       }
     }
   },
