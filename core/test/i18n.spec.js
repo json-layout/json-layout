@@ -16,6 +16,17 @@ describe('internationalization', () => {
     assert.equal(compiled.normalizedLayouts['_jl#/properties/str1']?.label, 'String 1')
   })
 
+  it('should resolve x-i18n-* annotations', async () => {
+    const schema = { type: 'object', properties: { str1: { type: 'string', title: 'String 1', 'x-i18n-title': { fr: 'Texte 1' } } } }
+    const compiled = compile(schema, { xI18n: true })
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str1']))
+    assert.ok(compiled.normalizedLayouts['_jl#/properties/str1'].comp === 'text-field')
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/str1']?.label, 'String 1')
+
+    const compiledFr = compile(schema, { xI18n: true, locale: 'fr' })
+    assert.equal(compiledFr.normalizedLayouts['_jl#/properties/str1']?.label, 'Texte 1')
+  })
+
   it('should return validation errors internationalized by ajv', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, -10)

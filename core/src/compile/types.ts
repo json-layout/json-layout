@@ -29,9 +29,11 @@ export interface CompileOptions {
   markdown: (text: string) => string
   markdownItOptions?: MarkdownIt.Options
   locale: string
+  defaultLocale: string
   messages: LocaleMessages
   optionsKeys: string[]
   components: Record<string, ComponentInfo>
+  xI18n: boolean
 }
 
 export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & {

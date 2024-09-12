@@ -10,11 +10,13 @@ import { produce } from 'immer'
 import i18n from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveLocaleRefs } from './utils/resolve-refs.js'
+import { resolveXI18n } from './utils/x-i18n.js'
 import clone from '../utils/clone.js'
 import { standardComponents } from '@json-layout/vocabulary'
 import { shallowEqualArray } from '../state/utils/immutable.js'
 
 export { resolveLocaleRefs } from './utils/resolve-refs.js'
+export { resolveXI18n } from './utils/x-i18n.js'
 
 /**
  * @typedef {import('./types.js').SkeletonTree} SkeletonTree
@@ -35,7 +37,7 @@ const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalize
 // use Immer for efficient updating with immutability and no-op detection
 /** @type {(draft: PartialCompileOptions, newOptions: PartialCompileOptions) => PartialCompileOptions} */
 export const produceCompileOptions = produce((draft, newOptions) => {
-  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'locale', 'messages', 'optionsKeys', 'components']) {
+  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'xI18n', 'locale', 'defaultLocale', 'messages', 'optionsKeys', 'components']) {
     // @ts-ignore
     if (key in newOptions) {
       // components is problematic because it is an object with nested objects
@@ -76,8 +78,9 @@ const fillOptions = (partialOptions) => {
     markdown = markdownIt.render.bind(markdownIt)
   }
 
-  const locale = partialOptions.locale || 'en'
-  const messages = { ...i18n[locale] || i18n.en }
+  const defaultLocale = partialOptions.defaultLocale || 'en'
+  const locale = partialOptions.locale || defaultLocale
+  const messages = { ...i18n[locale] || i18n[defaultLocale] }
   if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
 
   const components = standardComponents.reduce((acc, component) => {
@@ -99,8 +102,10 @@ const fillOptions = (partialOptions) => {
     optionsKeys: [],
     ...partialOptions,
     locale,
+    defaultLocale,
     messages,
-    components
+    components,
+    xI18n: !!partialOptions.xI18n
   }
 }
 
@@ -114,7 +119,8 @@ export function compile (_schema, partialOptions = {}) {
 
   const schema = /** @type {import('ajv').SchemaObject} */(clone(_schema))
   schema.$id = schema.$id ?? '_jl'
-  const getJSONRef = resolveLocaleRefs(schema, options.ajv, options.locale)
+  const getJSONRef = resolveLocaleRefs(schema, options.ajv, options.locale, options.defaultLocale)
+  if (options.xI18n) resolveXI18n(schema, options.locale, options.defaultLocale)
 
   /** @type {string[]} */
   const validatePointers = []

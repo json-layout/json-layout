@@ -1,9 +1,8 @@
-import ajvModule from 'ajv/dist/2019.js'
 import clone from '../../utils/clone.js'
 
 /**
  * @param {Record<string, import('ajv').SchemaObject>} schemas
- * @param {ajvModule.default} ajv
+ * @param {import('ajv/dist/2019.js').default} ajv
  * @returns {(schemaId: string, ref: string) => [any, string, string]}
  */
 const prepareGetJSONRef = (schemas, ajv) => {
@@ -26,16 +25,17 @@ const prepareGetJSONRef = (schemas, ajv) => {
 /**
  * mutates a schema by replacing ~$locale~ in all refs
  * @param {import('ajv').SchemaObject} schema
- * @param {ajvModule.default} ajv
- * @param {string} locale
+ * @param {import('ajv/dist/2019.js').default} ajv
+ * @param {string} [locale]
+ * @param {string} [defaultLocale]
  * @returns {(schemaId: string, ref: string) => [any, string, string]}
  */
-export function resolveLocaleRefs (schema, ajv, locale = 'en') {
+export function resolveLocaleRefs (schema, ajv, locale = 'en', defaultLocale = 'en') {
   if (!schema.$id) throw new Error('missing schema id')
   const getJSONRef = prepareGetJSONRef({ [schema.$id]: schema }, ajv)
   /** @type {any[]} */
   const recursed = []
-  recurseResolveLocale(schema, schema.$id, getJSONRef, locale, recursed)
+  recurseResolveLocale(schema, schema.$id, getJSONRef, locale, defaultLocale, recursed)
   return getJSONRef
 }
 
@@ -44,17 +44,18 @@ export function resolveLocaleRefs (schema, ajv, locale = 'en') {
  * @param {string} schemaId
  * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
  * @param {string} locale
+ * @param {string} defaultLocale
  * @param {any[]} recursed
  */
 
-const recurseResolveLocale = (schemaFragment, schemaId, getJSONRef, locale, recursed) => {
+const recurseResolveLocale = (schemaFragment, schemaId, getJSONRef, locale, defaultLocale, recursed) => {
   if (recursed.includes(schemaFragment)) return
   recursed.push(schemaFragment)
   for (const key of Object.keys(schemaFragment)) {
     if (schemaFragment[key] && typeof schemaFragment[key] === 'object') {
       if ('$ref' in schemaFragment[key]) {
         const ref = schemaFragment[key].$ref.replace('~$locale~', locale)
-        const refDefaultLocale = schemaFragment[key].$ref.replace('~$locale~', 'en')
+        const refDefaultLocale = schemaFragment[key].$ref.replace('~$locale~', defaultLocale)
         let refFragment, refSchemaId
         try {
           [refFragment, refSchemaId] = getJSONRef(schemaId, ref)
@@ -66,10 +67,10 @@ const recurseResolveLocale = (schemaFragment, schemaId, getJSONRef, locale, recu
         if (typeof refFragment === 'string') {
           schemaFragment[key] = refFragment
         } else {
-          recurseResolveLocale(refFragment, refSchemaId, getJSONRef, locale, recursed)
+          recurseResolveLocale(refFragment, refSchemaId, getJSONRef, locale, defaultLocale, recursed)
         }
       } else {
-        recurseResolveLocale(schemaFragment[key], schemaId, getJSONRef, locale, recursed)
+        recurseResolveLocale(schemaFragment[key], schemaId, getJSONRef, locale, defaultLocale, recursed)
       }
     }
   }
