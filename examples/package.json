@@ -1,6 +1,6 @@
 {
   "name": "@json-layout/examples",
-  "version": "0.19.1",
+  "version": "0.20.0",
   "description": "Examples to be used by implementations for documentation and testing of JSON Layout.",
   "type": "module",
   "exports": {
