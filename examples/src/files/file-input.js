@@ -1,7 +1,7 @@
 /** @type {import("../types.js").JSONLayoutExample } */
 const example = {
-  title: 'A simple file input',
-  id: 'simple',
+  title: 'A file input',
+  id: 'file-input',
   description: 'Use the component `file-input` on an object node to support simple file uploading.',
   schema: {
     type: 'object',
@@ -11,6 +11,12 @@ const example = {
         type: 'object',
         layout: 'file-input'
       }
+      /* fileArray1: {
+        title: 'A file input with multiple uploads',
+        type: 'array',
+        layout: 'file-input',
+        items: { type: 'object' }
+      } */
     }
   }
 }
