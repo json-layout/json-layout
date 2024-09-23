@@ -448,7 +448,7 @@ export class StatefulLayout {
 
   applyDebouncedInput () {
     if (this.debouncedInput) {
-      clearTimeout(this.debouncedInput[3])
+      clearTimeout(this.debouncedInput[4])
       this.applyInput(this.debouncedInput[0], this.debouncedInput[1], this.debouncedInput[2], this.debouncedInput[3])
       this.debouncedInput = null
     }

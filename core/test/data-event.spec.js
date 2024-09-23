@@ -30,6 +30,13 @@ describe('data update events', () => {
     assert.deepEqual(statefulLayout.stateTree.root.data, {})
     await new Promise((resolve) => setTimeout(resolve, 300))
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'ab' })
+
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'abc')
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'ab')
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'ab' })
+
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'abc')
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'ab' })
     await new Promise((resolve) => setTimeout(resolve, 300))
@@ -54,7 +61,7 @@ describe('data update events', () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: {
-        str1: { type: 'string', layout: { debounceInputMs: 0 } }
+        str1: { type: 'string', layout: { debounceInputMs: 300 } }
       }
     })
     /** @type {unknown[]} */
@@ -75,5 +82,46 @@ describe('data update events', () => {
     statefulLayout.blur(statefulLayout.stateTree.root.children[0])
     assert.deepEqual(statefulLayout.data, { str1: 'ab' })
     assert.deepEqual(dataEvents, [{}, { str1: 'ab' }])
+
+    // blur should also apply debounced data
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'abc')
+    assert.deepEqual(statefulLayout.data, { str1: 'ab' })
+    statefulLayout.blur(statefulLayout.stateTree.root.children[0])
+    assert.deepEqual(statefulLayout.data, { str1: 'abc' })
+  })
+
+  it('should mix updateOn=blur and validateOn=input option', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string', layout: { debounceInputMs: 300 }, pattern: '^[A-Z]+$' }
+      }
+    })
+    /** @type {unknown[]} */
+    const dataEvents = []
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+      updateOn: 'blur',
+      validateOn: 'input',
+      onData: (value) => { dataEvents.push(value) }
+    })
+
+    assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+
+    // input on str1 is ignored until blur, we do a small back and forth that was known to trigger a data-binding bug
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'A')
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'Ab')
+    statefulLayout.blur(statefulLayout.stateTree.root.children[0])
+    assert.deepEqual(statefulLayout.data, { str1: 'Ab' })
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'A')
+    assert.deepEqual(statefulLayout.data, { str1: 'Ab' })
+    statefulLayout.blur(statefulLayout.stateTree.root.children[0])
+    assert.deepEqual(statefulLayout.data, { str1: 'A' })
+    console.log('LAST INPUT')
+    statefulLayout.input(statefulLayout.stateTree.root.children[0], 'Ab')
+    assert.deepEqual(statefulLayout.data, { str1: 'A' })
+    console.log('LAST BLUR')
+    statefulLayout.blur(statefulLayout.stateTree.root.children[0])
+    assert.deepEqual(statefulLayout.data, { str1: 'Ab' })
   })
 })

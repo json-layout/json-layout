@@ -78,8 +78,8 @@ export interface FileRef {
   dataPath: string
 }
 
-// [parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentWidth, validated, activatedItems, initial, data]
 export type StateNodeCacheKey = [
+  StateNode | undefined,
   StateNodeOptions,
   CompiledLayout,
   string,

@@ -32,6 +32,7 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.root.error, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required information')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].data, 'test')
     assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^[A-Z]+$"')
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'ok')
