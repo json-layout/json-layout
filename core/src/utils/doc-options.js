@@ -148,5 +148,9 @@ export const runtimeOptions = [
     key: 'autofocus',
     description: 'Activate autofocus. The focus will be given to the first input of the form.',
     default: false
+  },
+  {
+    key: 'fetchOptions',
+    description: 'Define options to be given to <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch">fetch</a> when getting data items from a URL. Can also be a function that will accept a URL object as parameter and return those options.'
   }
 ]

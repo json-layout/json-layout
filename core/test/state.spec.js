@@ -397,6 +397,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         messages: i18n.en,
         autofocus: false,
         readOnlyPropertiesMode: 'show',
+        fetchOptions: {},
         onData: statefulLayout.stateTree.root.options.onData,
         onUpdate: statefulLayout.stateTree.root.options.onUpdate,
         onAutofocus: statefulLayout.stateTree.root.options.onAutofocus
@@ -421,6 +422,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         messages: i18n.en,
         autofocus: false,
         readOnlyPropertiesMode: 'show',
+        fetchOptions: {},
         onData: statefulLayout.stateTree.root.children?.[0].options.onData,
         onUpdate: statefulLayout.stateTree.root.children?.[0].options.onUpdate,
         onAutofocus: statefulLayout.stateTree.root.children?.[0].options.onAutofocus

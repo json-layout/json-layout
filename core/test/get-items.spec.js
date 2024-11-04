@@ -259,4 +259,52 @@ describe('get select items', () => {
     assert.equal(statefulLayout.valid, true)
     assert.deepEqual(statefulLayout.data, [{ prop1: 'val1', prop2: 'val1' }])
   })
+
+  it('should use fetchOptions option as a RequestInit object', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      layout: { comp: 'autocomplete', getItems: { url: 'http://test.com/test' } }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout,
+      compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      {
+        ...defaultOptions,
+        fetchOptions: { headers: { test: 'test header' } }
+      },
+      {})
+    const nockScope = nock('http://test.com', { reqheaders: { test: 'test header' } })
+      .get('/test')
+      .reply(200, ['val1', 'val2'])
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
+
+  it('should use fetchOptions option as a function returning a RequestInit object', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      layout: { comp: 'autocomplete', getItems: { url: 'http://test.com/test' } }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout,
+      compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      {
+        ...defaultOptions,
+        fetchOptions: (url) => ({ headers: { test: 'test header ' + url.host } })
+      },
+      {})
+    const nockScope = nock('http://test.com', { reqheaders: { test: 'test header test.com' } })
+      .get('/test')
+      .reply(200, ['val1', 'val2'])
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
 })

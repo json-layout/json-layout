@@ -75,6 +75,7 @@ function fillOptions (partialOptions, compiledLayout) {
     removeAdditional: 'error',
     autofocus: false,
     readOnlyPropertiesMode: 'show',
+    fetchOptions: {},
     onAutofocus: () => {},
     onUpdate: () => {},
     onData: () => {},
@@ -554,7 +555,8 @@ export class StatefulLayout {
         if (q) url.searchParams.set(qSearchParam, q)
         else url.searchParams.delete(qSearchParam)
       }
-      rawItems = await (await fetch(url)).json()
+      const fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
+      rawItems = await (await fetch(url, fetchOptions)).json()
     }
 
     if (!rawItems) {
