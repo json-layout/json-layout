@@ -6,6 +6,7 @@ import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
 import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
 import { shallowProduceArray } from './utils/immutable.js'
+import { fillOptions } from './options.js'
 
 export { Display } from './utils/display.js'
 export { getRegexp } from './utils/regexps.js'
@@ -50,39 +51,6 @@ export const isSection = (node) => !!node && node.layout.comp === 'section'
 export const isItemsNode = (node, components) => !!node && isItemsLayout(node.layout, components)
 
 const logDataBinding = debug('jl:data-binding')
-
-/**
- * @param {Partial<StatefulLayoutOptions>} partialOptions
- * @param {import('../index.js').CompiledLayout} compiledLayout
- * @returns {StatefulLayoutOptions}
- */
-function fillOptions (partialOptions, compiledLayout) {
-  const messages = { ...compiledLayout.messages }
-  if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
-  return {
-    context: {},
-    width: 1000,
-    readOnly: false,
-    summary: false,
-    density: 'default',
-    indent: false,
-    titleDepth: 2,
-    validateOn: 'input',
-    initialValidation: 'withData',
-    updateOn: 'input',
-    debounceInputMs: 300,
-    defaultOn: 'empty',
-    removeAdditional: 'error',
-    autofocus: false,
-    readOnlyPropertiesMode: 'show',
-    fetchOptions: {},
-    onAutofocus: () => {},
-    onUpdate: () => {},
-    onData: () => {},
-    ...partialOptions,
-    messages
-  }
-}
 
 export class StatefulLayout {
   /**
