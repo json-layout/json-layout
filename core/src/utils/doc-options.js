@@ -21,8 +21,8 @@ export const compileOptions = [
     default: 'A markdown-it instance render function'
   },
   {
-    key: 'markdownItOptions',
-    description: 'Some options for the markdown-it instance that will be created by default',
+    key: 'markedOptions',
+    description: 'Some options for the default <a href="https://marked.js.org/using_advanced#options">marked</a> parser',
     default: {}
   },
   {

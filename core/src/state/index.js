@@ -123,6 +123,7 @@ export class StatefulLayout {
    * @param {Partial<StatefulLayoutOptions>} options
    */
   set options (options) {
+    logDataBinding('apply main options setter', options)
     this.prepareOptions(options)
     this.updateState()
   }

@@ -95,6 +95,9 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.notEqual(root3, root2)
       assert.equal(root2.children?.[0], root3.children?.[0])
       assert.notEqual(root2.children?.[1], root3.children?.[1])
+      // node has changed, but not options or messages which are immutable too
+      assert.equal(root2.children?.[1].options, root3.children?.[1].options)
+      assert.equal(root2.children?.[1].messages, root3.children?.[1].messages)
 
       // no actual change
       statefulLayout.input(root1.children[0], 'test')

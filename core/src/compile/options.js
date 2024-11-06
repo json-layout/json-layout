@@ -1,7 +1,7 @@
 import ajvModule from 'ajv/dist/2019.js'
 import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
-import MarkdownIt from 'markdown-it'
+import { marked } from 'marked'
 import { produce } from 'immer'
 import i18n from '../i18n/index.js'
 import { standardComponents } from '@json-layout/vocabulary'
@@ -35,8 +35,8 @@ export const fillOptions = (partialOptions) => {
 
   let markdown = partialOptions.markdown
   if (!markdown) {
-    const markdownIt = new MarkdownIt(partialOptions.markdownItOptions ?? {})
-    markdown = markdownIt.render.bind(markdownIt)
+    const render = (/** @type {string} */text) => marked.parse(text, partialOptions.markedOptions)
+    markdown = /** @type {(text: string) => string} */(render)
   }
 
   const defaultLocale = partialOptions.defaultLocale || 'en'
@@ -73,7 +73,7 @@ export const fillOptions = (partialOptions) => {
 // use Immer for efficient updating with immutability and no-op detection
 /** @type {(draft: PartialCompileOptions, newOptions: PartialCompileOptions) => PartialCompileOptions} */
 export const produceCompileOptions = produce((draft, newOptions) => {
-  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markdownItOptions', 'xI18n', 'locale', 'defaultLocale', 'messages', 'optionsKeys', 'components']) {
+  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markedOptions', 'xI18n', 'locale', 'defaultLocale', 'messages', 'optionsKeys', 'components']) {
     // @ts-ignore
     if (key in newOptions) {
       // components is problematic because it is an object with nested objects

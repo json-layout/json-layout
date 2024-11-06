@@ -1,5 +1,5 @@
 import type ajvModule from 'ajv/dist/2019.js'
-import type MarkdownIt from 'markdown-it'
+import type { MarkedOptions } from 'marked'
 import { type ComponentInfo, type BaseCompObject, type NormalizedLayout, type StateNodeOptionsBase, type Expression } from '@json-layout/vocabulary'
 import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv/dist/2019.js'
 import { type Display } from '../state/utils/display.js'
@@ -27,7 +27,7 @@ export interface CompileOptions {
   ajvOptions?: ajvModule.Options
   code: boolean
   markdown: (text: string) => string
-  markdownItOptions?: MarkdownIt.Options
+  markedOptions?: MarkedOptions
   locale: string
   defaultLocale: string
   messages: LocaleMessages
