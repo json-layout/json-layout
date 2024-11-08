@@ -10,7 +10,7 @@ import { partialResolveRefs } from './utils/resolve-refs.js'
  * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
  * @param {Record<string, import('./types.js').SkeletonTree>} skeletonTrees
  * @param {Record<string, import('./types.js').SkeletonNode>} skeletonNodes
- * @param {string[]} validates
+ * @param {string[]} validatePointers
  * @param {Record<string, string[]>} validationErrors
  * @param {Record<string, import('@json-layout/vocabulary').NormalizedLayout>} normalizedLayouts
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
@@ -29,7 +29,7 @@ export function makeSkeletonNode (
   getJSONRef,
   skeletonTrees,
   skeletonNodes,
-  validates,
+  validatePointers,
   validationErrors,
   normalizedLayouts,
   expressions,
@@ -48,6 +48,7 @@ export function makeSkeletonNode (
   if (schema.$ref) {
     [refFragment, schemaId, refPointer] = getJSONRef(sourceSchemaId, schema.$ref)
     refFragment.__pointer = refPointer
+    pointer = refPointer
     schema = { ...rawSchema, ...refFragment }
     delete schema.$ref
   }
@@ -170,7 +171,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -196,7 +197,7 @@ export function makeSkeletonNode (
               getJSONRef,
               skeletonTrees,
               skeletonNodes,
-              validates,
+              validatePointers,
               validationErrors,
               normalizedLayouts,
               expressions,
@@ -225,7 +226,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -279,7 +280,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -336,7 +337,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -369,7 +370,7 @@ export function makeSkeletonNode (
       node.children.push(patternPropertiesPointer)
     }
     if (schema.if) {
-      validates.push(`${pointer}/if`)
+      validatePointers.push(`${pointer}/if`)
       if (schema.then) {
         const childPointer = `${refPointer}/then`
         if (!skeletonNodes[childPointer]) {
@@ -382,7 +383,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -409,7 +410,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -454,7 +455,7 @@ export function makeSkeletonNode (
             getJSONRef,
             skeletonTrees,
             skeletonNodes,
-            validates,
+            validatePointers,
             validationErrors,
             normalizedLayouts,
             expressions,
@@ -477,7 +478,7 @@ export function makeSkeletonNode (
           getJSONRef,
           skeletonTrees,
           skeletonNodes,
-          validates,
+          validatePointers,
           validationErrors,
           normalizedLayouts,
           expressions,

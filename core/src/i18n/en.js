@@ -16,7 +16,7 @@ export default {
   mdeImg1: '![](',
   mdeImg2: 'image url)',
   mdeTable1: '',
-  mdeTable2: '\n\n| Column 1 | Column 2 | ColoColumnnne 3 |\n| -------- | -------- | -------- |\n| Text     | Text     | Text     |\n\n',
+  mdeTable2: '\n\n| Column 1 | Column 2 | Column 3 |\n| -------- | -------- | -------- |\n| Text     | Text     | Text     |\n\n',
   bold: 'Bold',
   italic: 'Italic',
   heading: 'Title',

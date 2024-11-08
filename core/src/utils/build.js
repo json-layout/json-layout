@@ -8,7 +8,6 @@ export const commonjsDeps = [
   'ajv-formats/dist/formats.js',
   'ajv-i18n',
   'ajv-errors',
-  'markdown-it',
   'debug'
 ]
 
@@ -20,6 +19,5 @@ export const commonjsDepsPaths = [
   ['@json-layout/core', 'ajv-formats/dist/formats.js'],
   ['@json-layout/core', 'ajv-i18n'],
   ['@json-layout/core', 'ajv-errors'],
-  ['@json-layout/core', 'markdown-it'],
   ['@json-layout/core', 'debug']
 ]

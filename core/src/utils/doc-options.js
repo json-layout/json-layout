@@ -18,7 +18,7 @@ export const compileOptions = [
   {
     key: 'markdown',
     description: 'A function that takes a string in markdown format and returns HTML code.',
-    default: 'A markdown-it instance render function'
+    default: 'A function using the marked parser'
   },
   {
     key: 'markedOptions',

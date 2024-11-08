@@ -10,7 +10,7 @@ import { makeSkeletonNode } from './skeleton-node.js'
  * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
  * @param {Record<string, import('./types.js').SkeletonTree>} skeletonTrees
  * @param {Record<string, import('./types.js').SkeletonNode>} skeletonNodes
- * @param {string[]} validates
+ * @param {string[]} validatePointers
  * @param {Record<string, string[]>} validationErrors
  * @param {Record<string, import('@json-layout/vocabulary').NormalizedLayout>} normalizedLayouts
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
@@ -25,7 +25,7 @@ export function makeSkeletonTree (
   getJSONRef,
   skeletonTrees,
   skeletonNodes,
-  validates,
+  validatePointers,
   validationErrors,
   normalizedLayouts,
   expressions,
@@ -42,7 +42,7 @@ export function makeSkeletonTree (
       getJSONRef,
       skeletonTrees,
       skeletonNodes,
-      validates,
+      validatePointers,
       validationErrors,
       normalizedLayouts,
       expressions,
@@ -50,7 +50,7 @@ export function makeSkeletonTree (
       pointer,
       true
     )
-    validates.push(pointer)
+    validatePointers.push(pointer)
   }
   return { title, root: pointer }
 }
