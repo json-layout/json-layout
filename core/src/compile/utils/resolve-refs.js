@@ -11,6 +11,7 @@ const prepareGetJSONRef = (schemas, ajv) => {
     const [schemaId, pointer] = fullRef.split('#')
     schemas[schemaId] = schemas[schemaId] ?? (ajv.getSchema(schemaId)?.schema)
     if (!schemas[schemaId]) throw new Error(`reference not found ${schemaId}`)
+    if (!pointer) return [schemas[schemaId], schemaId, fullRef]
     const pointerParts = pointer.split('/').filter(p => !!p)
     const { value: fragment } = pointerParts.reduce((a, pointerPart) => {
       a.path.push(pointerPart)
