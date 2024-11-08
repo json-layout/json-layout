@@ -50,7 +50,7 @@ export function makeSkeletonTree (
       pointer,
       true
     )
-    validatePointers.push(pointer)
+    validatePointers.push(skeletonNodes[pointer].refPointer)
   }
-  return { title, root: pointer }
+  return { title, root: pointer, refPointer: skeletonNodes[pointer].refPointer }
 }

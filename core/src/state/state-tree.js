@@ -45,7 +45,7 @@ export function createStateTree (
   validationState,
   reusedStateTree
 ) {
-  const validate = compiledLayout.validates[skeleton.root]
+  const validate = compiledLayout.validates[skeleton.refPointer]
   const valid = validate(data)
   if (validate.errors) {
     for (const error of validate.errors) {

@@ -408,7 +408,7 @@ export function createStateNode (
 
   if (key === '$oneOf' && skeleton.childrenTrees) {
     // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
-    const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].root](data)))
+    const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data)))
     if (activeChildTreeIndex !== -1) {
       context.errors = context.errors?.filter(error => {
         const originalError = error.params?.errors?.[0] ?? error

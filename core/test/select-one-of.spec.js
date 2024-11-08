@@ -390,4 +390,41 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'one-of-select')
     assert.equal(statefulLayout.stateTree.root.children?.[0].key, '$oneOf')
   })
+
+  it('should manage a oneOf with $ref', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        prop1: { $ref: 'http://test.com/one-of' }
+      }
+    }, {
+      ajvOptions: {
+        schemas: {
+          'http://test.com/one-of': {
+            oneOf: [{ $ref: '#/$defs/sub1' }, { $ref: '#/$defs/sub2' }],
+            $defs: {
+              sub1: {
+                properties: {
+                  key: { type: 'string', const: 'key1' },
+                  str1: { type: 'string' }
+                }
+              },
+              sub2: {
+                properties: {
+                  key: { type: 'string', const: 'key2' },
+                  str2: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1' })
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].layout.comp, 'one-of-select')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].key, '$oneOf')
+  })
 })

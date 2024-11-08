@@ -48,7 +48,6 @@ export function makeSkeletonNode (
   if (schema.$ref) {
     [refFragment, schemaId, refPointer] = getJSONRef(sourceSchemaId, schema.$ref)
     refFragment.__pointer = refPointer
-    pointer = refPointer
     schema = { ...rawSchema, ...refFragment }
     delete schema.$ref
   }

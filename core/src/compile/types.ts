@@ -62,6 +62,7 @@ export interface CompiledLayout {
 export interface SkeletonTree {
   title: string
   root: string
+  refPointer: string
 }
 
 // a skeleton node is a light recursive structure
