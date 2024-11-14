@@ -90,7 +90,6 @@
           "required": ["comp"],
           "properties": {
             "comp": {"type": "string"},
-            "label": {"type": "string"},
             "autofocus": {"type": "boolean"}
           }
         }
@@ -105,9 +104,7 @@
           "properties": {
             "comp": {"type": "string"},
             "items": {"$ref": "#/$defs/select-items"},
-            "getItems": {"$ref": "#/$defs/get-items"},
-            "multiple": {"type": "boolean"},
-            "separator": {"type": "string"}
+            "getItems": {"$ref": "#/$defs/get-items"}
           }
         }
       ]
@@ -120,7 +117,8 @@
           "required": ["comp"],
           "properties": {
             "comp": {"type": "string"},
-            "multiple": {"type": "boolean"}
+            "multiple": {"type": "boolean"},
+            "separator": {"type": "string"}
           }
         }
       ]
@@ -141,8 +139,8 @@
         "key": {"type": ["string", "integer"]},
         "cols": {"$ref": "#/$defs/cols-obj"},
         "comp": {"type": "string"},
-        "title": {"type": ["string", "null"]},
-        "subtitle": {"type": ["string", "null"]},
+        "title": {"type": "string"},
+        "subtitle": {"type": "string"},
         "children": {"$ref": "#/$defs/children"}
       }
     },
