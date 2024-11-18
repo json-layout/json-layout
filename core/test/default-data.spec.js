@@ -44,9 +44,11 @@ describe('default data management', () => {
 
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
-    // reuse default value if property is emptied
+    // reuse default value if property is emptied, but only after blur
     assert.ok(statefulLayout.stateTree.root.children)
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], '')
+    assert.deepEqual(statefulLayout.data, {})
+    statefulLayout.blur(statefulLayout.stateTree.root.children?.[0])
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test')

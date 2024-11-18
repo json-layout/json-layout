@@ -24,7 +24,7 @@ const isDataEmpty = (data) => {
  * @param {import('./types.js').StateNodeOptions} options
  * @returns {boolean}
  */
-const useDefaultData = (data, layout, options) => {
+export const useDefaultData = (data, layout, options) => {
   if (options.defaultOn === 'missing' && data === undefined) return true
   if (options.defaultOn === 'empty' && isDataEmpty(data)) return true
   return false
@@ -314,7 +314,7 @@ export function createStateNode (
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
   if (skeleton.pure && !reusedNode?.error && !reusedNode?.childError) {
     const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.includes(fullKey)
-    cacheKey = [reusedNode, parentOptions, compiledLayout, fullKey, skeleton, childDefinition, parentDisplay.width, validatedCacheKey, context.activatedItems, context.initial, data]
+    cacheKey = [reusedNode, parentOptions, compiledLayout, fullKey, fullKey === context.currentInput, skeleton, childDefinition, parentDisplay.width, validatedCacheKey, context.activatedItems, context.initial, data]
     if (reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
       logStateNode('createStateNode cache hit', fullKey)
       // @ts-ignore
@@ -594,7 +594,7 @@ export function createStateNode (
       nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
     }
   } else {
-    if (layout.getDefaultData && useDefaultData(nodeData, layout, options)) {
+    if (layout.getDefaultData && useDefaultData(nodeData, layout, options) && context.currentInput !== fullKey) {
       if (!context.rehydrate) {
         const defaultData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
         if (nodeData === undefined || !isDataEmpty(defaultData)) {

@@ -66,6 +66,7 @@ export interface CreateStateTreeContext {
   files: FileRef[]
   activatedItems: Record<string, number>
   autofocusTarget: string | null
+  currentInput: string | null
   initial: boolean
   rehydrate: boolean
   cacheKeys: Record<string, StateNodeCacheKey>
@@ -83,6 +84,7 @@ export type StateNodeCacheKey = [
   StateNodeOptions,
   CompiledLayout,
   string,
+  boolean,
   SkeletonNode,
   Child | null,
   number,

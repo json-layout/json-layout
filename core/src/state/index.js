@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-named-default
 import debug from 'debug'
 import { produce } from 'immer'
-import { evalExpression, producePatchedData } from './state-node.js'
+import { evalExpression, producePatchedData, useDefaultData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
 import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
@@ -154,6 +154,12 @@ export class StatefulLayout {
 
   /**
    * @private
+   * @type {string | null}
+   */
+  _currentInput = null
+
+  /**
+   * @private
    * @type {CreateStateTreeContext}
    */
   // @ts-ignore
@@ -266,6 +272,7 @@ export class StatefulLayout {
     const createStateTreeContext = {
       activatedItems: this.activatedItems,
       autofocusTarget: this._autofocusTarget,
+      currentInput: this._currentInput,
       initial: !this._lastCreateStateTreeContext,
       rehydrate,
       cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {},
@@ -439,6 +446,9 @@ export class StatefulLayout {
 
     const emitsBlur = this.compiledLayout.components[node.layout.comp]?.emitsBlur
 
+    if (emitsBlur) {
+      this._currentInput = node.fullKey
+    }
     if (node.options.updateOn === 'blur' && emitsBlur) {
       this._dataWaitingForBlur = true
     }
@@ -459,6 +469,13 @@ export class StatefulLayout {
   blur (node) {
     // debounced data is applied immediately on blur
     this.applyDebouncedInput()
+
+    if (this._currentInput === node.fullKey) this._currentInput = null
+
+    // re-apply once now that _currentInput was emptied to add default data
+    if (node.layout.getDefaultData && useDefaultData(node.data, node.layout, node.options)) {
+      this.applyInput(node, node.data, true)
+    }
 
     logDataBinding('received blur event from node', node)
     if (
