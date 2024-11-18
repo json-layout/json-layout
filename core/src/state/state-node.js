@@ -314,7 +314,20 @@ export function createStateNode (
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
   if (skeleton.pure && !reusedNode?.error && !reusedNode?.childError) {
     const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.includes(fullKey)
-    cacheKey = [reusedNode, parentOptions, compiledLayout, fullKey, fullKey === context.currentInput, skeleton, childDefinition, parentDisplay.width, validatedCacheKey, context.activatedItems, context.initial, data]
+    cacheKey = [
+      reusedNode,
+      parentOptions,
+      compiledLayout,
+      fullKey,
+      context.currentInput !== null && context.currentInput.startsWith(fullKey),
+      skeleton,
+      childDefinition,
+      parentDisplay.width,
+      validatedCacheKey,
+      context.activatedItems,
+      context.initial,
+      data
+    ]
     if (reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
       logStateNode('createStateNode cache hit', fullKey)
       // @ts-ignore
