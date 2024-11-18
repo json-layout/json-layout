@@ -3,6 +3,7 @@
   "main": "index.js",
   "scripts": {
     "test": "run-s 'test -w vocabulary' 'test -w core'",
+    "test:only": "run-s 'test:only -w vocabulary' 'test:only -w core'",
     "build": "run-s 'build -w vocabulary' 'build -w core' 'build -w examples'",
     "lint": "run-s 'lint -w vocabulary' 'lint -w core' 'lint -w examples'",
     "prepare": "husky install",
