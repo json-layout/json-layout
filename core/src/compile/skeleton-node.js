@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompObject } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
@@ -92,9 +92,23 @@ export function makeSkeletonNode (
     }
   }
 
+  /**
+   * @param {import('@json-layout/vocabulary').Child} child
+   */
+  const prepareLayoutChild = (child) => {
+    if (child.if) pushExpression(expressions, child.if)
+    if (childIsCompObject(child)) {
+      for (const grandChild of child.children) prepareLayoutChild(grandChild)
+    }
+  }
+
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
+
   for (const compObject of compObjects) {
     if (compObject.if) pushExpression(expressions, compObject.if)
+    if (isCompositeLayout(compObject, options.components)) {
+      for (const child of compObject.children) prepareLayoutChild(child)
+    }
 
     if (schema.const !== undefined && compObject.constData === undefined) compObject.constData = schema.const
     if (compObject.constData !== undefined && !compObject.getConstData) compObject.getConstData = { type: 'js-eval', expr: 'layout.constData', pure: true, dataAlias: 'value' }

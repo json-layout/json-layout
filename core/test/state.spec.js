@@ -377,6 +377,28 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[0].children[0].data, 10)
     })
 
+    it('should accept wrapper composite children with ifs', async () => {
+      const layout = [{ comp: 'section', title: 'Sec 1', children: [{ key: 'nb1', if: '!readOnly' }] }]
+      const compiledLayout = await compile({
+        type: 'object',
+        layout,
+        properties: { nb1: { type: 'number' }, nb2: { type: 'number' } }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+      assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children[0].key, '$comp-0')
+      assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children[0].children[0].key, 'nb1')
+      assert.equal(statefulLayout.stateTree.root.children[0].children[0].layout.comp, 'number-field')
+      statefulLayout.options = { ...defaultOptions, readOnly: true }
+      assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children[0].key, '$comp-0')
+      assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
+      assert.equal(statefulLayout.stateTree.root.children[0].children[0].key, 'nb1')
+      assert.equal(statefulLayout.stateTree.root.children[0].children[0].layout.comp, 'none')
+      // assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 0)
+    })
+
     it('merge options going down the state tree', async () => {
       const compiledLayout = await compile({ type: 'object', layout: { options: { opt1: 'Opt 1' } }, properties: { str1: { type: 'string', layout: { options: { opt2: 'Opt 2' } } } } })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, opt0: 'Opt 0', opt2: 'Opt 0/2' }, {})

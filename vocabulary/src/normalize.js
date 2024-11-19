@@ -78,9 +78,10 @@ function getChildren (defaultChildren, partialChildren) {
       if (!matchingDefaultChild) throw new Error(`unknown child "${partialChild}"`)
       return matchingDefaultChild
     } else {
+      if (partialChild.if) partialChild.if = normalizeExpression(partialChild.if)
       if (typeof partialChild.cols === 'number') partialChild.cols = { sm: partialChild.cols }
       if (typeof partialChild.cols === 'object' && partialChild.cols.xs === undefined) partialChild.cols.xs = 12
-      if (partialChild.key) { // object referencing known child and overwriting cols
+      if (partialChild.key) { // object referencing known child and overwriting cols / if
         const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild.key)
         if (!matchingDefaultChild) throw new Error(`unknown child "${partialChild.key}"`)
         return /** @type {Child} */ (partialChild)
@@ -541,7 +542,7 @@ function lighterValidationErrors (errors) {
   }
   const messages = []
   for (const error of errors) {
-    let message = error.message ?? error.keyword
+    let message = error.instancePath + ' ' + (error.message ?? error.keyword)
     if (error.params) message += ' ' + JSON.stringify(error.params)
     messages.push(message)
   }

@@ -71,7 +71,8 @@
       "additionalProperties": false,
       "properties": {
         "key": {"type": ["string", "integer"]},
-        "cols": {"$ref": "#/$defs/partial-cols"}
+        "cols": {"$ref": "#/$defs/partial-cols"},
+        "if": {"$ref": "#/$defs/partial-expression"}
       }
     },
     "partial-child-composite": {
@@ -82,7 +83,8 @@
         "title": {"type": ["string", "null"]},
         "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/partial-children"},
-        "cols": {"$ref": "#/$defs/partial-cols"}
+        "cols": {"$ref": "#/$defs/partial-cols"},
+        "if": {"$ref": "#/$defs/partial-expression"}
       }
     },
     "partial-child": {

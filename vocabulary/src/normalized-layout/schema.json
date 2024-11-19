@@ -129,19 +129,22 @@
       "additionalProperties": false,
       "properties": {
         "key": {"type": ["string", "integer"]},
-        "cols": {"$ref": "#/$defs/cols-obj"}
+        "cols": {"$ref": "#/$defs/cols-obj"},
+        "if": {"$ref": "#/$defs/expression"}
       }
     },
     "child-composite": {
       "type": "object",
       "required": ["key", "children"],
+      "additionalProperties": false,
       "properties": {
         "key": {"type": ["string", "integer"]},
         "cols": {"$ref": "#/$defs/cols-obj"},
         "comp": {"type": "string"},
         "title": {"type": "string"},
         "subtitle": {"type": "string"},
-        "children": {"$ref": "#/$defs/children"}
+        "children": {"$ref": "#/$defs/children"},
+        "if": {"$ref": "#/$defs/expression"}
       }
     },
     "child": {

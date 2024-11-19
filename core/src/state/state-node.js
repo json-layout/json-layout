@@ -242,6 +242,7 @@ export function evalExpression (expressions, expression, data, options, display,
 
 /**
  * @param {import('@json-layout/vocabulary').NormalizedLayout} normalizedLayout
+ * @param {import('@json-layout/vocabulary').Child | null} childDefinition
  * @param {import('./types.js').StateNodeOptions} options
  * @param {import('../index.js').CompiledLayout} compiledLayout
  * @param {import('./utils/display.js').Display} display
@@ -250,7 +251,7 @@ export function evalExpression (expressions, expression, data, options, display,
  * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @returns {import('@json-layout/vocabulary').BaseCompObject}
  */
-const getCompObject = (normalizedLayout, options, compiledLayout, display, data, rootData, parentContext) => {
+const getCompObject = (normalizedLayout, childDefinition, options, compiledLayout, display, data, rootData, parentContext) => {
   if (isSwitchStruct(normalizedLayout)) {
     for (const compObject of normalizedLayout.switch) {
       if (!compObject.if || !!evalExpression(compiledLayout.expressions, compObject.if, data, options, display, compObject, compiledLayout.validates, rootData, parentContext)) {
@@ -258,13 +259,13 @@ const getCompObject = (normalizedLayout, options, compiledLayout, display, data,
       }
     }
   } else {
-    if (normalizedLayout.if) {
-      if (evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
-        return normalizedLayout
-      }
-    } else {
-      return normalizedLayout
+    if (childDefinition?.if && !evalExpression(compiledLayout.expressions, childDefinition.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
+      return { comp: 'none' }
     }
+    if (normalizedLayout.if && !evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
+      return { comp: 'none' }
+    }
+    return normalizedLayout
   }
   return { comp: 'none' }
 }
@@ -347,7 +348,7 @@ export function createStateNode (
   const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
     ? childDefinition
     : compiledLayout.normalizedLayouts[skeleton.pointer]
-  const layout = getCompObject(normalizedLayout, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentContext)
+  const layout = getCompObject(normalizedLayout, childDefinition, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentContext)
   const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
 
   const options = layout.getOptions
