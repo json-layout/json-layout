@@ -40,6 +40,15 @@ describe('default data management', () => {
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
     })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: '' })
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
+  })
+
+  it('should fill default values when data is empty after blur', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: { str1: { type: 'string', default: 'String 1' } }
+    })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
 
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
@@ -52,6 +61,38 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test')
+    assert.deepEqual(statefulLayout.data, { str1: 'test' })
+  })
+
+  it('should fill default values when data is empty after blur with debounce', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: { str1: { type: 'string', default: 'String 1' } }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout,
+      compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      { ...defaultOptions, debounceInputMs: 300 },
+      {}
+    )
+
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
+
+    // reuse default value if property is emptied, but only after blur
+    assert.ok(statefulLayout.stateTree.root.children)
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'val')
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1' }) // not yet changed
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    assert.deepEqual(statefulLayout.data, { str1: 'val' }) // changed after debounce
+
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], '')
+    statefulLayout.blur(statefulLayout.stateTree.root.children?.[0])
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1' }) // changed and default data applied after debounce
+    // changed after blur and default value is applied
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
+
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test')
+    await new Promise((resolve) => setTimeout(resolve, 300))
     assert.deepEqual(statefulLayout.data, { str1: 'test' })
   })
 

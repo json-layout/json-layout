@@ -467,14 +467,16 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   blur (node) {
-    // debounced data is applied immediately on blur
-    this.applyDebouncedInput()
-
     if (this._currentInput === node.fullKey) this._currentInput = null
 
-    // re-apply once now that _currentInput was emptied to add default data
-    if (node.layout.getDefaultData && useDefaultData(node.data, node.layout, node.options)) {
-      this.applyInput(node, node.data, true)
+    // debounced data is applied immediately on blur
+    if (this.debouncedInput) {
+      this.applyDebouncedInput()
+    } else {
+      // re-apply once now that _currentInput was emptied to add default data
+      if (node.layout.getDefaultData && useDefaultData(node.data, node.layout, node.options)) {
+        this.applyInput(node, node.data, true)
+      }
     }
 
     logDataBinding('received blur event from node', node)
