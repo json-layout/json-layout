@@ -484,7 +484,7 @@ for (const compileMode of ['runtime', 'build-time']) {
           type: 'object',
           layout: {
             switch: [{
-              if: 'options.summary',
+              if: 'summary',
               children: ['str1']
             }]
           },

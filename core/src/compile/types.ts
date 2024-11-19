@@ -17,6 +17,8 @@ export type CompiledExpression = (
   context: object,
   display: Display,
   layout: BaseCompObject,
+  readOnly: boolean,
+  summary: boolean,
   validates: Record<string, ValidateFunction>,
   rootData?: unknown,
   parent?: ParentContextExpression | null

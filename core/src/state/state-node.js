@@ -223,9 +223,9 @@ export function evalExpression (expressions, expression, data, options, display,
   const compiledExpression = expressions[expression.ref]
   try {
     if (expression.pure) {
-      return compiledExpression(data, data, options, options.context, display, layout, validates)
+      return compiledExpression(data, data, options, options.context, display, layout, options.readOnly, options.summary, validates)
     } else {
-      return compiledExpression(data, data, options, options.context, display, layout, validates, rootData, parentContext)
+      return compiledExpression(data, data, options, options.context, display, layout, options.readOnly, options.summary, validates, rootData, parentContext)
     }
   } catch (err) {
     /** @type {any} */
