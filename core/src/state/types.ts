@@ -65,6 +65,7 @@ export interface CreateStateTreeContext {
   additionalPropertiesErrors?: ErrorObject[]
   files: FileRef[]
   activatedItems: Record<string, number>
+  autoActivatedItems: Record<string, number>
   autofocusTarget: string | null
   currentInput: string | null
   initial: boolean

@@ -271,6 +271,7 @@ export class StatefulLayout {
     /** @type {CreateStateTreeContext} */
     const createStateTreeContext = {
       activatedItems: this.activatedItems,
+      autoActivatedItems: {},
       autofocusTarget: this._autofocusTarget,
       currentInput: this._currentInput,
       initial: !this._lastCreateStateTreeContext,
@@ -303,6 +304,9 @@ export class StatefulLayout {
       }
     }
     this.files = shallowProduceArray(this.files, createStateTreeContext.files)
+    for (const activatedKey in createStateTreeContext.autoActivatedItems) {
+      this.activatedItems = produce(this.activatedItems, draft => { draft[activatedKey] = createStateTreeContext.autoActivatedItems[activatedKey] })
+    }
   }
 
   validate () {
