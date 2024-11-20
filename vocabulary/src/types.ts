@@ -38,4 +38,5 @@ export interface ComponentInfo {
   multipleCompat?: boolean
   schema?: any
   labelOptional?: boolean
+  isFileInput?: boolean
 }

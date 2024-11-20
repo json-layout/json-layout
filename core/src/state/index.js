@@ -375,7 +375,7 @@ export class StatefulLayout {
 
     const transformedData = node.layout.transformData && this.evalNodeExpression(node, node.layout.transformData, data)
 
-    if (node.layout.comp === 'file-input') {
+    if (this.compiledLayout.components[node.layout.comp]?.isFileInput) {
       if (transformedData) {
         // @ts-ignore
         data.toJSON = () => transformedData

@@ -209,6 +209,7 @@ export const standardComponents = [
     name: 'file-input',
     focusable: true,
     multipleCompat: true,
+    isFileInput: true,
     schema: {
       properties: {
         accept: { type: 'string' },
