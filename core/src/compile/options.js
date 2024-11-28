@@ -61,6 +61,7 @@ export const fillOptions = (partialOptions) => {
     code: false,
     markdown,
     optionsKeys: [],
+    useDescription: ['help', 'subtitle'],
     ...partialOptions,
     locale,
     defaultLocale,

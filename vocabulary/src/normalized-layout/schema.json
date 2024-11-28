@@ -77,7 +77,8 @@
           "required": ["comp"],
           "properties": {
             "comp": {"type": "string"},
-            "label": {"type": "string"}
+            "label": {"type": "string"},
+            "hint": {"type": "string"}
           }
         }
       ]

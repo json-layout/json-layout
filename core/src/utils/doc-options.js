@@ -35,6 +35,21 @@ export const compileOptions = [
     description: 'The locale messages. You can overwrite only the keys you want to change.',
     default: {},
     values: en
+  },
+  {
+    key: 'xI18n',
+    description: 'Activate x-i18n-* annotation system.',
+    default: false
+  },
+  {
+    key: 'useDescription',
+    description: 'Define how to use the "description" metadata from the schema.',
+    default: ['help', 'subtitle'],
+    values: {
+      help: 'As a help message shown in a tooltip.',
+      hint: 'As a hint message blow simple form fields (not applicable to composite components).',
+      subtitle: 'As a subtitle below the title of a composite component.'
+    }
   }
 ]
 

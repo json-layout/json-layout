@@ -37,6 +37,6 @@ export interface ComponentInfo {
   itemsBased?: boolean
   multipleCompat?: boolean
   schema?: any
-  labelOptional?: boolean
   isFileInput?: boolean
+  hintable?: boolean
 }

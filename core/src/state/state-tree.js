@@ -1,5 +1,8 @@
 import { produce } from 'immer'
 import { createStateNode } from './state-node.js'
+import debug from 'debug'
+
+const logValidation = debug('jl:validation')
 
 /** @type {(draft: import('./types.js').StateTree, root: import('./types.js').StateNode, valid: boolean) => any} */
 const produceStateTree = produce(
@@ -48,6 +51,7 @@ export function createStateTree (
   const validate = compiledLayout.validates[skeleton.refPointer]
   const valid = validate(data)
   if (validate.errors) {
+    logValidation(`${skeleton.root} validation errors`, validate.errors)
     for (const error of validate.errors) {
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
     }

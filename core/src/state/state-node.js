@@ -6,6 +6,7 @@ import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './
 import { getRegexp } from './utils/regexps.js'
 
 const logStateNode = debug('jl:state-node')
+const logValidation = debug('jl:validation')
 
 /**
  * @param {unknown} data
@@ -551,6 +552,7 @@ export function createStateNode (
   // capture errors so that they are not repeated in parent nodes
   if (layout.comp !== 'none') {
     if (error) {
+      logValidation(`${fullKey} capture validation error on node`, error)
       context.errors = context.errors?.filter(error => {
         return !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath, parentDataPath)
       })
