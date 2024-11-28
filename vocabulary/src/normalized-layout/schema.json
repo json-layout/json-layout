@@ -78,7 +78,7 @@
           "properties": {
             "comp": {"type": "string"},
             "label": {"type": "string"},
-            "hint": {"type": "string"}
+            "hint": {"type": ["string", "null"]}
           }
         }
       ]

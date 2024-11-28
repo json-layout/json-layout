@@ -32,6 +32,7 @@
         "help": {"type": "string"},
         "children": {"$ref": "#/$defs/partial-children"},
         "label": {"type": "string"},
+        "hint": {"type": ["string", "null"]},
         "title": {"type": ["string", "null"]},
         "subtitle": {"type": ["string", "null"]},
         "step": {"type": "number"},

@@ -464,9 +464,13 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
         partial.subtitle = schemaFragment.description
       }
     } else if (!component.composite && useDescription.includes('hint')) {
-      partial.hint = schemaFragment.description
-    } else if (partial.help === undefined && schemaChild !== 'oneOf' && useDescription.includes('help')) {
-      partial.help = schemaFragment.description
+      if (partial.hint === undefined) {
+        partial.hint = schemaFragment.description
+      }
+    } else if (schemaChild !== 'oneOf' && useDescription.includes('help')) {
+      if (partial.help === undefined) {
+        partial.help = schemaFragment.description
+      }
     }
   }
   if (partial.help) partial.help = markdown(partial.help).trim()
