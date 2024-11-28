@@ -51,6 +51,7 @@ export const isSection = (node) => !!node && node.layout.comp === 'section'
 export const isItemsNode = (node, components) => !!node && isItemsLayout(node.layout, components)
 
 const logDataBinding = debug('jl:data-binding')
+const logSelectItems = debug('jl:select-items')
 
 export class StatefulLayout {
   /**
@@ -533,8 +534,10 @@ export class StatefulLayout {
     let rawItems
     if (node.layout.items || (node.layout.getItems && isGetItemsExpression(node.layout.getItems))) {
       rawItems = node.itemsCacheKey
+      logSelectItems(`${node.key} - raw items from context or schema or getItems expression`, rawItems)
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
+      logSelectItems(`${node.key} - will fetch raw items from URL`, node.itemsCacheKey)
       const url = new URL(node.itemsCacheKey)
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
@@ -543,12 +546,14 @@ export class StatefulLayout {
         }
       }
       if (qSearchParam) {
+        logSelectItems(`${node.key} - apply search params`, qSearchParam)
         appliedQ = true
         if (q) url.searchParams.set(qSearchParam, q)
         else url.searchParams.delete(qSearchParam)
       }
       const fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
       rawItems = await (await fetch(url, fetchOptions)).json()
+      logSelectItems(`${node.key} - raw items URL`, rawItems)
     }
 
     if (!rawItems) {
@@ -556,6 +561,7 @@ export class StatefulLayout {
     }
     if (node.layout.getItems?.itemsResults) {
       rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
+      logSelectItems(`${node.key} - items passed through the getItems.itemsResults expression`, rawItems)
     }
 
     if (!Array.isArray(rawItems)) throw new Error(`getItems didn't return an array for node ${node.fullKey}, you can define itemsResults to extract the array`)
@@ -617,6 +623,8 @@ export class StatefulLayout {
       item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : item.value
     }
     if (layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, layout.getItems?.itemIcon, rawItem)
+
+    logSelectItems(`${node.key} - select item after applying itemValue/itemKey/itemTitle/itemIcon expressions`, item)
     return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
   }
 
