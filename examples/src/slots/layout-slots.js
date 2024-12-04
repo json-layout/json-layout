@@ -9,10 +9,10 @@ Slots can also be defined in the children definitions of a composite layout.
     type: 'object',
     layout: [
       [
-        { key: 'text', slots: { before: 'A **markdown** slot before the the text field.' }, cols: 6 },
-        { text: 'A text slot to the right.', cols: 6 }
+        { key: 'text', slots: { before: 'A **markdown** slot before the text field on the left.' }, cols: 6 },
+        { name: 'custom-message', cols: 6 }
       ],
-      { markdown: 'A **markdown** slot at the bottom with full width.' }
+      { markdown: 'A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.' }
     ],
     properties: {
       text: {
@@ -20,7 +20,8 @@ Slots can also be defined in the children definitions of a composite layout.
         title: 'A text string'
       }
     }
-  }
+  },
+  codeSlots: ['custom-message']
 }
 
 export default example
