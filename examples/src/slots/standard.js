@@ -4,7 +4,9 @@ const example = {
   id: 'standard',
   description: `Standard slots shared accross all node types are \`before\`, \`after\` and \`component\`.
   
-The \`before\`, \`after\` slots are by default interpreted as containing some markdown code.`,
+The \`before\`, \`after\` slots are by default interpreted as containing some markdown code.
+Meaning that \`{"before": "A **markdown** slot"}\` is equivalent to \`{"before": {"markdown": "A **markdown** slot"}}\`.
+`,
   schema: {
     type: 'object',
     properties: {

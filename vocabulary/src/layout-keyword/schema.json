@@ -73,7 +73,13 @@
       "properties": {
         "key": {"type": ["string", "integer"]},
         "cols": {"$ref": "#/$defs/partial-cols"},
-        "if": {"$ref": "#/$defs/partial-expression"}
+        "if": {"$ref": "#/$defs/partial-expression"},
+        "slots": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/partial-slot"}
+          }
+        }
       }
     },
     "partial-child-composite": {
@@ -85,14 +91,34 @@
         "subtitle": {"type": ["string", "null"]},
         "children": {"$ref": "#/$defs/partial-children"},
         "cols": {"$ref": "#/$defs/partial-cols"},
-        "if": {"$ref": "#/$defs/partial-expression"}
+        "if": {"$ref": "#/$defs/partial-expression"},
+        "slots": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/partial-slot"}
+          }
+        }
       }
+    },
+    "partial-child-slot": {
+      "type": "object",
+      "properties": {
+        "cols": {"$ref": "#/$defs/partial-cols"},
+        "if": {"$ref": "#/$defs/partial-expression"}
+      },
+      "oneOf": [
+        {"$ref": "#/$defs/partial-slot-text"},
+        {"$ref": "#/$defs/partial-slot-markdown"},
+        {"$ref": "#/$defs/partial-slot-name"}
+      ]
     },
     "partial-child": {
       "anyOf": [
         {"type": "string"},
+        {"type": "array", "items": {"$ref": "#/$defs/partial-child"}},
         {"$ref": "#/$defs/partial-child-ref"},
-        {"$ref": "#/$defs/partial-child-composite"}
+        {"$ref": "#/$defs/partial-child-composite"},
+        {"$ref": "#/$defs/partial-child-slot"}
       ]
     },
     "partial-children": {

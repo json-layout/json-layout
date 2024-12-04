@@ -26,7 +26,8 @@ import {
   type FileInput,
   type Card,
   type Child,
-  type StateNodePropsLib
+  type StateNodePropsLib,
+  type Slots
 } from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout, type CompiledLayout } from '../index.js'
 import { type LocaleMessages } from '../i18n/types.js'
@@ -50,6 +51,7 @@ export interface StateNode {
   autofocus?: boolean
   autofocusChild?: string | number
   props?: StateNodePropsLib
+  slots?: Slots
   itemsCacheKey: any
   children?: StateNode[]
 }

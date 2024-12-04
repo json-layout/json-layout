@@ -29,6 +29,9 @@ export const standardComponents = [
     name: 'none'
   },
   {
+    name: 'slot'
+  },
+  {
     name: 'section',
     composite: true
   },

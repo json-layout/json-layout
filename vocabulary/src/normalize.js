@@ -1,4 +1,4 @@
-import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch, isPartialChildComposite } from './layout-keyword/index.js'
+import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch, isPartialChildComposite, isPartialChildSlot, isPartialSlotText, isPartialSlotName } from './layout-keyword/index.js'
 import { validateNormalizedLayout } from './normalized-layout/index.js'
 import { getComponentValidate } from './validate.js'
 
@@ -66,18 +66,31 @@ function getDefaultChildren (schemaFragment, type) {
 
 /**
  * @param {Children} defaultChildren
- * @param {PartialChildren} [partialChildren]
+ * @param {PartialChildren | undefined} partialChildren
+ * @param {(text: string) => string} markdown
  * @returns {Children}
  */
-function getChildren (defaultChildren, partialChildren) {
+function getChildren (defaultChildren, partialChildren, markdown) {
   if (!partialChildren) return defaultChildren
   let compI = 0
+  let slotI = 0
   return partialChildren.map(partialChild => {
     if (typeof partialChild === 'string') { // simple string/key referencing a known child
       const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild)
       if (!matchingDefaultChild) throw new Error(`unknown child "${partialChild}"`)
       return matchingDefaultChild
+    } else if (Array.isArray(partialChild)) {
+      compI++
+      return {
+        comp: 'section',
+        key: `$comp-${compI}`,
+        children: getChildren(defaultChildren, partialChild, markdown)
+      }
     } else {
+      if ('slots' in partialChild && !isPartialChildSlot(partialChild)) {
+        partialChild.slots = normalizePartialSlots(partialChild.slots, markdown)
+      }
+      if ('cols' in partialChild) partialChild.cols = normalizePartialCols(partialChild.cols)
       if (partialChild.if) partialChild.if = normalizeExpression(partialChild.if)
       if (typeof partialChild.cols === 'number') partialChild.cols = { sm: partialChild.cols }
       if (typeof partialChild.cols === 'object' && partialChild.cols.xs === undefined) partialChild.cols.xs = 12
@@ -85,15 +98,25 @@ function getChildren (defaultChildren, partialChildren) {
         const matchingDefaultChild = defaultChildren.find(c => c.key === partialChild.key)
         if (!matchingDefaultChild) throw new Error(`unknown child "${partialChild.key}"`)
         return /** @type {Child} */ (partialChild)
-      } else { // a composite component definition, not directly related to a known child
+      } else if (isPartialChildSlot(partialChild)) { // a slot defined as a child
+        /** @type {Child} */
+        slotI++
+        return {
+          key: `$slot-${slotI}`,
+          comp: 'slot',
+          cols: normalizePartialCols(partialChild.cols),
+          slots: normalizePartialSlots({ component: partialChild }, markdown)
+        }
+      } else {
         const child = partialChild
         if (isPartialChildComposite(child)) {
+          // a composite component definition, not directly related to a known child
           if (!child.comp) child.comp = 'section'
-          child.children = getChildren(defaultChildren, child.children)
-        }
-        if (!('key' in partialChild)) {
-          child.key = `$comp-${compI}`
-          compI++
+          child.children = getChildren(defaultChildren, child.children, markdown)
+          if (!('key' in partialChild)) {
+            compI++
+            child.key = `$comp-${compI}`
+          }
         }
         return /** @type {Child} */ (child)
       }
@@ -109,6 +132,7 @@ function getChildren (defaultChildren, partialChildren) {
  * @returns {import('./index.js').ComponentName}
  */
 function getDefaultComp (partial, schemaFragment, type, schemaChild) {
+  if (partial.slots?.component) return 'slot'
   const hasSimpleType = type && ['string', 'integer', 'number'].includes(type)
   if (schemaChild === 'oneOf') return 'one-of-select'
   if (schemaChild === 'patternProperties') return 'list'
@@ -189,6 +213,46 @@ function normalizeExpression (expression, defaultType = 'js-eval', defaultDataAl
   const defaultPure = looksPure(expression)
   if (typeof expression === 'string') return { type: defaultType, expr: expression, pure: defaultPure, dataAlias: defaultDataAlias }
   else return { pure: defaultPure, type: defaultType, dataAlias: defaultDataAlias, ...expression }
+}
+
+/**
+ * @param {PartialCompObject['slots']} partialSlots
+ * @param {(text: string) => string} markdown
+ * @returns {import('./normalized-layout/types.js').Slots | undefined}
+ */
+function normalizePartialSlots (partialSlots, markdown) {
+  if (!partialSlots) return
+  /** @type {import('./normalized-layout/types.js').Slots} */
+  const slots = {}
+  for (const [name, slot] of Object.entries(partialSlots)) {
+    if (typeof slot === 'string') {
+      if (['before', 'after'].includes(name)) {
+        slots[name] = { markdown: markdown(slot).trim() }
+      } else {
+        slots[name] = { name: slot }
+      }
+    } else if (isPartialSlotText(slot)) {
+      slots[name] = { text: slot.text }
+    } else if (isPartialSlotName(slot)) {
+      slots[name] = { name: slot.name }
+    } else if (isPartialSlotMarkdown(slot)) {
+      slots[name] = { markdown: markdown(slot.markdown).trim() }
+    }
+  }
+  return slots
+}
+
+/**
+ * @param {PartialCompObject['cols']} partialCols
+ * @returns {import('./normalized-layout/types.js').ColsObj | undefined}
+ */
+function normalizePartialCols (partialCols) {
+  if (typeof partialCols === 'number') {
+    return { xs: 12, sm: partialCols }
+  }
+  if (typeof partialCols === 'object') {
+    return { xs: 12, ...partialCols }
+  }
 }
 
 /**
@@ -299,7 +363,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   if (nullable) partial.nullable = nullable
 
   if (component.composite) {
-    const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children)
+    const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, markdown)
     partial.children = children
     if (!('title' in partial)) {
       if (children.length === 1 && children[0].key === '$patternProperties') {
@@ -311,7 +375,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   } else if (partial.comp === 'list') {
     if (schemaChild === 'patternProperties') {
       if (!('title' in partial)) {
-        const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children)
+        const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, markdown)
         if (children.length === 1 && children[0].key === '$patternProperties') {
           partial.title = schemaFragment.title ?? null
         }
@@ -330,7 +394,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       partial.listEditMode = partial.listEditMode ?? (itemsType === 'object' ? 'inline-single' : 'inline')
       partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
     }
-  } else {
+  } else if (partial.comp !== 'slot') {
     if (!('label' in partial) && !schemaChild) {
       partial.label = schemaFragment.title ?? ('' + key)
     }
@@ -442,21 +506,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
     partial.format = 'date-time'
   }
 
-  if (partial.slots) {
-    for (const [name, slot] of Object.entries(partial.slots)) {
-      if (typeof slot === 'string') {
-        if (['before', 'after'].includes(name)) {
-          partial.slots[name] = { markdown: slot }
-        } else {
-          partial.slots[name] = { name: slot }
-        }
-      }
-      const slotObj = partial.slots[name]
-      if (isPartialSlotMarkdown(slotObj)) {
-        slotObj.markdown = markdown(slotObj.markdown).trim()
-      }
-    }
-  }
+  if (partial.slots) partial.slots = normalizePartialSlots(partial.slots, markdown)
 
   if (schemaFragment.description) {
     if (component.composite && !!partial.title && useDescription.includes('subtitle')) {
@@ -476,8 +526,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   if (partial.help) partial.help = markdown(partial.help).trim()
   if (partial.subtitle) partial.subtitle = markdown(partial.subtitle).trim()
 
-  if (typeof partial.cols === 'number') partial.cols = { xs: partial.cols }
-  if (typeof partial.cols === 'object' && partial.cols.xs === undefined) partial.cols.xs = 12
+  if ('cols' in partial) partial.cols = normalizePartialCols(partial.cols)
 
   const validateComponent = getComponentValidate(component)
   if (!validateComponent(partial)) {

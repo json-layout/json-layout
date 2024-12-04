@@ -10,7 +10,9 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').GetItemsFetch} GetItemsFetch
  * @typedef {import('./types.js').Child} Child
  * @typedef {import('./types.js').Children} Children
+ * @typedef {import('./types.js').ChildSlot} ChildSlot
  * @typedef {import('./types.js').CompositeCompObject} CompositeCompObject
+ * @typedef {import('./types.js').SlotCompObject} SlotCompObject
  * @typedef {import('./types.js').ItemsBasedCompObject} ItemsBasedCompObject
  * @typedef {import('./types.js').FocusableCompObject} FocusableCompObject
  * @typedef {import('./types.js').GetItems} GetItems
@@ -20,6 +22,7 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').StateNodeOptionsBase} StateNodeOptionsBase
  * @typedef {import('./types.js').StateNodePropsLib} StateNodePropsLib
  * @typedef {import('./types.js').Slot} Slot
+ * @typedef {import('./types.js').Slots} Slots
  * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is NormalizedLayout }} ValidateNormalizedLayout
  */
 
@@ -38,8 +41,13 @@ export function isCompObject (layout) {
 }
 
 /** @type {(child: Child) => child is Child & CompositeCompObject} */
-export function childIsCompObject (child) {
-  return 'comp' in child
+export function childIsCompositeCompObject (child) {
+  return 'comp' in child && 'children' in child
+}
+
+/** @type {(child: Child) => child is Child & SlotCompObject} */
+export function childIsSlotCompObject (child) {
+  return 'comp' in child && child.comp === 'slot'
 }
 
 /** @type {(layout: BaseCompObject, components: Record<string, import('../types.js').ComponentInfo>) => layout is CompositeCompObject} */

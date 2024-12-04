@@ -1,4 +1,4 @@
-import { isSwitchStruct, childIsCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch, isListLayout } from '@json-layout/vocabulary'
+import { isSwitchStruct, childIsCompositeCompObject, childIsSlotCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch, isListLayout } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import debug from 'debug'
 import { getChildDisplay } from './utils/display.js'
@@ -32,8 +32,8 @@ export const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, itemsCacheKey, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, slots, itemsCacheKey, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -61,7 +61,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
     else delete draft.autofocusChild
   }
   draft.props = props
-
+  draft.slots = slots
   draft.children = children
 })
 
@@ -241,6 +241,7 @@ export function evalExpression (expressions, expression, data, options, display,
   }
 }
 
+const noneComp = { comp: 'none' }
 /**
  * @param {import('@json-layout/vocabulary').NormalizedLayout} normalizedLayout
  * @param {import('@json-layout/vocabulary').Child | null} childDefinition
@@ -261,14 +262,14 @@ const getCompObject = (normalizedLayout, childDefinition, options, compiledLayou
     }
   } else {
     if (childDefinition?.if && !evalExpression(compiledLayout.expressions, childDefinition.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
-      return { comp: 'none' }
+      return noneComp
     }
     if (normalizedLayout.if && !evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
-      return { comp: 'none' }
+      return noneComp
     }
     return normalizedLayout
   }
-  return { comp: 'none' }
+  return noneComp
 }
 
 /**
@@ -346,11 +347,12 @@ export function createStateNode (
     if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['skip'])
   }
 
-  const normalizedLayout = childDefinition && childIsCompObject(childDefinition)
+  const normalizedLayout = childDefinition && (childIsCompositeCompObject(childDefinition) || childIsSlotCompObject(childDefinition))
     ? childDefinition
     : compiledLayout.normalizedLayouts[skeleton.pointer]
   const layout = getCompObject(normalizedLayout, childDefinition, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentContext)
   const [display, cols] = getChildDisplay(parentDisplay, childDefinition?.cols ?? layout.cols)
+  const slots = childDefinition?.slots ?? layout.slots
 
   const options = layout.getOptions
     ? produceNodeOptions(
@@ -681,6 +683,7 @@ export function createStateNode (
     options,
     autofocus,
     props,
+    slots,
     itemsCacheKey,
     children && shallowProduceArray(reusedNode?.children, children)
   )

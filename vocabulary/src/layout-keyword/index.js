@@ -7,6 +7,7 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').PartialChildren} PartialChildren
  * @typedef {import('./types.js').PartialChild} PartialChild
  * @typedef {import('./types.js').PartialChildComposite} PartialChildComposite
+ * @typedef {import('./types.js').PartialChildSlot} PartialChildSlot
  * @typedef {import('./types.js').PartialSwitch} PartialSwitch
  * @typedef {import('./types.js').PartialCompObject} PartialCompObject
  * @typedef {import('./types.js').PartialGetItems} PartialGetItems
@@ -14,6 +15,8 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').PartialExpression} PartialExpression
  * @typedef {import('./types.js').PartialGetItemsObj} PartialGetItemsObj
  * @typedef {import('./types.js').PartialSlotMarkdown} PartialSlotMarkdown
+ * @typedef {import('./types.js').PartialSlotText} PartialSlotText
+ * @typedef {import('./types.js').PartialSlotName} PartialSlotName
  * @typedef {import('./types.js').PartialSlot} PartialSlot
  * @typedef {import('./types.js').PartialSelectItem} PartialSelectItem
  * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is LayoutKeyword }} ValidateLayoutKeyword
@@ -40,7 +43,12 @@ export function isPartialChildren (layoutKeyword) {
 
 /** @type {(partialChild: PartialChild) => partialChild is PartialChildComposite} */
 export function isPartialChildComposite (partialChild) {
-  return typeof partialChild !== 'string' && "children" in partialChild
+  return typeof partialChild !== 'string' && 'children' in partialChild
+}
+
+/** @type {(partialChild: PartialChild) => partialChild is PartialChildSlot} */
+export function isPartialChildSlot (partialChild) {
+  return typeof partialChild !== 'string' && ('text' in partialChild || 'markdown' in partialChild || 'name' in partialChild)
 }
 
 /** @type {(layoutKeyword: LayoutKeyword) => layoutKeyword is PartialCompObject} */
@@ -66,4 +74,14 @@ export function isPartialGetItemsFetch (getItems) {
 /** @type {(partialSlot: PartialSlot) => partialSlot is PartialSlotMarkdown} */
 export function isPartialSlotMarkdown (partialSlot) {
   return typeof partialSlot == 'object' && !!/** @type {PartialSlotMarkdown} */(partialSlot).markdown
+}
+
+/** @type {(partialSlot: PartialSlot) => partialSlot is PartialSlotText} */
+export function isPartialSlotText (partialSlot) {
+  return typeof partialSlot == 'object' && !!/** @type {PartialSlotText} */(partialSlot).text
+}
+
+/** @type {(partialSlot: PartialSlot) => partialSlot is PartialSlotName} */
+export function isPartialSlotName (partialSlot) {
+  return typeof partialSlot == 'object' && !!/** @type {PartialSlotName} */(partialSlot).name
 }

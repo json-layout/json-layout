@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompObject } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompositeCompObject } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
@@ -98,7 +98,7 @@ export function makeSkeletonNode (
    */
   const prepareLayoutChild = (child) => {
     if (child.if) pushExpression(expressions, child.if)
-    if (childIsCompObject(child)) {
+    if (childIsCompositeCompObject(child)) {
       for (const grandChild of child.children) prepareLayoutChild(grandChild)
     }
   }

@@ -39,19 +39,7 @@
         "cols": {"$ref": "#/$defs/cols-obj"},
         "props": {"$ref": "#/$defs/state-node-props-lib"},
         "getProps": {"$ref": "#/$defs/expression"},
-        "slots": {
-          "type": "object",
-          "allOf": [
-            {"$ref": "#/$defs/state-node-slots-lib"},
-            {
-              "properties": {
-                "before": {"$ref": "#/$defs/slot"},
-                "after": {"$ref": "#/$defs/slot"},
-                "component": {"$ref": "#/$defs/slot"}
-              }
-            }
-          ]
-        }
+        "slots": {"$ref": "#/$defs/slots"}
       }
     },
     "composite-comp-object": {
@@ -65,6 +53,18 @@
             "title": {"type": ["string", "null"]},
             "subtitle": {"type": ["string", "null"]},
             "children": {"$ref": "#/$defs/children"}
+          }
+        }
+      ]
+    },
+    "slot-comp-object": {
+      "allOf": [
+        {"$ref": "#/$defs/base-comp-object"},
+        {
+          "type": "object",
+          "required": ["comp", "slots"],
+          "properties": {
+            "comp": {"type": "string", "const": "slot"}
           }
         }
       ]
@@ -131,7 +131,8 @@
       "properties": {
         "key": {"type": ["string", "integer"]},
         "cols": {"$ref": "#/$defs/cols-obj"},
-        "if": {"$ref": "#/$defs/expression"}
+        "if": {"$ref": "#/$defs/expression"},
+        "slots": {"$ref": "#/$defs/slots"}
       }
     },
     "child-composite": {
@@ -145,19 +146,29 @@
         "title": {"type": "string"},
         "subtitle": {"type": "string"},
         "children": {"$ref": "#/$defs/children"},
-        "if": {"$ref": "#/$defs/expression"}
+        "if": {"$ref": "#/$defs/expression"},
+        "slots": {"$ref": "#/$defs/slots"}
+      }
+    },
+    "child-slot": {
+      "type": "object",
+      "required": ["key", "comp", "slots"],
+      "additionalProperties": false,
+      "properties": {
+        "key": {"type": ["string", "integer"]},
+        "cols": {"$ref": "#/$defs/cols-obj"},
+        "comp": {"const": "slot"},
+        "if": {"$ref": "#/$defs/expression"},
+        "slots": {"$ref": "#/$defs/slots"}
       }
     },
     "child": {
       "title": "Child",
       "type": "object",
       "oneOf": [
-        {
-          "$ref": "#/$defs/child-ref"
-        },
-        {
-          "$ref": "#/$defs/child-composite"
-        }
+        {"$ref": "#/$defs/child-ref"},
+        {"$ref": "#/$defs/child-composite"},
+        {"$ref": "#/$defs/child-slot"}
       ]
     },
     "children": {
@@ -277,6 +288,19 @@
           "required": ["name"],
           "properties": {
             "name": {"type": "string"}
+          }
+        }
+      ]
+    },
+    "slots": {
+      "type": "object",
+      "allOf": [
+        {"$ref": "#/$defs/state-node-slots-lib"},
+        {
+          "properties": {
+            "before": {"$ref": "#/$defs/slot"},
+            "after": {"$ref": "#/$defs/slot"},
+            "component": {"$ref": "#/$defs/slot"}
           }
         }
       ]
