@@ -181,8 +181,16 @@ const produceCompositeChildrenOptions = produce((draft, section) => {
  */
 const matchError = (error, skeleton, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
-  if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) return true
-  if (originalError.instancePath === dataPath && (originalError.schemaPath === skeleton.pointer || originalError.schemaPath === skeleton.refPointer)) return true
+  if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) {
+    return true
+  }
+  if (
+    originalError.instancePath === dataPath &&
+    (originalError.schemaPath === skeleton.pointer || originalError.schemaPath === skeleton.refPointer) &&
+    !originalError.params?.missingProperty
+  ) {
+    return true
+  }
   return false
 }
 
@@ -546,18 +554,19 @@ export function createStateNode (
   }
 
   let error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath))
-  if (!error) {
+  if (!error && context.rehydrate && context.rehydrateErrors) {
     // findLast here is important because we want to keep the error of the highest child (deepest errors are listed first)
-    error = context.errors?.findLast(error => matchChildError(error, skeleton, dataPath, parentDataPath))
+    error = context.rehydrateErrors?.findLast(e => matchChildError(e, skeleton, dataPath, parentDataPath))
   }
 
   // capture errors so that they are not repeated in parent nodes
   if (layout.comp !== 'none') {
     if (error) {
       logValidation(`${fullKey} capture validation error on node`, error)
-      context.errors = context.errors?.filter(error => {
-        return !matchError(error, skeleton, dataPath, parentDataPath) && !matchChildError(error, skeleton, dataPath, parentDataPath)
-      })
+      context.errors = context.errors?.filter(e => error !== e)
+      if (context.rehydrate && context.rehydrateErrors) {
+        context.rehydrateErrors = context.rehydrateErrors?.filter(e => !matchChildError(e, skeleton, dataPath, parentDataPath))
+      }
     }
   }
 

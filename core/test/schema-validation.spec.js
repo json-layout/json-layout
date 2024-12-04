@@ -44,6 +44,47 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.valid, true)
   })
 
+  it('should manage a validation error in a child of a composite layout', async () => {
+    const compiledLayout = await compile({
+      $id: 'https://test.com/entity',
+      type: 'object',
+      required: ['str1'],
+      layout: [
+        { text: 'header' },
+        [
+          'str1', 'str2'
+        ],
+        { text: 'footer' }
+      ],
+      properties: {
+        str1: { type: 'string' },
+        str2: { type: 'string', pattern: '^[A-Z]+$' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
+    // console.log(statefulLayout.stateTree)
+    assert.equal(statefulLayout.stateTree.valid, false)
+    assert.equal(statefulLayout.stateTree.root.error, undefined)
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { str2: 'test' })
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, undefined)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].childError, undefined)
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[1].data, { str2: 'test' })
+    assert.deepEqual(statefulLayout.stateTree.root.children?.[2].data, { str2: 'test' })
+
+    assert.equal(statefulLayout.stateTree.root.children?.[1].error, undefined)
+    assert.ok(statefulLayout.stateTree.root.children?.[1].childError)
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].data, undefined)
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].error, 'required information')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[1].data, 'test')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[1].error, 'must match pattern "^[A-Z]+$"')
+
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[1].children?.[0], 'ok')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].error, undefined)
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[1].children?.[1], 'TEST')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[1].error, undefined)
+    assert.equal(statefulLayout.stateTree.valid, true)
+  })
+
   it('should create required intermediate objects and manage nested validation rules', async () => {
     const compiledLayout = await compile({
       type: 'object',

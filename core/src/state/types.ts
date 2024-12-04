@@ -64,6 +64,7 @@ export interface StateTree {
 export interface CreateStateTreeContext {
   allErrors?: ErrorObject[]
   errors?: ErrorObject[]
+  rehydrateErrors?: ErrorObject[]
   additionalPropertiesErrors?: ErrorObject[]
   files: FileRef[]
   activatedItems: Record<string, number>

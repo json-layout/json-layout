@@ -230,7 +230,11 @@ export class StatefulLayout {
   updateState () {
     this.createStateTree()
     let nbIter = 0
-    while (this._data !== (this._stateTree.root.data ?? null) || this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget) {
+    while (
+      this._data !== (this._stateTree.root.data ?? null) ||
+      this._autofocusTarget !== this._lastCreateStateTreeContext.autofocusTarget ||
+      (nbIter === 0 && this._lastCreateStateTreeContext.errors?.length)
+    ) {
       nbIter += 1
       if (nbIter > 100) {
         console.error('too many iterations in updateState, the data is probably not stable', this._data, this._stateTree.root.data)
@@ -280,7 +284,8 @@ export class StatefulLayout {
       cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {},
       rootData: this._data,
       files: [],
-      nodes: []
+      nodes: [],
+      rehydrateErrors: this._lastCreateStateTreeContext?.errors
     }
 
     // @ts-ignore

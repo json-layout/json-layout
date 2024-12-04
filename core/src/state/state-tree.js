@@ -70,6 +70,9 @@ export function createStateTree (
       context.additionalPropertiesErrors = validate.errors.filter(error => error.keyword === 'additionalProperties' || error.keyword === 'unevaluatedProperties')
     }
   }
+  if (context.rehydrate && context.rehydrateErrors?.length) {
+    logValidation(`${skeleton.root} some validation errors were not captured by a leaf property, try to capture on a parent`, context.rehydrateErrors)
+  }
   const root = createStateNode(
     context,
     options,

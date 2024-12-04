@@ -2,7 +2,7 @@
 const example = {
   title: 'Simple errors',
   id: 'simple-errors',
-  description: 'Validation is provided by [Ajv](https://ajv.js.org/). Errors on a simple property trigger a different rendering and the message is displayed.',
+  description: 'Errors on a simple property trigger a different rendering and the message is displayed.',
   schema: {
     type: 'object',
     required: ['str1'],
