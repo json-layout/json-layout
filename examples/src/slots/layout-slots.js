@@ -10,9 +10,9 @@ Slots can also be defined in the children definitions of a composite layout.
     layout: [
       [
         { key: 'text', slots: { before: 'A **markdown** slot before the text field on the left.' }, cols: 6 },
-        { name: 'custom-message', cols: 6 }
+        { name: 'custom-message', cols: 6, props: { prop1: 'A prop given to the code slot' } }
       ],
-      { markdown: 'A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.A **markdown** slot at the bottom with full width.' }
+      { markdown: 'A **markdown** slot at the bottom with full width. A **markdown** slot at the bottom with full width. A **markdown** slot at the bottom with full width. A **markdown** slot at the bottom with full width. A **markdown** slot at the bottom with full width.' }
     ],
     properties: {
       text: {
@@ -25,3 +25,15 @@ Slots can also be defined in the children definitions of a composite layout.
 }
 
 export default example
+
+const o = {
+  layout: {
+    switch: [
+      {
+        if: 'summary',
+        children: ['a']
+      },
+      ['a', 'b', 'c']
+    ]
+  }
+}

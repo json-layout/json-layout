@@ -234,7 +234,7 @@ function normalizePartialSlots (partialSlots, markdown) {
     } else if (isPartialSlotText(slot)) {
       slots[name] = { text: slot.text }
     } else if (isPartialSlotName(slot)) {
-      slots[name] = { name: slot.name }
+      slots[name] = { name: slot.name, props: slot.props }
     } else if (isPartialSlotMarkdown(slot)) {
       slots[name] = { markdown: markdown(slot.markdown).trim() }
     }
