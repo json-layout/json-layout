@@ -52,6 +52,9 @@ export const isItemsNode = (node, components) => !!node && isItemsLayout(node.la
 
 const logDataBinding = debug('jl:data-binding')
 const logSelectItems = debug('jl:select-items')
+const logActivatedItems = debug('jl:activated-items')
+
+const pathURL = (/** @type {string} */url) => new URL(url.startsWith('/') ? window.location.origin + url : url)
 
 export class StatefulLayout {
   /**
@@ -311,6 +314,7 @@ export class StatefulLayout {
     }
     this.files = shallowProduceArray(this.files, createStateTreeContext.files)
     for (const activatedKey in createStateTreeContext.autoActivatedItems) {
+      logActivatedItems('auto-activated item', activatedKey, createStateTreeContext.autoActivatedItems[activatedKey])
       this.activatedItems = produce(this.activatedItems, draft => { draft[activatedKey] = createStateTreeContext.autoActivatedItems[activatedKey] })
     }
   }
@@ -405,6 +409,7 @@ export class StatefulLayout {
     }
 
     if (activateKey !== undefined) {
+      logActivatedItems('activated item on input', node.fullKey, activateKey)
       this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = activateKey })
       this._autofocusTarget = node.fullKey + '/' + activateKey
     }
@@ -543,7 +548,7 @@ export class StatefulLayout {
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
       logSelectItems(`${node.fullKey} - will fetch raw items from URL`, node.itemsCacheKey)
-      const url = new URL(node.itemsCacheKey)
+      const url = pathURL(node.itemsCacheKey)
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
         for (const searchParam of url.searchParams.entries()) {
@@ -643,6 +648,7 @@ export class StatefulLayout {
    * @param {number} key
    */
   activateItem (node, key) {
+    logActivatedItems('activate item explicitly', node.fullKey, key)
     this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = key })
     this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
@@ -652,6 +658,7 @@ export class StatefulLayout {
         if (!parentNode.data || typeof parentNode.data !== 'object') throw new Error(`parent with key "${node.parentFullKey}" is missing data object`)
         /** @type Record<string, any> */
         const newParentData = { ...parentNode.data }
+        logActivatedItems('remove properties of previous oneOf activated item', node.fullKey, node.children?.[0].fullKey)
         for (const propertyKey of node.children?.[0].skeleton.propertyKeys) {
           delete newParentData[propertyKey]
         }
@@ -669,10 +676,14 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   deactivateItem (node) {
+    logActivatedItems('deactivate item explicitly', node.fullKey)
     // also deactivate children oneOf for example
     this.activatedItems = produce(this.activatedItems, draft => {
       for (const key in draft) {
-        if (key.startsWith(node.fullKey)) delete draft[key]
+        if (key.startsWith(node.fullKey)) {
+          logActivatedItems('item deactivation deletes a key', key)
+          delete draft[key]
+        }
       }
     })
     this.updateState()
