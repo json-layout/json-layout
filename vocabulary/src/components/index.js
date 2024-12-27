@@ -98,7 +98,8 @@ export const standardComponents = [
     emitsBlur: true,
     schema: {
       properties: {
-        placeholder: { type: 'string' }
+        placeholder: { type: 'string' },
+        rows: { type: 'number' }
       }
     }
   },
