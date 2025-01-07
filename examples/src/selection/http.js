@@ -56,6 +56,24 @@ const example = {
             itemKey: 'item.id'
           }
         }
+      },
+      fromUrlWithImg: {
+        type: 'string',
+        title: 'A select from a URL with an image',
+        layout: {
+          getItems: {
+            // eslint-disable-next-line no-template-curly-in-string
+            url: 'https://koumoul.com/data-fair/api/v1/applications?select=id,title&owner=${context.owner.type}:${context.owner.id}',
+            itemsResults: 'data.results',
+            itemTitle: 'item.title',
+            itemValue: 'item.id',
+            itemIcon: {
+              // eslint-disable-next-line no-template-curly-in-string
+              expr: 'https://koumoul.com/data-fair/api/v1/applications/${item.id}/capture',
+              type: 'js-tpl'
+            }
+          }
+        }
       }
     }
   },
