@@ -288,7 +288,7 @@ export class StatefulLayout {
       rootData: this._data,
       files: [],
       nodes: [],
-      rehydrateErrors: this._lastCreateStateTreeContext?.errors
+      rehydrateErrors: rehydrate ? this._lastCreateStateTreeContext?.errors : undefined
     }
 
     // @ts-ignore
