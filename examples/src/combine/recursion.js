@@ -66,7 +66,7 @@ Warning: recursion can easily create infinite loops.`,
               child: {
                 $ref: '#/$defs/recursiveObject3',
                 default: {},
-                layout: { options: {indent: true} }
+                layout: { options: { indent: true } }
               }
             }
           }

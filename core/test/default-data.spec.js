@@ -205,6 +205,7 @@ describe('default data management', () => {
       properties: {
         select1: {
           type: 'object',
+          // eslint-disable-next-line no-template-curly-in-string
           layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } }
         }
       }

@@ -656,7 +656,7 @@ export class StatefulLayout {
         const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
         if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
         if (!parentNode.data || typeof parentNode.data !== 'object') throw new Error(`parent with key "${node.parentFullKey}" is missing data object`)
-        /** @type Record<string, any> */
+        /** @type {Record<string, any>} */
         const newParentData = { ...parentNode.data }
         logActivatedItems('remove properties of previous oneOf activated item', node.fullKey, node.children?.[0].fullKey)
         for (const propertyKey of node.children?.[0].skeleton.propertyKeys) {

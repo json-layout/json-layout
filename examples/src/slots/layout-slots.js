@@ -25,15 +25,3 @@ Slots can also be defined in the children definitions of a composite layout.
 }
 
 export default example
-
-const o = {
-  layout: {
-    switch: [
-      {
-        if: 'summary',
-        children: ['a']
-      },
-      ['a', 'b', 'c']
-    ]
-  }
-}
