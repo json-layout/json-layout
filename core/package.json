@@ -60,9 +60,9 @@
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "dependencies": {
     "@json-layout/vocabulary": "~1.4.1",
-    "ajv": "^8.12.0",
+    "ajv": "^8.17.1",
     "ajv-errors": "^3.0.0",
-    "ajv-formats": "^2.1.1",
+    "ajv-formats": "^3.0.1",
     "ajv-i18n": "^4.2.0",
     "debug": "^4.3.4",
     "immer": "^10.0.3",
