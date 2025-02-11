@@ -198,7 +198,6 @@ describe('default data management', () => {
   })
 
   it('should not insert an empty object as default data for a select node', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({
       type: 'object',
       required: ['select1'],

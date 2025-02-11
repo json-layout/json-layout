@@ -74,7 +74,6 @@ const produceStateNodeMessages = produce((draft, layoutMessages, options) => {
 const produceStateNodeDataChildrenArray = produce((draft, children) => {
   for (const child of children) {
     const key = /** @type {number} */(child.key)
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     if (child.data === undefined) delete draft[key]
     else draft[key] = child.data
   }
@@ -111,7 +110,6 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
         if (child.data === undefined) continue
         Object.assign(draft, child.data)
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         if (child.data === undefined) delete draft[child.key]
         else draft[child.key] = child.data
       }
@@ -153,7 +151,6 @@ const produceNodeOptions = produce((draft, parentNodeOptions, nodeOptions = {}) 
   }
   for (const key in draft) {
     if (!(key in parentNodeOptions) && !(key in nodeOptions)) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete draft[key]
     }
   }
@@ -167,7 +164,6 @@ const produceReadonlyArrayItemOptions = produce((draft) => {
 
 /** @type {(draft: import('./types.js').StateNodeOptions, section: import('@json-layout/vocabulary').CompositeCompObject) => import('./types.js').StateNodeOptions} */
 const produceCompositeChildrenOptions = produce((draft, section) => {
-  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
   if (section.title && draft.titleDepth < 6) draft.titleDepth += 1
 })
 

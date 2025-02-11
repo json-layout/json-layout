@@ -97,7 +97,6 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
   for (const pointer of Object.keys(compiledLayout.validates)) {
     const exportKey = `export${i++}`
     ast.exports.compiledLayout.validates[pointer] = ast.exports[exportKey]
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete ast.exports[exportKey]
   }
 

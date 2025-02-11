@@ -85,7 +85,6 @@ describe('get select items', () => {
   })
 
   it('should manage a select with getItems as fetch instruction', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemTitle: 'data.toUpperCase()' } } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
@@ -111,7 +110,6 @@ describe('get select items', () => {
   })
 
   it('should manage a autocomplete with getItems as fetch url with q param', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'http://${options.context.domain}/test?query={q}' } } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
@@ -141,7 +139,6 @@ describe('get select items', () => {
   })
 
   it('should manage a autocomplete with getItems as fetch url without q param', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({ type: 'string', layout: { comp: 'autocomplete', getItems: { url: 'http://${options.context.domain}/test' } } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
@@ -162,7 +159,6 @@ describe('get select items', () => {
   })
 
   it('should manage a select with getItems as fetch instruction inside an object', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({
       type: 'object',
       layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'data.prop1', itemTitle: 'data.prop2.toUpperCase()' } }
@@ -181,7 +177,6 @@ describe('get select items', () => {
   })
 
   it('should manage a select and remove additional properties from result', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({
       type: 'object',
       properties: {
@@ -206,7 +201,6 @@ describe('get select items', () => {
   })
 
   it('should manage a multiple select', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({
       type: 'array',
       layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } },
@@ -231,7 +225,6 @@ describe('get select items', () => {
   })
 
   it('should manage a multiple select and remove additional properties from result', async () => {
-    // eslint-disable-next-line no-template-curly-in-string
     const compiledLayout = await compile({
       type: 'array',
       layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemKey: 'item.prop1', itemTitle: 'item.prop2' } },

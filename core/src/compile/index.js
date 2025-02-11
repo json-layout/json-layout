@@ -91,15 +91,15 @@ export function compile (_schema, partialOptions = {}) {
       expressions.push(exprEvalParser.parse(expression.expr).toJSFunction(expressionsParams.join(',')))
     } */
     if (expression.type === 'js-fn') {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      // eslint-disable-next-line no-new-func
       expressions.push(/** @type {CompiledExpression} */(new Function(...expressionsParams, expression.expr)))
     }
     if (expression.type === 'js-eval') {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/restrict-plus-operands
+      // eslint-disable-next-line no-new-func
       expressions.push(/** @type {CompiledExpression} */(new Function(...expressionsParams, 'return (' + expression.expr + ')')))
     }
     if (expression.type === 'js-tpl') {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/restrict-plus-operands
+      // eslint-disable-next-line no-new-func
       expressions.push(/** @type {CompiledExpression} */(new Function(...expressionsParams, 'return `' + expression.expr + '`')))
     }
   }

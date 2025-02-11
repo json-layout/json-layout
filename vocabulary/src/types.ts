@@ -1,4 +1,5 @@
 import { type LayoutKeyword } from './layout-keyword/types.js'
+import { type NormalizedLayout } from './normalized-layout/types.js'
 
 export interface SchemaFragment {
   layout?: LayoutKeyword
@@ -39,4 +40,14 @@ export interface ComponentInfo {
   schema?: any
   isFileInput?: boolean
   hintable?: boolean
+}
+
+export interface ValidateLayoutKeyword {
+  (layoutKeyword: any): layoutKeyword is LayoutKeyword
+  errors: any
+}
+
+export interface ValidateNormalizedLayout {
+  (layout: any): layout is NormalizedLayout
+  errors: any
 }

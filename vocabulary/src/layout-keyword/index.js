@@ -1,5 +1,5 @@
 import schema from './schema.js'
-import {ajv} from '../validate.js'
+import { ajv } from '../validate.js'
 
 /**
  * @typedef {import('./types.js').LayoutKeyword} LayoutKeyword
@@ -19,10 +19,9 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').PartialSlotName} PartialSlotName
  * @typedef {import('./types.js').PartialSlot} PartialSlot
  * @typedef {import('./types.js').PartialSelectItem} PartialSelectItem
- * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is LayoutKeyword }} ValidateLayoutKeyword
  */
 
-export const /** @type {ValidateLayoutKeyword} */ validateLayoutKeyword = /** @type {any} */ (ajv.getSchema(schema.$id))
+export const /** @type {import('../types.js').ValidateLayoutKeyword} */ validateLayoutKeyword = /** @type {any} */ (ajv.getSchema(schema.$id))
 
 export const layoutKeywordSchema = /** @type {any} */ (schema)
 
@@ -73,15 +72,15 @@ export function isPartialGetItemsFetch (getItems) {
 
 /** @type {(partialSlot: PartialSlot) => partialSlot is PartialSlotMarkdown} */
 export function isPartialSlotMarkdown (partialSlot) {
-  return typeof partialSlot == 'object' && !!/** @type {PartialSlotMarkdown} */(partialSlot).markdown
+  return typeof partialSlot === 'object' && !!(/** @type {any} */(partialSlot)).markdown
 }
 
 /** @type {(partialSlot: PartialSlot) => partialSlot is PartialSlotText} */
 export function isPartialSlotText (partialSlot) {
-  return typeof partialSlot == 'object' && !!/** @type {PartialSlotText} */(partialSlot).text
+  return typeof partialSlot === 'object' && !!(/** @type {any} */(partialSlot)).text
 }
 
 /** @type {(partialSlot: PartialSlot) => partialSlot is PartialSlotName} */
 export function isPartialSlotName (partialSlot) {
-  return typeof partialSlot == 'object' && !!/** @type {PartialSlotName} */(partialSlot).name
+  return typeof partialSlot === 'object' && !!(/** @type {any} */(partialSlot)).name
 }

@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-named-default
 import debug from 'debug'
 import { produce } from 'immer'
 import { evalExpression, producePatchedData, useDefaultData } from './state-node.js'

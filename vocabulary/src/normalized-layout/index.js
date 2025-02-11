@@ -1,5 +1,5 @@
 import schema from './schema.js'
-import {ajv} from '../validate.js'
+import { ajv } from '../validate.js'
 
 /**
  * @typedef {import('./types.js').NormalizedLayout} NormalizedLayout
@@ -23,10 +23,9 @@ import {ajv} from '../validate.js'
  * @typedef {import('./types.js').StateNodePropsLib} StateNodePropsLib
  * @typedef {import('./types.js').Slot} Slot
  * @typedef {import('./types.js').Slots} Slots
- * @typedef {{ errors: any, (layoutKeyword: any): layoutKeyword is NormalizedLayout }} ValidateNormalizedLayout
  */
 
-export const /** @type {ValidateNormalizedLayout} */ validateNormalizedLayout = /** @type {any} */ (ajv.getSchema(schema.$id))
+export const /** @type {import('../types.js').ValidateNormalizedLayout} */ validateNormalizedLayout = /** @type {any} */ (ajv.getSchema(schema.$id))
 
 export const normalizedLayoutSchema = /** @type {any} */ (schema)
 

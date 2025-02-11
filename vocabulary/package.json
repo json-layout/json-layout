@@ -23,7 +23,6 @@
     "clean": "rm -rf ./types && rm -f src/*/types.ts && rm -f src/*/validate.js",
     "build:types": "node scripts/compile-types.js",
     "build:tsc": "tsc -p tsconfig.build.json",
-    "lint": "eslint . --fix",
     "watch:schemas": "node --watch scripts/compile-schemas.js",
     "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "watch:test": "node --test --watch test/*.spec.js"

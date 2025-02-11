@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable @typescript-eslint/no-var-requires */
 
 import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs'
 import { compile as compileTs } from 'json-schema-to-typescript'
