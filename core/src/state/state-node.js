@@ -333,7 +333,7 @@ export function createStateNode (
       validatedCacheKey,
       context.activatedItems,
       context.initial,
-      context.rehydrateErrors?.length,
+      context.rehydrateErrors?.length ?? 0,
       data
     ]
     if (reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {

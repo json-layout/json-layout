@@ -95,7 +95,7 @@ export type StateNodeCacheKey = [
   boolean,
   Record<string, number>,
   boolean,
-  number | undefined,
+  number,
   unknown
 ]
 
