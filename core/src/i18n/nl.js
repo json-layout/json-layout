@@ -4,6 +4,7 @@ export default {
   errorRequired: 'benodigde informatie',
   addItem: 'Item toevoegen',
   delete: 'Verwijderen',
+  confirm: 'Bevestigen',
   edit: 'Bewerken',
   close: 'Sluiten',
   duplicate: 'Verveelvoudigen',

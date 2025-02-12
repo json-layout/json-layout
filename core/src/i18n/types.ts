@@ -6,6 +6,7 @@ export interface CompileOptionsMessages {
 export interface StateOptionsMessages {
   addItem: string
   delete: string
+  confirm: string
   edit: string
   close: string
   duplicate: string

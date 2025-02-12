@@ -5,6 +5,7 @@ export default {
   addItem: 'Element hinzufügen',
   delete: 'Löschen',
   edit: 'Bearbeiten',
+  confirm: 'Bestätigen',
   close: 'Schließen',
   duplicate: 'Duplizieren',
   sort: 'Sortieren',

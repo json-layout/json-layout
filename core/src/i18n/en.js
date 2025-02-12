@@ -5,6 +5,7 @@ export default {
   addItem: 'Add item',
   delete: 'Delete',
   edit: 'Edit',
+  confirm: 'Confirm',
   close: 'Close',
   duplicate: 'Duplicate',
   sort: 'Sort',
