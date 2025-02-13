@@ -70,6 +70,8 @@ export function compile (_schema, partialOptions = {}) {
     mainTreePointer,
     'main'
   )
+
+  options.ajv.removeSchema(schema.$id) // just in case it was previously added
   options.ajv.addSchema(schema)
 
   const uriResolver = options.ajv.opts.uriResolver

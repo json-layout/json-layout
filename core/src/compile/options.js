@@ -31,7 +31,10 @@ export const fillOptions = (partialOptions) => {
     ajvErrors.default(newAjv)
     ajv = newAjv
   }
-  ajv.addKeyword('layout')
+
+  // prevent some unknown keyword warnings, can break if ajv is reused and keywords ware already added
+  try { ajv.addKeyword('layout') } catch (e) {}
+  try { ajv.addKeyword('__pointer') } catch (e) {}
 
   let markdown = partialOptions.markdown
   if (!markdown) {
