@@ -57,8 +57,10 @@
     "url": "https://github.com/json-layout/json-layout/issues"
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
+  "peerDependencies": {
+    "@json-layout/vocabulary": "^1.4.2"
+  },
   "dependencies": {
-    "@json-layout/vocabulary": "~1.4.2",
     "ajv": "^8.17.1",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",
