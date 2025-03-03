@@ -256,10 +256,10 @@ describe('normalize schema fragment function', () => {
     )
   })
 
-  it('should manage nullable', () => {
+  it('should manage nullable from type array', () => {
     assert.deepEqual(
-      normalize('prop', { type: 'string', layout: { getItems: 'context.items' } }, '/prop', components, (s) => s, []).layout,
-      { comp: 'select', label: 'prop', getItems: { expr: 'context.items', type: 'js-eval', pure: true, dataAlias: 'value' } }
+      normalize('prop', { type: ['string', 'null'] }, '/prop', components, (s) => s, []).layout,
+      { comp: 'text-field', label: 'prop', nullable: true }
     )
   })
 

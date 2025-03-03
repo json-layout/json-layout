@@ -293,6 +293,35 @@ function getItemsFromSchema (schemaFragment) {
 
 /**
  * @param {SchemaFragment} schemaFragment
+ * @returns {boolean | undefined}
+ */
+export const mergeNullableSubSchema = (schemaFragment) => {
+  /** @type {null | 'oneOf' | 'anyOf'} */
+  let subTypesKey = null
+  if (schemaFragment.oneOf) subTypesKey = 'oneOf'
+  else if (schemaFragment.anyOf) subTypesKey = 'anyOf'
+  if (subTypesKey) {
+    const subTypes = schemaFragment[subTypesKey]
+    /* if (subTypes && subTypes.length === 1) {
+      const subType = subTypes[0]
+      for (const key of Object.keys(schemaFragment)) delete subType[key]
+      Object.assign(schemaFragment, subType)
+      delete schemaFragment[subTypesKey]
+    } */
+    if (subTypes && subTypes.length === 2 && subTypes.some(t => t.type === 'null')) {
+      const subType = subTypes.find(t => t.type !== 'null')
+      if (subType) {
+        for (const key of Object.keys(schemaFragment)) delete subType[key]
+        Object.assign(schemaFragment, subType)
+        delete schemaFragment[subTypesKey]
+        return true
+      }
+    }
+  }
+}
+
+/**
+ * @param {SchemaFragment} schemaFragment
  * @returns {{type: string | undefined, nullable: boolean}}
  */
 export const getSchemaFragmentType = (schemaFragment) => {
@@ -306,7 +335,6 @@ export const getSchemaFragmentType = (schemaFragment) => {
   }
 
   // case where type is not defined but can be deduced from children oneOf/allOf/anyOf
-  /** @type {any[]} */
   if (!schemaFragment.type) {
     /** @type {string[]} */
     const combinationTypes = []
@@ -321,6 +349,10 @@ export const getSchemaFragmentType = (schemaFragment) => {
       }
     }
     if (combinationTypes.length === 1) return { type: combinationTypes[0], nullable: false }
+  }
+
+  if (Array.isArray(schemaFragment.type)) {
+    throw new Error('multiple types are not supported')
   }
 
   return { type: schemaFragment.type, nullable: false }
@@ -661,6 +693,7 @@ function normalizeValidLayoutFragment (key, schemaFragment, type, nullable, sche
  */
 export function normalizeLayoutFragment (key, schemaFragment, schemaPath, components, markdown = (src) => src, useDescription, optionsKeys, schemaChild, knownType, knownNullable) {
   const { type, nullable } = knownType ? { type: knownType, nullable: knownNullable ?? false } : getSchemaFragmentType(schemaFragment)
+
   /** @type {string[]} */
   const errors = []
   try {

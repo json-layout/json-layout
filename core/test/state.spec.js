@@ -4,6 +4,7 @@ import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { compile as compileSrc, StatefulLayout, i18n } from '../src/index.js'
 import { serialize } from '../src/compile/serialize.js'
+import { isCompObject } from '@json-layout/vocabulary'
 // import Debug from 'debug'
 
 // const debug = Debug('test')
@@ -548,7 +549,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children?.[1].options.summary, true)
     })
 
-    it('should manage a nullable type', async () => {
+    it('should manage a nullable type from a types array', async () => {
       const compiledLayout = await compile({
         type: 'object',
         properties: {
@@ -573,6 +574,70 @@ for (const compileMode of ['runtime', 'build-time']) {
       statefulLayout.data = { str1: 'test2', str2: 'test3', int1: 11, nb1: 11.11 }
       assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'test2', str2: 'test3', int1: 11, nb1: 11.11 })
       assert.equal(statefulLayout.stateTree.root.children[0].data, 'test2')
+    })
+
+    it('should manage a nullable part of a anyOf/oneOf', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          str1: {
+            anyOf: [
+              { type: 'string', pattern: '^[A-Z]+$' },
+              { type: 'null' }
+            ]
+          },
+          str2: {
+            type: 'string'
+          }
+        }
+      })
+      assert.ok(isCompObject(compiledLayout.normalizedLayouts['_jl#/properties/str1']))
+      assert.equal(compiledLayout.normalizedLayouts['_jl#/properties/str1'].comp, 'text-field')
+      assert.equal(compiledLayout.normalizedLayouts['_jl#/properties/str1'].nullable, true)
+      assert.ok(isCompObject(compiledLayout.normalizedLayouts['_jl#/properties/str2']))
+      assert.equal(compiledLayout.normalizedLayouts['_jl#/properties/str2'].comp, 'text-field')
+      assert.equal(compiledLayout.normalizedLayouts['_jl#/properties/str2'].nullable, undefined)
+
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
+      assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
+      assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+      assert.ok(statefulLayout.stateTree.root.children[0].layout.comp, 'text-field')
+      assert.ok(statefulLayout.stateTree.root.children[1].layout.comp, 'text-field')
+      assert.deepEqual(statefulLayout.stateTree.root.data, { str1: null })
+
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
+      assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'test' })
+      assert.equal(statefulLayout.stateTree.valid, false)
+      assert.equal(statefulLayout.stateTree.root.children[0].error, 'must match pattern "^[A-Z]+$"')
+    })
+
+    it('should manage a nullable array', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          arr1: {
+            anyOf: [
+              { type: 'array', items: { type: 'string' } },
+              { type: 'null' }
+            ]
+          }
+        }
+      })
+      assert.ok(isCompObject(compiledLayout.normalizedLayouts['_jl#/properties/arr1']))
+      assert.equal(compiledLayout.normalizedLayouts['_jl#/properties/arr1'].comp, 'combobox')
+      assert.equal(compiledLayout.normalizedLayouts['_jl#/properties/arr1'].nullable, true)
+
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
+      assert.deepEqual(statefulLayout.stateTree.root.layout.comp, 'section')
+      assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+      assert.ok(statefulLayout.stateTree.root.children[0].layout.comp, 'combobox')
+      assert.deepEqual(statefulLayout.stateTree.root.data, { arr1: null })
+
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], ['test'])
+      assert.deepEqual(statefulLayout.stateTree.root.data, { arr1: ['test'] })
+
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], [])
+      assert.deepEqual(statefulLayout.stateTree.root.data, { arr1: null })
     })
 
     it('should manage a complex allOf/oneOf schema with tabs', async () => {

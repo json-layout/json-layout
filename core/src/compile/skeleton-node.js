@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompositeCompObject } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, mergeNullableSubSchema, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompositeCompObject } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
@@ -51,9 +51,11 @@ export function makeSkeletonNode (
     schema = { ...rawSchema, ...refFragment }
     delete schema.$ref
   }
+  const knownNullable = mergeNullableSubSchema(schema)
   const resolvedSchema = partialResolveRefs(schema, schemaId, getJSONRef)
   let { type, nullable } = getSchemaFragmentType(resolvedSchema)
   if (knownType) type = knownType
+  if (knownNullable) nullable = knownNullable
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   rawSchema.errorMessage = rawSchema.errorMessage ?? {}

@@ -4,4 +4,4 @@
 export * from './layout-keyword/index.js'
 export * from './normalized-layout/index.js'
 export * from './components/index.js'
-export { normalizeLayoutFragment, getSchemaFragmentType } from './normalize.js'
+export { normalizeLayoutFragment, getSchemaFragmentType, mergeNullableSubSchema } from './normalize.js'

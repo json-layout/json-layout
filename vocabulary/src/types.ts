@@ -5,7 +5,7 @@ export interface SchemaFragment {
   layout?: LayoutKeyword
   oneOfLayout?: LayoutKeyword
   patternPropertiesLayout?: LayoutKeyword
-  type: string
+  type?: string | string[]
   format?: string
   title?: string
   description?: string
