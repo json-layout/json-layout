@@ -1,6 +1,7 @@
 import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch, isPartialChildComposite, isPartialChildSlot, isPartialSlotText, isPartialSlotName } from './layout-keyword/index.js'
 import { validateNormalizedLayout } from './normalized-layout/index.js'
 import { getComponentValidate } from './validate.js'
+import clone from './utils/clone.js'
 
 /**
  * @typedef {import('./index.js').Child} Child
@@ -293,7 +294,7 @@ function getItemsFromSchema (schemaFragment) {
 
 /**
  * @param {SchemaFragment} schemaFragment
- * @returns {boolean | undefined}
+ * @returns {[SchemaFragment, string] | undefined}
  */
 export const mergeNullableSubSchema = (schemaFragment) => {
   /** @type {null | 'oneOf' | 'anyOf'} */
@@ -309,12 +310,16 @@ export const mergeNullableSubSchema = (schemaFragment) => {
       delete schemaFragment[subTypesKey]
     } */
     if (subTypes && subTypes.length === 2 && subTypes.some(t => t.type === 'null')) {
-      const subType = subTypes.find(t => t.type !== 'null')
-      if (subType) {
-        for (const key of Object.keys(schemaFragment)) delete subType[key]
-        Object.assign(schemaFragment, subType)
-        delete schemaFragment[subTypesKey]
-        return true
+      const subTypeIndex = subTypes.findIndex(t => t.type !== 'null')
+      if (subTypeIndex !== -1) {
+        const subType = subTypes[subTypeIndex]
+        const nullableType = clone(schemaFragment)
+        for (const key in subType) {
+          if (!(key in nullableType)) nullableType[key] = subType[key]
+        }
+        delete nullableType[subTypesKey]
+        nullableType.__pointer = nullableType.__pointer + `/${subTypesKey}/${subTypeIndex}`
+        return nullableType
       }
     }
   }

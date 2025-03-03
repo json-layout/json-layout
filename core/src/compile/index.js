@@ -5,7 +5,7 @@ import ajvLocalizeModule from 'ajv-i18n'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import { resolveXI18n } from './utils/x-i18n.js'
-import clone from '../utils/clone.js'
+import { clone } from '@json-layout/vocabulary'
 import { fillOptions } from './options.js'
 
 export { resolveLocaleRefs } from './utils/resolve-refs.js'
@@ -77,6 +77,7 @@ export function compile (_schema, partialOptions = {}) {
   const uriResolver = options.ajv.opts.uriResolver
   /** @type {Record<string, import('ajv').ValidateFunction>} */
   const validates = {}
+
   for (const pointer of validatePointers) {
     const fullPointer = uriResolver.resolve(schema.$id, pointer)
     validates[pointer] = options.ajv.compile({ $ref: fullPointer })

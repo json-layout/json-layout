@@ -51,11 +51,16 @@ export function makeSkeletonNode (
     schema = { ...rawSchema, ...refFragment }
     delete schema.$ref
   }
-  const knownNullable = mergeNullableSubSchema(schema)
+  const nullableType = mergeNullableSubSchema(schema)
+  if (nullableType) {
+    schema = nullableType
+    if (pointer === refPointer) pointer = schema.__pointer
+    refPointer = schema.__pointer
+  }
   const resolvedSchema = partialResolveRefs(schema, schemaId, getJSONRef)
   let { type, nullable } = getSchemaFragmentType(resolvedSchema)
   if (knownType) type = knownType
-  if (knownNullable) nullable = knownNullable
+  if (nullableType) nullable = true
 
   // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
   rawSchema.errorMessage = rawSchema.errorMessage ?? {}

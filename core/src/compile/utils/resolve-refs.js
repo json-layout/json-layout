@@ -1,4 +1,4 @@
-import clone from '../../utils/clone.js'
+import { clone } from '@json-layout/vocabulary'
 
 /**
  * @param {Record<string, import('ajv').SchemaObject>} schemas

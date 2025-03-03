@@ -62,4 +62,6 @@ function rfdc () {
   }
 }
 
-export default rfdc()
+export const clone = rfdc()
+
+export default clone

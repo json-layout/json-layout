@@ -2,8 +2,7 @@
 import { ok } from 'assert/strict'
 import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
-import clone from '../utils/clone.js'
-import { isSwitchStruct } from '@json-layout/vocabulary'
+import { clone, isSwitchStruct } from '@json-layout/vocabulary'
 
 /**
  * @generator
