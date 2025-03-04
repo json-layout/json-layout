@@ -490,7 +490,7 @@ export function makeSkeletonNode (
         node.children.push(childPointer)
       }
     } else {
-      const childTreePointer = `${pointer}/items`
+      const childTreePointer = `${refPointer}/items`
       if (!skeletonTrees[childTreePointer]) {
         // @ts-ignore
         skeletonTrees[childTreePointer] = 'recursing'
