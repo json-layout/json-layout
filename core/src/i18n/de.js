@@ -30,5 +30,6 @@ export default {
   preview: 'Vorschau',
   mdeGuide: 'Syntax-Dokumentation',
   undo: 'Rückgängig',
-  redo: 'Wiederholen'
+  redo: 'Wiederholen',
+  default: 'standard: '
 }

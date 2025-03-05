@@ -30,5 +30,6 @@ export default {
   preview: 'Voorbeeld',
   mdeGuide: 'Documentatie over syntaxis',
   undo: 'Ongedaan maken',
-  redo: 'Opnieuw'
+  redo: 'Opnieuw',
+  default: 'standaard: '
 }

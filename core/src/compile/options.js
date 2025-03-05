@@ -65,6 +65,7 @@ export const fillOptions = (partialOptions) => {
     markdown,
     optionsKeys: [],
     useDescription: ['help', 'subtitle'],
+    useDefault: 'data',
     ...partialOptions,
     locale,
     defaultLocale,
@@ -77,7 +78,7 @@ export const fillOptions = (partialOptions) => {
 // use Immer for efficient updating with immutability and no-op detection
 /** @type {(draft: PartialCompileOptions, newOptions: PartialCompileOptions) => PartialCompileOptions} */
 export const produceCompileOptions = produce((draft, newOptions) => {
-  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markedOptions', 'xI18n', 'locale', 'defaultLocale', 'messages', 'optionsKeys', 'components', 'useDescription']) {
+  for (const key of ['ajv', 'ajvOptions', 'code', 'markdown', 'markedOptions', 'xI18n', 'locale', 'defaultLocale', 'messages', 'optionsKeys', 'components', 'useDescription', 'useDefault']) {
     // @ts-ignore
     if (key in newOptions) {
       // components is problematic because it is an object with nested objects

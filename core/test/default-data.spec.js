@@ -212,4 +212,24 @@ describe('default data management', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, removeAdditional: 'unknown', context: { domain: 'test.com' } }, {})
     assert.deepEqual(statefulLayout.data, {})
   })
+
+  it('should use default value as a placeholder based on useDefault option', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      default: 'String 1'
+    }, { useDefault: 'placeholder' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
+    assert.equal(statefulLayout.stateTree.root.layout.placeholder, 'default: String 1')
+    assert.equal(statefulLayout.data, '')
+  })
+
+  it('should ignore default value based on useDefault option', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      default: 'String 1'
+    }, { useDefault: false })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
+    assert.equal(statefulLayout.stateTree.root.layout.placeholder, undefined)
+    assert.equal(statefulLayout.data, '')
+  })
 })

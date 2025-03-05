@@ -113,6 +113,9 @@ export function makeSkeletonNode (
   const compObjects = isSwitchStruct(normalizedLayout) ? normalizedLayout.switch : [normalizedLayout]
 
   for (const compObject of compObjects) {
+    const component = options.components[compObject.comp]
+    if (!component) throw new Error(`Component "${compObject.comp}" not found`)
+
     if (compObject.if) pushExpression(expressions, compObject.if)
     if (isCompositeLayout(compObject, options.components)) {
       for (const child of compObject.children) prepareLayoutChild(child)
@@ -123,7 +126,7 @@ export function makeSkeletonNode (
     if (compObject.getConstData) pushExpression(expressions, compObject.getConstData)
 
     let defaultData
-    if ('default' in schema) defaultData = schema.default
+    if ('default' in schema && (options.useDefault === 'data' || options.useDefault === true || required)) defaultData = schema.default
     else if (required) {
       if (nullable) defaultData = null
       else if (type === 'object' && isCompositeLayout(compObject, options.components)) defaultData = {}
@@ -132,6 +135,13 @@ export function makeSkeletonNode (
     if (defaultData !== undefined && compObject.defaultData === undefined) compObject.defaultData = defaultData
     if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
     if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)
+
+    if ('default' in schema && options.useDefault === 'placeholder' && component.schema?.properties?.placeholder && !compObject.placeholder) {
+      compObject.placeholder = options.messages.default + schema.default
+    }
+    if ('default' in schema && options.useDefault === 'hint' && component.schema?.properties?.hint && !compObject.hint) {
+      compObject.hint = options.messages.default + schema.default
+    }
 
     if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true, dataAlias: 'value' }
     if (compObject.getOptions) pushExpression(expressions, compObject.getOptions)

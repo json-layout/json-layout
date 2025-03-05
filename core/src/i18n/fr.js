@@ -30,5 +30,6 @@ export default {
   preview: 'Preview',
   mdeGuide: 'Syntax documentation',
   undo: 'Défaire',
-  redo: 'Refaire'
+  redo: 'Refaire',
+  default: 'défaut : '
 }

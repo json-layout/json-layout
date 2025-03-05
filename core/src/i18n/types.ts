@@ -1,6 +1,7 @@
 export interface CompileOptionsMessages {
   errorOneOf: string
   errorRequired: string
+  default: string
 }
 
 export interface StateOptionsMessages {

@@ -50,6 +50,17 @@ export const compileOptions = [
       hint: 'As a hint message blow simple form fields (not applicable to composite components).',
       subtitle: 'As a subtitle below the title of a composite component.'
     }
+  },
+  {
+    key: 'useDefault',
+    description: 'Define how to use the "default" metadata from the schema.',
+    default: 'data',
+    values: {
+      true: 'Use the default value as the initial value of the form data (alias "data").',
+      false: 'Do not use the default value.',
+      placeholder: 'Use the default value as a placeholder in the form inputs.',
+      hint: 'Use the default value as a hint message below the form inputs.'
+    }
   }
 ]
 

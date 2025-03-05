@@ -87,7 +87,8 @@ export const standardComponents = [
     emitsBlur: true,
     schema: {
       properties: {
-        placeholder: { type: 'string' }
+        placeholder: { type: 'string' },
+        hint: { type: 'string' }
       }
     }
   },
@@ -99,6 +100,7 @@ export const standardComponents = [
     schema: {
       properties: {
         placeholder: { type: 'string' },
+        hint: { type: 'string' },
         rows: { type: 'number' }
       }
     }
@@ -113,7 +115,8 @@ export const standardComponents = [
         step: { type: 'number' },
         min: { type: 'number' },
         max: { type: 'number' },
-        placeholder: { type: 'string' }
+        placeholder: { type: 'string' },
+        hint: { type: 'string' }
       }
     }
   },
@@ -139,7 +142,8 @@ export const standardComponents = [
       properties: {
         min: { type: 'string', format: 'date' },
         max: { type: 'string', format: 'date' },
-        format: { type: 'string', enum: ['date', 'date-time'], default: 'date' }
+        format: { type: 'string', enum: ['date', 'date-time'], default: 'date' },
+        hint: { type: 'string' }
       }
     }
   },
@@ -148,7 +152,8 @@ export const standardComponents = [
     schema: {
       properties: {
         min: { type: 'string', format: 'date-time' },
-        max: { type: 'string', format: 'date-time' }
+        max: { type: 'string', format: 'date-time' },
+        hint: { type: 'string' }
       }
     }
   },
@@ -157,30 +162,54 @@ export const standardComponents = [
     schema: {
       properties: {
         min: { type: 'string', format: 'time' },
-        max: { type: 'string', format: 'time' }
+        max: { type: 'string', format: 'time' },
+        hint: { type: 'string' }
       }
     }
   },
   {
-    name: 'color-picker'
+    name: 'color-picker',
+    schema: {
+      properties: {
+        hint: { type: 'string' }
+      }
+    }
   },
   {
     name: 'select',
     focusable: true,
     itemsBased: true,
-    multipleCompat: true
+    multipleCompat: true,
+    schema: {
+      properties: {
+        placeholder: { type: 'string' },
+        hint: { type: 'string' }
+      }
+    }
   },
   {
     name: 'autocomplete',
     focusable: true,
     itemsBased: true,
-    multipleCompat: true
+    multipleCompat: true,
+    schema: {
+      properties: {
+        placeholder: { type: 'string' },
+        hint: { type: 'string' }
+      }
+    }
   },
   {
     name: 'combobox',
     focusable: true,
     itemsBased: true,
-    multipleCompat: true
+    multipleCompat: true,
+    schema: {
+      properties: {
+        placeholder: { type: 'string' },
+        hint: { type: 'string' }
+      }
+    }
   },
   {
     name: 'number-combobox',
@@ -189,6 +218,8 @@ export const standardComponents = [
     multipleCompat: true,
     schema: {
       properties: {
+        placeholder: { type: 'string' },
+        hint: { type: 'string' },
         step: { type: 'number' },
         min: { type: 'number' },
         max: { type: 'number' }
@@ -217,7 +248,8 @@ export const standardComponents = [
     schema: {
       properties: {
         accept: { type: 'string' },
-        placeholder: { type: 'string' }
+        placeholder: { type: 'string' },
+        hint: { type: 'string' }
       }
     }
   },
@@ -225,7 +257,8 @@ export const standardComponents = [
     name: 'one-of-select',
     schema: {
       properties: {
-        emptyData: { type: 'boolean' }
+        emptyData: { type: 'boolean' },
+        hint: { type: 'string' }
       }
     }
   }

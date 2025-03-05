@@ -37,6 +37,7 @@ export interface CompileOptions {
   components: Record<string, ComponentInfo>
   xI18n: boolean
   useDescription: Array<'help' | 'hint' | 'subtitle'>
+  useDefault: boolean | 'data' | 'placeholder' | 'hint' | 'no'
 }
 
 export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & {

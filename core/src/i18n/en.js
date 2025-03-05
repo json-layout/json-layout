@@ -30,5 +30,6 @@ export default {
   preview: 'Aperçu du rendu',
   mdeGuide: 'Documentation de la syntaxe',
   undo: 'Undo',
-  redo: 'Redo'
+  redo: 'Redo',
+  default: 'default: '
 }
