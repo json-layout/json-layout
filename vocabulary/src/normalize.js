@@ -129,17 +129,18 @@ function getChildren (defaultChildren, partialChildren, markdown) {
  * @param {PartialCompObject} partial
  * @param {SchemaFragment} schemaFragment
  * @param {string | undefined} type
+ * @param {import('./types.js').NormalizeOptions} options
  * @param {'oneOf' | 'patternProperties'} [schemaChild]
  * @returns {import('./index.js').ComponentName}
  */
-function getDefaultComp (partial, schemaFragment, type, schemaChild) {
+function getDefaultComp (partial, schemaFragment, type, options, schemaChild) {
   if (partial.slots?.component) return 'slot'
   const hasSimpleType = type && ['string', 'integer', 'number'].includes(type)
   if (schemaChild === 'oneOf') return 'one-of-select'
   if (schemaChild === 'patternProperties') return 'list'
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
-  if (hasSimpleType && schemaFragment.examples) return type === 'string' ? 'combobox' : 'number-combobox'
+  if (hasSimpleType && schemaFragment.examples && options.useExamples === 'items') return type === 'string' ? 'combobox' : 'number-combobox'
   if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
     return type === 'string' ? 'combobox' : 'number-combobox'
   }
@@ -158,7 +159,7 @@ function getDefaultComp (partial, schemaFragment, type, schemaChild) {
     if (hasSimpleTypeItems && (schemaFragment.items.enum || schemaFragment.items.oneOf)) {
       return (schemaFragment.items.enum || schemaFragment.items.oneOf).length > 20 ? 'autocomplete' : 'select'
     }
-    if (hasSimpleTypeItems && schemaFragment.items.examples) {
+    if (hasSimpleTypeItems && schemaFragment.items.examples && options.useExamples === 'items') {
       return schemaFragment.items.type === 'string' ? 'combobox' : 'number-combobox'
     }
     if (hasSimpleTypeItems && schemaFragment.items.anyOf && schemaFragment.items.anyOf.length && Object.keys(schemaFragment.items.anyOf[schemaFragment.items.anyOf.length - 1]).length === 0) {
@@ -363,6 +364,8 @@ export const getSchemaFragmentType = (schemaFragment) => {
   return { type: schemaFragment.type, nullable: false }
 }
 
+const defaultOptionsKeys = ['readOnly', 'summary', 'titleDepth', 'density', 'removeAdditional', 'validateOn', 'updateOne', 'debounceInputMs', 'initialValidation', 'defaultOn', 'readOnlyPropertiesMode']
+
 /**
  * @param {string | number} key
  * @param {LayoutKeyword} layoutKeyword
@@ -370,14 +373,11 @@ export const getSchemaFragmentType = (schemaFragment) => {
  * @param {string | undefined} type
  * @param {boolean} nullable
  * @param {string} schemaPath
- * @param {Record<string, import('./types.js').ComponentInfo>} components
- * @param {(text: string) => string} markdown
- * @param {Array<'help' | 'hint' | 'subtitle'>} useDescription
- * @param {string[]} optionsKeys
+ * @param { import('./types.js').NormalizeOptions } options
  * @param {'oneOf' | 'patternProperties'} [schemaChild]
  * @returns {BaseCompObject}
  */
-function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild) {
+function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, schemaPath, options, schemaChild) {
   if ('const' in schemaFragment) return { comp: 'none' }
   if (!type) return { comp: 'none' }
 
@@ -389,9 +389,9 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
 
   // chose the default component for a schema fragment
   if (!partial.comp) {
-    partial.comp = getDefaultComp(partial, schemaFragment, type, schemaChild)
+    partial.comp = getDefaultComp(partial, schemaFragment, type, options, schemaChild)
   }
-  const component = components[partial.comp]
+  const component = options.components[partial.comp]
   if (!component) {
     throw new Error(`unknown component "${partial.comp}"`)
   }
@@ -400,7 +400,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   if (nullable) partial.nullable = nullable
 
   if (component.composite) {
-    const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, markdown)
+    const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, options.markdown)
     partial.children = children
     if (!('title' in partial)) {
       if (children.length === 1 && children[0].key === '$patternProperties') {
@@ -412,7 +412,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   } else if (partial.comp === 'list') {
     if (schemaChild === 'patternProperties') {
       if (!('title' in partial)) {
-        const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, markdown)
+        const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, options.markdown)
         if (children.length === 1 && children[0].key === '$patternProperties') {
           partial.title = schemaFragment.title ?? null
         }
@@ -484,6 +484,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
 
   // options can be set directly in layout and normalized in layout.options
   // TODO: fetch this list from the schema ?
+  const optionsKeys = options.optionsKeys ? options.optionsKeys.concat(defaultOptionsKeys) : defaultOptionsKeys
   for (const optionKey of optionsKeys) {
     if (optionKey in partial) {
       partial.options = partial.options ?? {}
@@ -543,25 +544,64 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
     partial.format = 'date-time'
   }
 
-  if (partial.slots) partial.slots = normalizePartialSlots(partial.slots, markdown)
+  if (partial.slots) partial.slots = normalizePartialSlots(partial.slots, options.markdown)
+
+  /** @type {string[]} */
+  const helpParts = []
+  /** @type {string[]} */
+  const hintParts = []
+  /** @type {string[]} */
+  const placeholderParts = []
+
+  if (schemaFragment.deprecated && options.useDeprecated) {
+    partial.warning = options.messages.deprecated
+  }
 
   if (schemaFragment.description) {
-    if (component.composite && !!partial.title && useDescription.includes('subtitle')) {
+    if (component.composite && !!partial.title && options.useDescription.includes('subtitle')) {
       if (partial.subtitle === undefined) {
         partial.subtitle = schemaFragment.description
       }
-    } else if (!component.composite && useDescription.includes('hint')) {
-      if (partial.hint === undefined) {
-        partial.hint = schemaFragment.description
-      }
-    } else if (schemaChild !== 'oneOf' && useDescription.includes('help')) {
-      if (partial.help === undefined) {
-        partial.help = schemaFragment.description
-      }
+    } else if (options.useDescription.includes('hint')) {
+      hintParts.push(schemaFragment.description)
+    } else if (schemaChild !== 'oneOf' && options.useDescription.includes('help')) {
+      helpParts.push(schemaFragment.description)
     }
   }
-  if (partial.help) partial.help = markdown(partial.help).trim()
-  if (partial.subtitle) partial.subtitle = markdown(partial.subtitle).trim()
+
+  if (options.useName === 'placeholder')placeholderParts.push(options.messages.name + key)
+  if (options.useName === 'hint') hintParts.push(options.messages.name + key)
+  if (options.useName === 'help') helpParts.push(options.messages.name + key)
+
+  if ('default' in schemaFragment && typeof schemaFragment.default !== 'object') {
+    if (options.useDefault === 'hint') {
+      hintParts.push(options.messages.default + schemaFragment.default)
+    }
+    if (options.useDefault === 'placeholder') {
+      placeholderParts.push(options.messages.default + schemaFragment.default)
+    }
+  }
+
+  if (schemaFragment.examples && !schemaFragment.examples.some(e => typeof e === 'object') && options.useExamples === 'help') {
+    helpParts.push(options.messages.examples + schemaFragment.examples.map(e => '\n - ' + e).join(''))
+  }
+  console.log('helpParts', helpParts)
+
+  if (helpParts.length) {
+    if (partial.help) helpParts.unshift(partial.help)
+    partial.help = helpParts.join('\n\n')
+  }
+  if (hintParts.length && !component.composite) {
+    if (partial.hint) hintParts.unshift(partial.hint)
+    partial.hint = hintParts.join(' - ')
+  }
+  if (placeholderParts.length && component.schema?.properties?.placeholder) {
+    if (typeof partial.placeholder === 'string') placeholderParts.unshift(partial.placeholder)
+    partial.placeholder = placeholderParts.join(' - ')
+  }
+
+  if (partial.help) partial.help = options.markdown(partial.help).trim()
+  if (partial.subtitle) partial.subtitle = options.markdown(partial.subtitle).trim()
 
   if ('cols' in partial) partial.cols = normalizePartialCols(partial.cols)
 
@@ -582,14 +622,11 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
  * @param {string | undefined} type
  * @param {boolean} nullable
  * @param {string} schemaPath
- * @param {Record<string, import('./types.js').ComponentInfo>} components
- * @param {(text: string) => string} markdown
- * @param {Array<'help' | 'hint' | 'subtitle'>} useDescription
- * @param {string[]} optionsKeys
+ * @param { import('./types.js').NormalizeOptions } options
  * @param {'oneOf' | 'patternProperties'} [schemaChild]
  * @returns {NormalizedLayout}}
  */
-function getNormalizedLayout (key, layoutKeyword, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild) {
+function getNormalizedLayout (key, layoutKeyword, schemaFragment, type, nullable, schemaPath, options, schemaChild) {
   if (isPartialSwitch(layoutKeyword)) {
     /** @type {BaseCompObject[]} */
     const normalizedSwitchCases = []
@@ -599,12 +636,12 @@ function getNormalizedLayout (key, layoutKeyword, schemaFragment, type, nullable
     }
     for (let i = 0; i < switchCases.length; i++) {
       const switchCase = switchCases[i]
-      const compObjectResult = getCompObject(key, switchCase, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild)
+      const compObjectResult = getCompObject(key, switchCase, schemaFragment, type, nullable, schemaPath, options, schemaChild)
       normalizedSwitchCases.push(compObjectResult)
     }
     return { switch: normalizedSwitchCases }
   } else {
-    return getCompObject(key, layoutKeyword, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild)
+    return getCompObject(key, layoutKeyword, schemaFragment, type, nullable, schemaPath, options, schemaChild)
   }
 }
 
@@ -643,23 +680,17 @@ function lighterValidationErrors (errors) {
   return messages
 }
 
-const defaultOptionsKeys = ['readOnly', 'summary', 'titleDepth', 'density', 'removeAdditional', 'validateOn', 'updateOne', 'debounceInputMs', 'initialValidation', 'defaultOn', 'readOnlyPropertiesMode']
-
 /**
  * @param {string | number} key
  * @param {SchemaFragment} schemaFragment
  * @param {string | undefined} type
  * @param {boolean} nullable
  * @param {string} schemaPath
- * @param {Record<string, import('./types.js').ComponentInfo>} components
- * @param {(text: string) => string} markdown
- * @param {Array<'help' | 'hint' | 'subtitle'>} useDescription
- * @param {string[]} [optionsKeys]
+ * @param { import('./types.js').NormalizeOptions } options
  * @param {'oneOf' | 'patternProperties'} [schemaChild]
  * @returns {NormalizedLayout}
  */
-function normalizeValidLayoutFragment (key, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild) {
-  optionsKeys = optionsKeys ? optionsKeys.concat(defaultOptionsKeys) : defaultOptionsKeys
+function normalizeValidLayoutFragment (key, schemaFragment, type, nullable, schemaPath, options, schemaChild) {
   let layoutKeyword
   if (schemaChild === 'oneOf') {
     layoutKeyword = schemaFragment.oneOfLayout ?? {}
@@ -673,7 +704,7 @@ function normalizeValidLayoutFragment (key, schemaFragment, type, nullable, sche
     error.cause = lighterValidationErrors(validateLayoutKeyword.errors)
     throw error
   }
-  const normalizedLayout = getNormalizedLayout(key, layoutKeyword, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild)
+  const normalizedLayout = getNormalizedLayout(key, layoutKeyword, schemaFragment, type, nullable, schemaPath, options, schemaChild)
 
   if (!validateNormalizedLayout(normalizedLayout)) {
     const error = new Error('normalized layout validation errors at path')
@@ -687,29 +718,26 @@ function normalizeValidLayoutFragment (key, schemaFragment, type, nullable, sche
  * @param {string | number} key
  * @param {SchemaFragment} schemaFragment
  * @param {string} schemaPath
- * @param {Record<string, import('./types.js').ComponentInfo>} components
- * @param {(text: string) => string} markdown
- * @param {Array<'help' | 'hint' | 'subtitle'>} useDescription
- * @param {string[]} [optionsKeys]
+ * @param { import('./types.js').NormalizeOptions } options
  * @param {'oneOf' | 'patternProperties'} [schemaChild]
  * @param {string | undefined} [knownType]
  * @param {boolean} [knownNullable]
  * @returns {{layout: NormalizedLayout, errors: string[]}}
  */
-export function normalizeLayoutFragment (key, schemaFragment, schemaPath, components, markdown = (src) => src, useDescription, optionsKeys, schemaChild, knownType, knownNullable) {
+export function normalizeLayoutFragment (key, schemaFragment, schemaPath, options, schemaChild, knownType, knownNullable) {
   const { type, nullable } = knownType ? { type: knownType, nullable: knownNullable ?? false } : getSchemaFragmentType(schemaFragment)
 
   /** @type {string[]} */
   const errors = []
   try {
-    const layout = normalizeValidLayoutFragment(key, schemaFragment, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild)
+    const layout = normalizeValidLayoutFragment(key, schemaFragment, type, nullable, schemaPath, options, schemaChild)
     return { layout, errors }
   } catch (/** @type {any} */err) {
     try {
       errors.push(err.message)
       if (err.cause && Array.isArray(err.cause)) errors.push(...err.cause)
       errors.push('failed to normalize layout, use default component')
-      const layout = normalizeValidLayoutFragment(key, { ...schemaFragment, layout: {} }, type, nullable, schemaPath, components, markdown, useDescription, optionsKeys, schemaChild)
+      const layout = normalizeValidLayoutFragment(key, { ...schemaFragment, layout: {} }, type, nullable, schemaPath, options, schemaChild)
       return { layout, errors }
     } catch (/** @type {any} */err) {
       errors.push(err.message)

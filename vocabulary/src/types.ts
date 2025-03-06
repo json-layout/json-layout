@@ -1,6 +1,25 @@
 import { type LayoutKeyword } from './layout-keyword/types.js'
 import { type NormalizedLayout } from './normalized-layout/types.js'
 
+export interface NormalizeMessages {
+  default: string
+  name: string
+  examples: string
+  deprecated: string
+}
+
+export interface NormalizeOptions {
+  messages: NormalizeMessages,
+  optionsKeys?: string[]
+  components: Record<string, ComponentInfo>
+  markdown: (text: string) => string
+  useDescription: Array<'help' | 'hint' | 'subtitle'>
+  useName: boolean | 'hint' | 'placeholder' | 'help'
+  useExamples: boolean | 'items' | 'help'
+  useDeprecated: boolean
+  useDefault: boolean | 'data' | 'placeholder' | 'hint'
+}
+
 export interface SchemaFragment {
   layout?: LayoutKeyword
   oneOfLayout?: LayoutKeyword
@@ -27,6 +46,8 @@ export interface SchemaFragment {
   else?: any
   dependencies?: Record<string, any>
   dependentSchemas?: Record<string, any>
+  default?: any
+  deprecated?: boolean
 }
 
 export interface ComponentInfo {

@@ -1,7 +1,8 @@
+import { type NormalizeMessages } from '@json-layout/vocabulary'
+
 export interface CompileOptionsMessages {
   errorOneOf: string
   errorRequired: string
-  default: string
 }
 
 export interface StateOptionsMessages {
@@ -36,4 +37,4 @@ export interface StateOptionsMessages {
   redo: string
 }
 
-export type LocaleMessages = CompileOptionsMessages & StateOptionsMessages
+export type LocaleMessages = NormalizeMessages & CompileOptionsMessages & StateOptionsMessages

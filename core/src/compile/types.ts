@@ -1,6 +1,6 @@
 import type ajvModule from 'ajv/dist/2019.js'
 import type { MarkedOptions } from 'marked'
-import { type ComponentInfo, type BaseCompObject, type NormalizedLayout, type StateNodeOptionsBase, type Expression } from '@json-layout/vocabulary'
+import { type ComponentInfo, type BaseCompObject, type NormalizedLayout, type StateNodeOptionsBase, type Expression, type NormalizeOptions } from '@json-layout/vocabulary'
 import { type ValidateFunction, type SchemaObject, type ErrorObject } from 'ajv/dist/2019.js'
 import { type Display } from '../state/utils/display.js'
 import { type LocaleMessages } from '../i18n/types.js'
@@ -24,20 +24,15 @@ export type CompiledExpression = (
   parent?: ParentContextExpression | null
 ) => any
 
-export interface CompileOptions {
+export type CompileOptions = NormalizeOptions & {
   ajv: ajvModule.default
   ajvOptions?: ajvModule.Options
   code: boolean
-  markdown: (text: string) => string
   markedOptions?: MarkedOptions
   locale: string
   defaultLocale: string
   messages: LocaleMessages
-  optionsKeys: string[]
-  components: Record<string, ComponentInfo>
   xI18n: boolean
-  useDescription: Array<'help' | 'hint' | 'subtitle'>
-  useDefault: boolean | 'data' | 'placeholder' | 'hint' | 'no'
 }
 
 export type PartialCompileOptions = Partial<Omit<CompileOptions, 'messages'>> & {

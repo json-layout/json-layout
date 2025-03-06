@@ -36,6 +36,7 @@
         "transformData": {"$ref": "#/$defs/expression"},
         "nullable": {"type": "boolean"},
         "help": {"type": "string"},
+        "warning": {"type": "string"},
         "cols": {"$ref": "#/$defs/cols-obj"},
         "props": {"$ref": "#/$defs/state-node-props-lib"},
         "getProps": {"$ref": "#/$defs/expression"},

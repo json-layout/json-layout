@@ -47,7 +47,7 @@ export const compileOptions = [
     default: ['help', 'subtitle'],
     values: {
       help: 'As a help message shown in a tooltip.',
-      hint: 'As a hint message blow simple form fields (not applicable to composite components).',
+      hint: 'As a hint message below simple form fields (not applicable to composite components).',
       subtitle: 'As a subtitle below the title of a composite component.'
     }
   },
@@ -56,10 +56,39 @@ export const compileOptions = [
     description: 'Define how to use the "default" metadata from the schema.',
     default: 'data',
     values: {
-      true: 'Use the default value as the initial value of the form data (alias "data").',
       false: 'Do not use the default value.',
-      placeholder: 'Use the default value as a placeholder in the form inputs.',
-      hint: 'Use the default value as a hint message below the form inputs.'
+      true: 'As the initial value of the form data (alias "data").',
+      placeholder: 'As a placeholder in the form inputs.',
+      hint: 'As a hint message below the form inputs.'
+    }
+  },
+  {
+    key: 'useName',
+    description: 'Use the "name" metadata from the schema (the key of the property in its parent object).',
+    default: false,
+    values: {
+      false: 'Do not use the name except as a label if a label cannot be constructed in another way.',
+      hint: 'As a hint message below the form inputs.',
+      placeholder: 'As a placeholder in the form inputs.'
+    }
+  },
+  {
+    key: 'useExamples',
+    description: 'Define how to use the "examples" metadata from the schema.',
+    default: 'items',
+    values: {
+      false: 'Do not use the examples.',
+      items: 'As items in a combobox component.',
+      help: 'As a help message shown in a tooltip.'
+    }
+  },
+  {
+    key: 'useDeprecated',
+    description: 'Use the "deprecated" metadata from the schema.',
+    default: false,
+    values: {
+      true: 'Show a warning message when a deprecated property is used.',
+      false: 'Do not use the deprecated metadata.',
     }
   }
 ]

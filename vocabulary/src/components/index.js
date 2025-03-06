@@ -87,8 +87,7 @@ export const standardComponents = [
     emitsBlur: true,
     schema: {
       properties: {
-        placeholder: { type: 'string' },
-        hint: { type: 'string' }
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -100,7 +99,6 @@ export const standardComponents = [
     schema: {
       properties: {
         placeholder: { type: 'string' },
-        hint: { type: 'string' },
         rows: { type: 'number' }
       }
     }
@@ -115,8 +113,7 @@ export const standardComponents = [
         step: { type: 'number' },
         min: { type: 'number' },
         max: { type: 'number' },
-        placeholder: { type: 'string' },
-        hint: { type: 'string' }
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -142,8 +139,7 @@ export const standardComponents = [
       properties: {
         min: { type: 'string', format: 'date' },
         max: { type: 'string', format: 'date' },
-        format: { type: 'string', enum: ['date', 'date-time'], default: 'date' },
-        hint: { type: 'string' }
+        format: { type: 'string', enum: ['date', 'date-time'], default: 'date' }
       }
     }
   },
@@ -152,8 +148,7 @@ export const standardComponents = [
     schema: {
       properties: {
         min: { type: 'string', format: 'date-time' },
-        max: { type: 'string', format: 'date-time' },
-        hint: { type: 'string' }
+        max: { type: 'string', format: 'date-time' }
       }
     }
   },
@@ -162,18 +157,12 @@ export const standardComponents = [
     schema: {
       properties: {
         min: { type: 'string', format: 'time' },
-        max: { type: 'string', format: 'time' },
-        hint: { type: 'string' }
+        max: { type: 'string', format: 'time' }
       }
     }
   },
   {
-    name: 'color-picker',
-    schema: {
-      properties: {
-        hint: { type: 'string' }
-      }
-    }
+    name: 'color-picker'
   },
   {
     name: 'select',
@@ -182,8 +171,7 @@ export const standardComponents = [
     multipleCompat: true,
     schema: {
       properties: {
-        placeholder: { type: 'string' },
-        hint: { type: 'string' }
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -194,8 +182,7 @@ export const standardComponents = [
     multipleCompat: true,
     schema: {
       properties: {
-        placeholder: { type: 'string' },
-        hint: { type: 'string' }
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -206,8 +193,7 @@ export const standardComponents = [
     multipleCompat: true,
     schema: {
       properties: {
-        placeholder: { type: 'string' },
-        hint: { type: 'string' }
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -219,7 +205,6 @@ export const standardComponents = [
     schema: {
       properties: {
         placeholder: { type: 'string' },
-        hint: { type: 'string' },
         step: { type: 'number' },
         min: { type: 'number' },
         max: { type: 'number' }
@@ -248,8 +233,7 @@ export const standardComponents = [
     schema: {
       properties: {
         accept: { type: 'string' },
-        placeholder: { type: 'string' },
-        hint: { type: 'string' }
+        placeholder: { type: 'string' }
       }
     }
   },
@@ -257,8 +241,7 @@ export const standardComponents = [
     name: 'one-of-select',
     schema: {
       properties: {
-        emptyData: { type: 'boolean' },
-        hint: { type: 'string' }
+        emptyData: { type: 'boolean' }
       }
     }
   }

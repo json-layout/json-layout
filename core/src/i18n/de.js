@@ -31,5 +31,8 @@ export default {
   mdeGuide: 'Syntax-Dokumentation',
   undo: 'Rückgängig',
   redo: 'Wiederholen',
-  default: 'standard: '
+  default: 'standard: ',
+  name: 'name: ',
+  examples: 'Beispiele: ',
+  deprecated: 'Achtung, diese Information ist veraltet.'
 }

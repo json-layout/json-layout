@@ -31,5 +31,8 @@ export default {
   mdeGuide: 'Documentation de la syntaxe',
   undo: 'Undo',
   redo: 'Redo',
-  default: 'default: '
+  default: 'default: ',
+  name: 'name: ',
+  examples: 'Examples: ',
+  deprecated: 'Warning, this information is deprecated.'
 }

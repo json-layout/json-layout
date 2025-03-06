@@ -31,5 +31,8 @@ export default {
   mdeGuide: 'Syntax documentation',
   undo: 'Défaire',
   redo: 'Refaire',
-  default: 'défaut : '
+  default: 'défaut : ',
+  name: 'nom : ',
+  examples: 'Exemples : ',
+  deprecated: 'Attention, cette information est obsolète.'
 }

@@ -31,5 +31,8 @@ export default {
   mdeGuide: 'Documentatie over syntaxis',
   undo: 'Ongedaan maken',
   redo: 'Opnieuw',
-  default: 'standaard: '
+  default: 'standaard: ',
+  name: 'naam: ',
+  examples: 'Voorbeelden: ',
+  deprecated: 'Waarschuwing, deze informatie is verouderd.'
 }

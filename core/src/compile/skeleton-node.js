@@ -69,10 +69,7 @@ export function makeSkeletonNode (
       key,
       /** @type {import('@json-layout/vocabulary').SchemaFragment} */(resolvedSchema),
       pointer,
-      options.components,
-      options.markdown,
-      options.useDescription,
-      options.optionsKeys,
+      options,
       undefined,
       type,
       nullable
@@ -135,13 +132,6 @@ export function makeSkeletonNode (
     if (defaultData !== undefined && compObject.defaultData === undefined) compObject.defaultData = defaultData
     if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
     if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)
-
-    if ('default' in schema && options.useDefault === 'placeholder' && component.schema?.properties?.placeholder && !compObject.placeholder) {
-      compObject.placeholder = options.messages.default + schema.default
-    }
-    if ('default' in schema && options.useDefault === 'hint' && component.schema?.properties?.hint && !compObject.hint) {
-      compObject.hint = options.messages.default + schema.default
-    }
 
     if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true, dataAlias: 'value' }
     if (compObject.getOptions) pushExpression(expressions, compObject.getOptions)
@@ -282,10 +272,7 @@ export function makeSkeletonNode (
           '',
           schema,
           oneOfPointer,
-          options.components,
-          options.markdown,
-          options.useDescription,
-          options.optionsKeys,
+          options,
           'oneOf',
           type,
           nullable
@@ -343,10 +330,7 @@ export function makeSkeletonNode (
           '',
           schema,
           patternPropertiesPointer,
-          options.components,
-          options.markdown,
-          options.useDescription,
-          options.optionsKeys,
+          options,
           'patternProperties',
           type,
           nullable
