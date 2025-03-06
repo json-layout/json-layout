@@ -431,10 +431,6 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       partial.listEditMode = partial.listEditMode ?? (itemsType === 'object' ? 'inline-single' : 'inline')
       partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
     }
-  } else if (partial.comp !== 'slot') {
-    if (!('label' in partial) && !schemaChild) {
-      partial.label = schemaFragment.title ?? ('' + key)
-    }
   }
 
   if (component.itemsBased && !partial.items) {
@@ -553,6 +549,19 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   /** @type {string[]} */
   const placeholderParts = []
 
+  if (!component.composite && partial.comp !== 'list' && partial.comp !== 'slot' && !('label' in partial) && !schemaChild) {
+    if ((options.useTitle === 'label' || options.useTitle === undefined) && schemaFragment.title) {
+      partial.label = schemaFragment.title
+    } else {
+      partial.label = key + ''
+    }
+  }
+  if (schemaFragment.title) {
+    if (options.useTitle === 'hint') hintParts.push(schemaFragment.title)
+    if (options.useTitle === 'placeholder') placeholderParts.push(schemaFragment.title)
+    if (options.useTitle === 'help') helpParts.push(schemaFragment.title)
+  }
+
   if (schemaFragment.deprecated && options.useDeprecated) {
     partial.warning = options.messages.deprecated
   }
@@ -569,7 +578,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
     }
   }
 
-  if (options.useName === 'placeholder')placeholderParts.push(options.messages.name + key)
+  if (options.useName === 'placeholder') placeholderParts.push(options.messages.name + key)
   if (options.useName === 'hint') hintParts.push(options.messages.name + key)
   if (options.useName === 'help') helpParts.push(options.messages.name + key)
 
@@ -585,7 +594,6 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   if (schemaFragment.examples && !schemaFragment.examples.some(e => typeof e === 'object') && options.useExamples === 'help') {
     helpParts.push(options.messages.examples + schemaFragment.examples.map(e => '\n - ' + e).join(''))
   }
-  console.log('helpParts', helpParts)
 
   if (helpParts.length) {
     if (partial.help) helpParts.unshift(partial.help)

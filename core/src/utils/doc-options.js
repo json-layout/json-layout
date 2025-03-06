@@ -63,6 +63,16 @@ export const compileOptions = [
     }
   },
   {
+    key: 'useTitle',
+    description: 'Define how to use the "title" metadata from the schema.',
+    default: 'label',
+    values: {
+      false: 'Do not use the title.',
+      true: 'As a label for the form inputs (alias "label").',
+      hint: 'As a hint message below the form inputs.'
+    }
+  },
+  {
     key: 'useName',
     description: 'Use the "name" metadata from the schema (the key of the property in its parent object).',
     default: false,

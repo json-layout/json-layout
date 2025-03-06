@@ -14,6 +14,7 @@ export interface NormalizeOptions {
   components: Record<string, ComponentInfo>
   markdown: (text: string) => string
   useDescription: Array<'help' | 'hint' | 'subtitle'>
+  useTitle?: boolean | 'label' | 'hint' | 'placeholder' | 'help'
   useName: boolean | 'hint' | 'placeholder' | 'help'
   useExamples: boolean | 'items' | 'help'
   useDeprecated: boolean
