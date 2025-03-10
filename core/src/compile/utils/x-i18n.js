@@ -14,7 +14,9 @@ export const resolveXI18n = (schema, locale, defaultLocale = 'en') => {
       delete schema[key]
     } else if (Array.isArray(value)) {
       for (const child of value) {
-        resolveXI18n(child, locale, defaultLocale)
+        if (typeof child === 'object') {
+          resolveXI18n(child, locale, defaultLocale)
+        }
       }
     } if (typeof value === 'object') {
       resolveXI18n(value, locale, defaultLocale)
