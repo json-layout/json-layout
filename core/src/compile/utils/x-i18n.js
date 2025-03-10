@@ -6,6 +6,7 @@
  * @param {string} [defaultLocale]
  */
 export const resolveXI18n = (schema, locale, defaultLocale = 'en') => {
+  if (!schema || typeof schema !== 'object') return
   for (const [key, value] of Object.entries(schema)) {
     if (key.startsWith('x-i18n-')) {
       if (typeof value !== 'object') console.error(`i18n property ${key} should be an object`)
@@ -14,11 +15,9 @@ export const resolveXI18n = (schema, locale, defaultLocale = 'en') => {
       delete schema[key]
     } else if (Array.isArray(value)) {
       for (const child of value) {
-        if (typeof child === 'object') {
-          resolveXI18n(child, locale, defaultLocale)
-        }
+        resolveXI18n(child, locale, defaultLocale)
       }
-    } if (typeof value === 'object') {
+    } else {
       resolveXI18n(value, locale, defaultLocale)
     }
   }

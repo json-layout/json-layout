@@ -17,14 +17,39 @@ describe('internationalization', () => {
   })
 
   it('should resolve x-i18n-* annotations', async () => {
-    const schema = { type: 'object', properties: { str1: { type: 'string', title: 'String 1', 'x-i18n-title': { fr: 'Texte 1' } } } }
+    const schema = {
+      type: 'object',
+      properties: {
+        str1: { type: 'string', title: 'String 1', 'x-i18n-title': { fr: 'Texte 1' }, enum: ['str1', null] },
+        tuple1: {
+          type: 'array',
+          items: [
+            { type: 'string', title: 'String 2', 'x-i18n-title': { fr: 'Texte 2' } },
+            { type: 'string', title: 'String 3', 'x-i18n-title': { fr: 'Texte 3' } }
+          ]
+        }
+      }
+    }
     const compiled = compile(schema, { xI18n: true })
     assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str1']))
-    assert.ok(compiled.normalizedLayouts['_jl#/properties/str1'].comp === 'text-field')
+    assert.ok(compiled.normalizedLayouts['_jl#/properties/str1'].comp === 'select')
     assert.equal(compiled.normalizedLayouts['_jl#/properties/str1']?.label, 'String 1')
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/tuple1']))
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/tuple1'].comp, 'section')
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/tuple1/items/0']))
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/tuple1/items/0']?.label, 'String 2')
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/tuple1/items/1']))
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/tuple1/items/1']?.label, 'String 3')
 
     const compiledFr = compile(schema, { xI18n: true, locale: 'fr' })
+    assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/str1']))
+    assert.ok(compiledFr.normalizedLayouts['_jl#/properties/str1'].comp === 'select')
     assert.equal(compiledFr.normalizedLayouts['_jl#/properties/str1']?.label, 'Texte 1')
+    assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/tuple1']))
+    assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/0']))
+    assert.equal(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/0']?.label, 'Texte 2')
+    assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/1']))
+    assert.equal(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/1']?.label, 'Texte 3')
   })
 
   it('should return validation errors internationalized by ajv', async () => {
