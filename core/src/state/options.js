@@ -26,6 +26,7 @@ export function fillOptions (partialOptions, compiledLayout) {
     removeAdditional: 'error',
     autofocus: false,
     readOnlyPropertiesMode: 'show',
+    fetchBaseURL: '/',
     fetchOptions: {},
     onAutofocus: () => {},
     onUpdate: () => {},

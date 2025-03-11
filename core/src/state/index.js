@@ -53,7 +53,11 @@ const logDataBinding = debug('jl:data-binding')
 const logSelectItems = debug('jl:select-items')
 const logActivatedItems = debug('jl:activated-items')
 
-const pathURL = (/** @type {string} */url) => new URL(url.startsWith('/') ? window.location.origin + url : url)
+const pathURL = (/** @type {string} */url, /** @type {string} */baseURL) => {
+  if (url.startsWith('http://') || url.startsWith('https://')) return new URL(url)
+  if (url.startsWith('/')) return new URL(window.location.origin + url)
+  return new URL(window.location.origin + baseURL + url)
+}
 
 export class StatefulLayout {
   /**
@@ -547,7 +551,7 @@ export class StatefulLayout {
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
       logSelectItems(`${node.fullKey} - will fetch raw items from URL`, node.itemsCacheKey)
-      const url = pathURL(node.itemsCacheKey)
+      const url = pathURL(node.itemsCacheKey, node.options.fetchBaseURL)
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
         for (const searchParam of url.searchParams.entries()) {

@@ -109,6 +109,7 @@ export interface ValidationState {
 export type StateNodeOptions = Required<StateNodeOptionsBase & {
   context: Record<string, any>
   messages: LocaleMessages
+  fetchBaseURL: string
   fetchOptions: Omit<RequestInit, 'body'> | ((url: URL) => Omit<RequestInit, 'body'>)
   onData: (data: any) => void
   onUpdate: (statefulLayout: StatefulLayout) => void
