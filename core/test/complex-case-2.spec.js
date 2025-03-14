@@ -2,10 +2,10 @@ import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
-describe('A complex case from a data-fair processing', () => {
+describe('Complex cases from data-fair applications', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
-  it('should manage errors properly', async () => {
+  it('should resolve refs in a specific case properly', async () => {
     const compiledLayout = await compile(
       {
         type: 'object',
@@ -379,6 +379,42 @@ describe('A complex case from a data-fair processing', () => {
           }
         }
       })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      defaultOptions,
+      { }
+    )
+    assert.ok(statefulLayout.stateTree.valid)
+  })
+
+  it.only('should resolve refs in another specific case properly', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      allOf: [{
+        title: 'Données',
+        properties: {
+          valueCalc: {
+            $ref: '#/definitions/valueCalc'
+          }
+        }
+      }],
+      definitions: {
+        valueCalc: {
+          type: 'object',
+          default: {
+            type: 'count'
+          },
+          oneOf: [{
+            title: 'Nombre de lignes',
+            properties: {
+              type: {
+                const: 'count'
+              }
+            }
+          }]
+        }
+      }
+    })
     const statefulLayout = new StatefulLayout(
       compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
       defaultOptions,

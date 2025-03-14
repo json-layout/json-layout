@@ -266,7 +266,7 @@ export function makeSkeletonNode (
       }
     }
     if (schema.oneOf) {
-      const oneOfPointer = `${pointer}/oneOf`
+      const oneOfPointer = `${refPointer}/oneOf`
       if (!normalizedLayouts[oneOfPointer]) {
         const normalizationResult = normalizeLayoutFragment(
           '',
