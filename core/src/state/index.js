@@ -1,6 +1,6 @@
 import debug from 'debug'
 import { produce } from 'immer'
-import { evalExpression, producePatchedData, useDefaultData } from './state-node.js'
+import { evalExpression, produceListData, producePatchedData, useDefaultData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
 import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
@@ -323,10 +323,9 @@ export class StatefulLayout {
     }
     for (const node of createStateTreeContext.getItemsDataRequests) {
       this.getItems(node).then(items => {
-        const data = /** @type any{} */(node.data ?? [])
-        for (const item of items) {
-          data.push(item.value)
-        }
+        const rawData = /** @type {any[]} */(node.data ?? [])
+        const existingItems = rawData.map(item => this.prepareSelectItem(node, item))
+        const data = produceListData(rawData, existingItems, items)
         this.input(node, data)
       }, err => console.error('error fetching items', node.fullKey, err))
     }

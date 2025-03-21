@@ -725,3 +725,17 @@ export const producePatchedData = produce((draft, node, data) => {
     draft[node.key] = data
   }
 })
+
+/** @type {(existingData: any[], existingItems: import('@json-layout/vocabulary').SelectItems, newItems: import('@json-layout/vocabulary').SelectItems) => any} */
+export const produceListData = (existingData, existingItems, newItems) => {
+  const data = []
+  for (const item of newItems) {
+    const existingItem = existingItems.find(i => i.key === item.key)
+    if (existingItem) {
+      data.push(existingData[existingItems.indexOf(existingItem)])
+    } else {
+      data.push(item.value)
+    }
+  }
+  return shallowProduceArray(existingData, data)
+}
