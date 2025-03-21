@@ -387,7 +387,7 @@ describe('Complex cases from data-fair applications', () => {
     assert.ok(statefulLayout.stateTree.valid)
   })
 
-  it.only('should resolve refs in another specific case properly', async () => {
+  it('should resolve refs in another specific case properly', async () => {
     const compiledLayout = await compile({
       type: 'object',
       allOf: [{

@@ -3,7 +3,7 @@ import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 import { getNodeBuilder } from './utils/state-tree.js'
 
-describe('Management of props from layout', () => {
+describe('Lists management', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
   it('should manage array of strings as a list if requested', async () => {

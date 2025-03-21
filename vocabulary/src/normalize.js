@@ -399,6 +399,23 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
 
   if (nullable) partial.nullable = nullable
 
+  if (component.itemsBased && !partial.items) {
+    let items
+    if (type === 'array') {
+      items = getItemsFromSchema(schemaFragment.items)
+    } else {
+      items = getItemsFromSchema(schemaFragment)
+    }
+    if (items) {
+      if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
+        partial.getItems.expr = JSON.stringify(items)
+        partial.getItems.immutable = true
+      } else {
+        partial.getItems = { expr: JSON.stringify(items), immutable: true }
+      }
+    }
+  }
+
   if (component.composite) {
     const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, options.markdown)
     partial.children = children
@@ -429,23 +446,12 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       if (!('title' in partial)) partial.title = schemaFragment.title ?? ('' + key)
       const { type: itemsType } = getSchemaFragmentType(schemaFragment.items)
       partial.listEditMode = partial.listEditMode ?? (itemsType === 'object' ? 'inline-single' : 'inline')
-      partial.listActions = partial.listActions ?? ['add', 'edit', 'delete', 'duplicate', 'sort']
-    }
-  }
-
-  if (component.itemsBased && !partial.items) {
-    let items
-    if (type === 'array') {
-      items = getItemsFromSchema(schemaFragment.items)
-    } else {
-      items = getItemsFromSchema(schemaFragment)
-    }
-    if (items) {
-      if (partial.getItems && isPartialGetItemsObj(partial.getItems)) {
-        partial.getItems.expr = JSON.stringify(items)
-        partial.getItems.immutable = true
-      } else {
-        partial.getItems = { expr: JSON.stringify(items), immutable: true }
+      if (!partial.listActions) {
+        if (partial.getItems) {
+          partial.listActions = ['edit']
+        } else {
+          partial.listActions = ['add', 'edit', 'delete', 'sort', 'duplicate']
+        }
       }
     }
   }

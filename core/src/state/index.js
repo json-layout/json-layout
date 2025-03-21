@@ -291,6 +291,7 @@ export class StatefulLayout {
       rootData: this._data,
       files: [],
       nodes: [],
+      getItemsDataRequests: [],
       rehydrateErrors: rehydrate ? this._lastCreateStateTreeContext?.errors : undefined
     }
 
@@ -319,6 +320,15 @@ export class StatefulLayout {
     for (const activatedKey in createStateTreeContext.autoActivatedItems) {
       logActivatedItems('auto-activated item', activatedKey, createStateTreeContext.autoActivatedItems[activatedKey])
       this.activatedItems = produce(this.activatedItems, draft => { draft[activatedKey] = createStateTreeContext.autoActivatedItems[activatedKey] })
+    }
+    for (const node of createStateTreeContext.getItemsDataRequests) {
+      this.getItems(node).then(items => {
+        const data = /** @type any{} */(node.data ?? [])
+        for (const item of items) {
+          data.push(item.value)
+        }
+        this.input(node, data)
+      }, err => console.error('error fetching items', node.fullKey, err))
     }
   }
 
