@@ -449,11 +449,16 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       if (!partial.listActions) {
         if (partial.getItems) {
           partial.listActions = ['edit']
+          if (isPartialGetItemsObj(partial.getItems) && partial.getItems.itemTitle && !partial.itemTitle) {
+            partial.itemTitle = partial.getItems.itemTitle
+          }
         } else {
           partial.listActions = ['add', 'edit', 'delete', 'sort', 'duplicate']
         }
       }
     }
+    if (partial.itemTitle) partial.itemTitle = normalizeExpression(partial.itemTitle, 'js-eval', 'item')
+    if (partial.itemSubtitle) partial.itemSubtitle = normalizeExpression(partial.itemSubtitle, 'js-eval', 'item')
   }
 
   if (component.multipleCompat) {
