@@ -49,6 +49,7 @@ export interface StateNode {
   options: StateNodeOptions
   messages: LocaleMessages
   autofocus?: boolean
+  loading?: boolean
   autofocusChild?: string | number
   props?: StateNodePropsLib
   slots?: Slots
@@ -75,7 +76,8 @@ export interface CreateStateTreeContext {
   rehydrate: boolean
   cacheKeys: Record<string, StateNodeCacheKey>
   rootData: unknown
-  nodes: StateNode[]
+  nodes: StateNode[],
+  getItemsDataRequests: StateNode[]
 }
 
 export interface FileRef {

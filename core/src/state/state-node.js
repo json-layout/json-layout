@@ -32,8 +32,8 @@ export const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, props, slots, itemsCacheKey, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, shouldLoadData: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, shouldLoadData, props, slots, itemsCacheKey, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -46,6 +46,8 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.width = width
   draft.options = options
   draft.cols = cols
+  if (shouldLoadData || (draft.loading && draft.data === data)) draft.loading = true
+  else delete draft.loading
   draft.data = data
   draft.error = error
   draft.itemsCacheKey = itemsCacheKey
@@ -672,6 +674,7 @@ export function createStateNode (
   }
 
   const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
+  const shouldLoadData = layout.comp === 'list' && itemsCacheKey && reusedNode?.itemsCacheKey !== itemsCacheKey
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,
@@ -688,6 +691,7 @@ export function createStateNode (
     validated,
     options,
     autofocus,
+    shouldLoadData,
     props,
     slots,
     itemsCacheKey,
@@ -698,6 +702,8 @@ export function createStateNode (
     cacheKey[0] = node
     context.cacheKeys[fullKey] = cacheKey
   }
+
+  if (shouldLoadData) context.getItemsDataRequests.push(node)
 
   return node
 }
@@ -719,3 +725,17 @@ export const producePatchedData = produce((draft, node, data) => {
     draft[node.key] = data
   }
 })
+
+/** @type {(existingData: any[], existingItems: import('@json-layout/vocabulary').SelectItems, newItems: import('@json-layout/vocabulary').SelectItems) => any} */
+export const produceListData = (existingData, existingItems, newItems) => {
+  const data = []
+  for (const item of newItems) {
+    const existingItem = existingItems.find(i => i.key === item.key)
+    if (existingItem) {
+      data.push(existingData[existingItems.indexOf(existingItem)])
+    } else {
+      data.push(item.value)
+    }
+  }
+  return shallowProduceArray(existingData, data)
+}

@@ -1,6 +1,6 @@
 import debug from 'debug'
 import { produce } from 'immer'
-import { evalExpression, producePatchedData, useDefaultData } from './state-node.js'
+import { evalExpression, produceListData, producePatchedData, useDefaultData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
 import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layout/vocabulary'
@@ -291,6 +291,7 @@ export class StatefulLayout {
       rootData: this._data,
       files: [],
       nodes: [],
+      getItemsDataRequests: [],
       rehydrateErrors: rehydrate ? this._lastCreateStateTreeContext?.errors : undefined
     }
 
@@ -319,6 +320,14 @@ export class StatefulLayout {
     for (const activatedKey in createStateTreeContext.autoActivatedItems) {
       logActivatedItems('auto-activated item', activatedKey, createStateTreeContext.autoActivatedItems[activatedKey])
       this.activatedItems = produce(this.activatedItems, draft => { draft[activatedKey] = createStateTreeContext.autoActivatedItems[activatedKey] })
+    }
+    for (const node of createStateTreeContext.getItemsDataRequests) {
+      this.getItems(node).then(items => {
+        const rawData = /** @type {any[]} */(node.data ?? [])
+        const existingItems = rawData.map(item => this.prepareSelectItem(node, item))
+        const data = produceListData(rawData, existingItems, items)
+        this.input(node, data)
+      }, err => console.error('error fetching items', node.fullKey, err))
     }
   }
 

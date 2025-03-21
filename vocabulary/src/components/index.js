@@ -57,6 +57,7 @@ export const standardComponents = [
   },
   {
     name: 'list',
+    itemsBased: true,
     schema: {
       required: ['listEditMode', 'listActions'],
       properties: {

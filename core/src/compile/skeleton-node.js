@@ -1,5 +1,5 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, mergeNullableSubSchema, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompositeCompObject } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, mergeNullableSubSchema, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompositeCompObject, isListLayout } from '@json-layout/vocabulary'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
@@ -140,6 +140,11 @@ export function makeSkeletonNode (
     if (compObject.getProps) pushExpression(expressions, compObject.getProps)
 
     if (compObject.transformData) pushExpression(expressions, compObject.transformData)
+
+    if (isListLayout(compObject)) {
+      if (compObject.itemTitle) pushExpression(expressions, compObject.itemTitle)
+      if (compObject.itemSubtitle) pushExpression(expressions, compObject.itemSubtitle)
+    }
 
     if (isItemsLayout(compObject, options.components) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
