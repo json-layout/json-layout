@@ -2,7 +2,7 @@
 const example = {
   title: 'Cards',
   id: 'cards',
-  description: 'An object can be rendered as a card using `layout: {comp: \'tabs\'}` or the shorter `layout: \'tabs\'.',
+  description: 'An object can be rendered as a card using `layout: {comp: \'cards\'}` or the shorter `layout: \'cards\'.',
   schema: {
     type: 'object',
     title: 'Cards',

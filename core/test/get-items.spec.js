@@ -84,12 +84,29 @@ describe('get select items', () => {
     ])
   })
 
-  it('should manage a select with getItems as fetch instruction', async () => {
-    const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'http://${options.context.domain}/test', itemsResults: 'data.results', itemTitle: 'data.toUpperCase()' } } })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
+  it('should manage a select with getItems as fetch instruction with search params and headers', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      layout: {
+        getItems: {
+          url: 'http://${options.context.domain}/test',
+          searchParams: {
+            se: 'options.context.searchParam'
+          },
+          headers: {
+            'x-apiKey': '"test"'
+          },
+          itemsResults: 'data.results',
+          itemTitle: 'data.toUpperCase()'
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com', searchParam: 'test' } }, {})
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
     const nockScope = nock('http://test.com')
       .get('/test')
+      .query({ se: 'test' })
+      .matchHeader('x-apiKey', 'test')
       .reply(200, { results: ['val1', 'val2'] })
     const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
     assert.ok(nockScope.isDone())

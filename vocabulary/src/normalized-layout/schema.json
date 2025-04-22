@@ -221,6 +221,12 @@
           "patternProperties": {
             ".*": {"$ref": "#/$defs/expression"}
           }
+        },
+        "headers": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/expression"}
+          }
         }
       }
     },

@@ -102,7 +102,7 @@ describe('Management of pattern properties', () => {
     })
   })
 
-  it.only('should manage patterProperties values as string arrays', async () => {
+  it('should manage patterProperties values as string arrays', async () => {
     const compiledLayout = await compile({
       type: 'object',
       title: 'Pattern properties',

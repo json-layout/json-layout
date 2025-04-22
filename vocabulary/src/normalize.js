@@ -525,6 +525,16 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
   }
   if (partial.getItems && isPartialGetItemsFetch(partial.getItems)) {
     partial.getItems.url = normalizeExpression(partial.getItems.url, 'js-tpl')
+    if (partial.getItems.searchParams) {
+      for (const [key, expr] of Object.entries(partial.getItems.searchParams)) {
+        partial.getItems.searchParams[key] = normalizeExpression(expr, 'js-eval')
+      }
+    }
+    if (partial.getItems.headers) {
+      for (const [key, expr] of Object.entries(partial.getItems.headers)) {
+        partial.getItems.headers[key] = normalizeExpression(expr, 'js-eval')
+      }
+    }
   }
 
   if (partial.items) {

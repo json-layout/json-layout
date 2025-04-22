@@ -666,7 +666,30 @@ export function createStateNode (
       }
     } else if (layout.getItems && isGetItemsFetch(layout.getItems)) {
       try {
-        itemsCacheKey = evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+        const url = new URL(evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext))
+        if (layout.getItems.searchParams) {
+          for (const [key, expr] of Object.entries(layout.getItems.searchParams)) {
+            let val
+            try {
+              val = evalExpression(compiledLayout.expressions, expr, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+              if (val) url.searchParams.set(key, val)
+            } catch (err) {
+              // nothing to o
+            }
+          }
+        }
+        if (layout.getItems.headers) {
+          for (const [key, expr] of Object.entries(layout.getItems.headers)) {
+            let val
+            try {
+              val = evalExpression(compiledLayout.expressions, expr, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+              if (val) url.searchParams.set('__jl__header__' + key, val)
+            } catch (err) {
+              // nothing to o
+            }
+          }
+        }
+        itemsCacheKey = url.href
       } catch (err) {
         itemsCacheKey = null
       }

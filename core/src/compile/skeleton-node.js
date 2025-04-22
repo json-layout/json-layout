@@ -148,7 +148,19 @@ export function makeSkeletonNode (
 
     if (isItemsLayout(compObject, options.components) && compObject.getItems) {
       if (isGetItemsExpression(compObject.getItems)) pushExpression(expressions, compObject.getItems)
-      if (isGetItemsFetch(compObject.getItems)) pushExpression(expressions, compObject.getItems.url)
+      if (isGetItemsFetch(compObject.getItems)) {
+        pushExpression(expressions, compObject.getItems.url)
+        if (compObject.getItems.searchParams) {
+          for (const expr of Object.values(compObject.getItems.searchParams)) {
+            pushExpression(expressions, expr)
+          }
+        }
+        if (compObject.getItems.headers) {
+          for (const expr of Object.values(compObject.getItems.headers)) {
+            pushExpression(expressions, expr)
+          }
+        }
+      }
       if (compObject.getItems.itemTitle) pushExpression(expressions, compObject.getItems.itemTitle)
       if (compObject.getItems.itemKey) pushExpression(expressions, compObject.getItems.itemKey)
       if (compObject.getItems.itemValue) pushExpression(expressions, compObject.getItems.itemValue)

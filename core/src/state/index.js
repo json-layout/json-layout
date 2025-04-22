@@ -561,6 +561,15 @@ export class StatefulLayout {
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
       logSelectItems(`${node.fullKey} - will fetch raw items from URL`, node.itemsCacheKey)
       const url = pathURL(node.itemsCacheKey, node.options.fetchBaseURL)
+      /** @type {Record<string, string> | null} */
+      let headers = null
+      for (const [key, val] of [...url.searchParams.entries()]) {
+        if (key.startsWith('__jl__header__')) {
+          headers = headers ?? {}
+          headers[key.replace('__jl__header__', '')] = val
+          url.searchParams.delete(key)
+        }
+      }
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
         for (const searchParam of url.searchParams.entries()) {
@@ -573,7 +582,8 @@ export class StatefulLayout {
         if (q) url.searchParams.set(qSearchParam, q)
         else url.searchParams.delete(qSearchParam)
       }
-      const fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
+      let fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
+      if (headers) fetchOptions = { ...fetchOptions, headers }
       rawItems = await (await fetch(url, fetchOptions)).json()
       logSelectItems(`${node.fullKey} - raw items URL`, rawItems)
     }

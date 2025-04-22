@@ -190,7 +190,19 @@
       "type": "object",
       "required": ["url"],
       "properties": {
-        "url": {"$ref": "#/$defs/partial-expression"}
+        "url": {"$ref": "#/$defs/partial-expression"},
+        "searchParams": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/partial-expression"}
+          }
+        },
+        "headers": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"$ref": "#/$defs/partial-expression"}
+          }
+        }
       }
     },
     "partial-cols": {
