@@ -101,4 +101,39 @@ describe('Management of pattern properties', () => {
       prefix2_ok: 11
     })
   })
+
+  it.only('should manage patterProperties values as string arrays', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      title: 'Pattern properties',
+      patternPropertiesLayout: {
+        messages: {
+          addItem: 'Input a key'
+        }
+      },
+      patternProperties: {
+        '.*': { type: 'array', items: { type: 'string' } }
+      }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      defaultOptions,
+      {}
+    )
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.ok(statefulLayout.valid)
+    assert.deepEqual(statefulLayout.data, {})
+    statefulLayout.input(getNode(['$patternProperties']), {
+      aKey: ['value1', 'value2']
+    })
+    assert.deepEqual(statefulLayout.data, { aKey: ['value1', 'value2'] })
+    statefulLayout.input(getNode(['$patternProperties', 'aKey']), ['value3', 'value2'])
+    assert.deepEqual(statefulLayout.data, { aKey: ['value3', 'value2'] })
+
+    statefulLayout.input(getNode(['$patternProperties']), {
+      aKey: ['value3', 'value2'],
+      aKey2: undefined
+    })
+    assert.deepEqual(statefulLayout.data, { aKey: ['value3', 'value2'], aKey2: [] })
+  })
 })
