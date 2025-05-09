@@ -35,6 +35,8 @@ export interface StateOptionsMessages {
   mdeGuide: string
   undo: string
   redo: string
+  keyboardDate: string
+  keyboardDateTime: string
 }
 
 export type LocaleMessages = NormalizeMessages & CompileOptionsMessages & StateOptionsMessages

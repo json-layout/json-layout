@@ -11,7 +11,7 @@ const components = standardComponents.reduce((acc, component) => {
 /** @type {import('@json-layout/vocabulary').NormalizeOptions} */
 const options = {
   components,
-  markdown: (/** @type{string} */s) => s,
+  markdown: (/** @type {string} */s) => s,
   useDescription: ['help', 'subtitle'],
   useName: false,
   useExamples: 'items',

@@ -34,5 +34,8 @@ export default {
   default: 'default: ',
   name: 'name: ',
   examples: 'Examples: ',
-  deprecated: 'Warning, this information is deprecated.'
+  deprecated: 'Warning, this information is deprecated.',
+  // see L and LT format https://github.com/iamkun/dayjs/blob/dev/src/locale/en-gb.js
+  keyboardDate: 'MM/DD/YYYY',
+  keyboardDateTime: 'MM/DD/YYYY HH:mm'
 }
