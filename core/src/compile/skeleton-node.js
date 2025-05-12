@@ -128,6 +128,7 @@ export function makeSkeletonNode (
       if (nullable) defaultData = null
       else if (type === 'object' && isCompositeLayout(compObject, options.components)) defaultData = {}
       else if (type === 'array') defaultData = []
+      else if (type === 'boolean') defaultData = false
     }
     if (defaultData !== undefined && compObject.defaultData === undefined) compObject.defaultData = defaultData
     if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }

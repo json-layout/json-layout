@@ -232,4 +232,18 @@ describe('default data management', () => {
     assert.equal(statefulLayout.stateTree.root.layout.placeholder, undefined)
     assert.equal(statefulLayout.data, '')
   })
+
+  it('should use false as default value for a required boolean', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['bool'],
+      properties: {
+        bool: {
+          type: 'boolean'
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
+    assert.deepEqual(statefulLayout.data, { bool: false })
+  })
 })
