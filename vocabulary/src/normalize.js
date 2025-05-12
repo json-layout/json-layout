@@ -140,7 +140,7 @@ function getDefaultComp (partial, schemaFragment, type, options, schemaChild) {
   if (schemaChild === 'patternProperties') return 'list'
   if (hasSimpleType && schemaFragment.enum) return schemaFragment.enum.length > 20 ? 'autocomplete' : 'select'
   if (hasSimpleType && schemaFragment.oneOf) return schemaFragment.oneOf.length > 20 ? 'autocomplete' : 'select'
-  if (hasSimpleType && schemaFragment.examples && options.useExamples === 'items') return type === 'string' ? 'combobox' : 'number-combobox'
+  if (hasSimpleType && schemaFragment.examples && options.useExamples === 'items' && !(schemaFragment.format && ['date', 'date-time', 'time'].includes(schemaFragment.format))) return type === 'string' ? 'combobox' : 'number-combobox'
   if (hasSimpleType && schemaFragment.anyOf && schemaFragment.anyOf.length && Object.keys(schemaFragment.anyOf[schemaFragment.anyOf.length - 1]).length === 0) {
     return type === 'string' ? 'combobox' : 'number-combobox'
   }
