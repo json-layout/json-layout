@@ -4,6 +4,9 @@ import { validateNormalizedLayout } from './normalized-layout/validation.js'
 import { getComponentValidate } from './validate.js'
 import clone from './utils/clone.js'
 
+export * from './layout-keyword/validation.js'
+export * from './normalized-layout/validation.js'
+
 /**
  * @typedef {import("./types.js").NormalizeOptions} NormalizeOptions
  * @typedef {import("./types.js").NormalizeMessages} NormalizeMessages

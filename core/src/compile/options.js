@@ -85,7 +85,7 @@ export const produceCompileOptions = produce((draft, newOptions) => {
     // @ts-ignore
     if (key in newOptions) {
       // components is problematic because it is an object with nested objects
-      // simply compare there keys instead of the whole object
+      // simply compare their keys instead of the whole object
       if (key === 'components' && shallowEqualArray(Object.keys(draft.components ?? []), Object.keys(newOptions.components ?? []))) {
         continue
       }

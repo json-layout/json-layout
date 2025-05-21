@@ -1,6 +1,6 @@
 {
   "name": "@json-layout/core",
-  "version": "1.10.2",
+  "version": "1.10.4",
   "description": "Compilation and state management utilities for JSON Layout.",
   "type": "module",
   "exports": {
@@ -8,6 +8,18 @@
       "import": {
         "types": "./types/index.d.ts",
         "default": "./src/index.js"
+      }
+    },
+    "./compile": {
+      "import": {
+        "types": "./types/compile/index.d.ts",
+        "default": "./src/compile/index.js"
+      }
+    },
+    "./state": {
+      "import": {
+        "types": "./types/state/index.d.ts",
+        "default": "./src/state/index.js"
       }
     },
     "./src/compile/serialize": {
@@ -20,6 +32,12 @@
       "import": {
         "types": "./types/utils/build.d.ts",
         "default": "./src/utils/build.js"
+      }
+    },
+    "./utils/clone": {
+      "import": {
+        "types": "./types/utils/clone.d.ts",
+        "default": "./src/utils/clone.js"
       }
     },
     "./utils/doc-options": {
