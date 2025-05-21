@@ -1,7 +1,8 @@
 /* eslint-disable no-template-curly-in-string */
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { normalizeLayoutFragment as normalize, standardComponents } from '../src/index.js'
+import { standardComponents } from '../src/index.js'
+import { normalizeLayoutFragment as normalize } from '../src/normalize.js'
 
 const components = standardComponents.reduce((acc, component) => {
   acc[component.name] = component
@@ -15,7 +16,9 @@ const options = {
   useDescription: ['help', 'subtitle'],
   useName: false,
   useExamples: 'items',
-  useDeprecated: false
+  useDeprecated: false,
+  messages: { default: 'default', name: 'name', deprecated: 'deprecated', examples: '' },
+  useDefault: true
 }
 
 describe('normalize schema fragment function', () => {

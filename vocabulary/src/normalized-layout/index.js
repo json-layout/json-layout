@@ -1,6 +1,3 @@
-import schema from './schema.js'
-import { ajv } from '../validate.js'
-
 /**
  * @typedef {import('./types.js').NormalizedLayout} NormalizedLayout
  * @typedef {import('./types.js').SwitchStruct} SwitchStruct
@@ -24,10 +21,6 @@ import { ajv } from '../validate.js'
  * @typedef {import('./types.js').Slot} Slot
  * @typedef {import('./types.js').Slots} Slots
  */
-
-export const /** @type {import('../types.js').ValidateNormalizedLayout} */ validateNormalizedLayout = /** @type {any} */ (ajv.getSchema(schema.$id))
-
-export const normalizedLayoutSchema = /** @type {any} */ (schema)
 
 /** @type {(layout: NormalizedLayout) => layout is SwitchStruct} */
 export function isSwitchStruct (layout) {

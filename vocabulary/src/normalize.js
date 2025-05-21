@@ -1,9 +1,12 @@
-import { validateLayoutKeyword, isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch, isPartialChildComposite, isPartialChildSlot, isPartialSlotText, isPartialSlotName } from './layout-keyword/index.js'
-import { validateNormalizedLayout } from './normalized-layout/index.js'
+import { isComponentName, isPartialCompObject, isPartialChildren, isPartialSwitch, isPartialGetItemsExpr, isPartialGetItemsObj, isPartialSlotMarkdown, isPartialGetItemsFetch, isPartialChildComposite, isPartialChildSlot, isPartialSlotText, isPartialSlotName } from './layout-keyword/index.js'
+import { validateLayoutKeyword } from './layout-keyword/validation.js'
+import { validateNormalizedLayout } from './normalized-layout/validation.js'
 import { getComponentValidate } from './validate.js'
 import clone from './utils/clone.js'
 
 /**
+ * @typedef {import("./types.js").NormalizeOptions} NormalizeOptions
+ * @typedef {import("./types.js").NormalizeMessages} NormalizeMessages
  * @typedef {import('./index.js').Child} Child
  * @typedef {import('./index.js').Children} Children
  * @typedef {import('./index.js').BaseCompObject} BaseCompObject

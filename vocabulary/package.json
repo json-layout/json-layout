@@ -9,6 +9,12 @@
         "types": "./types/index.d.ts",
         "default": "./src/index.js"
       }
+    },
+    "./normalize": {
+      "import": {
+        "types": "./types/normalize.d.ts",
+        "default": "./src/normalize.js"
+      }
     }
   },
   "files": [

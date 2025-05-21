@@ -1,5 +1,6 @@
 // import Debug from 'debug'
-import { normalizeLayoutFragment, mergeNullableSubSchema, isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, getSchemaFragmentType, isCompositeLayout, childIsCompositeCompObject, isListLayout } from '@json-layout/vocabulary'
+import { isSwitchStruct, isGetItemsExpression, isGetItemsFetch, isItemsLayout, isCompositeLayout, childIsCompositeCompObject, isListLayout } from '@json-layout/vocabulary'
+import { normalizeLayoutFragment, mergeNullableSubSchema, getSchemaFragmentType } from '@json-layout/vocabulary/normalize'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 

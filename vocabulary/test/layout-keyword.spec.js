@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { validateLayoutKeyword as validate } from '../src/layout-keyword/index.js'
+import { validateLayoutKeyword as validate } from '../src/layout-keyword/validation.js'
 
 const assertValid = (/** @type {any} */ data) => { assert.ok(validate(data), JSON.stringify(validate.errors)) }
 

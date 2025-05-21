@@ -1,6 +1,3 @@
-import schema from './schema.js'
-import { ajv } from '../validate.js'
-
 /**
  * @typedef {import('./types.js').LayoutKeyword} LayoutKeyword
  * @typedef {import('./types.js').ComponentName} ComponentName
@@ -20,10 +17,6 @@ import { ajv } from '../validate.js'
  * @typedef {import('./types.js').PartialSlot} PartialSlot
  * @typedef {import('./types.js').PartialSelectItem} PartialSelectItem
  */
-
-export const /** @type {import('../types.js').ValidateLayoutKeyword} */ validateLayoutKeyword = /** @type {any} */ (ajv.getSchema(schema.$id))
-
-export const layoutKeywordSchema = /** @type {any} */ (schema)
 
 /** @type {(layoutKeyword: LayoutKeyword) => layoutKeyword is ComponentName} */
 export function isComponentName (layoutKeyword) {
