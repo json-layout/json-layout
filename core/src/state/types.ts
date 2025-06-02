@@ -31,6 +31,7 @@ import {
 } from '@json-layout/vocabulary'
 import { type SkeletonTree, type SkeletonNode, type StatefulLayout, type CompiledLayout } from '../index.js'
 import { type LocaleMessages } from '../i18n/types.js'
+import { RequestOptions } from 'node:https'
 
 export interface StateNode {
   key: string | number
@@ -113,6 +114,7 @@ export type StateNodeOptions = Required<StateNodeOptionsBase & {
   messages: LocaleMessages
   fetchBaseURL: string
   fetchOptions: Omit<RequestInit, 'body'> | ((url: URL) => Omit<RequestInit, 'body'>)
+  fetch: ((url: string, fetchOptions: RequestInit) => any)
   onData: (data: any) => void
   onUpdate: (statefulLayout: StatefulLayout) => void
   onAutofocus: (key: string) => void

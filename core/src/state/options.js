@@ -28,6 +28,7 @@ export function fillOptions (partialOptions, compiledLayout) {
     readOnlyPropertiesMode: 'show',
     fetchBaseURL: '/',
     fetchOptions: {},
+    fetch: async (url, fetchOptions) => (await fetch(url, fetchOptions)).json(),
     onAutofocus: () => {},
     onUpdate: () => {},
     onData: () => {},

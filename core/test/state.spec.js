@@ -425,6 +425,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         readOnlyPropertiesMode: 'show',
         fetchBaseURL: '/',
         fetchOptions: {},
+        fetch: statefulLayout.stateTree.root.options.fetch,
         onData: statefulLayout.stateTree.root.options.onData,
         onUpdate: statefulLayout.stateTree.root.options.onUpdate,
         onAutofocus: statefulLayout.stateTree.root.options.onAutofocus
@@ -451,6 +452,7 @@ for (const compileMode of ['runtime', 'build-time']) {
         readOnlyPropertiesMode: 'show',
         fetchOptions: {},
         fetchBaseURL: '/',
+        fetch: statefulLayout.stateTree.root.options.fetch,
         onData: statefulLayout.stateTree.root.children?.[0].options.onData,
         onUpdate: statefulLayout.stateTree.root.children?.[0].options.onUpdate,
         onAutofocus: statefulLayout.stateTree.root.children?.[0].options.onAutofocus

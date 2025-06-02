@@ -584,7 +584,7 @@ export class StatefulLayout {
       }
       let fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
       if (headers) fetchOptions = { ...fetchOptions, headers }
-      rawItems = await (await fetch(url, fetchOptions)).json()
+      rawItems = await node.options.fetch(url.href, fetchOptions)
       logSelectItems(`${node.fullKey} - raw items URL`, rawItems)
     }
 
