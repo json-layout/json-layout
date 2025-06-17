@@ -15,7 +15,8 @@ import { makeSkeletonNode } from './skeleton-node.js'
  * @param {Record<string, import('@json-layout/vocabulary').NormalizedLayout>} normalizedLayouts
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
  * @param {string} pointer
- * @param {string} title
+ * @param {string} [defaultTitle]
+ * @param {boolean} [deleteRootNodeTitle]
  * @returns {import('./types.js').SkeletonTree}
  */
 export function makeSkeletonTree (
@@ -30,8 +31,11 @@ export function makeSkeletonTree (
   normalizedLayouts,
   expressions,
   pointer,
-  title
+  defaultTitle,
+  deleteRootNodeTitle
 ) {
+  /** @type {string | undefined} */
+  let rootNodeTitle
   if (!skeletonNodes[pointer]) {
     // @ts-ignore
     skeletonNodes[pointer] = 'recursing'
@@ -50,7 +54,9 @@ export function makeSkeletonTree (
       pointer,
       true
     )
+    rootNodeTitle = skeletonNodes[pointer].title
+    if (deleteRootNodeTitle) delete skeletonNodes[pointer].title
     validatePointers.push(skeletonNodes[pointer].refPointer)
   }
-  return { title, root: pointer, refPointer: skeletonNodes[pointer].refPointer }
+  return { title: rootNodeTitle ?? defaultTitle ?? '', root: pointer, refPointer: skeletonNodes[pointer].refPointer }
 }

@@ -285,23 +285,29 @@ describe('Special cases of oneOfs', () => {
     const compiledLayout = await compile({
       type: 'object',
       unevaluatedProperties: false,
-      oneOf: [{
-        properties: {
-          key: { type: 'string', const: 'key1' },
-          str1: { type: 'string' }
-        }
-      }, {
+      oneOf: [{ $ref: '#/$defs/subtype1' }, {
+        title: 'Subtype 2',
         properties: {
           key: { type: 'string', const: 'key2' },
           str2: { type: 'string' },
           str3: { type: 'string', const: 'string 3' }
         }
       }, {
+        title: 'Subtype 3',
         properties: {
           key: { type: 'string', const: 'key3' },
           str3: { type: 'string' }
         }
-      }]
+      }],
+      $defs: {
+        subtype1: {
+          title: 'Subtype 1',
+          properties: {
+            key: { type: 'string', const: 'key1' },
+            str1: { type: 'string' }
+          }
+        }
+      }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key2' })
     assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
@@ -314,6 +320,11 @@ describe('Special cases of oneOfs', () => {
     assert.deepEqual(statefulLayout.stateTree.root.data, { key: 'key2', str3: 'string 3' })
     assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { key: 'key2', str3: 'string 3' })
     assert.deepEqual(statefulLayout.stateTree.root.children?.[0].children?.[0].data, { key: 'key2', str3: 'string 3' })
+
+    assert.equal(statefulLayout.stateTree.root.children?.[0].skeleton.childrenTrees?.[0], '_jl#/oneOf/0')
+    assert.equal(statefulLayout.compiledLayout.skeletonTrees[statefulLayout.stateTree.root.children?.[0].skeleton.childrenTrees?.[0]]?.title, 'Subtype 1')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].skeleton.childrenTrees?.[1], '_jl#/oneOf/1')
+    assert.equal(statefulLayout.compiledLayout.skeletonTrees[statefulLayout.stateTree.root.children?.[0].skeleton.childrenTrees?.[1]]?.title, 'Subtype 2')
 
     assert.ok(statefulLayout.stateTree.root.children?.[0].children?.[0].children?.[1])
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0].children?.[0].children?.[1], 'string 2')

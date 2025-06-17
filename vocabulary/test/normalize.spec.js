@@ -172,11 +172,15 @@ describe('normalize schema fragment function', () => {
       title: 'Subtypes section',
       description: 'A section with subtypes',
       oneOf: [{
-        key: { type: 'string', const: 'val1', title: 'Key' },
-        str1: { type: 'string' }
+        properties: {
+          key: { type: 'string', const: 'val1', title: 'Key' },
+          str1: { type: 'string' }
+        }
       }, {
-        key: { type: 'string', const: 'val2' },
-        str2: { type: 'string' }
+        properties: {
+          key: { type: 'string', const: 'val2' },
+          str2: { type: 'string' }
+        }
       }]
     }
     assert.deepEqual(

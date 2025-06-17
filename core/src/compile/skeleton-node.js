@@ -173,6 +173,7 @@ export function makeSkeletonNode (
 
   /** @type {import('./types.js').SkeletonNode} */
   const node = {
+    title: schema.title,
     key: key ?? '',
     pointer,
     refPointer,
@@ -305,8 +306,6 @@ export function makeSkeletonNode (
       const childrenTrees = []
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = type
-        const title = schema.oneOf[i].title ?? `option ${i}`
-        delete schema.oneOf[i].title
         const childTreePointer = `${oneOfPointer}/${i}`
         if (!skeletonTrees[childTreePointer]) {
           // @ts-ignore
@@ -323,7 +322,8 @@ export function makeSkeletonNode (
             normalizedLayouts,
             expressions,
             childTreePointer,
-            title
+            `option ${i + 1}`,
+            true
           )
         }
         childrenTrees.push(childTreePointer)
@@ -518,8 +518,7 @@ export function makeSkeletonNode (
           validationErrors,
           normalizedLayouts,
           expressions,
-          childTreePointer,
-          schema.items.title
+          childTreePointer
         )
       }
       node.childrenTrees = [childTreePointer]

@@ -67,6 +67,7 @@ export interface SkeletonTree {
 // a skeleton node is a light recursive structure
 // at runtime each one will be instantiated as a StateNode with a value and an associated component instance
 export interface SkeletonNode {
+  title?: string
   key: string | number
   pointer: string
   refPointer: string
