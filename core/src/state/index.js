@@ -53,12 +53,6 @@ const logDataBinding = debug('jl:data-binding')
 const logSelectItems = debug('jl:select-items')
 const logActivatedItems = debug('jl:activated-items')
 
-const pathURL = (/** @type {string} */url, /** @type {string} */baseURL) => {
-  if (url.startsWith('http://') || url.startsWith('https://')) return new URL(url)
-  if (url.startsWith('/')) return new URL(window.location.origin + url)
-  return new URL(window.location.origin + baseURL + url)
-}
-
 export class StatefulLayout {
   /**
    * @private
@@ -560,7 +554,7 @@ export class StatefulLayout {
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
       logSelectItems(`${node.fullKey} - will fetch raw items from URL`, node.itemsCacheKey)
-      const url = pathURL(node.itemsCacheKey, node.options.fetchBaseURL)
+      const url = new URL(node.itemsCacheKey)
       /** @type {Record<string, string> | null} */
       let headers = null
       for (const [key, val] of [...url.searchParams.entries()]) {

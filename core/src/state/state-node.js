@@ -4,6 +4,7 @@ import debug from 'debug'
 import { getChildDisplay } from './utils/display.js'
 import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
 import { getRegexp } from './utils/regexps.js'
+import { pathURL } from './utils/urls.js'
 
 const logStateNode = debug('jl:state-node')
 const logValidation = debug('jl:validation')
@@ -666,7 +667,8 @@ export function createStateNode (
       }
     } else if (layout.getItems && isGetItemsFetch(layout.getItems)) {
       try {
-        const url = new URL(evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext))
+        const urlExprResult = evalExpression(compiledLayout.expressions, layout.getItems.url, null, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+        const url = pathURL(urlExprResult, options.fetchBaseURL)
         if (layout.getItems.searchParams) {
           for (const [key, expr] of Object.entries(layout.getItems.searchParams)) {
             let val
@@ -691,6 +693,7 @@ export function createStateNode (
         }
         itemsCacheKey = url.href
       } catch (err) {
+        console.warn('failed to process URL for getItems', err)
         itemsCacheKey = null
       }
     }

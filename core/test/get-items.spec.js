@@ -155,6 +155,38 @@ describe('get select items', () => {
     ])
   })
 
+  it('should manage a autocomplete with getItems as relative fetch url with q param', async () => {
+    const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'test?query={q}' } } })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+      ...defaultOptions,
+      fetchBaseURL: '/base/'
+    }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
+    let nockScope = nock('http://test.com')
+      .get('/base/test')
+      .reply(200, ['val1', 'val2'])
+    let items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+
+    // when the node is mutated its cache key is not mutated and items are not recreated
+    statefulLayout.input(statefulLayout.stateTree.root, 'val1')
+    const items2 = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.equal(items, items2)
+
+    nockScope = nock('http://test.com')
+      .get('/base/test?query=val1')
+      .reply(200, ['val1'])
+    items = await statefulLayout.getItems(statefulLayout.stateTree.root, 'val1')
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' }
+    ])
+  })
+
   it('should manage a autocomplete with getItems as fetch url without q param', async () => {
     const compiledLayout = await compile({ type: 'string', layout: { comp: 'autocomplete', getItems: { url: 'http://${options.context.domain}/test' } } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})
