@@ -285,9 +285,9 @@ describe('Special cases of oneOfs', () => {
   it('should manage active element in a oneOf', async () => {
     const compiledLayout = await compile({
       type: 'object',
-      unevaluatedProperties: false,
       oneOf: [{ $ref: '#/$defs/subtype1' }, {
         title: 'Subtype 2',
+        unevaluatedProperties: false,
         properties: {
           key: { type: 'string', const: 'key2' },
           str2: { type: 'string' },
@@ -296,6 +296,7 @@ describe('Special cases of oneOfs', () => {
       }, {
         title: 'Subtype 3',
         required: ['str4'],
+        unevaluatedProperties: false,
         properties: {
           key: { type: 'string', const: 'key3' },
           str3: { type: 'string' },
@@ -305,6 +306,7 @@ describe('Special cases of oneOfs', () => {
       $defs: {
         subtype1: {
           title: 'Subtype 1',
+          unevaluatedProperties: false,
           properties: {
             key: { type: 'string', const: 'key1' },
             str1: { type: 'string' }
@@ -312,9 +314,15 @@ describe('Special cases of oneOfs', () => {
         }
       }
     })
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key2' })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1' })
     const getNode = getNodeBuilder(statefulLayout)
 
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.deepEqual(statefulLayout.stateTree.root.data, { key: 'key1' })
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+
+    statefulLayout.activateItem(statefulLayout.stateTree.root.children?.[0], 1)
     assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)

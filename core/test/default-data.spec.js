@@ -363,5 +363,8 @@ describe('default data management', () => {
 
     statefulLayout.activateItem(getNode('render.$oneOf'), 1)
     assert.deepEqual(statefulLayout.data, { render: { type: 'list-item', avatar: { type: 'none' } } })
+
+    statefulLayout.activateItem(getNode('render.$oneOf'), 0)
+    assert.deepEqual(statefulLayout.data, { render: { type: 'default' } })
   })
 })

@@ -187,7 +187,7 @@ const produceCompositeChildrenOptions = produce((draft, section) => {
  * @param {string | null} parentDataPath
  * @returns {boolean}
  */
-const matchError = (error, skeleton, dataPath, parentDataPath) => {
+const matchLocalError = (error, skeleton, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
   if (parentDataPath === originalError.instancePath && originalError.params?.missingProperty === skeleton.key) {
     return true
@@ -204,22 +204,51 @@ const matchError = (error, skeleton, dataPath, parentDataPath) => {
 
 /**
  * should match if an error belongs to a child of the current node but the child was not displayed
+ * @param {import('../index.js').CompiledLayout} compiledLayout
  * @param {import('ajv').ErrorObject} error
  * @param {import('../index.js').SkeletonNode} skeleton
  * @param {string} dataPath
  * @param {string | null} parentDataPath
  * @returns {boolean}
  */
-const matchChildError = (error, skeleton, dataPath, parentDataPath) => {
+const matchChildError = (compiledLayout, error, skeleton, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
-  if (!(
-    originalError.schemaPath === skeleton.pointer ||
-    originalError.schemaPath.startsWith(skeleton.pointer + '/')
-  ) && !(
-    originalError.schemaPath === skeleton.refPointer ||
-    originalError.schemaPath.startsWith(skeleton.refPointer + '/')
-  )) return false
-  if (originalError.instancePath.startsWith(dataPath)) return true
+  if (!originalError.instancePath.startsWith(dataPath)) return false
+  if (originalError.schemaPath === skeleton.pointer || originalError.schemaPath.startsWith(skeleton.pointer + '/') || originalError.schemaPath === skeleton.refPointer || originalError.schemaPath.startsWith(skeleton.refPointer + '/')) return true
+  if (skeleton.children) {
+    for (const c of skeleton.children) {
+      const childSkeleton = compiledLayout.skeletonNodes[c]
+      if (!childSkeleton) continue
+      if (matchPointerError(error, childSkeleton.pointer, childSkeleton.refPointer, dataPath, parentDataPath)) return true
+    }
+  }
+  if (skeleton.childrenTrees) {
+    for (const c of skeleton.childrenTrees) {
+      const childTree = compiledLayout.skeletonTrees[c]
+      if (!childTree) continue
+      if (matchPointerError(error, childTree.root, childTree.refPointer, dataPath, parentDataPath)) return true
+    }
+  }
+  return false
+}
+
+/**
+ * should match if an error belongs to a child of the current node but the child was not displayed
+ * @param {import('ajv').ErrorObject} error
+ * @param {string} pointer1
+ * @param {string} pointer2
+ * @param {string} dataPath
+ * @param {string | null} parentDataPath
+ * @returns {boolean}
+ */
+const matchPointerError = (error, pointer1, pointer2, dataPath, parentDataPath) => {
+  const originalError = error.params?.errors?.[0] ?? error
+  if (!originalError.instancePath.startsWith(dataPath)) return false
+  if (originalError.schemaPath === pointer1 ||
+          originalError.schemaPath.startsWith(pointer2 + '/') ||
+          originalError.schemaPath === pointer2 ||
+          originalError.schemaPath.startsWith(pointer2 + '/')
+  ) return true
   return false
 }
 
@@ -445,29 +474,33 @@ export function createStateNode (
     const validChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
     const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : validChildTreeIndex)
     if (activeChildTreeIndex !== -1) {
+      const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
+      const activeChildNode = compiledLayout.skeletonNodes[activeChildTree.root]
       if (!(fullKey in context.activatedItems)) context.autoActivatedItems[fullKey] = activeChildTreeIndex
       context.errors = context.errors?.filter(error => {
-        const originalError = error.params?.errors?.[0] ?? error
         // if an item was selected, remove the oneOf error
-        if (matchError(error, skeleton, dataPath, parentDataPath)) return false
+        if (matchLocalError(error, skeleton, dataPath, parentDataPath)) {
+          return false
+        }
         // also remove the errors from other children of the oneOf
-        if (matchChildError(error, skeleton, dataPath, parentDataPath)) {
-          if (originalError.schemaPath.startsWith(skeleton.pointer) && !originalError.schemaPath.startsWith(skeleton.pointer + '/' + activeChildTreeIndex)) return false
-          if (originalError.schemaPath.startsWith(skeleton.refPointer) && !originalError.schemaPath.startsWith(skeleton.refPointer + '/' + activeChildTreeIndex)) return false
+        if (matchChildError(compiledLayout, error, skeleton, dataPath, parentDataPath) && !matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) {
+          return false
         }
         return true
       })
-      if (context.additionalPropertiesErrors && validChildTreeIndex === -1) {
+      if (context.additionalPropertiesErrors) {
         // remove additional properties errors if the oneOf has no valid children
         context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
-          const originalError = error.params?.errors?.[0] ?? error
-          if (originalError.instancePath === parentDataPath) return false
+          // also remove the additional errors from other children of the oneOf
+          if (matchChildError(compiledLayout, error, skeleton, dataPath, parentDataPath) && !matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) {
+            return false
+          }
           return true
         })
       }
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
-      const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
+
       children = [
         createStateNode(
           context,
@@ -478,7 +511,7 @@ export function createStateNode (
           fullKey,
           dataPath,
           dataPath,
-          compiledLayout.skeletonNodes[activeChildTree.root],
+          activeChildNode,
           null,
           display,
           data,
@@ -569,14 +602,14 @@ export function createStateNode (
     }
   }
 
-  let error = context.errors?.find(e => matchError(e, skeleton, dataPath, parentDataPath))
+  let error = context.errors?.find(e => matchLocalError(e, skeleton, dataPath, parentDataPath))
 
   // findLast in following lines is important because we want to keep the error of the highest child (deepest errors are listed first)
   if (!error && !isCompositeLayout(layout, compiledLayout.components) && layout.comp !== 'slot') {
-    error = context.errors?.findLast(e => matchChildError(e, skeleton, dataPath, parentDataPath))
+    error = context.errors?.findLast(e => matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath))
   }
   if (!error && context.rehydrate && context.rehydrateErrors) {
-    error = context.rehydrateErrors?.findLast(e => matchChildError(e, skeleton, dataPath, parentDataPath))
+    error = context.rehydrateErrors?.findLast(e => matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath))
   }
 
   // capture errors so that they are not repeated in parent nodes
@@ -585,10 +618,10 @@ export function createStateNode (
       logValidation(`${fullKey} capture validation error on node`, error)
       context.errors = context.errors?.filter(e => error !== e)
       if (!isCompositeLayout(layout, compiledLayout.components) && layout.comp !== 'slot') {
-        context.errors = context.errors?.filter(e => !matchChildError(e, skeleton, dataPath, parentDataPath))
+        context.errors = context.errors?.filter(e => !matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath))
       }
       if (context.rehydrate && context.rehydrateErrors) {
-        context.rehydrateErrors = context.rehydrateErrors?.filter(e => !matchChildError(e, skeleton, dataPath, parentDataPath))
+        context.rehydrateErrors = context.rehydrateErrors?.filter(e => !matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath))
       }
     }
   }
