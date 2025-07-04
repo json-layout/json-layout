@@ -13,8 +13,8 @@ export function getNodeBuilder (statefulLayout) {
     let node = statefulLayout.stateTree.root
     for (const childKey of childrenKeys) {
       const parentNode = node
-      if (typeof childKey === 'number') node = node?.children?.[childKey]
-      else node = node?.children?.find(c => c.key === childKey)
+      // if (typeof childKey === 'number') node = node?.children?.[childKey]
+      node = node?.children?.find(c => c.key === childKey)
       if (!node) throw new Error(`no child ${childKey} found in node ${parentNode.fullKey}`)
     }
     return node

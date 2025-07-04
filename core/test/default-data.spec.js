@@ -277,4 +277,91 @@ describe('default data management', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
     assert.deepEqual(statefulLayout.data, { bool: false })
   })
+
+  it('should use manage a complex case of allOf / oneOf with default data', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        render: {
+          oneOf: [
+            {
+              title: 'Render 0',
+              // additionalProperties: false,
+              unevaluatedProperties: false,
+              properties: {
+                type: {
+                  type: 'string',
+                  const: 'default'
+                }
+              }
+            },
+            {
+              title: 'Render 1',
+              // additionalProperties: false,
+              unevaluatedProperties: false,
+              properties: {
+                type: {
+                  type: 'string',
+                  const: 'list-item'
+                }
+              },
+              allOf: [{
+                title: 'Général',
+                required: [
+                  'title'
+                ],
+                properties: {
+                  title: {
+                    type: 'string',
+                    title: 'Titre'
+                  }
+                }
+              },
+              {
+                title: 'Avatar',
+                properties: {
+                  avatar: {
+                    title: 'Avatar',
+                    type: 'object',
+                    oneOf: [
+                      {
+                        title: 'Aucun',
+                        properties: {
+                          type: {
+                            const: 'none'
+                          }
+                        }
+                      },
+                      {
+                        title: 'Couleur',
+                        properties: {
+                          type: {
+                            const: 'color'
+                          },
+                          size: {
+                            title: 'Taille',
+                            type: 'integer'
+                          }
+                        }
+                      }
+                    ],
+                    default: {
+                      type: 'none'
+                    }
+                  }
+                }
+              }]
+            }
+          ]
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, null)
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.deepEqual(statefulLayout.data, { render: { type: 'default' } })
+
+    statefulLayout.activateItem(getNode('render.$oneOf'), 1)
+    assert.deepEqual(statefulLayout.data, { render: { type: 'list-item', avatar: { type: 'none' } } })
+  })
 })

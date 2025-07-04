@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
+import { getNodeBuilder } from './utils/state-tree.js'
 
 describe('Special cases of oneOfs', () => {
   const defaultOptions = { debounceInputMs: 0, removeAdditional: true }
@@ -294,9 +295,11 @@ describe('Special cases of oneOfs', () => {
         }
       }, {
         title: 'Subtype 3',
+        required: ['str4'],
         properties: {
           key: { type: 'string', const: 'key3' },
-          str3: { type: 'string' }
+          str3: { type: 'string' },
+          str4: { type: 'string' }
         }
       }],
       $defs: {
@@ -310,6 +313,8 @@ describe('Special cases of oneOfs', () => {
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key2' })
+    const getNode = getNodeBuilder(statefulLayout)
+
     assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
     assert.equal(statefulLayout.stateTree.root.children?.length, 1)
@@ -339,9 +344,14 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.stateTree.root.data.key, 'key3')
     assert.equal(statefulLayout.stateTree.root.children?.[0].data.key, 'key3')
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].data.key, 'key3')
+    assert.ok(!statefulLayout.valid)
+
+    statefulLayout.input(getNode('$oneOf.2.str4'), 'String 4')
+    assert.deepEqual(statefulLayout.data, { key: 'key3', str3: 'string 3', str4: 'String 4' })
+    assert.ok(statefulLayout.valid)
   })
 
-  it('should clear content of oneOf based on layout.clearData parameter', async () => {
+  it('should clear content of oneOf based on layout.emptyData parameter', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: {

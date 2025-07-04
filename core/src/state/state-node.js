@@ -114,9 +114,9 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
         if (child.data === undefined || child.data === null) continue
         if (children.length > 1) {
           for (const key of Object.keys(child.data)) {
-            if (child.skeleton.propertyKeys.includes(key) || !children.some(c => c.key !== child.key && c.skeleton.propertyKeys.includes(key))) {
-              draft[key] = /** @type {any} */(child.data)[key]
-            }
+            if (children.some(c => c.key === key)) continue
+            if (!child.skeleton.propertyKeys.includes(key) && children.some(c => c.key !== child.key && c.skeleton.propertyKeys.includes(key))) continue
+            draft[key] = /** @type {any} */(child.data)[key]
           }
         } else {
           Object.assign(draft, child.data)
@@ -442,12 +442,12 @@ export function createStateNode (
 
   if (key === '$oneOf' && skeleton.childrenTrees) {
     // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
-    const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data)))
+    const validChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
+    const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : validChildTreeIndex)
     if (activeChildTreeIndex !== -1) {
       if (!(fullKey in context.activatedItems)) context.autoActivatedItems[fullKey] = activeChildTreeIndex
       context.errors = context.errors?.filter(error => {
         const originalError = error.params?.errors?.[0] ?? error
-        // console.log(originalError.schemaPath, skeleton.pointer, skeleton.refPointer)
         // if an item was selected, remove the oneOf error
         if (matchError(error, skeleton, dataPath, parentDataPath)) return false
         // also remove the errors from other children of the oneOf
@@ -457,7 +457,14 @@ export function createStateNode (
         }
         return true
       })
-      // console.log(context.errors?.map(error => error.params?.errors?.[0] ?? error))
+      if (context.additionalPropertiesErrors && validChildTreeIndex === -1) {
+        // remove additional properties errors if the oneOf has no valid children
+        context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
+          const originalError = error.params?.errors?.[0] ?? error
+          if (originalError.instancePath === parentDataPath) return false
+          return true
+        })
+      }
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
       const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
