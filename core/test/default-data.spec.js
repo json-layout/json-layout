@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
+import { getNodeBuilder } from './utils/state-tree.js'
 
 describe('default data management', () => {
   const defaultOptions = { debounceInputMs: 0 }
@@ -195,6 +196,36 @@ describe('default data management', () => {
     statefulLayout.input(statefulLayout.stateTree.root, [undefined])
 
     assert.deepEqual(statefulLayout.data, [{ str1: 'String 1' }])
+  })
+
+  it('should fill new object with default data when adding new item to array with allOf items', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      allOf: [{
+        str1: { type: 'string' },
+      }, {
+        properties: {
+          array1: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { str2: { type: 'string', default: 'Str 2' } }
+            }
+          }
+        }
+      }, {
+        str2: { type: 'string' }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.deepEqual(statefulLayout.data, {})
+    assert.equal(statefulLayout.valid, true)
+
+    statefulLayout.input(getNode('$allOf-1.array1'), [undefined])
+
+    assert.deepEqual(statefulLayout.data, { array1: [{ str2: 'Str 2' }] })
   })
 
   it('should not insert an empty object as default data for a select node', async () => {

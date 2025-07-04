@@ -107,11 +107,20 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
       delete draft[key]
     }
   }
+
   if (children) {
     for (const child of children) {
       if (parentDataPath === child.dataPath) {
-        if (child.data === undefined) continue
-        Object.assign(draft, child.data)
+        if (child.data === undefined || child.data === null) continue
+        if (children.length > 1) {
+          for (const key of Object.keys(child.data)) {
+            if (child.skeleton.propertyKeys.includes(key) || !children.some(c => c.key !== child.key && c.skeleton.propertyKeys.includes(key))) {
+              draft[key] = /** @type {any} */(child.data)[key]
+            }
+          }
+        } else {
+          Object.assign(draft, child.data)
+        }
       } else {
         if (child.data === undefined) delete draft[child.key]
         else draft[child.key] = child.data
