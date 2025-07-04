@@ -3,6 +3,7 @@ import { createStateNode } from './state-node.js'
 import debug from 'debug'
 
 const logValidation = debug('jl:validation')
+const logStateTree = debug('jl:state-tree')
 
 /** @type {(draft: import('./types.js').StateTree, root: import('./types.js').StateNode, valid: boolean) => any} */
 const produceStateTree = produce(
@@ -48,10 +49,11 @@ export function createStateTree (
   validationState,
   reusedStateTree
 ) {
+  logStateTree('createStateTree', skeleton.root)
   const validate = compiledLayout.validates[skeleton.refPointer]
   const valid = validate(data)
   if (validate.errors) {
-    logValidation(`${skeleton.root} validation errors`, validate.errors)
+    logValidation(`${skeleton.root} new state tree initial validation errors`, validate.errors, validationState)
     for (const error of validate.errors) {
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
     }
@@ -70,8 +72,14 @@ export function createStateTree (
       context.additionalPropertiesErrors = validate.errors.filter(error => error.keyword === 'additionalProperties' || error.keyword === 'unevaluatedProperties')
     }
   }
+
+  if (context.rehydrateErrors) {
+    // ignore re-hydration errors that were solved by data hydration
+    context.rehydrateErrors = context.rehydrateErrors.filter(re => context.errors?.some(e => e.instancePath === re.instancePath && e.schemaPath === re.schemaPath && e.keyword === re.keyword))
+  }
+
   if (context.rehydrate && context.rehydrateErrors?.length) {
-    logValidation(`${skeleton.root} some validation errors were not captured by a leaf property, try to capture on a parent`, context.rehydrateErrors)
+    logValidation(`${skeleton.root} some validation errors were not captured by a leaf property, try to capture on a parent on rehydrate`, context.rehydrateErrors)
   }
   const root = createStateNode(
     context,

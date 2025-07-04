@@ -20,7 +20,7 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test1')
-    assert.deepEqual(statefulLayout._lastCreateStateTreeContext._debugCache['/str2'], ['miss', 'miss', 'hit', 'hit'])
+    assert.deepEqual(statefulLayout._lastCreateStateTreeContext._debugCache['/str2'], ['miss', 'miss'])
     assert.equal(statefulLayout.stateTree.root.validated, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'must match pattern "^[A-Z]+$"')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)

@@ -118,6 +118,7 @@ export type StateNodeOptions = Required<StateNodeOptionsBase & {
   onData: (data: any) => void
   onUpdate: (statefulLayout: StatefulLayout) => void
   onAutofocus: (key: string) => void
+  noStateCache: boolean
 }>
 
 export type StatefulLayoutOptions = StateNodeOptions & {

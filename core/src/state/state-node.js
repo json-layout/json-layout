@@ -322,7 +322,7 @@ export function createStateNode (
 
   // NOTE we have to exclude nodes with errors from the cache, because context.errors is unpurely modified
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
-  if (skeleton.pure && !reusedNode?.error && !reusedNode?.childError) {
+  if (skeleton.pure && !reusedNode?.error && !reusedNode?.childError && !parentOptions.noStateCache) {
     const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.includes(fullKey)
     cacheKey = [
       reusedNode,
@@ -553,9 +553,13 @@ export function createStateNode (
     }
   }
 
-  let error = context.errors?.find(error => matchError(error, skeleton, dataPath, parentDataPath))
+  let error = context.errors?.find(e => matchError(e, skeleton, dataPath, parentDataPath))
+
+  // findLast in following lines is important because we want to keep the error of the highest child (deepest errors are listed first)
+  if (!error && !isCompositeLayout(layout, compiledLayout.components) && layout.comp !== 'slot') {
+    error = context.errors?.findLast(e => matchChildError(e, skeleton, dataPath, parentDataPath))
+  }
   if (!error && context.rehydrate && context.rehydrateErrors) {
-    // findLast here is important because we want to keep the error of the highest child (deepest errors are listed first)
     error = context.rehydrateErrors?.findLast(e => matchChildError(e, skeleton, dataPath, parentDataPath))
   }
 
@@ -564,6 +568,9 @@ export function createStateNode (
     if (error) {
       logValidation(`${fullKey} capture validation error on node`, error)
       context.errors = context.errors?.filter(e => error !== e)
+      if (!isCompositeLayout(layout, compiledLayout.components) && layout.comp !== 'slot') {
+        context.errors = context.errors?.filter(e => !matchChildError(e, skeleton, dataPath, parentDataPath))
+      }
       if (context.rehydrate && context.rehydrateErrors) {
         context.rehydrateErrors = context.rehydrateErrors?.filter(e => !matchChildError(e, skeleton, dataPath, parentDataPath))
       }

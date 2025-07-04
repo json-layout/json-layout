@@ -102,12 +102,12 @@ export class StatefulLayout {
    * @param {Partial<import('./types.js').ValidationState>} validationState
    */
   set validationState (validationState) {
+    logDataBinding('set validationState', validationState)
     this._validationState = {
       initialized: validationState.initialized ?? this._validationState.initialized ?? false,
       validatedForm: validationState.validatedForm ?? this._validationState.validatedForm ?? false,
       validatedChildren: validationState.validatedChildren ?? this._validationState.validatedChildren ?? []
     }
-    this.updateState()
   }
 
   /**
@@ -248,7 +248,7 @@ export class StatefulLayout {
     }
 
     if (!this._stateTree.valid && !this._stateTree.root.error && !this._stateTree.root.childError) {
-      console.error('JSON layout failed to assign validation error to a node', this._lastCreateStateTreeContext.allErrors)
+      console.error('JSON layout failed to assign validation error to a node', this._lastCreateStateTreeContext.errors)
     }
 
     logDataBinding('emit update event', this._data, this._stateTree)
@@ -327,9 +327,11 @@ export class StatefulLayout {
 
   validate () {
     this.validationState = { validatedForm: true }
+    this.updateState()
   }
 
   resetValidation () {
+    logDataBinding('resetValidation')
     this.initValidationState()
     this.updateState()
   }
@@ -387,7 +389,7 @@ export class StatefulLayout {
    * @param {number} [activateKey]
    */
   applyInput (node, data, validated, activateKey) {
-    logDataBinding('received input event from node', node, data)
+    logDataBinding('apply input event from node', node, data)
 
     const transformedData = node.layout.transformData && this.evalNodeExpression(node, node.layout.transformData, data)
 
@@ -420,6 +422,7 @@ export class StatefulLayout {
       this._autofocusTarget = node.fullKey + '/' + activateKey
     }
     if (node.parentFullKey === null) {
+      logDataBinding('update root state after input')
       this._data = data
       this.updateState()
       return
@@ -458,6 +461,8 @@ export class StatefulLayout {
    * @param {number} [activateKey]
    */
   input (node, data, activateKey) {
+    logDataBinding('received input event from node', node, data, activateKey)
+
     // debounced data from the same node is cancelled if a new input is received
     // debounced data from another node is applied immediately
     if (this.debouncedInput) {
@@ -506,6 +511,7 @@ export class StatefulLayout {
       !this.validationState.validatedChildren.includes(node.fullKey)
     ) {
       this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+      this.updateState()
     }
 
     // in case of updateOn=blur option
@@ -525,6 +531,7 @@ export class StatefulLayout {
         this.validateNodeRecurse(child)
       }
     }
+    this.updateState()
   }
 
   /**

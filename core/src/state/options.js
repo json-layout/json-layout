@@ -32,6 +32,7 @@ export function fillOptions (partialOptions, compiledLayout) {
     onAutofocus: () => {},
     onUpdate: () => {},
     onData: () => {},
+    noStateCache: false,
     ...partialOptions,
     messages
   }
