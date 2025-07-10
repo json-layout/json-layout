@@ -59,7 +59,7 @@ describe('normalize schema fragment function', () => {
   it('should handle number types', () => {
     assert.deepEqual(normalize('prop', { type: 'number' }, '/prop', options).layout, { comp: 'number-field', label: 'prop' })
     assert.deepEqual(normalize('prop', { type: 'number', layout: { step: 0.1 } }, '/prop', options).layout, { comp: 'number-field', label: 'prop', step: 0.1 })
-    assert.deepEqual(normalize('prop', { type: 'integer' }, '/prop', options).layout, { comp: 'number-field', label: 'prop', step: 1 })
+    assert.deepEqual(normalize('prop', { type: 'integer' }, '/prop', options).layout, { comp: 'number-field', label: 'prop', step: 1, precision: 0 })
   })
 
   it('should accept layout as a string', () => {

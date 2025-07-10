@@ -488,6 +488,9 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
     if ('minimum' in schemaFragment) partial.min = partial.min ?? schemaFragment.minimum
     if ('maximum' in schemaFragment) partial.max = partial.max ?? schemaFragment.maximum
   }
+  if (partial.comp === 'number-field' && type === 'integer') {
+    partial.precision = 0
+  }
 
   if (partial.if) partial.if = normalizeExpression(partial.if)
 

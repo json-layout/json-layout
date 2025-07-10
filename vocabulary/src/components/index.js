@@ -114,6 +114,7 @@ export const standardComponents = [
         step: { type: 'number' },
         min: { type: 'number' },
         max: { type: 'number' },
+        precision: { type: 'number' },
         placeholder: { type: 'string' }
       }
     }
