@@ -45,6 +45,49 @@ describe('Recursion in schema', () => {
     assert.equal(statefulLayout.stateTree.root.children[1].children[0].children[1].layout.comp, 'list')
   })
 
+  it('should manage recursion in arrays combined with oneOf', async () => {
+    const compiledLayout = await compile(
+      {
+        $ref: '#/$defs/recursiveObject',
+        $defs: {
+          recursiveObject: {
+            type: 'object',
+            oneOf: [{
+              properties: {
+                type: {
+                  const: 'leaf'
+                },
+                key: { type: 'string' }
+              }
+            }, {
+              properties: {
+                type: {
+                  const: 'node'
+                },
+                key: { type: 'string' },
+                children: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/$defs/recursiveObject'
+                  }
+                }
+              }
+            }]
+
+          }
+        }
+      })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      defaultOptions,
+      {}
+    )
+
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
+    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
+    assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'one-of-select')
+  })
+
   it('should manage recursion in conditional children', async () => {
     const compiledLayout = await compile(
       {

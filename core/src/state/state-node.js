@@ -330,7 +330,7 @@ const getCompObject = (normalizedLayout, childDefinition, options, compiledLayou
  * @param {import('../index.js').SkeletonNode} skeleton
  * @param {import('@json-layout/vocabulary').Child | null} childDefinition
  * @param {import('./utils/display.js').Display} parentDisplay
- * @param {unknown} data
+ * @param {any} data
  * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @param {import('./types.js').ValidationState} validationState
  * @param {import('./types.js').StateNode} [reusedNode]
@@ -470,9 +470,18 @@ export function createStateNode (
   }
 
   if (key === '$oneOf' && skeleton.childrenTrees) {
-    // find the oneOf child that was either previously selected, if none were selected select the child that is valid with current data
-    const validChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
-    const activeChildTreeIndex = /** @type {number} */(fullKey in context.activatedItems ? context.activatedItems[fullKey] : validChildTreeIndex)
+    // find the oneOf child that was either previously selected
+    // or the one matching the specified discriminator
+    // or the one that is valid with current data
+    let activeChildTreeIndex = /** @type {number} */context.activatedItems[fullKey]
+    if (activeChildTreeIndex === undefined) {
+      if (skeleton.discriminator !== undefined) {
+        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined && data[skeleton.discriminator] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
+      } else {
+        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
+      }
+    }
+
     if (activeChildTreeIndex !== -1) {
       const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
       const activeChildNode = compiledLayout.skeletonNodes[activeChildTree.root]

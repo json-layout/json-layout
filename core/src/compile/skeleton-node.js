@@ -286,6 +286,9 @@ export function makeSkeletonNode (
       }
     }
     if (schema.oneOf) {
+      /** @type {string | undefined} */
+      let discriminator
+      if (schema.discriminator?.propertyName) discriminator = schema.discriminator?.propertyName
       const oneOfPointer = `${refPointer}/oneOf`
       if (!normalizedLayouts[oneOfPointer]) {
         const normalizationResult = normalizeLayoutFragment(
@@ -323,7 +326,8 @@ export function makeSkeletonNode (
             expressions,
             childTreePointer,
             `option ${i + 1}`,
-            true
+            true,
+            discriminator
           )
         }
         childrenTrees.push(childTreePointer)
@@ -334,7 +338,8 @@ export function makeSkeletonNode (
           pointer: oneOfPointer,
           refPointer: oneOfPointer,
           childrenTrees,
-          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
+          discriminator,
+          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root]?.pure),
           propertyKeys: [],
           roPropertyKeys: []
         }
@@ -397,7 +402,7 @@ export function makeSkeletonNode (
           pointer: patternPropertiesPointer,
           refPointer: patternPropertiesPointer,
           childrenTrees,
-          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root].pure),
+          pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root]?.pure),
           propertyKeys: [],
           roPropertyKeys: []
         }

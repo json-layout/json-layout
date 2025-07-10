@@ -62,6 +62,7 @@ export interface SkeletonTree {
   title: string
   root: string
   refPointer: string
+  discriminatorValue?: string
 }
 
 // a skeleton node is a light recursive structure
@@ -77,6 +78,7 @@ export interface SkeletonNode {
   condition?: Expression
   children?: string[] // optional children in the case of arrays and object nodes
   childrenTrees?: string[] // other trees that can be instantiated with separate validation (for example in the case of new array items of oneOfs, etc)
+  discriminator?: string
   required?: boolean
   nullable?: boolean
 }

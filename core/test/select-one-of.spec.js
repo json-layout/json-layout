@@ -457,4 +457,34 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].layout.comp, 'one-of-select')
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].key, '$oneOf')
   })
+
+  it('should use the discriminator keyword', async () => {
+    const compiledLayout = await compile({
+      discriminator: { propertyName: 'key' },
+      oneOf: [{
+        required: ['str1'],
+        additionalProperties: false,
+        properties: {
+          key: { type: 'string', const: 'key1' },
+          str1: { type: 'string' }
+        }
+      }, {
+        required: ['str2'],
+        additionalProperties: false,
+        properties: {
+          key: { type: 'string', const: 'key2' },
+          str2: { type: 'string' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1' })
+    const getNode = getNodeBuilder(statefulLayout)
+    const oneOf = getNode('$oneOf')
+    assert.ok(oneOf)
+    assert.equal(oneOf.skeleton.discriminator, 'key')
+    const oneOfChild = getNode('$oneOf.0')
+    assert.ok(oneOfChild)
+    assert.ok(!statefulLayout.valid)
+    assert.deepEqual(statefulLayout.data, { key: 'key1' })
+  })
 })

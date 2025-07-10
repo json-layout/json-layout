@@ -17,6 +17,7 @@ import { makeSkeletonNode } from './skeleton-node.js'
  * @param {string} pointer
  * @param {string} [defaultTitle]
  * @param {boolean} [deleteRootNodeTitle]
+ * @param {string} [discriminator]
  * @returns {import('./types.js').SkeletonTree}
  */
 export function makeSkeletonTree (
@@ -32,7 +33,8 @@ export function makeSkeletonTree (
   expressions,
   pointer,
   defaultTitle,
-  deleteRootNodeTitle
+  deleteRootNodeTitle,
+  discriminator
 ) {
   /** @type {string | undefined} */
   let rootNodeTitle
@@ -58,5 +60,10 @@ export function makeSkeletonTree (
     if (deleteRootNodeTitle) delete skeletonNodes[pointer].title
     validatePointers.push(skeletonNodes[pointer].refPointer)
   }
-  return { title: rootNodeTitle ?? defaultTitle ?? '', root: pointer, refPointer: skeletonNodes[pointer].refPointer }
+  let discriminatorValue
+  if (discriminator) {
+    discriminatorValue = schema.properties?.[discriminator]?.const
+    if (discriminatorValue === undefined) throw new Error(`const discriminator ${discriminator} missing in oneOf item ${pointer}`)
+  }
+  return { title: rootNodeTitle ?? defaultTitle ?? '', root: pointer, refPointer: skeletonNodes[pointer].refPointer, discriminatorValue }
 }
