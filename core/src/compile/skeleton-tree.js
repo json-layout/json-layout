@@ -62,7 +62,12 @@ export function makeSkeletonTree (
   }
   let discriminatorValue
   if (discriminator) {
-    discriminatorValue = schema.properties?.[discriminator]?.const
+    if (schema.$ref) {
+      const [refFragment] = getJSONRef(schemaId, schema.$ref)
+      discriminatorValue = refFragment.properties?.[discriminator]?.const
+    } else {
+      discriminatorValue = schema.properties?.[discriminator]?.const
+    }
     if (discriminatorValue === undefined) throw new Error(`const discriminator ${discriminator} missing in oneOf item ${pointer}`)
   }
   return { title: rootNodeTitle ?? defaultTitle ?? '', root: pointer, refPointer: skeletonNodes[pointer].refPointer, discriminatorValue }
