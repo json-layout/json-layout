@@ -1,6 +1,6 @@
 {
   "name": "@json-layout/vocabulary",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "description": "Main JSON Layout vocabulary as JSON schemas and Typescript types. Also contains some small utility functions to validate and normalize annotations.",
   "type": "module",
   "exports": {
