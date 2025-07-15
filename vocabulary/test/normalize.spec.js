@@ -49,6 +49,19 @@ describe('normalize schema fragment function', () => {
     )
   })
 
+  it('should manage shared parts of switch', () => {
+    assert.deepEqual(
+      normalize('prop', { type: 'string', layout: { label: 'Switch text', switch: [{ if: 'read', comp: 'text-field' }, { if: 'write', comp: 'textarea' }] } }, '/prop', options).layout,
+      {
+        switch: [
+          { ...defaultTextFieldComp, label: 'Switch text', if: { type: 'js-eval', expr: 'read', pure: true, dataAlias: 'value' } },
+          { ...defaultTextareaComp, label: 'Switch text', if: { type: 'js-eval', expr: 'write', pure: true, dataAlias: 'value' } },
+          { ...defaultTextFieldComp, label: 'Switch text' }
+        ]
+      }
+    )
+  })
+
   it('should calculate a label for a field', () => {
     assert.deepEqual(normalize('prop', { type: 'string' }, '/prop', options).layout, { comp: 'text-field', label: 'prop' })
     assert.deepEqual(normalize('prop', { type: 'string', title: 'Prop' }, '/prop', options).layout, { comp: 'text-field', label: 'Prop' })

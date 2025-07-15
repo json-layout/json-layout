@@ -28,19 +28,29 @@ const example = {
       },
       objArray2: {
         type: 'array',
-        title: 'An array of objects with customized messages, layout and actions',
+        title: 'An array of objects with various customizations',
         layout: {
           messages: {
             addItem: 'custom add item message'
           },
-          listActions: ['add', 'edit', 'delete', 'duplicate']
+          listActions: ['add', 'edit', 'delete', 'duplicate'],
+          // eslint-disable-next-line no-template-curly-in-string
+          itemTitle: 'item.str1 ? `A title based on String 1: "${item.str1}"` : "String 1 is not defined"',
+          // eslint-disable-next-line no-template-curly-in-string
+          itemSubtitle: { expr: 'A subtitle containing automatic UUID: ${item.uuid}', type: 'js-tpl' },
+          itemCopy: '{...item, uuid: crypto.randomUUID()}',
         },
         items: {
           type: 'object',
           title: 'Object item',
+          layout: {
+            switch: [{ if: 'summary', children: [] }],
+            getDefaultData: '{ uuid: crypto.randomUUID() }'
+          },
           properties: {
-            str1: { type: 'string', title: 'String 1' },
-            str2: { type: 'string', title: 'String 2 is hidden except on the edited item', layout: { if: '!summary' } }
+            uuid: { type: 'string', title: 'UUID', description: 'random UUID created using itemCopy or getDefaultData expressions, used in itemSubtitle expression', readOnly: true },
+            str1: { type: 'string', title: 'String 1', description: 'used in itemTitle expression' },
+            str2: { type: 'string', title: 'String 2' }
           }
         }
       }
@@ -49,7 +59,7 @@ const example = {
   data: {
     dateArray1: ['2024-11-19'],
     objArray1: [{ str1: 'a string', str2: 'another string' }],
-    objArray2: [{ str1: 'a string', str2: 'another string' }]
+    objArray2: [{ str1: 'a string', str2: 'another string', uuid: '612217b2-7796-45fd-9a3c-0ed2b99f11fe' }]
   }
 }
 

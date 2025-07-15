@@ -673,9 +673,12 @@ function getNormalizedLayout (key, layoutKeyword, schemaFragment, type, nullable
     if (!switchCases.find(s => !s.if)) {
       switchCases.push({})
     }
+    /** @type {LayoutKeyword} */
+    const extraProps = { ...layoutKeyword }
+    delete extraProps.switch
     for (let i = 0; i < switchCases.length; i++) {
       const switchCase = switchCases[i]
-      const compObjectResult = getCompObject(key, switchCase, schemaFragment, type, nullable, schemaPath, options, schemaChild)
+      const compObjectResult = getCompObject(key, { ...extraProps, ...getPartialCompObject(switchCase) }, schemaFragment, type, nullable, schemaPath, options, schemaChild)
       normalizedSwitchCases.push(compObjectResult)
     }
     return { switch: normalizedSwitchCases }
