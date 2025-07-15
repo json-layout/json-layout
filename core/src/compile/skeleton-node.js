@@ -146,6 +146,7 @@ export function makeSkeletonNode (
     if (isListLayout(compObject)) {
       if (compObject.itemTitle) pushExpression(expressions, compObject.itemTitle)
       if (compObject.itemSubtitle) pushExpression(expressions, compObject.itemSubtitle)
+      if (compObject.itemCopy) pushExpression(expressions, compObject.itemCopy)
     }
 
     if (isItemsLayout(compObject, options.components) && compObject.getItems) {

@@ -465,6 +465,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
     }
     if (partial.itemTitle) partial.itemTitle = normalizeExpression(partial.itemTitle, 'js-eval', 'item')
     if (partial.itemSubtitle) partial.itemSubtitle = normalizeExpression(partial.itemSubtitle, 'js-eval', 'item')
+    if (partial.itemCopy) partial.itemCopy = normalizeExpression(partial.itemCopy ?? 'item', 'js-eval', 'item')
   }
 
   if (component.multipleCompat) {

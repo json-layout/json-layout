@@ -66,6 +66,7 @@ export const standardComponents = [
         listActions: { type: 'array', items: { type: 'string', enum: ['add', 'edit', 'delete', 'sort', 'duplicate'] } },
         itemTitle: { $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/expression' },
         itemSubtitle: { $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/expression' },
+        itemCopy: { $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/expression' },
         indexed: { type: 'array', items: { type: 'string' } },
         messages: {
           type: 'object',

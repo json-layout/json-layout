@@ -39,6 +39,7 @@
         "if": {"$ref": "#/$defs/partial-expression"},
         "itemTitle": {"$ref": "#/$defs/partial-expression"},
         "itemSubtitle": {"$ref": "#/$defs/partial-expression"},
+        "itemCopy": {"$ref": "#/$defs/partial-expression"},
         "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}},
         "getItems": {"$ref": "#/$defs/partial-get-items"},
         "listEditMode": {"type": "string", "enum": ["inline", "inline-single", "menu", "dialog"]},
