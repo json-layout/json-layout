@@ -108,7 +108,9 @@ export const standardComponents = [
     name: 'number-field',
     shouldDebounce: true,
     focusable: true,
-    emitsBlur: true,
+    // number inputs can emit blur events, but not always a specific event when clicking on up/down arrows
+    // in this case updateOn: blur cannot be made to work properly, that is why we do not set emitsBlur to true
+    // emitsBlur: true,
     schema: {
       properties: {
         step: { type: 'number' },
