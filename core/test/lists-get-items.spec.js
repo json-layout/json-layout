@@ -119,6 +119,7 @@ describe('Lists with items fetching', () => {
         },
         {
           required: ['field'],
+          unevaluatedProperties: false,
           properties: {
             type: { const: 'icon-multiple' },
             field: {
@@ -204,6 +205,16 @@ describe('Lists with items fetching', () => {
     await new Promise(resolve => setTimeout(resolve, 10))
     assert.equal(getNode('$oneOf.1.$deps-field.icons').children?.length, 2)
     assert.deepEqual(getNode('$oneOf.1.$deps-field.icons.0').data, { value: 'val_a', icon: { name: 'map-marker' } })
+    assert.deepEqual(statefulLayout.data, {
+      type: 'icon-multiple',
+      field: 'prop2',
+      icons: [
+        { value: 'val_a', icon: { name: 'map-marker' } },
+        { value: 'val_b', icon: { name: 'map-marker' } }
+      ]
+    })
+
+    assert.deepEqual(getNode('$oneOf.1').skeleton.propertyKeys, ['type', 'field', 'icons'])
 
     nock.cleanAll()
   })

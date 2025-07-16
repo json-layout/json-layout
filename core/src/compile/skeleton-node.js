@@ -251,6 +251,7 @@ export function makeSkeletonNode (
               'object'
             )
           }
+          node.propertyKeys = node.propertyKeys.concat(skeletonNodes[dependentPointer].propertyKeys)
           node.children.push(dependentPointer)
         }
       }
