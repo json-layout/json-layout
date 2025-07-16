@@ -8,6 +8,7 @@ import { pathURL } from './utils/urls.js'
 
 const logStateNode = debug('jl:state-node')
 const logValidation = debug('jl:validation')
+const logGetItems = debug('jl:get-items')
 
 /**
  * @param {unknown} data
@@ -381,6 +382,9 @@ export function createStateNode (
       logStateNode('createStateNode cache hit', fullKey)
       // @ts-ignore
       if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['hit'])
+      if (reusedNode.layout.comp === 'list' && reusedNode.layout.getItems) {
+        logGetItems(fullKey, 'list component node is fully reused from cache, no fetch will be triggered')
+      }
       return reusedNode
     } else {
       logStateNode('createStateNode cache miss', fullKey)
@@ -766,6 +770,11 @@ export function createStateNode (
 
   const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
   const shouldLoadData = layout.comp === 'list' && itemsCacheKey && reusedNode?.itemsCacheKey !== itemsCacheKey
+  if (shouldLoadData) {
+    logGetItems(fullKey, 'list component with getItems expression registered for fetch', itemsCacheKey)
+  } else if (layout.comp === 'list' && itemsCacheKey) {
+    logGetItems(fullKey, 'list component with unchanged getItems cache key, no fetch will be triggered', itemsCacheKey)
+  }
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,

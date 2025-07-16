@@ -51,6 +51,7 @@ export const isItemsNode = (node, components) => !!node && isItemsLayout(node.la
 
 const logDataBinding = debug('jl:data-binding')
 const logSelectItems = debug('jl:select-items')
+const logGetItems = debug('jl:get-items')
 const logActivatedItems = debug('jl:activated-items')
 
 export class StatefulLayout {
@@ -316,10 +317,13 @@ export class StatefulLayout {
       this.activatedItems = produce(this.activatedItems, draft => { draft[activatedKey] = createStateTreeContext.autoActivatedItems[activatedKey] })
     }
     for (const node of createStateTreeContext.getItemsDataRequests) {
+      logGetItems(node.fullKey, 'automatic get items triggered')
       this.getItems(node).then(items => {
+        logGetItems(node.fullKey, 'automatic get items, fetched results', items)
         const rawData = /** @type {any[]} */(node.data ?? [])
         const existingItems = rawData.map(item => this.prepareSelectItem(node, item))
         const data = produceListData(rawData, existingItems, items)
+        logGetItems(node.fullKey, 'automatic get items, input produced data', data)
         this.input(node, data)
       }, err => console.error('error fetching items', node.fullKey, err))
     }
@@ -417,7 +421,7 @@ export class StatefulLayout {
     }
 
     if (activateKey !== undefined) {
-      logActivatedItems('activated item on input', node.fullKey, activateKey)
+      logActivatedItems(node.fullKey, 'activated item on input', activateKey)
       this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = activateKey })
       this._autofocusTarget = node.fullKey + '/' + activateKey
     }
@@ -557,10 +561,10 @@ export class StatefulLayout {
     let rawItems
     if (node.layout.items || (node.layout.getItems && isGetItemsExpression(node.layout.getItems))) {
       rawItems = node.itemsCacheKey
-      logSelectItems(`${node.fullKey} - raw items from context or schema or getItems expression`, rawItems)
+      logGetItems(node.fullKey, 'raw items from context or schema or getItems expression', rawItems)
     }
     if (node.layout.getItems && isGetItemsFetch(node.layout.getItems)) {
-      logSelectItems(`${node.fullKey} - will fetch raw items from URL`, node.itemsCacheKey)
+      logGetItems(node.fullKey, 'will fetch raw items from URL', node.itemsCacheKey)
       const url = new URL(node.itemsCacheKey)
       /** @type {Record<string, string> | null} */
       let headers = null
@@ -578,7 +582,7 @@ export class StatefulLayout {
         }
       }
       if (qSearchParam) {
-        logSelectItems(`${node.fullKey} - apply search params`, qSearchParam)
+        logGetItems(node.fullKey, 'apply search params', qSearchParam)
         appliedQ = true
         if (q) url.searchParams.set(qSearchParam, q)
         else url.searchParams.delete(qSearchParam)
@@ -586,7 +590,7 @@ export class StatefulLayout {
       let fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
       if (headers) fetchOptions = { ...fetchOptions, headers }
       rawItems = await node.options.fetch(url.href, fetchOptions)
-      logSelectItems(`${node.fullKey} - raw items URL`, rawItems)
+      logGetItems(node.fullKey, 'raw items fetched from URL', rawItems)
     }
 
     if (!rawItems) {
@@ -594,7 +598,7 @@ export class StatefulLayout {
     }
     if (node.layout.getItems?.itemsResults) {
       rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
-      logSelectItems(`${node.fullKey} - items passed through the getItems.itemsResults expression`, rawItems)
+      logGetItems(node.fullKey, 'items passed through the getItems.itemsResults expression', rawItems)
     }
 
     if (!Array.isArray(rawItems)) throw new Error(`getItems didn't return an array for node ${node.fullKey}, you can define itemsResults to extract the array`)
@@ -657,7 +661,7 @@ export class StatefulLayout {
     }
     if (layout.getItems?.itemIcon) item.icon = this.evalNodeExpression(node, layout.getItems?.itemIcon, rawItem)
 
-    logSelectItems(`${node.fullKey} - select item after applying itemValue/itemKey/itemTitle/itemIcon expressions`, item)
+    logSelectItems('select item after applying itemValue/itemKey/itemTitle/itemIcon expressions', node.fullKey, item)
     return /** @type {import('@json-layout/vocabulary').SelectItem} */(item)
   }
 
@@ -671,7 +675,7 @@ export class StatefulLayout {
    * @param {number} key
    */
   activateItem (node, key) {
-    logActivatedItems('activate item explicitly', node.fullKey, key)
+    logActivatedItems(node.fullKey, 'activate item explicitly', key)
     this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = key })
     this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
@@ -681,7 +685,7 @@ export class StatefulLayout {
         if (!parentNode.data || typeof parentNode.data !== 'object') throw new Error(`parent with key "${node.parentFullKey}" is missing data object`)
         /** @type {Record<string, any>} */
         const newParentData = { ...parentNode.data }
-        logActivatedItems('remove properties of previous oneOf activated item', node.fullKey, node.children?.[0].fullKey)
+        logActivatedItems(node.fullKey, 'remove properties of previous oneOf activated item', node.children?.[0].fullKey)
         for (const propertyKey of node.children?.[0].skeleton.propertyKeys) {
           delete newParentData[propertyKey]
         }
@@ -699,12 +703,12 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   deactivateItem (node) {
-    logActivatedItems('deactivate item explicitly', node.fullKey)
+    logActivatedItems(node.fullKey, 'deactivate item explicitly')
     // also deactivate children oneOf for example
     this.activatedItems = produce(this.activatedItems, draft => {
       for (const key in draft) {
         if (key.startsWith(node.fullKey)) {
-          logActivatedItems('item deactivation deletes a key', key)
+          logActivatedItems(node.fullKey, 'item deactivation deletes a key', key)
           delete draft[key]
         }
       }
