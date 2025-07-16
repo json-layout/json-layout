@@ -305,9 +305,8 @@ export class StatefulLayout {
     )
     this._lastCreateStateTreeContext = createStateTreeContext
     if (!this.validationState.initialized) {
-      this._validationState = {
+      this.validationState = {
         initialized: true,
-        validatedForm: this._validationState.validatedForm,
         validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey)
       }
     }
@@ -330,6 +329,7 @@ export class StatefulLayout {
   }
 
   validate () {
+    if (this.validationState.validatedForm) return
     this.validationState = { validatedForm: true }
     this.updateState()
   }
