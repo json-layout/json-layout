@@ -467,6 +467,11 @@ export class StatefulLayout {
   input (node, data, activateKey) {
     logDataBinding('received input event from node', node, data, activateKey)
 
+    if (node.layout.comp === 'list') {
+      // a input of the whole list signals potential reordering, deactivate all items otherwise the keys might be mixed up
+      this.deactivateItem(node, true)
+    }
+
     // debounced data from the same node is cancelled if a new input is received
     // debounced data from another node is applied immediately
     if (this.debouncedInput) {
@@ -701,8 +706,9 @@ export class StatefulLayout {
 
   /**
    * @param {StateNode} node
+   * @param {boolean} skipUpdateState
    */
-  deactivateItem (node) {
+  deactivateItem (node, skipUpdateState = false) {
     logActivatedItems(node.fullKey, 'deactivate item explicitly')
     // also deactivate children oneOf for example
     this.activatedItems = produce(this.activatedItems, draft => {
@@ -713,7 +719,7 @@ export class StatefulLayout {
         }
       }
     })
-    this.updateState()
+    if (!skipUpdateState) this.updateState()
   }
 
   handleAutofocus () {
