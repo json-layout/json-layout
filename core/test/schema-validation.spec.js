@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
+import { getNodeBuilder } from './utils/state-tree.js'
 
 describe('stateful layout validation state', () => {
   const defaultOptions = { debounceInputMs: 0 }
@@ -40,6 +41,105 @@ describe('stateful layout validation state', () => {
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[1], 'TEST')
     assert.equal(statefulLayout.stateTree.root.children?.[1].error, undefined)
+
+    assert.equal(statefulLayout.stateTree.valid, true)
+  })
+
+  it('should manage a validation error in children based on $ref', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['str1'],
+      properties: {
+        str1: { $ref: '#/$defs/str1' },
+        str2: { $ref: '#/$defs/str2' }
+      },
+      $defs: {
+        str1: { type: 'string' },
+        str2: { type: 'string', pattern: '^[A-Z]+$' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
+    assert.equal(statefulLayout.stateTree.valid, false)
+    assert.equal(statefulLayout.stateTree.root.error, undefined)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'required information')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].data, 'test')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'must match pattern "^[A-Z]+$"')
+
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'ok')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, undefined)
+
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[1], 'TEST')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].error, undefined)
+
+    assert.equal(statefulLayout.stateTree.valid, true)
+  })
+
+  it('should manage a validation error in a nested children', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['obj1'],
+      properties: {
+        obj1: {
+          type: 'object',
+          required: ['str1'],
+          properties: {
+            str1: { type: 'string' },
+            str2: { type: 'string', pattern: '^[A-Z]+$' }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(statefulLayout.stateTree.valid, false)
+    assert.equal(statefulLayout.stateTree.root.error, undefined)
+    assert.equal(getNode('obj1.str1').data, undefined)
+    assert.equal(getNode('obj1.str1').error, 'required information')
+    statefulLayout.input(getNode('obj1.str2'), 'test')
+    assert.equal(getNode('obj1.str2').error, 'must match pattern "^[A-Z]+$"')
+
+    statefulLayout.input(getNode('obj1.str1'), 'ok')
+    assert.equal(getNode('obj1.str1').error, undefined)
+
+    statefulLayout.input(getNode('obj1.str2'), 'TEST')
+    assert.equal(getNode('obj1.str2').error, undefined)
+
+    assert.equal(statefulLayout.stateTree.valid, true)
+  })
+
+  it('should manage a validation error in a nested children based on $ref', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['obj1'],
+      properties: {
+        obj1: { $ref: '#/$defs/obj1' }
+      },
+      $defs: {
+        obj1: {
+          type: 'object',
+          required: ['str1'],
+          properties: {
+            str1: { type: 'string' },
+            str2: { type: 'string', pattern: '^[A-Z]+$' }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(statefulLayout.stateTree.valid, false)
+    assert.equal(statefulLayout.stateTree.root.error, undefined)
+    assert.equal(getNode('obj1.str1').data, undefined)
+    assert.equal(getNode('obj1.str1').error, 'required information')
+    statefulLayout.input(getNode('obj1.str2'), 'test')
+    assert.equal(getNode('obj1.str2').error, 'must match pattern "^[A-Z]+$"')
+
+    statefulLayout.input(getNode('obj1.str1'), 'ok')
+    assert.equal(getNode('obj1.str1').error, undefined)
+
+    statefulLayout.input(getNode('obj1.str2'), 'TEST')
+    assert.equal(getNode('obj1.str2').error, undefined)
 
     assert.equal(statefulLayout.stateTree.valid, true)
   })

@@ -45,13 +45,20 @@ export function makeSkeletonNode (
   let schema = rawSchema
   let refPointer = pointer
   let refFragment
+
+  // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
+  let errorMessage = rawSchema.errorMessage
+
   rawSchema.__pointer = pointer
   if (schema.$ref) {
     [refFragment, schemaId, refPointer] = getJSONRef(sourceSchemaId, schema.$ref)
     refFragment.__pointer = refPointer
     schema = { ...rawSchema, ...refFragment }
+    if (errorMessage && refFragment.errorMessage) throw new Error('errorMessage cannot be defined both on ref source and target')
+    errorMessage = refFragment.errorMessage = refFragment.errorMessage ?? errorMessage ?? {}
     delete schema.$ref
   }
+  errorMessage = rawSchema.errorMessage = errorMessage ?? {}
   const nullableType = mergeNullableSubSchema(schema)
   if (nullableType) {
     schema = nullableType
@@ -63,8 +70,6 @@ export function makeSkeletonNode (
   if (knownType) type = knownType
   if (nullableType) nullable = true
 
-  // improve on ajv error messages based on ajv-errors (https://ajv.js.org/packages/ajv-errors.html)
-  rawSchema.errorMessage = rawSchema.errorMessage ?? {}
   if (!normalizedLayouts[pointer]) {
     const normalizationResult = normalizeLayoutFragment(
       key,
@@ -192,7 +197,7 @@ export function makeSkeletonNode (
   }
 
   if (schema.oneOf) {
-    rawSchema.errorMessage.oneOf = options.messages.errorOneOf
+    errorMessage.oneOf = options.messages.errorOneOf
   }
 
   if (type === 'object') {
@@ -472,11 +477,11 @@ export function makeSkeletonNode (
 
     for (const propertyKey of node.propertyKeys) {
       if (schema?.required?.includes(propertyKey)) {
-        rawSchema.errorMessage.required = rawSchema.errorMessage.required ?? {}
-        rawSchema.errorMessage.required[propertyKey] = options.messages.errorRequired
+        errorMessage.required = rawSchema.errorMessage.required ?? {}
+        errorMessage.required[propertyKey] = options.messages.errorRequired
       }
       if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
-        rawSchema.errorMessage.dependentRequired = options.messages.errorRequired
+        errorMessage.dependentRequired = options.messages.errorRequired
       }
     }
   }
