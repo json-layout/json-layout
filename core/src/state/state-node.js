@@ -129,7 +129,7 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
     }
   }
 
-  if (additionalPropertiesErrors) {
+  if (additionalPropertiesErrors?.length) {
     for (const error of additionalPropertiesErrors) {
       if (error.instancePath !== parentDataPath) continue
       if (error.keyword === 'additionalProperties') {
@@ -490,18 +490,13 @@ export function createStateNode (
     // or the one matching the specified discriminator
     // or the one that is valid with current data
     let activeChildTreeIndex = /** @type {number} */context.activatedItems[fullKey]
-    const validChildTreeIndex = skeleton.discriminator !== undefined
-      ? skeleton.childrenTrees?.findIndex((childTree) => skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined && data[skeleton.discriminator] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
-      : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
+    const validChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
     if (activeChildTreeIndex === undefined) {
-      activeChildTreeIndex = validChildTreeIndex
-    }
-
-    if (context.additionalPropertiesErrors && activeChildTreeIndex === -1) {
-      // remove all additional properties errors of this data node if the oneOf has no active child
-      context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
-        return !matchDataPathError(error, dataPath)
-      })
+      if (skeleton.discriminator !== undefined && validChildTreeIndex === -1) {
+        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined && data[skeleton.discriminator] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
+      } else {
+        activeChildTreeIndex = validChildTreeIndex
+      }
     }
 
     if (activeChildTreeIndex !== -1) {
@@ -520,10 +515,19 @@ export function createStateNode (
         return true
       })
 
-      if (context.additionalPropertiesErrors) {
-        // keep only the additional properties errors from the active child
+      if (context.additionalPropertiesErrors?.length) {
+        // exclude the additional properties errors from the other children
         context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
-          return !matchDataPathError(error, dataPath) || matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)
+          // keep errors from other parts of the data
+          if (!matchDataPathError(error, dataPath)) return true
+          // keep errors from the active child's schema
+          if (matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) return true
+          // remove errors from other children
+          if (matchChildError(compiledLayout, error, skeleton, dataPath, parentDataPath) && !matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) return false
+          // ignore unevaluatedProperties errors from higher level that can be triggered because the active element is not yet valid
+          // TODO: should the last check include comparing with activeChildNode.propertyKeys ?
+          if (validChildTreeIndex === -1) return false
+          return true
         })
       }
 
