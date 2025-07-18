@@ -234,19 +234,31 @@ const matchChildError = (compiledLayout, error, skeleton, dataPath, parentDataPa
 }
 
 /**
+ * should match any error related to the data node not matter the origin in the schema
+ * @param {import('ajv').ErrorObject} error
+ * @param {string} dataPath
+ * @returns {boolean}
+ */
+const matchDataPathError = (error, dataPath) => {
+  const originalError = error.params?.errors?.[0] ?? error
+  return originalError.instancePath.startsWith(dataPath)
+}
+
+/**
  * should match if an error belongs to a child of the current node but the child was not displayed
  * @param {import('ajv').ErrorObject} error
  * @param {string} pointer1
  * @param {string} pointer2
  * @param {string} dataPath
  * @param {string | null} parentDataPath
+ * @param debug
  * @returns {boolean}
  */
 const matchPointerError = (error, pointer1, pointer2, dataPath, parentDataPath) => {
   const originalError = error.params?.errors?.[0] ?? error
   if (!originalError.instancePath.startsWith(dataPath)) return false
   if (originalError.schemaPath === pointer1 ||
-          originalError.schemaPath.startsWith(pointer2 + '/') ||
+          originalError.schemaPath.startsWith(pointer1 + '/') ||
           originalError.schemaPath === pointer2 ||
           originalError.schemaPath.startsWith(pointer2 + '/')
   ) return true
@@ -478,12 +490,18 @@ export function createStateNode (
     // or the one matching the specified discriminator
     // or the one that is valid with current data
     let activeChildTreeIndex = /** @type {number} */context.activatedItems[fullKey]
+    const validChildTreeIndex = skeleton.discriminator !== undefined
+      ? skeleton.childrenTrees?.findIndex((childTree) => skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined && data[skeleton.discriminator] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
+      : skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
     if (activeChildTreeIndex === undefined) {
-      if (skeleton.discriminator !== undefined) {
-        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined && data[skeleton.discriminator] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
-      } else {
-        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
-      }
+      activeChildTreeIndex = validChildTreeIndex
+    }
+
+    if (context.additionalPropertiesErrors && activeChildTreeIndex === -1) {
+      // remove all additional properties errors of this data node if the oneOf has no active child
+      context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
+        return !matchDataPathError(error, dataPath)
+      })
     }
 
     if (activeChildTreeIndex !== -1) {
@@ -501,16 +519,14 @@ export function createStateNode (
         }
         return true
       })
+
       if (context.additionalPropertiesErrors) {
-        // remove additional properties errors if the oneOf has no valid children
+        // keep only the additional properties errors from the active child
         context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
-          // also remove the additional errors from other children of the oneOf
-          if (matchChildError(compiledLayout, error, skeleton, dataPath, parentDataPath) && !matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) {
-            return false
-          }
-          return true
+          return !matchDataPathError(error, dataPath) || matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)
         })
       }
+
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
 

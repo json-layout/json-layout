@@ -167,10 +167,7 @@ describe('Lists with items fetching', () => {
       }
     })
 
-    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { updateOn: 'blur' }, {
-      str1: 'req1',
-      arr1: []
-    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { updateOn: 'blur' })
     const getNode = getNodeBuilder(statefulLayout)
     assert.ok(statefulLayout.valid)
     assert.deepEqual(statefulLayout.data, { type: 'icon-single', icon: { name: 'map-marker', } })

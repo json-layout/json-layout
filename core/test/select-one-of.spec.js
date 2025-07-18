@@ -488,7 +488,7 @@ describe('Special cases of oneOfs', () => {
     assert.deepEqual(statefulLayout.data, { key: 'key1' })
   })
 
-  it.only('should use the discriminator keyword with $refs', async () => {
+  it('should use the discriminator keyword with $refs', async () => {
     const compiledLayout = await compile({
       discriminator: { propertyName: 'key' },
       oneOf: [{ $ref: '#/$defs/oneOf1' }, { $ref: '#/$defs/oneOf2' }],
@@ -520,5 +520,188 @@ describe('Special cases of oneOfs', () => {
     assert.ok(oneOfChild)
     assert.ok(!statefulLayout.valid)
     assert.deepEqual(statefulLayout.data, { key: 'key1' })
+  })
+
+  it('should manage validation and default values of active element in a oneOf', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      unevaluatedProperties: false,
+      oneOf: [{
+        title: 'Title',
+        required: ['type', 'content', 'titleSize'],
+        properties: {
+          type: { type: 'string', const: 'title' },
+          content: { type: 'string' },
+          titleSize: {
+            type: 'string',
+            enum: ['h1', 'h2', 'h3'],
+            default: 'h3'
+          }
+        }
+      }, {
+        title: 'Text',
+        required: ['type', 'content'],
+        properties: {
+          type: { type: 'string', const: 'text' },
+          content: { type: 'string' }
+        }
+      }, {
+        title: 'Divider',
+        required: ['type'],
+        properties: {
+          type: { type: 'string', const: 'divider' },
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], undefined)
+    assert.deepEqual(statefulLayout.stateTree.root.data, {})
+
+    statefulLayout.activateItem(getNode('$oneOf'), 0)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', titleSize: 'h3' })
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(getNode('$oneOf.0').error, undefined)
+    assert.equal(getNode('$oneOf.0').childError, true)
+    assert.equal(getNode('$oneOf.0.content').error, 'required information')
+    assert.equal(getNode('$oneOf.0.titleSize').data, 'h3')
+    statefulLayout.input(getNode('$oneOf.0.content'), 'Content')
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', titleSize: 'h3', content: 'Content' })
+    assert.equal(statefulLayout.valid, true)
+  })
+
+  it('should manage all the same cases as previous example but with $refs', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      oneOf: [{ $ref: '#/$defs/title' }, { $ref: '#/$defs/text' }, { $ref: '#/$defs/divider' }],
+      $defs: {
+        title: {
+          title: 'Title',
+          required: ['type', 'content', 'titleSize'],
+          properties: {
+            type: { type: 'string', const: 'title' },
+            content: { type: 'string' },
+            titleSize: {
+              type: 'string',
+              enum: ['h1', 'h2', 'h3'],
+              default: 'h3'
+            }
+          }
+        },
+        text: {
+          title: 'Text',
+          required: ['type', 'content'],
+          properties: {
+            type: { type: 'string', const: 'text' },
+            content: { type: 'string' }
+          }
+        },
+        divider: {
+          title: 'Divider',
+          required: ['type'],
+          properties: {
+            type: { type: 'string', const: 'divider' },
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], undefined)
+    assert.deepEqual(statefulLayout.stateTree.root.data, {})
+
+    statefulLayout.activateItem(getNode('$oneOf'), 0)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', titleSize: 'h3' })
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(getNode('$oneOf.0').error, undefined)
+    assert.equal(getNode('$oneOf.0').childError, true)
+    assert.equal(getNode('$oneOf.0.content').error, 'required information')
+    assert.equal(getNode('$oneOf.0.titleSize').data, 'h3')
+    statefulLayout.input(getNode('$oneOf.0.content'), 'Content')
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', titleSize: 'h3', content: 'Content' })
+    assert.equal(statefulLayout.valid, true)
+  })
+
+  it('should manage all the same cases as previous example but in an array with $refs', async () => {
+    const compiledLayout = await compile({
+      type: 'array',
+      items: { $ref: '#/$defs/element' },
+      $defs: {
+        element: {
+          type: 'object',
+          unevaluatedProperties: false,
+          oneOf: [{ $ref: '#/$defs/title' }, { $ref: '#/$defs/text' }, { $ref: '#/$defs/divider' }],
+        },
+        title: {
+          title: 'Title',
+          required: ['type', 'content', 'titleSize'],
+          properties: {
+            type: { type: 'string', const: 'title' },
+            content: { type: 'string' },
+            titleSize: {
+              type: 'string',
+              enum: ['h1', 'h2', 'h3'],
+              default: 'h3'
+            }
+          }
+        },
+        text: {
+          title: 'Text',
+          required: ['type', 'content'],
+          properties: {
+            type: { type: 'string', const: 'text' },
+            content: { type: 'string' }
+          }
+        },
+        divider: {
+          title: 'Divider',
+          required: ['type'],
+          properties: {
+            type: { type: 'string', const: 'divider' },
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, [])
+    const getNode = getNodeBuilder(statefulLayout)
+
+    statefulLayout.input(statefulLayout.stateTree.root, [undefined])
+    assert.deepEqual(statefulLayout.stateTree.root.data, [{}])
+    assert.equal(statefulLayout.activatedItems['/0/$oneOf'], undefined)
+    assert.equal(getNode('0.$oneOf').error, 'chose one')
+
+    statefulLayout.activateItem(getNode('0.$oneOf'), 0)
+    assert.equal(statefulLayout.activatedItems['/0/$oneOf'], 0)
+
+    assert.deepEqual(statefulLayout.stateTree.root.data, [{ type: 'title', titleSize: 'h3' }])
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(getNode('0.$oneOf').error, undefined)
+    assert.equal(getNode('0.$oneOf').childError, true)
+    assert.equal(getNode('0.$oneOf.0').error, undefined)
+    assert.equal(getNode('0.$oneOf.0').childError, true)
+    assert.equal(getNode('0.$oneOf.0.content').error, 'required information')
+    assert.equal(getNode('0.$oneOf.0.titleSize').data, 'h3')
+    statefulLayout.input(getNode('0.$oneOf.0.content'), 'Content')
+    assert.equal(getNode('0.$oneOf').childError, false)
+    assert.deepEqual(statefulLayout.stateTree.root.data, [{ type: 'title', titleSize: 'h3', content: 'Content' }])
+    assert.equal(statefulLayout.valid, true)
+
+    statefulLayout.input(statefulLayout.stateTree.root, [{ type: 'title', titleSize: 'h3', content: 'Content' }, undefined])
+    assert.deepEqual(statefulLayout.stateTree.root.data, [{ type: 'title', titleSize: 'h3', content: 'Content' }, {}])
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(getNode('0.$oneOf').error, undefined)
+    assert.equal(getNode('0.$oneOf').childError, false)
+    assert.equal(getNode('1.$oneOf').error, 'chose one')
+    statefulLayout.activateItem(getNode('1.$oneOf'), 0)
+    assert.equal(statefulLayout.activatedItems['/1/$oneOf'], 0)
+    assert.equal(statefulLayout.valid, false)
+    assert.equal(getNode('0.$oneOf').error, undefined)
+    assert.equal(getNode('0.$oneOf').childError, false)
+    assert.equal(getNode('1.$oneOf').error, undefined)
+    assert.equal(getNode('1.$oneOf').childError, true)
   })
 })
