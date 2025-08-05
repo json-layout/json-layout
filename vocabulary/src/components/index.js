@@ -63,7 +63,8 @@ export const standardComponents = [
       properties: {
         title: { type: 'string' },
         listEditMode: { type: 'string', enum: ['inline', 'inline-single', 'menu', 'dialog'] },
-        listActions: { type: 'array', items: { type: 'string', enum: ['add', 'edit', 'delete', 'sort', 'duplicate'] } },
+        listActions: { type: 'array', items: { type: 'string', enum: ['add', 'edit', 'delete', 'sort', 'duplicate', 'copy', 'paste'] } },
+        clipboardKey: { type: 'string' },
         itemTitle: { $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/expression' },
         itemSubtitle: { $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/expression' },
         itemCopy: { $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/expression' },

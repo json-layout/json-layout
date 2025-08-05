@@ -8,6 +8,8 @@ export default {
   edit: 'Bewerken',
   close: 'Sluiten',
   duplicate: 'Verveelvoudigen',
+  copy: 'Kopiëren',
+  paste: 'Plakken',
   sort: 'Sorteren',
   up: 'Omhoog verplaatsen',
   down: 'Omlaag verplaatsen',

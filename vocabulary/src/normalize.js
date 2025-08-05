@@ -459,7 +459,11 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
             partial.itemTitle = partial.getItems.itemTitle
           }
         } else {
-          partial.listActions = ['add', 'edit', 'delete', 'sort', 'duplicate']
+          if (partial.clipboardKey) {
+            partial.listActions = ['add', 'edit', 'delete', 'sort', 'duplicate', 'copy', 'paste']
+          } else {
+            partial.listActions = ['add', 'edit', 'delete', 'sort', 'duplicate']
+          }
         }
       }
     }

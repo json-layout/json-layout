@@ -251,7 +251,6 @@ const matchDataPathError = (error, dataPath) => {
  * @param {string} pointer2
  * @param {string} dataPath
  * @param {string | null} parentDataPath
- * @param debug
  * @returns {boolean}
  */
 const matchPointerError = (error, pointer1, pointer2, dataPath, parentDataPath) => {

@@ -8,6 +8,8 @@ export default {
   confirm: 'Confirm',
   close: 'Close',
   duplicate: 'Duplicate',
+  copy: 'Copy',
+  paste: 'Paste',
   sort: 'Sort',
   up: 'Move up',
   down: 'Move down',
