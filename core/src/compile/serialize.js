@@ -1,8 +1,14 @@
 // import Debug from 'debug'
+import ajvModule from 'ajv/dist/2019.js'
+import addFormats from 'ajv-formats'
+import ajvErrors from 'ajv-errors'
 import { ok } from 'assert/strict'
 import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
 import { clone } from '../utils/clone.js'
+
+// @ts-ignore
+const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
 
 /**
  * @param {import('./index.js').CompiledLayout} compiledLayout
@@ -11,7 +17,27 @@ import { clone } from '../utils/clone.js'
 export function serialize (compiledLayout) {
   ok(compiledLayout.schema)
   ok(compiledLayout.options)
-  const ajv = compiledLayout.options.ajv
+
+  // we get the schemas that were extended by makeSleletonNode
+  /** @type {Record<string, any>} */
+  const schemas = {}
+  for (const [key, value] of Object.entries(compiledLayout.options.ajv.schemas)) {
+    if (key.startsWith('https://json-schema.org/')) continue
+    schemas[key] = value?.schema
+  }
+
+  /** @type {import('ajv').Options} */
+  const ajvOpts = {
+    allErrors: true,
+    strict: false,
+    verbose: true,
+    ...compiledLayout.options.ajvOptions,
+    code: { source: true, esm: true, lines: true },
+    schemas
+  }
+  const ajv = new Ajv(ajvOpts)
+  addFormats.default(ajv)
+  ajvErrors.default(ajv)
 
   /** @type {Record<string, string>} */
   const validatesExports = {}

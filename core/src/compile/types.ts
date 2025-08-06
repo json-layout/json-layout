@@ -27,7 +27,6 @@ export type CompiledExpression = (
 export type CompileOptions = NormalizeOptions & {
   ajv: ajvModule.default
   ajvOptions?: ajvModule.Options
-  code: boolean
   markedOptions?: MarkedOptions
   locale: string
   defaultLocale: string

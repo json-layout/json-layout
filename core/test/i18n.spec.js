@@ -59,7 +59,7 @@ describe('internationalization', () => {
   })
 
   it('should return internationalized errors in compiled mode too', async () => {
-    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr', code: true })
+    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
     const code = serialize(compiledLayout)
     const filePath = resolve('tmp/compiled-i18n.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')

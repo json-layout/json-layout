@@ -26,7 +26,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       compile = compileSrc
     } else {
       compile = /** @type {typeof compileSrc} */async (schema, options = {}) => {
-        const compiledLayout = compileSrc(schema, { ...options, code: true })
+        const compiledLayout = compileSrc(schema, options)
         const code = serialize(compiledLayout) + '\nexport default compiledLayout;'
         const filePath = resolve(`tmp/${currentTest?.replace(/\W/g, '_')}.js`)
         if (existsSync(filePath) && readFileSync(filePath, 'utf8') === code) {
