@@ -308,7 +308,8 @@
           "properties": {
             "before": {"$ref": "#/$defs/slot"},
             "after": {"$ref": "#/$defs/slot"},
-            "component": {"$ref": "#/$defs/slot"}
+            "component": {"$ref": "#/$defs/slot"},
+            "compositeComponent": {"$ref": "#/$defs/slot"}
           }
         }
       ]

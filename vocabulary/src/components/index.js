@@ -32,6 +32,10 @@ export const standardComponents = [
     name: 'slot'
   },
   {
+    name: 'composite-slot',
+    composite: true
+  },
+  {
     name: 'section',
     composite: true
   },

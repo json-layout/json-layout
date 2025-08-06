@@ -141,6 +141,8 @@ function getChildren (defaultChildren, partialChildren, markdown) {
  */
 function getDefaultComp (partial, schemaFragment, type, options, schemaChild) {
   if (partial.slots?.component) return 'slot'
+  if (partial.slots?.compositeComponent) return 'composite-slot'
+
   const hasSimpleType = type && ['string', 'integer', 'number'].includes(type)
   if (schemaChild === 'oneOf') return 'one-of-select'
   if (schemaChild === 'patternProperties') return 'list'

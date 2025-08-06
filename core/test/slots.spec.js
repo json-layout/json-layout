@@ -48,6 +48,31 @@ describe('Managing slots', () => {
     assert.deepEqual(statefulLayout.stateTree.root.slots?.component, { name: 'named-slot' })
   })
 
+  it('should manage component slot with children', async () => {
+    const compiledLayout = await compile(
+      {
+        type: 'object',
+        layout: {
+          slots: {
+            compositeComponent: 'named-slot'
+          }
+        },
+        properties: {
+          str1: { type: 'string' },
+          str2: { type: 'string' }
+        }
+      })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      defaultOptions,
+      { str1: 'Str 1' }
+    )
+    assert.ok(statefulLayout.stateTree.valid)
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'composite-slot')
+    assert.deepEqual(statefulLayout.stateTree.root.slots?.compositeComponent, { name: 'named-slot' })
+    assert.equal(statefulLayout.stateTree.root.children?.length, 2)
+  })
+
   it('should manage a pure slot child in a section', async () => {
     const compiledLayout = await compile({
       type: 'object',
