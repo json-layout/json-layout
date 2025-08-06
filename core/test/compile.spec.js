@@ -13,10 +13,54 @@ describe('compile schema function', () => {
   })
 
   it('should support serializing the compiled layout', async () => {
-    const compiledLayout = compile({ type: 'string', layout: { if: "mode == 'read'" }, format: 'date-time' }, { code: true })
+    const compiledLayout = compile({ type: 'string', layout: { if: "mode == 'read'" }, format: 'date-time' })
     const code = serialize(compiledLayout)
     assert.ok(code)
     const filePath = resolve('tmp/compiled.js')
+    await writeFile(filePath, code + '\nexport default compiledLayout;')
+    const serializedLayout = (await import(filePath)).default
+    assert.deepEqual(serializedLayout.skeletonTrees[serializedLayout.mainTree], compiledLayout.skeletonTrees[compiledLayout.mainTree])
+    assert.deepEqual(serializedLayout.normalizedLayouts, compiledLayout.normalizedLayouts)
+    // console.log(serializedLayout)
+  })
+
+  it('should support serializing a slightly more complex layout', async () => {
+    const compiledLayout = compile({
+      type: 'object',
+      required: ['str1'],
+      properties: {
+        str1: { $ref: '#/$defs/str1' },
+        oneOf1: { $ref: 'https://test.com/oneof1' }
+      },
+      $defs: {
+        str1: {
+          type: 'string'
+        }
+      }
+    }, {
+      ajvOptions: {
+        schemas: [{
+          $id: 'https://test.com/oneof1',
+          type: 'object',
+          oneOf: [{
+            title: 'One of 1',
+            required: ['str1'],
+            properties: {
+              str1: { type: 'string' },
+            }
+          }, {
+            title: 'One of 2',
+            required: ['str2'],
+            properties: {
+              str2: { type: 'string' },
+            }
+          }]
+        }]
+      }
+    })
+    const code = serialize(compiledLayout)
+    assert.ok(code)
+    const filePath = resolve('tmp/compiled2.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')
     const serializedLayout = (await import(filePath)).default
     assert.deepEqual(serializedLayout.skeletonTrees[serializedLayout.mainTree], compiledLayout.skeletonTrees[compiledLayout.mainTree])

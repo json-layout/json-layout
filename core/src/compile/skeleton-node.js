@@ -65,6 +65,8 @@ export function makeSkeletonNode (
     if (pointer === refPointer) pointer = schema.__pointer
     refPointer = schema.__pointer
   }
+  const refPointerPrefix = (refPointer === schema.$id) ? refPointer += '#' : refPointer
+
   const resolvedSchema = partialResolveRefs(schema, schemaId, getJSONRef)
   let { type, nullable } = getSchemaFragmentType(resolvedSchema)
   if (knownType) type = knownType
@@ -207,7 +209,7 @@ export function makeSkeletonNode (
         node.propertyKeys.push(propertyKey)
         if (schema.properties[propertyKey].readOnly) node.roPropertyKeys.push(propertyKey)
         const dependent = schema.dependentRequired && Object.values(schema.dependentRequired).some(dependentProperties => dependentProperties.includes(propertyKey))
-        const childPointer = `${refPointer}/properties/${propertyKey}`
+        const childPointer = `${refPointerPrefix}/properties/${propertyKey}`
         if (!skeletonNodes[childPointer]) {
           // @ts-ignore
           skeletonNodes[childPointer] = 'recursing'
@@ -233,7 +235,7 @@ export function makeSkeletonNode (
 
         if (schema.dependentSchemas?.[propertyKey] || (schema.dependencies?.[propertyKey] && !Array.isArray(schema.dependencies[propertyKey]))) {
           const dependentSchema = schema.dependentSchemas?.[propertyKey] ?? schema.dependencies[propertyKey]
-          const dependentPointer = schema.dependentSchemas?.[propertyKey] ? `${refPointer}/dependentSchemas/${propertyKey}` : `${refPointer}/dependencies/${propertyKey}`
+          const dependentPointer = schema.dependentSchemas?.[propertyKey] ? `${refPointerPrefix}/dependentSchemas/${propertyKey}` : `${refPointerPrefix}/dependencies/${propertyKey}`
           if (!skeletonNodes[dependentPointer]) {
             // @ts-ignore
             skeletonNodes[dependentPointer] = 'recursing'
@@ -263,7 +265,7 @@ export function makeSkeletonNode (
     }
     if (schema.allOf) {
       for (let i = 0; i < schema.allOf.length; i++) {
-        const childPointer = `${refPointer}/allOf/${i}`
+        const childPointer = `${refPointerPrefix}/allOf/${i}`
         if (!skeletonNodes[childPointer]) {
           // @ts-ignore
           skeletonNodes[childPointer] = 'recursing'
@@ -296,7 +298,7 @@ export function makeSkeletonNode (
       /** @type {string | undefined} */
       let discriminator
       if (schema.discriminator?.propertyName) discriminator = schema.discriminator?.propertyName
-      const oneOfPointer = `${refPointer}/oneOf`
+      const oneOfPointer = `${refPointerPrefix}/oneOf`
       if (!normalizedLayouts[oneOfPointer]) {
         const normalizationResult = normalizeLayoutFragment(
           '',
@@ -420,7 +422,7 @@ export function makeSkeletonNode (
     if (schema.if) {
       validatePointers.push(`${pointer}/if`)
       if (schema.then) {
-        const childPointer = `${refPointer}/then`
+        const childPointer = `${refPointerPrefix}/then`
         if (!skeletonNodes[childPointer]) {
           // @ts-ignore
           skeletonNodes[childPointer] = 'recursing'
@@ -447,7 +449,7 @@ export function makeSkeletonNode (
         node.children.push(childPointer)
       }
       if (schema.else) {
-        const childPointer = `${refPointer}/else`
+        const childPointer = `${refPointerPrefix}/else`
         if (!skeletonNodes[childPointer]) {
           // @ts-ignore
           skeletonNodes[childPointer] = 'recursing'
@@ -492,7 +494,7 @@ export function makeSkeletonNode (
       for (let i = 0; i < schema.items.length; i++) {
         /** @type {any} */
         const itemSchema = schema.items[i]
-        const childPointer = `${refPointer}/items/${i}`
+        const childPointer = `${refPointerPrefix}/items/${i}`
         if (!skeletonNodes[childPointer]) {
           // @ts-ignore
           skeletonNodes[childPointer] = 'recursing'
@@ -515,7 +517,7 @@ export function makeSkeletonNode (
         node.children.push(childPointer)
       }
     } else {
-      const childTreePointer = `${refPointer}/items`
+      const childTreePointer = `${refPointerPrefix}/items`
       if (!skeletonTrees[childTreePointer]) {
         // @ts-ignore
         skeletonTrees[childTreePointer] = 'recursing'
