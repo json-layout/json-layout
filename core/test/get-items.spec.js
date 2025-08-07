@@ -187,6 +187,24 @@ describe('get select items', () => {
     ])
   })
 
+  it('should manage a autocomplete with getItems as relative fetch url with q nested in other content', async () => {
+    const compiledLayout = await compile({ type: 'string', layout: { getItems: { url: 'test?query=search("{q}")' } } })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+      ...defaultOptions,
+      fetchBaseURL: '/base/'
+    }, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'autocomplete')
+
+    const nockScope = nock('http://test.com')
+      .get('/base/test?query=search("val1")')
+      .reply(200, ['val1'])
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root, 'val1')
+    assert.ok(nockScope.isDone())
+    assert.deepEqual(items, [
+      { title: 'val1', key: 'val1', value: 'val1' }
+    ])
+  })
+
   it('should manage a autocomplete with getItems as fetch url without q param', async () => {
     const compiledLayout = await compile({ type: 'string', layout: { comp: 'autocomplete', getItems: { url: 'http://${options.context.domain}/test' } } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { domain: 'test.com' } }, {})

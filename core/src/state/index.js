@@ -583,13 +583,13 @@ export class StatefulLayout {
       let qSearchParam = node.layout.getItems.qSearchParam
       if (!qSearchParam) {
         for (const searchParam of url.searchParams.entries()) {
-          if (searchParam[1] === '{q}') qSearchParam = searchParam[0]
+          if (searchParam[1].includes('{q}')) qSearchParam = searchParam[0]
         }
       }
       if (qSearchParam) {
         logGetItems(node.fullKey, 'apply search params', qSearchParam)
         appliedQ = true
-        if (q) url.searchParams.set(qSearchParam, q)
+        if (q) url.searchParams.set(qSearchParam, url.searchParams.get(qSearchParam)?.replace('{q}', q) ?? q)
         else url.searchParams.delete(qSearchParam)
       }
       let fetchOptions = typeof node.options.fetchOptions === 'function' ? node.options.fetchOptions(url) : node.options.fetchOptions
