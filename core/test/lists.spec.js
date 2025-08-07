@@ -85,4 +85,41 @@ describe('Lists management', () => {
     statefulLayout.activateItem(arrNode, 1)
     assert.deepEqual(statefulLayout.data, { arr1: [{ str1: 'val1' }, {}] })
   })
+
+  it.only('should manage array of objects as a list in menu/dialog edition mode', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        arr1: {
+          type: 'array',
+          layout: {
+            listEditMode: 'dialog'
+          },
+          items: { type: 'object', properties: { str1: { type: 'string' } } }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
+      arr1: [{ str1: 'val1' }]
+    })
+    const getNode = getNodeBuilder(statefulLayout)
+    const arrNode = getNode('arr1')
+    assert.ok(arrNode)
+    assert.equal(arrNode.layout.comp, 'list')
+    assert.deepEqual(arrNode.data, [{ str1: 'val1' }])
+
+    // push empty item before editing it
+    statefulLayout.input(arrNode, [{ str1: 'val1' }, undefined])
+    statefulLayout.activateItem(arrNode, 1)
+    assert.deepEqual(statefulLayout.data, { arr1: [{ str1: 'val1' }, {}] })
+    const roNode = getNode('arr1.1')
+    assert.equal(roNode.options.summary, true)
+    const editNode = getNode('arr1').children?.[2]
+    assert.ok(editNode)
+    assert.equal(editNode.options.summary, false)
+    assert.equal(editNode.key, 1)
+    assert.ok(editNode.children?.[0])
+    statefulLayout.input(editNode.children[0], 'val2')
+    assert.deepEqual(statefulLayout.data, { arr1: [{ str1: 'val1' }, { str1: 'val2' }] })
+  })
 })

@@ -631,6 +631,30 @@ export function createStateNode (
         if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
         children.push(child)
       }
+
+      // duplicate active child at the end of the list in case of dialog/menu edition
+      if (context.activatedItems[fullKey] !== undefined && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
+        const i = context.activatedItems[fullKey]
+        // const childKey = 'active-' + i
+        const activeChild = createStateNode(
+          context,
+          options,
+          compiledLayout,
+          i,
+          `${fullKey}/active-${i}`,
+          fullKey,
+          `${dataPath}/${i}`,
+          dataPath,
+          childSkeleton,
+          null,
+          display,
+          arrayData[i],
+          { parent: parentContext, data: arrayData },
+          validationState,
+          reusedNode?.children?.[i]
+        )
+        children.push(activeChild)
+      }
     }
   }
 
