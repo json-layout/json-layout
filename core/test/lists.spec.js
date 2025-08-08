@@ -86,7 +86,7 @@ describe('Lists management', () => {
     assert.deepEqual(statefulLayout.data, { arr1: [{ str1: 'val1' }, {}] })
   })
 
-  it.only('should manage array of objects as a list in menu/dialog edition mode', async () => {
+  it('should manage array of objects as a list in menu/dialog edition mode', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: {
@@ -121,5 +121,63 @@ describe('Lists management', () => {
     assert.ok(editNode.children?.[0])
     statefulLayout.input(editNode.children[0], 'val2')
     assert.deepEqual(statefulLayout.data, { arr1: [{ str1: 'val1' }, { str1: 'val2' }] })
+  })
+
+  it('should manage array of objects with oneOf as a list in menu/dialog edition mode', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        arr1: {
+          type: 'array',
+          layout: {
+            listEditMode: 'dialog'
+          },
+          items: {
+            type: 'object',
+            oneOf: [
+              {
+                properties: {
+                  type: { type: 'string', const: 'case1' },
+                  str1: { type: 'string' }
+                }
+              },
+              {
+                required: ['str2'],
+                properties: {
+                  type: { type: 'string', const: 'case2' },
+                  str2: { type: 'string' }
+                }
+              }
+            ]
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {
+      arr1: [{ str1: 'val1' }]
+    })
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(getNode('arr1').layout.comp, 'list')
+    assert.equal(getNode('arr1').children?.length, 1)
+
+    // edit 1rst item
+    statefulLayout.activateItem(getNode('arr1'), 0)
+    let children = getNode('arr1').children
+    assert.equal(children?.length, 2)
+    assert.equal(children[0].key, children[1].key)
+    assert.equal(children[0].data, children[1].data)
+    assert.equal(children[0].options.summary, true)
+    assert.equal(children[1].options.summary, false)
+    assert.equal(children[0].children?.[0].key, '$oneOf')
+    assert.equal(children[0].children?.[0].children?.[0].key, 0)
+    assert.equal(children[1].children?.[0].key, '$oneOf')
+    assert.equal(children[1].children?.[0].children?.[0].key, 0)
+
+    // activate second item of oneOf inside the active/edited array item
+    statefulLayout.activateItem(children[1].children?.[0], 1)
+    children = getNode('arr1').children
+    assert.equal(children?.length, 2)
+    assert.equal(children[0].children?.[0].children?.[0].key, 1)
+    assert.equal(children[1].children?.[0].children?.[0].key, 1)
   })
 })
