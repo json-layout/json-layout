@@ -199,7 +199,7 @@ export function makeSkeletonNode (
   }
 
   if (schema.oneOf) {
-    errorMessage.oneOf = options.messages.errorOneOf
+    errorMessage.oneOf = errorMessage.oneOf ?? options.messages.errorOneOf
   }
 
   if (type === 'object') {
@@ -480,10 +480,10 @@ export function makeSkeletonNode (
     for (const propertyKey of node.propertyKeys) {
       if (schema?.required?.includes(propertyKey)) {
         errorMessage.required = rawSchema.errorMessage.required ?? {}
-        errorMessage.required[propertyKey] = options.messages.errorRequired
+        errorMessage.required[propertyKey] = errorMessage.required[propertyKey] ?? options.messages.errorRequired
       }
       if (schema.dependentRequired && Object.keys(schema.dependentRequired).includes(propertyKey)) {
-        errorMessage.dependentRequired = options.messages.errorRequired
+        errorMessage.dependentRequired = errorMessage.dependentRequired ?? options.messages.errorRequired
       }
     }
   }
