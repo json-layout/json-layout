@@ -234,7 +234,7 @@ const matchChildError = (compiledLayout, error, skeleton, dataPath, parentDataPa
 }
 
 /**
- * should match any error related to the data node not matter the origin in the schema
+ * should match any error related to the data node no matter the origin in the schema
  * @param {import('ajv').ErrorObject} error
  * @param {string} dataPath
  * @returns {boolean}
@@ -482,6 +482,16 @@ export function createStateNode (
       if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
       children.push(child)
     }
+  }
+
+  if (skeleton.nullable && context.errors) {
+    // remove errors related to the management of nullable
+    context.errors = context.errors.filter(error => {
+      if (!matchDataPathError(error, dataPath)) return true
+      if (error.keyword === 'anyOf') return false
+      if (error.keyword === 'type' && error.params?.type === 'null') return false
+      return true
+    })
   }
 
   if (key === '$oneOf' && skeleton.childrenTrees) {
