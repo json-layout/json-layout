@@ -434,7 +434,9 @@ export class StatefulLayout {
     const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
     const newParentValue = producePatchedData(
-      parentNode.data ?? (typeof node.key === 'number' ? [] : {}),
+      // WARN: this manner of creating empty object or array based on the type of the child key does not seem very safe
+      // can we find a better way to discriminate ? maybe store an extra info on the the skeleton, like "emptyData" ?
+      parentNode.data ?? ((typeof node.key === 'number' && parentNode.key !== '$oneOf') ? [] : {}),
       node,
       (data === null || data === undefined) ? (node.skeleton.nullable ? null : undefined) : data
     )

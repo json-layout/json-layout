@@ -427,6 +427,21 @@ export function createStateNode (
     context.autofocusTarget = fullKey
   }
 
+  if (data === null && !layout.nullable) data = undefined
+  const shouldUseDefaultData = layout.getDefaultData && useDefaultData(data, layout, options) && context.currentInput !== fullKey
+  if (layout.getConstData) {
+    if (!context.rehydrate) {
+      data = evalExpression(compiledLayout.expressions, layout.getConstData, data, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+    }
+  } else {
+    if (shouldUseDefaultData && layout.getDefaultData && !context.rehydrate) {
+      const defaultData = evalExpression(compiledLayout.expressions, layout.getDefaultData, data, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+      if (data === undefined || !isDataEmpty(defaultData)) {
+        data = defaultData
+      }
+    }
+  }
+
   /** @type {import('./types.js').StateNode[] | undefined} */
   let children
   if (isCompositeLayout(layout, compiledLayout.components)) {
@@ -692,78 +707,64 @@ export function createStateNode (
   }
 
   let nodeData = data
-  if (nodeData === null && !layout.nullable) nodeData = undefined
+
+  if (!layout.getConstData) {
+    if (typeof children?.[0]?.key === 'number' && layout.comp !== 'one-of-select' && !layout.indexed) {
+      // case of an array of children nodes
+      nodeData = produceStateNodeDataChildrenArray(
+      /** @type {unknown[]} */(nodeData ?? []),
+        children
+      )
+    } else if (Array.isArray(nodeData)) {
+      // case of an array without children nodes, so a select of objects for example
+      const itemsSkeletonTree = skeleton.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton.childrenTrees?.[0]]
+      const itemsSkeletonNode = (itemsSkeletonTree && compiledLayout.skeletonNodes[itemsSkeletonTree.root]) || null
+      nodeData = produceStateNodeDataArray(
+        /** @type {Record<string, unknown>[]} */(nodeData ?? []),
+        dataPath,
+        context.additionalPropertiesErrors,
+        [true, 'unknown'].includes(options.removeAdditional) ? itemsSkeletonNode?.propertyKeys : undefined,
+        options.readOnlyPropertiesMode === 'remove' ? itemsSkeletonNode?.roPropertyKeys : undefined
+      )
+    } else if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
+      // case of an object base on children nodes or not
+      const removeAdditional = [true, 'unknown'].includes(options.removeAdditional) || children?.some(c => c.key === '$patternProperties')
+      nodeData = produceStateNodeData(
+      /** @type {Record<string, unknown>} */(nodeData ?? {}),
+        dataPath,
+        children,
+        context.additionalPropertiesErrors,
+        removeAdditional ? skeleton.propertyKeys : undefined,
+        options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
+      )
+    }
+
+    // the producer is not perfect, sometimes data is considered mutated but it is actually the same
+    // we double check here to avoid unnecessary re-renders
+    if (nodeData !== data) {
+      if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
+      // @ts-ignore
+      else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
+    }
+
+    if (!(shouldUseDefaultData) && isDataEmpty(nodeData)) {
+      if (layout.nullable) {
+        // if a property is nullable empty values are converted to null
+        // except for undefined if we need to distinguish between empty and missing data
+        if (options.defaultOn !== 'missing' || nodeData !== undefined) {
+          nodeData = null
+        }
+      } else if (options.defaultOn !== 'missing') {
+        // remove empty data, except if we need to distinguish between empty and missing data
+        nodeData = undefined
+      }
+    }
+  }
 
   const validated = validationState.validatedForm ||
     validationState.validatedChildren.includes(fullKey) ||
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(nodeData))
-
-  if (typeof children?.[0]?.key === 'number' && layout.comp !== 'one-of-select' && !layout.indexed) {
-    // case of an array of children nodes
-    nodeData = produceStateNodeDataChildrenArray(
-      /** @type {unknown[]} */(nodeData ?? []),
-      children
-    )
-  } else if (Array.isArray(nodeData)) {
-    // case of an array without children nodes, so a select of objects for example
-    const itemsSkeletonTree = skeleton.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton.childrenTrees?.[0]]
-    const itemsSkeletonNode = (itemsSkeletonTree && compiledLayout.skeletonNodes[itemsSkeletonTree.root]) || null
-    nodeData = produceStateNodeDataArray(
-      /** @type {Record<string, unknown>[]} */(nodeData ?? []),
-      dataPath,
-      context.additionalPropertiesErrors,
-      [true, 'unknown'].includes(options.removeAdditional) ? itemsSkeletonNode?.propertyKeys : undefined,
-      options.readOnlyPropertiesMode === 'remove' ? itemsSkeletonNode?.roPropertyKeys : undefined
-    )
-  } else if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
-    // case of an object base on children nodes or not
-    const removeAdditional = [true, 'unknown'].includes(options.removeAdditional) || children?.some(c => c.key === '$patternProperties')
-    nodeData = produceStateNodeData(
-      /** @type {Record<string, unknown>} */(nodeData ?? {}),
-      dataPath,
-      children,
-      context.additionalPropertiesErrors,
-      removeAdditional ? skeleton.propertyKeys : undefined,
-      options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
-    )
-  }
-
-  // the producer is not perfect, sometimes data is considered mutated but it is actually the same
-  // we double check here to avoid unnecessary re-renders
-  if (nodeData !== data) {
-    if (Array.isArray(data) && Array.isArray(nodeData)) nodeData = shallowProduceArray(data, nodeData)
-    // @ts-ignore
-    else if (typeof data === 'object' && typeof nodeData === 'object') nodeData = shallowProduceObject(data, nodeData)
-  }
-
-  if (layout.getConstData) {
-    if (!context.rehydrate) {
-      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
-    }
-  } else {
-    if (layout.getDefaultData && useDefaultData(nodeData, layout, options) && context.currentInput !== fullKey) {
-      if (!context.rehydrate) {
-        const defaultData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
-        if (nodeData === undefined || !isDataEmpty(defaultData)) {
-          nodeData = defaultData
-        }
-      }
-    } else {
-      if (isDataEmpty(nodeData)) {
-        if (layout.nullable) {
-          // if a property is nullable empty values are converted to null
-          // except for undefined if we need to distinguish between empty and missing data
-          if (options.defaultOn !== 'missing' || nodeData !== undefined) {
-            nodeData = null
-          }
-        } else if (options.defaultOn !== 'missing') {
-          // remove empty data, except if we need to distinguish between empty and missing data
-          nodeData = undefined
-        }
-      }
-    }
-  }
 
   let props
   if (layout.getProps) {

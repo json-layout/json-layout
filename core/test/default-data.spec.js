@@ -45,7 +45,7 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
 
-  it('should fill default values when data is empty after blur', async () => {
+  it.only('should fill default values when data is empty after blur', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
@@ -56,8 +56,12 @@ describe('default data management', () => {
 
     // reuse default value if property is emptied, but only after blur
     assert.ok(statefulLayout.stateTree.root.children)
+    statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'Str')
+    assert.deepEqual(statefulLayout.data, { str1: 'Str' })
+    console.log('input empty')
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], '')
     assert.deepEqual(statefulLayout.data, {})
+    console.log('blur')
     statefulLayout.blur(statefulLayout.stateTree.root.children?.[0])
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
@@ -171,6 +175,20 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
 
+  it('should mix default data from object level and from children', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      default: { str1: 'String 1' },
+      properties: {
+        str1: { type: 'string' },
+        str2: { type: 'string', default: 'String 2' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+
+    assert.deepEqual(statefulLayout.data, { str1: 'String 1', str2: 'String 2' })
+  })
+
   it('should use empty value as default data for root simple types', async () => {
     const compiledLayout = await compile({
       type: 'string'
@@ -196,6 +214,47 @@ describe('default data management', () => {
     statefulLayout.input(statefulLayout.stateTree.root, [undefined])
 
     assert.deepEqual(statefulLayout.data, [{ str1: 'String 1' }])
+  })
+
+  it('should use default data when adding new item to array with oneOf', async () => {
+    const compiledLayout = await compile({
+      type: 'array',
+      items: {
+        type: 'object',
+        default: { type: 't2', str1: 'String 1' },
+        unevaluatedProperties: false,
+        oneOf: [{
+          properties: {
+            type: { const: 't1' },
+            str1: { type: 'string' }
+          }
+        }, {
+          properties: {
+            type: { const: 't2' },
+            str1: { type: 'string' },
+            str2: { type: 'string', default: 'String 2' }
+          }
+        }, {
+          properties: {
+            type: { const: 't3' },
+            str3: { type: 'string', default: 'String 3' }
+          }
+        }]
+
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions)
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.deepEqual(statefulLayout.data, [])
+
+    statefulLayout.input(statefulLayout.stateTree.root, [undefined])
+    assert.deepEqual(statefulLayout.data, [{ type: 't2', str1: 'String 1', str2: 'String 2' }])
+    assert.equal(statefulLayout.activatedItems['/0/$oneOf'], 1)
+
+    statefulLayout.activateItem(getNode('0.$oneOf'), 2)
+    assert.deepEqual(statefulLayout.data, [{ type: 't3', str3: 'String 3' }])
+    assert.equal(statefulLayout.activatedItems['/0/$oneOf'], 2)
   })
 
   it('should fill new object with default data when adding new item to array with allOf items', async () => {
