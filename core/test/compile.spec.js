@@ -21,7 +21,6 @@ describe('compile schema function', () => {
     const serializedLayout = (await import(filePath)).default
     assert.deepEqual(serializedLayout.skeletonTrees[serializedLayout.mainTree], compiledLayout.skeletonTrees[compiledLayout.mainTree])
     assert.deepEqual(serializedLayout.normalizedLayouts, compiledLayout.normalizedLayouts)
-    // console.log(serializedLayout)
   })
 
   it('should support serializing a slightly more complex layout', async () => {
@@ -65,7 +64,6 @@ describe('compile schema function', () => {
     const serializedLayout = (await import(filePath)).default
     assert.deepEqual(serializedLayout.skeletonTrees[serializedLayout.mainTree], compiledLayout.skeletonTrees[compiledLayout.mainTree])
     assert.deepEqual(serializedLayout.normalizedLayouts, compiledLayout.normalizedLayouts)
-    // console.log(serializedLayout)
   })
 
   it('should manage help as markdown content', async () => {

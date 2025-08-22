@@ -45,7 +45,61 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
 
-  it.only('should fill default values when data is empty after blur', async () => {
+  it('should create empty required objects and arrays', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['obj1'],
+      properties: {
+        obj1: {
+          type: 'object',
+          required: ['arr1'],
+          properties: {
+            arr1: { type: 'array', items: { type: 'object', properties: { str1: { type: 'string' } } } }
+          }
+        }
+      }
+
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    assert.deepEqual(statefulLayout.data, { obj1: { arr1: [] } })
+  })
+
+  it('should create new array item in nested layout', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      layout: {
+        children: [
+          { children: ['arr1'] },
+          { children: [{ text: 'empty comp' }] }
+        ]
+      },
+      required: ['arr1'],
+      properties: {
+        arr1: {
+          type: 'array',
+          items: {
+            type: 'object',
+            default: { type: 'custom' },
+            properties: { type: { type: 'string' } }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.deepEqual(statefulLayout.data, {
+      arr1: []
+    })
+    statefulLayout.input(getNode('$comp-1.arr1'), [undefined])
+    assert.deepEqual(statefulLayout.data, {
+      arr1: [{
+        type: 'custom'
+      }]
+    })
+  })
+
+  it('should fill default values when data is empty after blur', async () => {
     const compiledLayout = await compile({
       type: 'object',
       properties: { str1: { type: 'string', default: 'String 1' } }
@@ -58,10 +112,8 @@ describe('default data management', () => {
     assert.ok(statefulLayout.stateTree.root.children)
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'Str')
     assert.deepEqual(statefulLayout.data, { str1: 'Str' })
-    console.log('input empty')
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], '')
     assert.deepEqual(statefulLayout.data, {})
-    console.log('blur')
     statefulLayout.blur(statefulLayout.stateTree.root.children?.[0])
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
@@ -145,7 +197,6 @@ describe('default data management', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, defaultOn: 'missing' }, {})
 
-    // console.log(JSON.stringify(statefulLayout.data, null, 2))
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
 
     // DO NOT reuse default value if property is emptied

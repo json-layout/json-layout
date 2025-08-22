@@ -162,7 +162,6 @@ describe('stateful layout validation state', () => {
       }
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
-    // console.log(statefulLayout.stateTree)
     assert.equal(statefulLayout.stateTree.valid, false)
     assert.equal(statefulLayout.stateTree.root.error, undefined)
     assert.deepEqual(statefulLayout.stateTree.root.children?.[0].data, { str2: 'test' })

@@ -91,14 +91,15 @@ const produceStateNodeDataChildrenArray = produce((draft, children) => {
 const produceStateNodeDataArray = produce((draft, parentDataPath, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
   for (let i = 0; i < draft.length; i++) {
     if (!(draft[i] instanceof File)) {
-      draft[i] = produceStateNodeData(draft[i], parentDataPath + '/' + i, undefined, additionalPropertiesErrors, propertyKeys, removePropertyKeys)
+      draft[i] = cleanNodeData(draft[i], parentDataPath + '/' + i, additionalPropertiesErrors, propertyKeys, removePropertyKeys)
     }
   }
 })
 
-/** @type {(draft: Record<string, unknown>, parentDataPath: string, children?: import('../index.js').StateNode[], additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>} */
-const produceStateNodeData = produce((draft, parentDataPath, children, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
-  if (propertyKeys && (propertyKeys.length || children?.length)) {
+/** @type {(draft: Record<string, unknown>, parentDataPath: string, additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>} */
+const cleanNodeData = produce((draft, parentDataPath, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
+  // if (propertyKeys && (propertyKeys.length || children?.length)) {
+  if (propertyKeys) {
     for (const key of Object.keys(draft)) {
       if (!propertyKeys.includes(key)) delete draft[key]
     }
@@ -106,26 +107,6 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
   if (removePropertyKeys) {
     for (const key of removePropertyKeys) {
       delete draft[key]
-    }
-  }
-
-  if (children) {
-    for (const child of children) {
-      if (parentDataPath === child.dataPath) {
-        if (child.data === undefined || child.data === null) continue
-        if (children.length > 1) {
-          for (const key of Object.keys(child.data)) {
-            if (children.some(c => c.key === key)) continue
-            if (!child.skeleton.propertyKeys.includes(key) && children.some(c => c.key !== child.key && c.skeleton.propertyKeys.includes(key))) continue
-            draft[key] = /** @type {any} */(child.data)[key]
-          }
-        } else {
-          Object.assign(draft, child.data)
-        }
-      } else {
-        if (child.data === undefined) delete draft[child.key]
-        else draft[child.key] = child.data
-      }
     }
   }
 
@@ -139,6 +120,34 @@ const produceStateNodeData = produce((draft, parentDataPath, children, additiona
         delete draft[error.params.unevaluatedProperty]
       }
     }
+  }
+
+  for (const key of Object.keys(draft)) {
+    if (draft[key] === undefined) delete draft[key]
+  }
+})
+
+/** @type {(draft: Record<string, unknown>, parentDataPath: string, hydratedChild: import('../index.js').StateNode, childrenSkeletons: import('../index.js').SkeletonNode[] | undefined) => Record<string, unknown>} */
+const produceHydratedStateNodeData = produce((draft, parentDataPath, hydratedChild, childrenSkeletons) => {
+  if (hydratedChild.dataPath === parentDataPath) {
+    if (hydratedChild.data === undefined || hydratedChild.data === null) return
+    if (childrenSkeletons && childrenSkeletons.length > 1) {
+      for (const key of Object.keys(hydratedChild.data)) {
+        if (!hydratedChild.skeleton.propertyKeys.includes(key)) continue
+        if (!hydratedChild.skeleton.propertyKeys.includes(key) && childrenSkeletons.some(s => s !== hydratedChild.skeleton && s.propertyKeys.includes(key))) continue
+        draft[key] = /** @type {any} */(hydratedChild.data)[key]
+      }
+    } else {
+      Object.assign(draft, hydratedChild.data)
+    }
+    for (const key of hydratedChild.skeleton.propertyKeys) {
+      if (/** @type {any} */(hydratedChild.data)[key] === undefined) {
+        delete draft[key]
+      }
+    }
+  } else {
+    if (hydratedChild.data === undefined) delete draft[hydratedChild.key]
+    else draft[hydratedChild.key] = hydratedChild.data
   }
 })
 
@@ -427,17 +436,19 @@ export function createStateNode (
     context.autofocusTarget = fullKey
   }
 
-  if (data === null && !layout.nullable) data = undefined
-  const shouldUseDefaultData = layout.getDefaultData && useDefaultData(data, layout, options) && context.currentInput !== fullKey
+  let nodeData = data
+
+  if (nodeData === null && !layout.nullable) nodeData = undefined
+  const shouldUseDefaultData = layout.getDefaultData && useDefaultData(nodeData, layout, options) && context.currentInput !== fullKey
   if (layout.getConstData) {
     if (!context.rehydrate) {
-      data = evalExpression(compiledLayout.expressions, layout.getConstData, data, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+      nodeData = evalExpression(compiledLayout.expressions, layout.getConstData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
     }
   } else {
     if (shouldUseDefaultData && layout.getDefaultData && !context.rehydrate) {
-      const defaultData = evalExpression(compiledLayout.expressions, layout.getDefaultData, data, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
-      if (data === undefined || !isDataEmpty(defaultData)) {
-        data = defaultData
+      const defaultData = evalExpression(compiledLayout.expressions, layout.getDefaultData, nodeData, options, display, layout, compiledLayout.validates, context.rootData, parentContext)
+      if (nodeData === undefined || !isDataEmpty(defaultData)) {
+        nodeData = defaultData
       }
     }
   }
@@ -446,8 +457,10 @@ export function createStateNode (
   let children
   if (isCompositeLayout(layout, compiledLayout.components)) {
     // TODO: make this type casting safe using prior validation
-    const objectData = /** @type {Record<string, unknown>} */(data ?? {})
+    const objectData = /** @type {Record<string, unknown>} */(nodeData ?? {})
     const childrenOptions = produceCompositeChildrenOptions(options, layout)
+    let actualPropertyKeys = skeleton.propertyKeys
+    const removePropertyKeys = options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : []
     children = []
     let focusChild = context.autofocusTarget === fullKey
     for (let i = 0; i < layout.children.length; i++) {
@@ -461,13 +474,25 @@ export function createStateNode (
       if (childSkeletonKey !== undefined) childSkeleton = compiledLayout.skeletonNodes[childSkeletonKey]
       if (childSkeleton.condition) {
         if (!evalExpression(compiledLayout.expressions, childSkeleton.condition, objectData, parentOptions, display, layout, compiledLayout.validates, context.rootData, parentContext)) {
+          if (childLayout.key === '$then' || childLayout.key === '$else') {
+            const reverseChildSkeletonKey = skeleton.children?.find(c => compiledLayout.skeletonNodes[c].key === (childLayout.key === '$then' ? '$else' : '$then'))
+            const reverseChildSkeleton = reverseChildSkeletonKey !== undefined && compiledLayout.skeletonNodes[reverseChildSkeletonKey]
+            if (reverseChildSkeleton) {
+              for (const key of childSkeleton.propertyKeys) {
+                if (!reverseChildSkeleton.propertyKeys.includes(key)) {
+                  removePropertyKeys.push(key)
+                }
+              }
+            }
+          }
           continue
         }
       }
       const isSameDataPath = typeof childLayout.key === 'string' && childLayout.key.startsWith('$')
       const childFullKey = `${fullKey}/${childLayout.key}`
       if (focusChild) context.autofocusTarget = childFullKey
-      let childData = isSameDataPath ? objectData : objectData[childLayout.key]
+      const ogChildData = isSameDataPath ? objectData : objectData[childLayout.key]
+      let childData = ogChildData
       if (childLayout.key === '$patternProperties') {
         const childNormalizedLayout = /** @type {import('@json-layout/vocabulary').List} */(compiledLayout.normalizedLayouts[childSkeleton.pointer])
         childData = producePatternPropertiesData(
@@ -476,6 +501,7 @@ export function createStateNode (
           skeleton.propertyKeys,
           childNormalizedLayout.indexed ?? []
         )
+        actualPropertyKeys = actualPropertyKeys.concat(Object.keys(/** @type {any} */(childData)))
       }
       const child = createStateNode(
         context,
@@ -495,8 +521,29 @@ export function createStateNode (
         reusedNode?.children?.find(c => c.fullKey === childFullKey)
       )
       if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
+      // the child data was hydrated
+      if (child.data !== ogChildData) {
+        // WARN: this manner of creating empty object or array based on the type of the child key does not seem very safe
+        // can we find a better way to discriminate ? maybe store an extra info on the the skeleton, like "emptyData" ?
+        nodeData = produceHydratedStateNodeData(
+          nodeData ?? ((typeof child.key === 'number' && key !== '$oneOf') ? [] : {}),
+          dataPath,
+          child,
+          skeleton.children?.map(childSkeletonKey => compiledLayout.skeletonNodes[childSkeletonKey])
+        )
+      }
+
       children.push(child)
     }
+
+    const removeAdditional = [true, 'unknown'].includes(options.removeAdditional) || children?.some(c => c.key === '$patternProperties')
+    nodeData = cleanNodeData(
+      /** @type {Record<string, unknown>} */(nodeData ?? {}),
+      dataPath,
+      context.additionalPropertiesErrors,
+      removeAdditional ? actualPropertyKeys : undefined,
+      removePropertyKeys
+    )
   }
 
   if (skeleton.nullable && context.errors) {
@@ -558,31 +605,35 @@ export function createStateNode (
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
 
-      children = [
-        createStateNode(
-          context,
-          options,
-          compiledLayout,
-          activeChildTreeIndex,
-          activeChildKey,
-          fullKey,
-          dataPath,
-          dataPath,
-          activeChildNode,
-          null,
-          display,
-          data,
-          { parent: parentContext, data },
-          validationState,
-          reusedNode?.children?.[0]
-        )
-      ]
+      const child = createStateNode(
+        context,
+        options,
+        compiledLayout,
+        activeChildTreeIndex,
+        activeChildKey,
+        fullKey,
+        dataPath,
+        dataPath,
+        activeChildNode,
+        null,
+        display,
+        nodeData,
+        { parent: parentContext, data: nodeData },
+        validationState,
+        reusedNode?.children?.[0]
+      )
+      // the oneOf was hydrated
+      if (child.data !== nodeData) {
+        // nodeData = produceHydratedStateNodeData(nodeData, dataPath, child, skeleton.children?.map(childSkeletonKey => compiledLayout.skeletonNodes[childSkeletonKey]))
+        nodeData = child.data
+      }
+      children = [child]
     }
   }
 
   if (isListLayout(layout)) {
     if (layout.indexed) {
-      const objectData = /** @type {Record<string, unknown>} */(data ?? [])
+      const objectData = /** @type {Record<string, unknown>} */(nodeData ?? [])
       const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
       children = []
       let focusChild = context.autofocusTarget === fullKey
@@ -605,6 +656,7 @@ export function createStateNode (
         if (valueChildSkeleton) {
           const childFullKey = `${fullKey}/${childKey}`
           if (focusChild) context.autofocusTarget = childFullKey
+          const valueChildData = objectData[childKey]
           const valueChild = createStateNode(
             context,
             (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
@@ -617,17 +669,28 @@ export function createStateNode (
             valueChildSkeleton,
             null,
             display,
-            objectData[childKey],
+            valueChildData,
             { parent: parentContext, data: objectData },
             validationState,
             reusedNode?.children?.find(c => c.key === childKey)
           )
           if (valueChild.autofocus || valueChild.autofocusChild !== undefined) focusChild = false
           children.push(valueChild)
+
+          if (valueChild.data !== valueChildData) {
+            // WARN: this manner of creating empty object or array based on the type of the child key does not seem very safe
+            // can we find a better way to discriminate ? maybe store an extra info on the the skeleton, like "emptyData" ?
+            nodeData = produceHydratedStateNodeData(
+              nodeData ?? {},
+              dataPath,
+              valueChild,
+              skeleton.children?.map(childSkeletonKey => compiledLayout.skeletonNodes[childSkeletonKey])
+            )
+          }
         }
       }
     } else {
-      const arrayData = /** @type {unknown[]} */(data ?? [])
+      const arrayData = /** @type {unknown[]} */(nodeData ?? [])
       const childSkeleton = /** @type {import('../index.js').SkeletonNode} */(skeleton?.childrenTrees?.[0] && compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees?.[0]]?.root])
       const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
       children = []
@@ -706,8 +769,6 @@ export function createStateNode (
     }
   }
 
-  let nodeData = data
-
   if (!layout.getConstData) {
     if (typeof children?.[0]?.key === 'number' && layout.comp !== 'one-of-select' && !layout.indexed) {
       // case of an array of children nodes
@@ -715,7 +776,7 @@ export function createStateNode (
       /** @type {unknown[]} */(nodeData ?? []),
         children
       )
-    } else if (Array.isArray(nodeData)) {
+    } else if (Array.isArray(nodeData) && !children) {
       // case of an array without children nodes, so a select of objects for example
       const itemsSkeletonTree = skeleton.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton.childrenTrees?.[0]]
       const itemsSkeletonNode = (itemsSkeletonTree && compiledLayout.skeletonNodes[itemsSkeletonTree.root]) || null
@@ -723,19 +784,17 @@ export function createStateNode (
         /** @type {Record<string, unknown>[]} */(nodeData ?? []),
         dataPath,
         context.additionalPropertiesErrors,
-        [true, 'unknown'].includes(options.removeAdditional) ? itemsSkeletonNode?.propertyKeys : undefined,
+        itemsSkeletonNode?.propertyKeys.length ? itemsSkeletonNode?.propertyKeys : undefined,
         options.readOnlyPropertiesMode === 'remove' ? itemsSkeletonNode?.roPropertyKeys : undefined
       )
-    } else if ((typeof nodeData === 'object' || (nodeData === undefined && children?.length)) && !(nodeData instanceof File)) {
-      // case of an object base on children nodes or not
-      const removeAdditional = [true, 'unknown'].includes(options.removeAdditional) || children?.some(c => c.key === '$patternProperties')
-      nodeData = produceStateNodeData(
+    } else if (typeof nodeData === 'object' && !(nodeData instanceof File) && !children) {
+      // case of an object outside of a composite component, probably a select
+      nodeData = cleanNodeData(
       /** @type {Record<string, unknown>} */(nodeData ?? {}),
         dataPath,
-        children,
         context.additionalPropertiesErrors,
-        removeAdditional ? skeleton.propertyKeys : undefined,
-        options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : undefined
+        skeleton?.propertyKeys.length ? skeleton?.propertyKeys : undefined,
+        options.readOnlyPropertiesMode === 'remove' ? skeleton?.roPropertyKeys : undefined
       )
     }
 
@@ -828,6 +887,7 @@ export function createStateNode (
   } else if (layout.comp === 'list' && itemsCacheKey) {
     logGetItems(fullKey, 'list component with unchanged getItems cache key, no fetch will be triggered', itemsCacheKey)
   }
+
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,

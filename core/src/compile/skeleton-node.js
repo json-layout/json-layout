@@ -325,6 +325,10 @@ export function makeSkeletonNode (
       }
       /** @type {string[]} */
       const childrenTrees = []
+      /** @type {string[]} */
+      let propertyKeys = []
+      /** @type {string[]} */
+      let roPropertyKeys = []
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = type
         const childTreePointer = `${oneOfPointer}/${i}`
@@ -349,6 +353,12 @@ export function makeSkeletonNode (
           )
         }
         childrenTrees.push(childTreePointer)
+        // @ts-ignore
+        if (skeletonTrees[childTreePointer] !== 'recursing') {
+          const rootSkeletonNode = skeletonNodes[skeletonTrees[childTreePointer].root]
+          propertyKeys = propertyKeys.concat(rootSkeletonNode.propertyKeys)
+          roPropertyKeys = roPropertyKeys.concat(rootSkeletonNode.roPropertyKeys)
+        }
       }
       if (!skeletonNodes[oneOfPointer]) {
         skeletonNodes[oneOfPointer] = {
@@ -358,10 +368,12 @@ export function makeSkeletonNode (
           childrenTrees,
           discriminator,
           pure: !childrenTrees.some(childTree => !skeletonNodes[skeletonTrees[childTree]?.root]?.pure),
-          propertyKeys: [],
-          roPropertyKeys: []
+          propertyKeys,
+          roPropertyKeys
         }
       }
+      node.propertyKeys = node.propertyKeys.concat(skeletonNodes[oneOfPointer].propertyKeys)
+      node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[oneOfPointer].roPropertyKeys)
       node.children = node.children ?? []
       node.children.push(oneOfPointer)
     }
@@ -455,6 +467,8 @@ export function makeSkeletonNode (
           )
         }
         node.children = node.children ?? []
+        node.propertyKeys = node.propertyKeys.concat(skeletonNodes[childPointer].propertyKeys)
+        node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[childPointer].roPropertyKeys)
         node.children.push(childPointer)
       }
       if (schema.else) {
@@ -482,6 +496,8 @@ export function makeSkeletonNode (
           )
         }
         node.children = node.children ?? []
+        node.propertyKeys = node.propertyKeys.concat(skeletonNodes[childPointer].propertyKeys)
+        node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[childPointer].roPropertyKeys)
         node.children.push(childPointer)
       }
     }
