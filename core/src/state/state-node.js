@@ -776,8 +776,8 @@ export function createStateNode (
       /** @type {unknown[]} */(nodeData ?? []),
         children
       )
-    } else if (Array.isArray(nodeData) && !children) {
-      // case of an array without children nodes, so a select of objects for example
+    } else if (Array.isArray(nodeData) && isItemsLayout(layout, compiledLayout.components)) {
+      // case of a multi-valued select of objects
       const itemsSkeletonTree = skeleton.childrenTrees?.[0] && compiledLayout.skeletonTrees[skeleton.childrenTrees?.[0]]
       const itemsSkeletonNode = (itemsSkeletonTree && compiledLayout.skeletonNodes[itemsSkeletonTree.root]) || null
       nodeData = produceStateNodeDataArray(
@@ -787,8 +787,8 @@ export function createStateNode (
         itemsSkeletonNode?.propertyKeys.length ? itemsSkeletonNode?.propertyKeys : undefined,
         options.readOnlyPropertiesMode === 'remove' ? itemsSkeletonNode?.roPropertyKeys : undefined
       )
-    } else if (typeof nodeData === 'object' && !(nodeData instanceof File) && !children) {
-      // case of an object outside of a composite component, probably a select
+    } else if (typeof nodeData === 'object' && !(nodeData instanceof File) && isItemsLayout(layout, compiledLayout.components)) {
+      // case of a select of objects
       nodeData = cleanNodeData(
         /** @type {Record<string, unknown>} */(nodeData ?? {}),
         dataPath,
