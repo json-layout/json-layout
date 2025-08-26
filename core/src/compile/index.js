@@ -71,6 +71,27 @@ export function compile (_schema, partialOptions = {}) {
     'main'
   )
 
+  while (true) {
+    let updatedPropertyKeys = false
+    for (const skeletonNode of Object.values(skeletonNodes)) {
+      for (const propertyKey of [...skeletonNode.propertyKeys]) {
+        if (propertyKey.startsWith('$')) {
+          const referencedNode = skeletonNodes[propertyKey.replace('$', '')]
+          skeletonNode.propertyKeys = [...new Set(skeletonNode.propertyKeys.filter(p => p !== propertyKey).concat(referencedNode.propertyKeys))]
+          updatedPropertyKeys = true
+        }
+      }
+      for (const roPropertyKey of [...skeletonNode.roPropertyKeys]) {
+        if (roPropertyKey.startsWith('$')) {
+          const referencedNode = skeletonNodes[roPropertyKey.replace('$', '')]
+          skeletonNode.roPropertyKeys = [...new Set(skeletonNode.roPropertyKeys.filter(p => p !== roPropertyKey).concat(referencedNode.roPropertyKeys))]
+          updatedPropertyKeys = true
+        }
+      }
+    }
+    if (!updatedPropertyKeys) break
+  }
+
   options.ajv.removeSchema(schema.$id) // just in case it was previously added
   options.ajv.addSchema(schema)
 

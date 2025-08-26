@@ -258,7 +258,8 @@ export function makeSkeletonNode (
               'object'
             )
           }
-          node.propertyKeys = node.propertyKeys.concat(skeletonNodes[dependentPointer].propertyKeys)
+          node.propertyKeys.push('$' + dependentPointer)
+          node.roPropertyKeys.push('$' + dependentPointer)
           node.children.push(dependentPointer)
         }
       }
@@ -288,8 +289,8 @@ export function makeSkeletonNode (
             'object'
           )
         }
-        node.propertyKeys = node.propertyKeys.concat(skeletonNodes[childPointer].propertyKeys)
-        node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[childPointer].roPropertyKeys)
+        node.propertyKeys.push('$' + childPointer)
+        node.roPropertyKeys.push('$' + childPointer)
         node.children = node.children ?? []
         node.children.push(childPointer)
       }
@@ -327,9 +328,9 @@ export function makeSkeletonNode (
       /** @type {string[]} */
       const childrenTrees = []
       /** @type {string[]} */
-      let propertyKeys = []
+      const propertyKeys = []
       /** @type {string[]} */
-      let roPropertyKeys = []
+      const roPropertyKeys = []
       for (let i = 0; i < schema.oneOf.length; i++) {
         if (!schema.oneOf[i].type) schema.oneOf[i].type = type
         const childTreePointer = `${oneOfPointer}/${i}`
@@ -354,12 +355,8 @@ export function makeSkeletonNode (
           )
         }
         childrenTrees.push(childTreePointer)
-        // @ts-ignore
-        if (skeletonTrees[childTreePointer] !== 'recursing') {
-          const rootSkeletonNode = skeletonNodes[skeletonTrees[childTreePointer].root]
-          propertyKeys = propertyKeys.concat(rootSkeletonNode.propertyKeys)
-          roPropertyKeys = roPropertyKeys.concat(rootSkeletonNode.roPropertyKeys)
-        }
+        propertyKeys.push('$' + childTreePointer)
+        roPropertyKeys.push('$' + childTreePointer)
       }
       if (!skeletonNodes[oneOfPointer]) {
         skeletonNodes[oneOfPointer] = {
@@ -468,8 +465,8 @@ export function makeSkeletonNode (
           )
         }
         node.children = node.children ?? []
-        node.propertyKeys = node.propertyKeys.concat(skeletonNodes[childPointer].propertyKeys)
-        node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[childPointer].roPropertyKeys)
+        node.propertyKeys.push('$' + childPointer)
+        node.roPropertyKeys.push('$' + childPointer)
         node.children.push(childPointer)
       }
       if (schema.else) {
@@ -497,8 +494,8 @@ export function makeSkeletonNode (
           )
         }
         node.children = node.children ?? []
-        node.propertyKeys = node.propertyKeys.concat(skeletonNodes[childPointer].propertyKeys)
-        node.roPropertyKeys = node.roPropertyKeys.concat(skeletonNodes[childPointer].roPropertyKeys)
+        node.propertyKeys.push('$' + childPointer)
+        node.roPropertyKeys.push('$' + childPointer)
         node.children.push(childPointer)
       }
     }

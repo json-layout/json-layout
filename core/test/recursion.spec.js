@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
+import { getNodeBuilder } from './utils/state-tree.js'
 
 describe('Recursion in schema', () => {
   const defaultOptions = { debounceInputMs: 0 }
@@ -82,10 +83,11 @@ describe('Recursion in schema', () => {
       defaultOptions,
       {}
     )
+    const getNode = getNodeBuilder(statefulLayout)
 
-    assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')
-    assert.equal(statefulLayout.stateTree.root.children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'one-of-select')
+    assert.equal(getNode('').layout.comp, 'section')
+    assert.equal(getNode('$oneOf').layout.comp, 'one-of-select')
+    assert.deepEqual(getNode('$oneOf').skeleton.propertyKeys, ['type', 'key', 'children'])
   })
 
   it('should manage recursion in conditional children', async () => {
