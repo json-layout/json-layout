@@ -309,13 +309,14 @@ export function makeSkeletonNode (
           type,
           nullable
         )
-        if (!isSwitchStruct(normalizationResult.layout)) {
+        const compObjects = isSwitchStruct(normalizationResult.layout) ? normalizationResult.layout.switch : [normalizationResult.layout]
+        for (const compObject of compObjects) {
           let defaultData
           if ('default' in schema && (options.useDefault === 'data' || options.useDefault === true || required)) defaultData = schema.default
           else defaultData = nullable ? null : {}
-          if (normalizationResult.layout.defaultData === undefined) normalizationResult.layout.defaultData = defaultData
-          if (normalizationResult.layout.defaultData !== undefined && !normalizationResult.layout.getDefaultData) normalizationResult.layout.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
-          if (normalizationResult.layout.getDefaultData) pushExpression(expressions, normalizationResult.layout.getDefaultData)
+          if (compObject.defaultData === undefined) compObject.defaultData = defaultData
+          if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
+          if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)
         }
 
         normalizedLayouts[oneOfPointer] = normalizationResult.layout
