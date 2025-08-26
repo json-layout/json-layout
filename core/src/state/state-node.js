@@ -90,7 +90,7 @@ const produceStateNodeDataChildrenArray = produce((draft, children) => {
 /** @type {(draft: Record<string, unknown>[], parentDataPath: string, additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>[]} */
 const produceStateNodeDataArray = produce((draft, parentDataPath, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
   for (let i = 0; i < draft.length; i++) {
-    if (!(draft[i] instanceof File)) {
+    if (typeof draft[i] === 'object' && !(draft[i] instanceof File)) {
       draft[i] = cleanNodeData(draft[i], parentDataPath + '/' + i, additionalPropertiesErrors, propertyKeys, removePropertyKeys)
     }
   }
@@ -790,7 +790,7 @@ export function createStateNode (
     } else if (typeof nodeData === 'object' && !(nodeData instanceof File) && !children) {
       // case of an object outside of a composite component, probably a select
       nodeData = cleanNodeData(
-      /** @type {Record<string, unknown>} */(nodeData ?? {}),
+        /** @type {Record<string, unknown>} */(nodeData ?? {}),
         dataPath,
         context.additionalPropertiesErrors,
         skeleton?.propertyKeys.length ? skeleton?.propertyKeys : undefined,
