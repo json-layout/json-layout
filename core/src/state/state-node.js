@@ -90,7 +90,7 @@ const produceStateNodeDataChildrenArray = produce((draft, children) => {
 /** @type {(draft: Record<string, unknown>[], parentDataPath: string, additionalPropertiesErrors?: import('ajv').ErrorObject[], propertyKeys?: string[], removePropertyKeys?: string[]) => Record<string, unknown>[]} */
 const produceStateNodeDataArray = produce((draft, parentDataPath, additionalPropertiesErrors, propertyKeys, removePropertyKeys) => {
   for (let i = 0; i < draft.length; i++) {
-    if (typeof draft[i] === 'object' && !(draft[i] instanceof File)) {
+    if (typeof draft[i] === 'object' && draft[i] !== null && !(draft[i] instanceof File)) {
       draft[i] = cleanNodeData(draft[i], parentDataPath + '/' + i, additionalPropertiesErrors, propertyKeys, removePropertyKeys)
     }
   }
