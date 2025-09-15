@@ -14,7 +14,7 @@ describe('compile schema function', () => {
 
   it('should support serializing the compiled layout', async () => {
     const compiledLayout = compile({ type: 'string', layout: { if: "mode == 'read'" }, format: 'date-time' })
-    const code = serialize(compiledLayout)
+    const code = await serialize(compiledLayout)
     assert.ok(code)
     const filePath = resolve('tmp/compiled.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')
@@ -57,7 +57,7 @@ describe('compile schema function', () => {
         }]
       }
     })
-    const code = serialize(compiledLayout)
+    const code = await serialize(compiledLayout)
     assert.ok(code)
     const filePath = resolve('tmp/compiled2.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')

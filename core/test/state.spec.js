@@ -26,7 +26,7 @@ for (const compileMode of ['runtime', 'build-time']) {
     } else {
       compile = /** @type {typeof compileSrc} */async (schema, options = {}) => {
         const compiledLayout = compileSrc(schema, options)
-        const code = serialize(compiledLayout) + '\nexport default compiledLayout;'
+        const code = (await serialize(compiledLayout)) + '\nexport default compiledLayout;'
         const filePath = resolve(`tmp/${currentTest?.replace(/\W/g, '_')}.js`)
         if (existsSync(filePath) && readFileSync(filePath, 'utf8') === code) {
           // nothing todo, prevent infinite reloading of nodejs in watch mode

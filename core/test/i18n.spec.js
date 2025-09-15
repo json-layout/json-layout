@@ -19,6 +19,20 @@ describe('internationalization', () => {
   it('should resolve x-i18n-* annotations', async () => {
     const schema = {
       type: 'object',
+      layout: {
+        title: null,
+        children: [
+          {
+            title: 'Section 1',
+            'x-i18n-title': {
+              fr: 'Partie 1'
+            },
+            children: ['str1']
+          },
+          { key: 'tuple1' },
+          { key: 'str4' }
+        ]
+      },
       properties: {
         str1: { type: 'string', title: 'String 1', 'x-i18n-title': { fr: 'Texte 1' }, enum: ['str1', null] },
         tuple1: {
@@ -27,7 +41,8 @@ describe('internationalization', () => {
             { type: 'string', title: 'String 2', 'x-i18n-title': { fr: 'Texte 2' } },
             { type: 'string', title: 'String 3', 'x-i18n-title': { fr: 'Texte 3' } }
           ]
-        }
+        },
+        str4: { type: 'string', layout: { label: 'String 4', 'x-i18n-label': { fr: 'Texte 4' } } },
       }
     }
     const compiled = compile(schema, { xI18n: true })
@@ -40,6 +55,8 @@ describe('internationalization', () => {
     assert.equal(compiled.normalizedLayouts['_jl#/properties/tuple1/items/0']?.label, 'String 2')
     assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/tuple1/items/1']))
     assert.equal(compiled.normalizedLayouts['_jl#/properties/tuple1/items/1']?.label, 'String 3')
+    assert.ok(isCompObject(compiled.normalizedLayouts['_jl#/properties/str4']))
+    assert.equal(compiled.normalizedLayouts['_jl#/properties/str4']?.label, 'String 4')
 
     const compiledFr = compile(schema, { xI18n: true, locale: 'fr' })
     assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/str1']))
@@ -50,6 +67,8 @@ describe('internationalization', () => {
     assert.equal(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/0']?.label, 'Texte 2')
     assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/1']))
     assert.equal(compiledFr.normalizedLayouts['_jl#/properties/tuple1/items/1']?.label, 'Texte 3')
+    assert.ok(isCompObject(compiledFr.normalizedLayouts['_jl#/properties/str4']))
+    assert.equal(compiledFr.normalizedLayouts['_jl#/properties/str4']?.label, 'Texte 4')
   })
 
   it('should return validation errors internationalized by ajv', async () => {
@@ -60,13 +79,24 @@ describe('internationalization', () => {
 
   it('should return internationalized errors in compiled mode too', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
-    const code = serialize(compiledLayout)
+    const code = await serialize(compiledLayout)
     const filePath = resolve('tmp/compiled-i18n.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')
     const serializedLayout = (await import(filePath)).default
 
     const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
     assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
+  })
+
+  it('should let ajv-i18n fallback to en in compiled mode', async () => {
+    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'pt' })
+    const code = await serialize(compiledLayout)
+    const filePath = resolve('tmp/compiled-i18n2.js')
+    await writeFile(filePath, code + '\nexport default compiledLayout;')
+    const serializedLayout = (await import(filePath)).default
+
+    const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
+    assert.equal(statefulLayout.stateTree.root.error, 'must be >= 0')
   })
 
   it('should overwrite non-compilation time messages on a state node', async () => {

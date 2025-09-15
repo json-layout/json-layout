@@ -12,9 +12,9 @@ const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
 
 /**
  * @param {import('./index.js').CompiledLayout} compiledLayout
- * @returns {string}
+ * @returns {Promise<string>}
  */
-export function serialize (compiledLayout) {
+export async function serialize (compiledLayout) {
   ok(compiledLayout.schema)
   ok(compiledLayout.options)
 
@@ -64,7 +64,15 @@ export function serialize (compiledLayout) {
   }
 
   // import only the current locale from ajv-i18n
-  code = `import localizeErrors from "ajv-i18n/localize/${compiledLayout.locale}/index.js";
+  let ajvI18nPath = `ajv-i18n/localize/${compiledLayout.locale}/index.js`
+  try {
+    await import(ajvI18nPath)
+  } catch (er) {
+    console.warn(`failed to load ${ajvI18nPath}, fallback to en`)
+    ajvI18nPath = 'ajv-i18n/localize/en/index.js'
+  }
+
+  code = `import localizeErrors from "${ajvI18nPath}";
 export const exportLocalizeErrors = localizeErrors;\n` + code
 
   i = 0
