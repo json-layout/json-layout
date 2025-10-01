@@ -54,7 +54,10 @@ export function makeSkeletonNode (
     [refFragment, schemaId, refPointer] = getJSONRef(sourceSchemaId, schema.$ref)
     refFragment.__pointer = refPointer
     schema = { ...rawSchema, ...refFragment }
-    if (errorMessage && refFragment.errorMessage) throw new Error('errorMessage cannot be defined both on ref source and target')
+    if (errorMessage && refFragment.errorMessage) {
+      console.warn('errorMessage should not be defined both on ref source and target', pointer, errorMessage, refPointer, refFragment.errorMessage)
+      // throw new Error('errorMessage cannot be defined both on ref source and target')
+    }
     errorMessage = refFragment.errorMessage = refFragment.errorMessage ?? errorMessage ?? {}
     delete schema.$ref
   }
