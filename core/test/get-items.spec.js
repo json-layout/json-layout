@@ -62,6 +62,22 @@ describe('get select items', () => {
     ])
   })
 
+  it.only('should manage a select with items and groups', async () => {
+    const compiledLayout = await compile({
+      type: 'string',
+      layout: { items: [{ header: true, title: 'Group 1' }, 'val1', { header: true, title: 'Group 2' }, 'val2'] }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    assert.equal(statefulLayout.stateTree.root.layout.comp, 'select')
+    const items = await statefulLayout.getItems(statefulLayout.stateTree.root)
+    assert.deepEqual(items, [
+      { header: true, title: 'Group 1' },
+      { title: 'val1', key: 'val1', value: 'val1' },
+      { header: true, title: 'Group 2' },
+      { title: 'val2', key: 'val2', value: 'val2' }
+    ])
+  })
+
   it('should manage a select with getItems as a simple expression', async () => {
     const compiledLayout = await compile({ type: 'string', layout: { getItems: 'options.context.items' } })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, context: { items: ['val1', 'val2'] } }, {})

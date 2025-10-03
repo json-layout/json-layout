@@ -178,7 +178,7 @@
     },
     "select-items": {
       "type": "array",
-      "items": {"$ref": "#/$defs/select-item"}
+      "items": {"oneOf": [{"$ref": "#/$defs/select-item"}, {"$ref": "#/$defs/select-item-header"}]}
     },
     "select-item": {
       "type": "object",
@@ -190,12 +190,22 @@
         "icon": {"type": "string"}
       }
     },
+    "select-item-header": {
+      "type": "object",
+      "required": ["header", "title"],
+      "properties": {
+        "header": {"type": "boolean", "const": true},
+        "title": {"type": "string"},
+        "icon": {"type": "string"}
+      }
+    },
     "get-items": {
       "type": "object",
       "allOf": [{
         "properties": {
           "returnObjects": {"type": "boolean", "readOnly": true},
           "itemsResults": {"$ref": "#/$defs/expression"},
+          "itemHeader": {"$ref": "#/$defs/expression"},
           "itemTitle": {"$ref": "#/$defs/expression"},
           "itemKey": {"$ref": "#/$defs/expression"},
           "itemValue": {"$ref": "#/$defs/expression"},

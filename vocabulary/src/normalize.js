@@ -533,6 +533,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       const { type: itemsType } = getSchemaFragmentType(schemaFragment.items)
       if (itemsType === 'object') partial.getItems.returnObjects = true
     }
+    if (partial.getItems.itemHeader) partial.getItems.itemHeader = normalizeExpression(partial.getItems.itemHeader, 'js-eval', 'item')
     if (partial.getItems.itemTitle) partial.getItems.itemTitle = normalizeExpression(partial.getItems.itemTitle, 'js-eval', 'item')
     if (partial.getItems.itemKey) partial.getItems.itemKey = normalizeExpression(partial.getItems.itemKey, 'js-eval', 'item')
     if (partial.getItems.itemValue) partial.getItems.itemValue = normalizeExpression(partial.getItems.itemValue, 'js-eval', 'item')
@@ -558,10 +559,14 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       if (['string', 'integer', 'number'].includes(typeof item)) {
         return { title: item + '', key: item + '', value: item }
       } else if (typeof item === 'object') {
-        return {
-          key: (item.key ?? item.value) + '',
-          title: (item.title ?? item.key ?? item.value) + '',
-          value: item.value ?? item.key
+        if (item.header) {
+          return item
+        } else {
+          return {
+            key: (item.key ?? item.value) + '',
+            title: (item.title ?? item.key ?? item.value) + '',
+            value: item.value ?? item.key
+          }
         }
       } else {
         throw new Error(`bad item for select: ${JSON.stringify(item)}`)

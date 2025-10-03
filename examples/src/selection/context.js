@@ -32,7 +32,21 @@ const example = {
             itemIcon: '"mdi-" + item.icon'
           }
         }
-      }
+      },
+      fromLayoutWithHeaders: {
+        type: 'string',
+        title: 'A select from items with headers in layout.items',
+        layout: {
+          items: [
+            { title: 'Group 1', icon: 'mdi-numeric-1', header: true },
+            { title: 'Value 1', value: 'value1' },
+            { title: 'Value 2', value: 'value2' },
+            { title: 'Group 2', icon: 'mdi-numeric-2', header: true },
+            { title: 'Value 3', value: 'value3' },
+            { title: 'Value 4', value: 'value4' },
+          ]
+        }
+      },
     }
   },
   options: {

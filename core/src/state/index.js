@@ -654,12 +654,18 @@ export class StatefulLayout {
     /** @type {import('@json-layout/vocabulary').ItemsBasedCompObject} */
     const layout = node.layout
     if (typeof rawItem === 'object') {
-      item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : (layout.getItems?.returnObjects ? rawItem : rawItem.value)
-      item.key = layout.getItems?.itemKey ? this.evalNodeExpression(node, layout.getItems.itemKey, rawItem) : rawItem.key
-      item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : rawItem.title
-      item.value = item.value ?? item.key
-      item.key = item.key ?? item.value + ''
-      item.title = item.title ?? item.key
+      item.header = layout.getItems?.itemHeader ? this.evalNodeExpression(node, layout.getItems.itemHeader, rawItem) : rawItem.header
+      if (item.header === true) {
+        item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : rawItem.title
+      } else {
+        delete item.header
+        item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : (layout.getItems?.returnObjects ? rawItem : rawItem.value)
+        item.key = layout.getItems?.itemKey ? this.evalNodeExpression(node, layout.getItems.itemKey, rawItem) : rawItem.key
+        item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : rawItem.title
+        item.value = item.value ?? item.key
+        item.key = item.key ?? item.value + ''
+        item.title = item.title ?? item.key
+      }
       if (!item.icon && rawItem.icon) item.icon = rawItem.icon
     } else {
       item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : rawItem

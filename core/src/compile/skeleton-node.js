@@ -174,6 +174,7 @@ export function makeSkeletonNode (
           }
         }
       }
+      if (compObject.getItems.itemHeader) pushExpression(expressions, compObject.getItems.itemHeader)
       if (compObject.getItems.itemTitle) pushExpression(expressions, compObject.getItems.itemTitle)
       if (compObject.getItems.itemKey) pushExpression(expressions, compObject.getItems.itemKey)
       if (compObject.getItems.itemValue) pushExpression(expressions, compObject.getItems.itemValue)

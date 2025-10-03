@@ -156,8 +156,10 @@
         {
           "type": "object",
           "properties": {
+            "header": {"type": "string"},
             "key": {"type": "string"},
             "title": {"type": "string"},
+            "icon": {"type": "string"},
             "value": {}
           }
         }
@@ -173,6 +175,7 @@
       "type": "object",
       "allOf": [{
         "properties": {
+          "itemHeader": {"$ref": "#/$defs/partial-expression"},
           "itemTitle": {"$ref": "#/$defs/partial-expression"},
           "itemKey": {"$ref": "#/$defs/partial-expression"},
           "itemValue": {"$ref": "#/$defs/partial-expression"},
