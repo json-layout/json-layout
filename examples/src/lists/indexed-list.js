@@ -17,6 +17,18 @@ const example = {
       },
       obj2: {
         type: 'object',
+        title: 'An object accepting any property key coming from a list',
+        patternPropertiesLayout: {
+          items: ['key1', 'key2', 'key3']
+        },
+        patternProperties: {
+          '.*': {
+            type: 'string'
+          }
+        }
+      },
+      obj3: {
+        type: 'object',
         title: 'An object accepting str_* or nb_* properties',
         patternProperties: {
           'str_(.*)': {
@@ -34,6 +46,9 @@ const example = {
       key: 'value'
     },
     obj2: {
+      key1: 'value'
+    },
+    obj3: {
       str_1: 'String 1',
       nb_1: 1
     }

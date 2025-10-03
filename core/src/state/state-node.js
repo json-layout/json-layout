@@ -881,7 +881,7 @@ export function createStateNode (
   }
 
   const autofocus = isFocusableLayout(layout, compiledLayout.components) && !options.readOnly && !options.summary && context.autofocusTarget === fullKey
-  const shouldLoadData = layout.comp === 'list' && itemsCacheKey && reusedNode?.itemsCacheKey !== itemsCacheKey
+  const shouldLoadData = layout.comp === 'list' && !layout.indexed && itemsCacheKey && reusedNode?.itemsCacheKey !== itemsCacheKey
   if (shouldLoadData) {
     logGetItems(fullKey, 'list component with getItems expression registered for fetch', itemsCacheKey)
   } else if (layout.comp === 'list' && itemsCacheKey) {

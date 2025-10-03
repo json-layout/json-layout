@@ -136,4 +136,30 @@ describe('Management of pattern properties', () => {
     })
     assert.deepEqual(statefulLayout.data, { aKey: ['value3', 'value2'], aKey2: [] })
   })
+
+  it('should manage patterProperties with keys from layout.items', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      title: 'Pattern properties',
+      patternPropertiesLayout: {
+        items: ['key1', 'key2']
+      },
+      patternProperties: {
+        '.*': { type: 'string' }
+      }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      defaultOptions,
+      {}
+    )
+    const getNode = getNodeBuilder(statefulLayout)
+    const node = getNode('$patternProperties')
+
+    const items = await statefulLayout.getItems(node)
+    assert.deepEqual(items, [
+      { value: 'key1', key: 'key1', title: 'key1' },
+      { value: 'key2', key: 'key2', title: 'key2' }
+    ])
+  })
 })
