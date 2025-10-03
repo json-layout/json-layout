@@ -76,7 +76,7 @@
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "peerDependencies": {
-    "@json-layout/vocabulary": "^2.8.0"
+    "@json-layout/vocabulary": "^2.9.0"
   },
   "dependencies": {
     "ajv": "^8.17.1",
