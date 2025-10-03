@@ -3,6 +3,7 @@
  * @typedef {import('./types.js').SwitchStruct} SwitchStruct
  * @typedef {import('./types.js').BaseCompObject} BaseCompObject
  * @typedef {import('./types.js').SelectItem} SelectItem
+ * @typedef {import('./types.js').SelectItemHeader} SelectItemHeader
  * @typedef {import('./types.js').SelectItems} SelectItems
  * @typedef {import('./types.js').GetItemsFetch} GetItemsFetch
  * @typedef {import('./types.js').Child} Child
