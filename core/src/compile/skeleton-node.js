@@ -55,7 +55,7 @@ export function makeSkeletonNode (
     refFragment.__pointer = refPointer
     schema = { ...rawSchema, ...refFragment }
     if (errorMessage && refFragment.errorMessage) {
-      console.warn('errorMessage should not be defined both on ref source and target', pointer, errorMessage, refPointer, refFragment.errorMessage)
+      // console.warn('errorMessage should not be defined both on ref source and target', pointer, errorMessage, refPointer, refFragment.errorMessage)
       // throw new Error('errorMessage cannot be defined both on ref source and target')
     }
     errorMessage = refFragment.errorMessage = refFragment.errorMessage ?? errorMessage ?? {}
