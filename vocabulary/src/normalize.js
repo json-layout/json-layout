@@ -615,7 +615,7 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
       }
     } else if (options.useDescription.includes('hint')) {
       hintParts.push(schemaFragment.description)
-    } else if (schemaChild !== 'oneOf' && options.useDescription.includes('help')) {
+    } else if (!schemaChild && options.useDescription.includes('help')) {
       helpParts.push(schemaFragment.description)
     }
   }

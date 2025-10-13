@@ -106,6 +106,7 @@ describe('Management of pattern properties', () => {
     const compiledLayout = await compile({
       type: 'object',
       title: 'Pattern properties',
+      description: 'Pattern properties help',
       patternPropertiesLayout: {
         messages: {
           addItem: 'Input a key'
@@ -123,6 +124,10 @@ describe('Management of pattern properties', () => {
     const getNode = getNodeBuilder(statefulLayout)
     assert.ok(statefulLayout.valid)
     assert.deepEqual(statefulLayout.data, {})
+    assert.equal(getNode(['$patternProperties']).layout.title, 'Pattern properties')
+    assert.equal(getNode(['$patternProperties']).layout.help, undefined)
+    assert.equal(statefulLayout.stateTree.root.layout.title, undefined)
+    assert.equal(statefulLayout.stateTree.root.layout.help, '<p>Pattern properties help</p>')
     statefulLayout.input(getNode(['$patternProperties']), {
       aKey: ['value1', 'value2']
     })
