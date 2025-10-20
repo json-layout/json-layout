@@ -45,6 +45,61 @@ describe('default data management', () => {
     assert.deepEqual(statefulLayout.data, { str1: 'String 1' })
   })
 
+  it('should fill default values when children are in nested layout', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: [
+        'columns',
+        'useCatalogConfig'
+      ],
+      layout: {
+        children: [
+          'columns',
+          {
+            title: 'Dataset Card',
+            comp: 'card',
+            children: [
+              'useCatalogConfig',
+              {
+                children: [
+                  'cardConfig'
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      properties: {
+        columns: {
+          type: 'integer',
+          title: 'Nombre de colonnes',
+          default: 2
+        },
+        useCatalogConfig: {
+          type: 'boolean',
+          title: 'Utiliser la configuration du catalogue',
+          default: true
+        },
+        cardConfig: {
+          type: 'object',
+          required: [
+            'actionsLocation'
+          ],
+          properties: {
+            actionsLocation: {
+              type: 'string',
+              title: "Position des boutons d'actions sur la carte",
+              default: 'bottom'
+            }
+          }
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    assert.deepEqual(statefulLayout.data, { columns: 2, useCatalogConfig: true, cardConfig: { actionsLocation: 'bottom' } })
+    assert.equal(statefulLayout.valid, true)
+  })
+
   it('should create empty required objects and arrays', async () => {
     const compiledLayout = await compile({
       type: 'object',

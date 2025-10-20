@@ -456,14 +456,15 @@ export function createStateNode (
   /** @type {import('./types.js').StateNode[] | undefined} */
   let children
   if (isCompositeLayout(layout, compiledLayout.components)) {
-    // TODO: make this type casting safe using prior validation
-    const objectData = /** @type {Record<string, unknown>} */(nodeData ?? {})
     const childrenOptions = produceCompositeChildrenOptions(options, layout)
     let actualPropertyKeys = skeleton.propertyKeys
     const removePropertyKeys = options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : []
     children = []
     let focusChild = context.autofocusTarget === fullKey
     for (let i = 0; i < layout.children.length; i++) {
+      // TODO: make this type casting safe using prior validation
+      const objectData = /** @type {Record<string, unknown>} */(nodeData ?? {})
+
       const childLayout = layout.children[i]
       if (
         ['remove', 'hide'].includes(options.readOnlyPropertiesMode) &&

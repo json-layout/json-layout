@@ -764,4 +764,77 @@ describe('Special cases of oneOfs', () => {
       assert.equal(statefulLayout.valid, true)
     }
   })
+
+  it('default values of active element in a oneOf with complex layout', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      unevaluatedProperties: false,
+      oneOf: [{
+        title: 'Title',
+        required: ['type', 'content'],
+        properties: {
+          type: { type: 'string', const: 'title' },
+          content: { type: 'string' }
+        }
+      }, {
+        title: 'Datasets lis',
+        required: ['type', 'columns'],
+        layout: {
+          children: [
+            'type',
+            'columns',
+            {
+              title: 'Dataset Card',
+              comp: 'card',
+              children: [
+                {
+                  children: [
+                    'cardConfig'
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        properties: {
+          type: { type: 'string', const: 'datasets-list' },
+          columns: {
+            type: 'integer',
+            title: 'Nombre de colonnes',
+            default: 2
+          },
+          cardConfig: {
+            type: 'object',
+            required: [
+              'actionsLocation'
+            ],
+            properties: {
+              actionsLocation: {
+                type: 'string',
+                title: "Position des boutons d'actions sur la carte",
+                default: 'bottom'
+              }
+            }
+          }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+    const getNode = getNodeBuilder(statefulLayout)
+
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], undefined)
+    assert.deepEqual(statefulLayout.stateTree.root.data, {})
+
+    statefulLayout.activateItem(getNode('$oneOf'), 0)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title' })
+    assert.equal(statefulLayout.valid, false)
+    statefulLayout.input(getNode('$oneOf.0.content'), 'Content')
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', content: 'Content' })
+    assert.equal(statefulLayout.valid, true)
+
+    statefulLayout.activateItem(getNode('$oneOf'), 1)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+    assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'datasets-list', columns: 2, cardConfig: { actionsLocation: 'bottom' } })
+  })
 })
