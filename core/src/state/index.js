@@ -713,6 +713,16 @@ export class StatefulLayout {
   }
 
   /**
+   * @param {string} fullKey
+   */
+  focusNode (fullKey) {
+    logActivatedItems(fullKey, 'focus node explicitly')
+    this._autofocusTarget = fullKey
+    this.updateState()
+    this.handleAutofocus()
+  }
+
+  /**
    * @param {StateNode} node
    * @param {boolean} skipUpdateState
    */
