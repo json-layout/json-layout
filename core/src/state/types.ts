@@ -69,8 +69,8 @@ export interface CreateStateTreeContext {
   rehydrateErrors?: ErrorObject[]
   additionalPropertiesErrors?: ErrorObject[]
   files: FileRef[]
-  activatedItems: Record<string, number>
-  autoActivatedItems: Record<string, number>
+  activatedItems: Record<string, number | string>
+  autoActivatedItems: Record<string, number | number>
   autofocusTarget: string | null
   currentInput: string | null
   initial: boolean
@@ -96,7 +96,7 @@ export type StateNodeCacheKey = [
   Child | null,
   number,
   boolean,
-  Record<string, number>,
+  Record<string, number | string>,
   boolean,
   number,
   unknown

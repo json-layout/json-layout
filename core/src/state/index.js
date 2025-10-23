@@ -679,13 +679,13 @@ export class StatefulLayout {
   }
 
   /**
-   * @type {Record<string, number>}
+   * @type {Record<string, number | string>}
    */
   activatedItems
 
   /**
    * @param {StateNode} node
-   * @param {number} key
+   * @param {number | string} key
    */
   activateItem (node, key) {
     logActivatedItems(node.fullKey, 'activate item explicitly', key)

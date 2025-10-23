@@ -561,7 +561,7 @@ export function createStateNode (
     // find the oneOf child that was either previously selected
     // or the one matching the specified discriminator
     // or the one that is valid with current data
-    let activeChildTreeIndex = /** @type {number} */context.activatedItems[fullKey]
+    let activeChildTreeIndex = /** @type {number} */(context.activatedItems[fullKey])
     const validChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
     if (activeChildTreeIndex === undefined) {
       if (skeleton.discriminator !== undefined && validChildTreeIndex === -1) {
@@ -639,8 +639,7 @@ export function createStateNode (
       children = []
       let focusChild = context.autofocusTarget === fullKey
       const childrenKeys = Object.keys(objectData)
-      for (let i = 0; i < childrenKeys.length; i++) {
-        const childKey = childrenKeys[i]
+      for (const childKey of childrenKeys) {
         let valueChildSkeleton = /** @type {import('../index.js').SkeletonNode | null} */ null
         if (skeleton?.childrenTrees?.length === 1) {
           valueChildSkeleton = compiledLayout.skeletonNodes[compiledLayout.skeletonTrees[skeleton?.childrenTrees[0]]?.root]
@@ -660,7 +659,7 @@ export function createStateNode (
           const valueChildData = objectData[childKey]
           const valueChild = createStateNode(
             context,
-            (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
+            (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === childKey) ? options : listItemOptions,
             compiledLayout,
             childKey,
             childFullKey,
@@ -723,7 +722,7 @@ export function createStateNode (
 
       // duplicate active child at the end of the list in case of dialog/menu edition
       if (context.activatedItems[fullKey] !== undefined && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
-        const i = context.activatedItems[fullKey]
+        const i = /** @type number */(context.activatedItems[fullKey])
         const activeChild = createStateNode(
           context,
           options,
