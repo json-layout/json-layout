@@ -135,6 +135,7 @@ export const standardComponents = [
   },
   {
     name: 'slider',
+    shouldDebounce: true,
     schema: {
       properties: {
         step: { type: 'number' },
