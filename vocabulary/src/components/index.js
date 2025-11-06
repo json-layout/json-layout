@@ -257,23 +257,7 @@ export const standardComponents = [
         oneOfItems: {
           type: 'array',
           items: {
-            oneOf: [{
-              type: 'object',
-              required: ['title', 'key'],
-              properties: {
-                title: { type: 'string' },
-                key: { type: 'number' },
-                icon: { type: 'string' }
-              }
-            }, {
-              type: 'object',
-              required: ['header', 'title'],
-              properties: {
-                header: { type: 'boolean', const: true },
-                title: { type: 'string' },
-                icon: { type: 'string' }
-              }
-            }]
+            $ref: 'https://json-layout.github.io/normalized-layout-keyword#/$defs/one-of-item'
           }
         }
       }

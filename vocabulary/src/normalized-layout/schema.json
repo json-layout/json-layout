@@ -249,7 +249,7 @@
       "required": ["title", "key"],
       "properties": {
         "title": {"type": "string"},
-        "key": {"type": "string"},
+        "key": {"type": "number"},
         "icon": {"type": "string"}
       }
     },

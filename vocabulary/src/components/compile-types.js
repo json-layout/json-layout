@@ -41,7 +41,8 @@ export function getComponentTypesCodeImport (from) {
   Expression,
   Children,
   GetItems,
-  SelectItems
+  SelectItems,
+  OneOfItem
 } from '${from}'\n`
 }
 
