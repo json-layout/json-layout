@@ -90,3 +90,15 @@ export function isNameSlot (slot) {
   // @ts-ignore
   return !!slot.name
 }
+
+/** @type {(oneOfItem: import('./types.js').OneOfItem) => oneOfItem is import('./types.js').OneOfItemHeader} */
+export function isOneOfItemHeader (oneOfItem) {
+  // @ts-ignore
+  return oneOfItem.header
+}
+
+/** @type {(oneOfItem: import('./types.js').OneOfItem) => oneOfItem is import('./types.js').OneOfItemChild} */
+export function isOneOfItemChild (oneOfItem) {
+  // @ts-ignore
+  return !oneOfItem.header
+}

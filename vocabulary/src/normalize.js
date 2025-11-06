@@ -424,6 +424,38 @@ function getCompObject (key, layoutKeyword, schemaFragment, type, nullable, sche
     }
   }
 
+  if (partial.comp === 'one-of-select') {
+    const defaultItems = (schemaFragment.oneOf ?? [])
+      .map((item, i) => ({ key: i, title: item.title ?? `option ${i + 1}` }))
+    if (partial.oneOfItems) {
+      let key = 0
+      const items = []
+      for (let i = 0; i < partial.oneOfItems.length; i++) {
+        const partialOneOfItem = partial.oneOfItems[i]
+        if (typeof partialOneOfItem === 'string') {
+          items.push({ title: partialOneOfItem, key })
+          key++
+          continue
+        }
+        if (partialOneOfItem.header) {
+          if (!partialOneOfItem.title) throw new Error('missing title in oneOfItem header')
+          items.push(partialOneOfItem)
+        } else {
+          const oneOfItem = { ...partialOneOfItem }
+          if (oneOfItem.key === undefined) oneOfItem.key = key
+          const matchingDefaultItem = defaultItems.find(di => di.key === oneOfItem.key)
+          if (!matchingDefaultItem) throw new Error(`unknown oneOf item ${oneOfItem.key}`)
+          if (!oneOfItem.title && matchingDefaultItem) oneOfItem.title = matchingDefaultItem.title
+          items.push(oneOfItem)
+          key++
+        }
+      }
+      partial.oneOfItems = items
+    } else {
+      partial.oneOfItems = defaultItems
+    }
+  }
+
   if (component.composite) {
     const children = getChildren(getDefaultChildren(schemaFragment, type), partial.children, options.markdown)
     partial.children = children

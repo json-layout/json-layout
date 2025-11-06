@@ -240,6 +240,28 @@
         }
       }
     },
+    "one-of-item": {
+      "type": "object",
+      "oneOf": [{"$ref": "#/$defs/one-of-item-child"}, {"$ref": "#/$defs/one-of-item-header"}]
+    },
+    "one-of-item-child": {
+      "type": "object",
+      "required": ["title", "key"],
+      "properties": {
+        "title": {"type": "string"},
+        "key": {"type": "string"},
+        "icon": {"type": "string"}
+      }
+    },
+    "one-of-item-header": {
+      "type": "object",
+      "required": ["header", "title"],
+      "properties": {
+        "header": {"type": "boolean", "const": true},
+        "title": {"type": "string"},
+        "icon": {"type": "string"}
+      }
+    },
     "expression": {
       "type": "object",
       "required": ["type", "expr", "pure", "dataAlias"],

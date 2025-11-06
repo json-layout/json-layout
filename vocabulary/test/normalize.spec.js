@@ -185,11 +185,13 @@ describe('normalize schema fragment function', () => {
       title: 'Subtypes section',
       description: 'A section with subtypes',
       oneOf: [{
+        title: 'oneOf 1',
         properties: {
           key: { type: 'string', const: 'val1', title: 'Key' },
           str1: { type: 'string' }
         }
       }, {
+        title: 'oneOf 2',
         properties: {
           key: { type: 'string', const: 'val2' },
           str2: { type: 'string' }
@@ -208,15 +210,17 @@ describe('normalize schema fragment function', () => {
     assert.deepEqual(
       normalize('prop', schema, '/prop', options, 'oneOf').layout,
       {
-        comp: 'one-of-select'
+        comp: 'one-of-select',
+        oneOfItems: [{ key: 0, title: 'oneOf 1' }, { key: 1, title: 'oneOf 2' }]
       }
     )
-    schema.oneOfLayout = { label: 'Select a subtype' }
+    schema.oneOfLayout = { label: 'Select a subtype', oneOfItems: ['One of 1', { header: true, title: 'Header 1' }, 'One of 2'] }
     assert.deepEqual(
       normalize('prop', schema, '/prop', options, 'oneOf').layout,
       {
         comp: 'one-of-select',
-        label: 'Select a subtype'
+        label: 'Select a subtype',
+        oneOfItems: [{ key: 0, title: 'One of 1' }, { header: true, title: 'Header 1' }, { key: 1, title: 'One of 2' }]
       }
     )
   })

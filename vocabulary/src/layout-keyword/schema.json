@@ -41,6 +41,7 @@
         "itemSubtitle": {"$ref": "#/$defs/partial-expression"},
         "itemCopy": {"$ref": "#/$defs/partial-expression"},
         "items": {"type": "array", "items": {"$ref": "#/$defs/partial-select-item"}},
+        "oneOfItems": {"type": "array", "items": {"$ref": "#/$defs/partial-one-of-item"}},
         "getItems": {"$ref": "#/$defs/partial-get-items"},
         "listEditMode": {"type": "string", "enum": ["inline", "inline-single", "menu", "dialog"]},
         "listActions": {"type": "array", "items": {"type": "string", "enum": ["add", "edit", "delete", "sort", "duplicate", "copy", "paste"]}},
@@ -209,6 +210,20 @@
           }
         }
       }
+    },
+    "partial-one-of-item": {
+      "oneOf": [
+        {"type": "string"},
+        {
+          "type": "object",
+          "properties": {
+            "header": {"type": "string"},
+            "key": {"type": "number"},
+            "title": {"type": "string"},
+            "icon": {"type": "string"}
+          }
+        }
+      ]
     },
     "partial-cols": {
       "oneOf": [

@@ -7,7 +7,8 @@ const example = {
     type: 'object',
     title: 'An object with a oneOf',
     oneOfLayout: {
-      label: 'Select a subschema'
+      label: 'Select a subschema',
+      oneOfItems: ['Sub schema 1', { header: true, title: 'A select header' }, 'Sub schema 2']
     },
     oneOf: [
       {
