@@ -318,6 +318,11 @@ describe('Special cases of oneOfs', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1' })
     const getNode = getNodeBuilder(statefulLayout)
+    assert.deepEqual(getNode('$oneOf').layout.oneOfItems, [
+      { key: 0, title: 'Subtype 1' },
+      { key: 1, title: 'Subtype 2' },
+      { key: 2, title: 'Subtype 3' }
+    ])
 
     assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
     assert.equal(statefulLayout.stateTree.root.layout.comp, 'section')

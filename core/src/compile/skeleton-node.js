@@ -307,7 +307,7 @@ export function makeSkeletonNode (
       if (!normalizedLayouts[oneOfPointer]) {
         const normalizationResult = normalizeLayoutFragment(
           '',
-          schema,
+          /** @type {import('@json-layout/vocabulary').SchemaFragment} */(resolvedSchema),
           oneOfPointer,
           options,
           'oneOf',
@@ -384,7 +384,7 @@ export function makeSkeletonNode (
       if (!normalizedLayouts[patternPropertiesPointer]) {
         const normalizationResult = normalizeLayoutFragment(
           '',
-          schema,
+          /** @type {import('@json-layout/vocabulary').SchemaFragment} */(resolvedSchema),
           patternPropertiesPointer,
           options,
           'patternProperties',

@@ -722,7 +722,7 @@ export function createStateNode (
 
       // duplicate active child at the end of the list in case of dialog/menu edition
       if (context.activatedItems[fullKey] !== undefined && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
-        const i = /** @type number */(context.activatedItems[fullKey])
+        const i = /** @type {number} */(context.activatedItems[fullKey])
         const activeChild = createStateNode(
           context,
           options,
