@@ -62,7 +62,7 @@ describe('get select items', () => {
     ])
   })
 
-  it.only('should manage a select with items and groups', async () => {
+  it('should manage a select with items and groups', async () => {
     const compiledLayout = await compile({
       type: 'string',
       layout: { items: [{ header: true, title: 'Group 1' }, 'val1', { header: true, title: 'Group 2' }, 'val2'] }

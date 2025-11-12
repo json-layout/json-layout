@@ -119,6 +119,29 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
     })
 
+    it('should merge info from references', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          testRef: {
+            title: 'Test ref',
+            $ref: '#/$defs/test'
+          }
+        },
+        $defs: {
+          test: {
+            type: 'object',
+            title: 'Test',
+            properties: {
+              str1: { type: 'string' }
+            }
+          }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
+      assert.equal(statefulLayout.stateTree.root.children?.[0].layout.title, 'Test ref')
+    })
+
     it('should use a switch on read/write mode', async () => {
       const compiledLayout = await compile({
         type: 'object',
