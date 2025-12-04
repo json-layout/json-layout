@@ -173,7 +173,8 @@ export const standardComponents = [
     }
   },
   {
-    name: 'color-picker'
+    name: 'color-picker',
+    shouldDebounce: true
   },
   {
     name: 'select',
