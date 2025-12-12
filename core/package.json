@@ -1,6 +1,6 @@
 {
   "name": "@json-layout/core",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "description": "Compilation and state management utilities for JSON Layout.",
   "type": "module",
   "exports": {
@@ -76,7 +76,7 @@
   },
   "homepage": "https://github.com/json-layout/json-layout#readme",
   "peerDependencies": {
-    "@json-layout/vocabulary": "^2.9.0"
+    "@json-layout/vocabulary": "^2.11.0"
   },
   "dependencies": {
     "ajv": "^8.17.1",
