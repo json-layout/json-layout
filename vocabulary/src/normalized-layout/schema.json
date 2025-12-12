@@ -148,6 +148,8 @@
         "subtitle": {"type": "string"},
         "children": {"$ref": "#/$defs/children"},
         "if": {"$ref": "#/$defs/expression"},
+        "props": {"$ref": "#/$defs/state-node-props-lib"},
+        "getProps": {"$ref": "#/$defs/expression"},
         "slots": {"$ref": "#/$defs/slots"}
       }
     },

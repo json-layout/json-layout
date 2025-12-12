@@ -114,6 +114,8 @@ export function makeSkeletonNode (
   const prepareLayoutChild = (child) => {
     if (child.if) pushExpression(expressions, child.if)
     if (childIsCompositeCompObject(child)) {
+      if (child.props !== undefined && !child.getProps) child.getProps = { type: 'js-eval', expr: 'layout.props', pure: true, dataAlias: 'value' }
+      if (child.getProps) pushExpression(expressions, child.getProps)
       for (const grandChild of child.children) prepareLayoutChild(grandChild)
     }
   }

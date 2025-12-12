@@ -380,7 +380,15 @@ for (const compileMode of ['runtime', 'build-time']) {
     })
 
     it('should accept wrapper composite children', async () => {
-      const layout = [{ comp: 'section', title: 'Sec 1', children: ['nb1'] }, { comp: 'section', title: 'Sec 2', children: ['nb2'] }]
+      const layout = [{
+        comp: 'card',
+        title: 'Sec 1',
+        props: { variant: 'outlined' },
+        children: ['nb1']
+      }, {
+        title: 'Sec 2',
+        children: ['nb2']
+      }]
       const compiledLayout = await compile({
         type: 'object',
         layout,
@@ -389,9 +397,12 @@ for (const compileMode of ['runtime', 'build-time']) {
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
       assert.equal(statefulLayout.stateTree.root.children[0].key, '$comp-1')
+      assert.equal(statefulLayout.stateTree.root.children[0].layout.comp, 'card')
+      assert.deepEqual(statefulLayout.stateTree.root.children[0].props, { variant: 'outlined' })
       assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children[0].children[0].key, 'nb1')
       assert.equal(statefulLayout.stateTree.root.children[1].key, '$comp-2')
+      assert.equal(statefulLayout.stateTree.root.children[1].layout.comp, 'section')
       assert.equal(statefulLayout.stateTree.root.children[1].children?.length, 1)
       assert.equal(statefulLayout.stateTree.root.children[1].children[0].key, 'nb2')
 

@@ -97,6 +97,8 @@
         "children": {"$ref": "#/$defs/partial-children"},
         "cols": {"$ref": "#/$defs/partial-cols"},
         "if": {"$ref": "#/$defs/partial-expression"},
+        "props": {"type": "object"},
+        "getProps": {"$ref": "#/$defs/partial-expression"},
         "slots": {
           "type": "object",
           "patternProperties": {
