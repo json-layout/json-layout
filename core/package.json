@@ -1,6 +1,6 @@
 {
   "name": "@json-layout/core",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Compilation and state management utilities for JSON Layout.",
   "type": "module",
   "exports": {
