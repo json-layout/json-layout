@@ -400,6 +400,14 @@
               "type": "string",
               "enum": ["remove", "hide", "show"],
               "default": "show"
+            },
+            "listMenuWidth": {
+              "type": "integer",
+              "default": 500
+            },
+            "listDialogWidth": {
+              "type": "integer",
+              "default": 500
             }
           }
         }

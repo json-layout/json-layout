@@ -217,5 +217,15 @@ export const runtimeOptions = [
   {
     key: 'fetchOptions',
     description: 'Define options to be given to <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch">fetch</a> when getting data items from a URL. Can also be a function that will accept a URL object as parameter and return those options.'
+  },
+  {
+    key: 'listDialogOptions',
+    description: 'The width in pixels of list item edition dialogs.',
+    default: 500
+  },
+  {
+    key: 'listMenuOptions',
+    description: 'The width in pixels of list item edition menus.',
+    default: 500
   }
 ]

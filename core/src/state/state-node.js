@@ -1,7 +1,7 @@
 import { isSwitchStruct, childIsCompositeCompObject, childIsSlotCompObject, isCompositeLayout, isFocusableLayout, isItemsLayout, isGetItemsExpression, isGetItemsFetch, isListLayout } from '@json-layout/vocabulary'
 import { produce } from 'immer'
 import debug from 'debug'
-import { getChildDisplay } from './utils/display.js'
+import { Display, getChildDisplay } from './utils/display.js'
 import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
 import { getRegexp } from './utils/regexps.js'
 import { pathURL } from './utils/urls.js'
@@ -734,7 +734,7 @@ export function createStateNode (
           dataPath,
           childSkeleton,
           null,
-          display,
+          new Display(layout.listEditMode === 'menu' ? options.listMenuWidth : options.listDialogWidth),
           arrayData[i],
           { parent: parentContext, data: arrayData },
           validationState,

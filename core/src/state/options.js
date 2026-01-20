@@ -13,6 +13,8 @@ export function fillOptions (partialOptions, compiledLayout) {
   return {
     context: {},
     width: 1000,
+    listDialogWidth: 500,
+    listMenuWidth: 500,
     readOnly: false,
     summary: false,
     density: 'default',

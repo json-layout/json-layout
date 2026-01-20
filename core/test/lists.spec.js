@@ -172,6 +172,8 @@ describe('Lists management', () => {
     assert.equal(children[0].children?.[0].children?.[0].key, 0)
     assert.equal(children[1].children?.[0].key, '$oneOf')
     assert.equal(children[1].children?.[0].children?.[0].key, 0)
+    assert.equal(children[0].width, 1000)
+    assert.equal(children[1].width, 500)
 
     // activate second item of oneOf inside the active/edited array item
     statefulLayout.activateItem(children[1].children?.[0], 1)
