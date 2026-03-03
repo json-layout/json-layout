@@ -7,6 +7,7 @@ import { setFieldValue } from './tools/set-field.ts'
 import { getFieldSuggestions } from './tools/get-suggestions.ts'
 import { validateState } from './tools/validate.ts'
 import { getData } from './tools/get-data.ts'
+import { destroy } from './tools/destroy.ts'
 import type {
   CompileInput, CompileResult,
   CreateStateInput, CreateStateResult,
@@ -15,7 +16,8 @@ import type {
   SetFieldValueInput, SetFieldValueResult,
   GetFieldSuggestionsInput, GetFieldSuggestionsResult,
   ValidateStateInput, ValidateStateResult,
-  GetDataInput, GetDataResult
+  GetDataInput, GetDataResult,
+  DestroyInput, DestroyResult
 } from './types.ts'
 
 export interface AgentToolkit {
@@ -27,6 +29,7 @@ export interface AgentToolkit {
   getFieldSuggestions: (input: GetFieldSuggestionsInput) => Promise<GetFieldSuggestionsResult>
   validateState: (input: ValidateStateInput) => ValidateStateResult
   getData: (input: GetDataInput) => GetDataResult
+  destroyById: (input: DestroyInput) => DestroyResult
   destroy: () => void
 }
 
@@ -47,6 +50,7 @@ export function createAgentToolkit (options?: AgentToolkitOptions): AgentToolkit
     getFieldSuggestions: (input) => getFieldSuggestions(input, store),
     validateState: (input) => validateState(input, store),
     getData: (input) => getData(input, store),
+    destroyById: (input) => destroy(input, store),
     destroy: () => store.clear()
   }
 }
@@ -61,6 +65,7 @@ export type {
   GetFieldSuggestionsInput, GetFieldSuggestionsResult,
   ValidateStateInput, ValidateStateResult,
   GetDataInput, GetDataResult,
+  DestroyInput, DestroyResult,
   ProjectedNode, ProjectedStateTree,
   SuggestionItem,
   Store

@@ -33,6 +33,8 @@ export interface ProjectedNode {
   childError?: boolean
   required?: boolean
   readOnly?: boolean
+  constraints?: Record<string, unknown>
+  oneOfItems?: Array<{ key: number, title: string }>
   children?: ProjectedNode[]
 }
 
@@ -133,4 +135,14 @@ export interface GetDataInput {
 export interface GetDataResult {
   data: unknown
   valid: boolean
+}
+
+export interface DestroyInput {
+  compiledId?: string
+  stateId?: string
+}
+
+export interface DestroyResult {
+  deletedCompiled: boolean
+  deletedState: boolean
 }

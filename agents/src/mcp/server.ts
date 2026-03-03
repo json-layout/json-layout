@@ -10,6 +10,7 @@ import { setFieldValue } from '../tools/set-field.ts'
 import { getFieldSuggestions } from '../tools/get-suggestions.ts'
 import { validateState } from '../tools/validate.ts'
 import { getData } from '../tools/get-data.ts'
+import { destroy } from '../tools/destroy.ts'
 
 const store = createStore()
 
@@ -160,6 +161,23 @@ server.tool(
       return toolResult(getData({ stateId }, store))
     } catch (err: unknown) {
       return toolError(`Get data failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+)
+
+// --- destroy ---
+server.tool(
+  'destroy',
+  'Destroy a stored compiled layout and/or stateful layout by ID to free resources. Provide at least one of compiledId or stateId.',
+  {
+    compiledId: z.string().optional().describe('ID of a compiled layout to destroy'),
+    stateId: z.string().optional().describe('ID of a stateful layout to destroy')
+  },
+  async ({ compiledId, stateId }) => {
+    try {
+      return toolResult(destroy({ compiledId, stateId }, store))
+    } catch (err: unknown) {
+      return toolError(`Destroy failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )

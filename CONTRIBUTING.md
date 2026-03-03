@@ -28,6 +28,31 @@ This command is useful for fast iterations. It will run tests and builds on sour
 npm run dev
 ```
 
+## Agent toolkit evaluation
+
+The `agents/` workspace provides MCP tools for AI agents to compile JSON schemas and fill forms. To evaluate these tools with a real LLM agent:
+
+1. Make sure dependencies are installed and the project is built:
+
+```
+npm install
+npm run build
+```
+
+2. Start [opencode](https://opencode.ai) in the project root. The MCP server is configured in `opencode.jsonc` and will start automatically:
+
+```
+opencode
+```
+
+3. Prompt the agent with the eval document:
+
+```
+@agents/eval/EVAL.md follow these instructions
+```
+
+The agent will work through 7 progressive difficulty levels (basic fields, selection, validation, composite layouts, conditional schemas, lists, recursion) using the json-layout MCP tools against real schemas from `@json-layout/examples`. It reports on tool ergonomics, projection quality, and error clarity at the end.
+
 ## Publishing
 
 Release and publish using npm.

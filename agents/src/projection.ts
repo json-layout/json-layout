@@ -1,6 +1,17 @@
 import type { StateNode, StateTree } from '@json-layout/core/state'
 import type { ProjectedNode, ProjectedStateTree } from './types.ts'
 
+/** Layout constraint keys to extract per component type. */
+const constraintKeys: Record<string, string[]> = {
+  'number-field': ['min', 'max', 'step', 'precision'],
+  slider: ['min', 'max', 'step'],
+  'date-picker': ['min', 'max', 'format'],
+  'date-time-picker': ['min', 'max'],
+  'time-picker': ['min', 'max'],
+  combobox: ['separator'],
+  'number-combobox': ['separator']
+}
+
 /**
  * Project a StateNode into an agent-friendly format, stripping rendering
  * internals (skeleton, cols, width, messages, slots, etc.) and keeping
@@ -28,6 +39,24 @@ export function projectNode (node: StateNode): ProjectedNode {
   // constraints
   if (node.skeleton.required) out.required = true
   if (node.options.readOnly) out.readOnly = true
+
+  // component-specific constraints (min, max, step, format, separator, etc.)
+  const keys = constraintKeys[node.layout.comp]
+  if (keys) {
+    const constraints: Record<string, unknown> = {}
+    for (const k of keys) {
+      const v = layout[k]
+      if (v !== undefined && v !== null) constraints[k] = v
+    }
+    if (Object.keys(constraints).length > 0) out.constraints = constraints
+  }
+
+  // oneOf variant options
+  if (node.layout.comp === 'one-of-select' && Array.isArray(layout.oneOfItems)) {
+    out.oneOfItems = (layout.oneOfItems as Array<{ header?: boolean, key: number, title: string }>)
+      .filter(item => !item.header)
+      .map(item => ({ key: item.key, title: item.title }))
+  }
 
   // recurse children, skip hidden nodes
   if (node.children) {

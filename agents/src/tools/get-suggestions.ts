@@ -17,6 +17,16 @@ export async function getFieldSuggestions (input: GetFieldSuggestionsInput, stor
     throw new Error(`node not found at path: ${input.path}`)
   }
 
+  // one-of-select nodes carry their options in layout.oneOfItems, not via getItems
+  if (node.layout.comp === 'one-of-select') {
+    const layout = node.layout as Record<string, unknown>
+    const oneOfItems = layout.oneOfItems as Array<{ header?: boolean, key: number, title: string }> | undefined
+    const items: SuggestionItem[] = (oneOfItems ?? [])
+      .filter(item => !item.header)
+      .map(item => ({ value: item.key, title: item.title }))
+    return { items }
+  }
+
   const rawItems = await statefulLayout.getItems(node, input.query)
 
   const items: SuggestionItem[] = rawItems

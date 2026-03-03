@@ -203,6 +203,63 @@ describe('agent toolkit', () => {
     })
   })
 
+  describe('destroyById', () => {
+    it('should destroy a compiled layout by id', () => {
+      const { id } = toolkit.compile({ schema: { type: 'string' } })
+
+      const result = toolkit.destroyById({ compiledId: id })
+      assert.equal(result.deletedCompiled, true)
+      assert.equal(result.deletedState, false)
+
+      // creating state from deleted compiled should throw
+      assert.throws(
+        () => toolkit.createState({ compiledId: id }),
+        /compiled layout not found/
+      )
+    })
+
+    it('should destroy a stateful layout by id', () => {
+      const { id } = toolkit.compile({
+        schema: { type: 'object', properties: { name: { type: 'string' } } }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+
+      const result = toolkit.destroyById({ stateId })
+      assert.equal(result.deletedCompiled, false)
+      assert.equal(result.deletedState, true)
+
+      // accessing destroyed state should throw
+      assert.throws(
+        () => toolkit.describeState({ stateId }),
+        /stateful layout not found/
+      )
+    })
+
+    it('should destroy both compiled and state at once', () => {
+      const { id } = toolkit.compile({
+        schema: { type: 'object', properties: { name: { type: 'string' } } }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+
+      const result = toolkit.destroyById({ compiledId: id, stateId })
+      assert.equal(result.deletedCompiled, true)
+      assert.equal(result.deletedState, true)
+    })
+
+    it('should return false when ids do not exist', () => {
+      const result = toolkit.destroyById({ compiledId: 'nonexistent' })
+      assert.equal(result.deletedCompiled, false)
+      assert.equal(result.deletedState, false)
+    })
+
+    it('should throw when neither id is provided', () => {
+      assert.throws(
+        () => toolkit.destroyById({}),
+        /at least one of compiledId or stateId must be provided/
+      )
+    })
+  })
+
   describe('getData', () => {
     it('should return current data and validity', () => {
       const { id } = toolkit.compile({
@@ -218,6 +275,143 @@ describe('agent toolkit', () => {
       const result = toolkit.getData({ stateId })
       assert.deepEqual(result.data, { name: 'test' })
       assert.equal(result.valid, true)
+    })
+  })
+
+  describe('constraints projection', () => {
+    it('should expose min/max/step on number fields', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            num: { type: 'number', minimum: 0, maximum: 100, title: 'A number' }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = toolkit.describeState({ stateId })
+      const tree = result.state as import('../src/types.ts').ProjectedStateTree
+      const numNode = tree.root.children![0]
+      assert.equal(numNode.comp, 'number-field')
+      assert.ok(numNode.constraints)
+      assert.equal(numNode.constraints.min, 0)
+      assert.equal(numNode.constraints.max, 100)
+    })
+
+    it('should expose min/max on slider', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            slider: { type: 'integer', minimum: 0, maximum: 50, layout: 'slider' }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = toolkit.describeState({ stateId })
+      const tree = result.state as import('../src/types.ts').ProjectedStateTree
+      const sliderNode = tree.root.children![0]
+      assert.equal(sliderNode.comp, 'slider')
+      assert.ok(sliderNode.constraints)
+      assert.equal(sliderNode.constraints.min, 0)
+      assert.equal(sliderNode.constraints.max, 50)
+    })
+
+    it('should expose format on date-picker', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            d: { type: 'string', format: 'date-time', layout: 'date-picker' }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = toolkit.describeState({ stateId })
+      const tree = result.state as import('../src/types.ts').ProjectedStateTree
+      const dateNode = tree.root.children![0]
+      assert.equal(dateNode.comp, 'date-picker')
+      assert.ok(dateNode.constraints)
+      assert.equal(dateNode.constraints.format, 'date-time')
+    })
+
+    it('should expose separator on combobox', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            s: { type: 'string', layout: { separator: ',' } }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = toolkit.describeState({ stateId })
+      const tree = result.state as import('../src/types.ts').ProjectedStateTree
+      const comboNode = tree.root.children![0]
+      assert.equal(comboNode.comp, 'combobox')
+      assert.ok(comboNode.constraints)
+      assert.equal(comboNode.constraints.separator, ',')
+    })
+
+    it('should not include constraints when none apply', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = toolkit.describeState({ stateId })
+      const tree = result.state as import('../src/types.ts').ProjectedStateTree
+      const nameNode = tree.root.children![0]
+      assert.equal(nameNode.comp, 'text-field')
+      assert.equal(nameNode.constraints, undefined)
+    })
+  })
+
+  describe('oneOf variants', () => {
+    it('should expose oneOfItems in the projected state', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          oneOf: [
+            { title: 'Option A', properties: { key: { const: 'a' }, str1: { type: 'string' } } },
+            { title: 'Option B', properties: { key: { const: 'b' }, str2: { type: 'string' } } }
+          ]
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = toolkit.describeState({ stateId })
+      const tree = result.state as import('../src/types.ts').ProjectedStateTree
+      const oneOfNode = tree.root.children![0]
+      assert.equal(oneOfNode.comp, 'one-of-select')
+      assert.ok(oneOfNode.oneOfItems)
+      assert.deepEqual(oneOfNode.oneOfItems, [
+        { key: 0, title: 'Option A' },
+        { key: 1, title: 'Option B' }
+      ])
+    })
+
+    it('should return oneOf variants via getFieldSuggestions', async () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          oneOf: [
+            { title: 'Variant 1', properties: { key: { const: 'v1' } } },
+            { title: 'Variant 2', properties: { key: { const: 'v2' } } },
+            { title: 'Variant 3', properties: { key: { const: 'v3' } } }
+          ]
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      const result = await toolkit.getFieldSuggestions({ stateId, path: '/$oneOf' })
+      assert.deepEqual(result.items, [
+        { value: 0, title: 'Variant 1' },
+        { value: 1, title: 'Variant 2' },
+        { value: 2, title: 'Variant 3' }
+      ])
     })
   })
 })
