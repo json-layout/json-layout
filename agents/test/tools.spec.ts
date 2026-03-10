@@ -2,54 +2,81 @@ import { describe, it, beforeEach } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { createAgentToolkit, type AgentToolkit } from '../src/index.ts'
 
+function createMockGetSchema (schemas: Record<string, Record<string, unknown>>) {
+  const updateDates: Record<string, number> = {}
+  return (
+    path: string,
+    updateDate?: number
+  ): { schema: Record<string, unknown>, updateDate: number } | null => {
+    const schema = schemas[path]
+    if (!schema) return null
+
+    const cachedUpdateDate = updateDates[path]
+    if (updateDate !== undefined && cachedUpdateDate !== undefined && updateDate === cachedUpdateDate) {
+      return null
+    }
+
+    const currentUpdateDate = Date.now()
+    updateDates[path] = currentUpdateDate
+    return { schema, updateDate: currentUpdateDate }
+  }
+}
+
 describe('agent toolkit', () => {
   let toolkit: AgentToolkit
+  let getSchema: ReturnType<typeof createMockGetSchema>
+  const schemas: Record<string, Record<string, unknown>> = {}
 
   beforeEach(() => {
-    toolkit = createAgentToolkit({ ttlMs: 60000 })
+    getSchema = createMockGetSchema(schemas)
+    toolkit = createAgentToolkit({ getSchema })
+    Object.keys(schemas).forEach(key => delete schemas[key])
   })
 
   describe('compile', () => {
-    it('should compile a simple string schema', () => {
-      const result = toolkit.compile({ schema: { type: 'string' } })
-      assert.ok(result.id)
+    it('should compile a schema from path', () => {
+      schemas['test-schema'] = { type: 'string' }
+
+      const result = toolkit.compile({ path: 'test-schema' })
+      assert.equal(result.id, 'test-schema')
       assert.equal(result.valid, true)
       assert.deepEqual(result.errors, [])
+      assert.equal(result.recompiled, true)
+      assert.ok(result.updateDate)
     })
 
-    it('should compile an object schema with properties', () => {
-      const result = toolkit.compile({
-        schema: {
-          type: 'object',
-          required: ['name'],
-          properties: {
-            name: { type: 'string', title: 'Name' },
-            age: { type: 'integer', title: 'Age' }
-          }
-        }
-      })
-      assert.ok(result.id)
-      assert.equal(result.valid, true)
+    it('should return cached layout when schema unchanged', () => {
+      schemas['test-schema'] = { type: 'string' }
+
+      const result1 = toolkit.compile({ path: 'test-schema' })
+      const updateDate = result1.updateDate
+
+      const result2 = toolkit.compile({ path: 'test-schema' })
+      assert.equal(result2.id, 'test-schema')
+      assert.equal(result2.recompiled, false)
+      assert.equal(result2.updateDate, updateDate)
     })
 
-    it('should accept a custom id', () => {
-      const result = toolkit.compile({ schema: { type: 'string' }, id: 'my-schema' })
-      assert.equal(result.id, 'my-schema')
+    it('should throw when path not found and no cache', () => {
+      assert.throws(
+        () => toolkit.compile({ path: 'nonexistent' }),
+        /no compiled layout found for path/
+      )
     })
   })
 
   describe('createState', () => {
     it('should create state from a compiled layout', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }
         }
-      })
+      }
 
-      const result = toolkit.createState({ compiledId: id })
+      toolkit.compile({ path: 'test-schema' })
+      const result = toolkit.createState({ compiledId: 'test-schema' })
+
       assert.ok(result.stateId)
       assert.ok(result.state)
       assert.equal(result.state.valid, true)
@@ -58,16 +85,16 @@ describe('agent toolkit', () => {
     })
 
     it('should accept initial data', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }
         }
-      })
+      }
 
-      const result = toolkit.createState({ compiledId: id, data: { name: 'Alice' } })
+      toolkit.compile({ path: 'test-schema' })
+      const result = toolkit.createState({ compiledId: 'test-schema', data: { name: 'Alice' } })
+
       assert.deepEqual(result.state.root.data, { name: 'Alice' })
     })
 
@@ -81,16 +108,16 @@ describe('agent toolkit', () => {
 
   describe('describeState', () => {
     it('should describe the full state tree', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string', title: 'Name' },
-            email: { type: 'string', title: 'Email' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          email: { type: 'string', title: 'Email' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
 
       assert.equal(result.valid, true)
@@ -101,15 +128,15 @@ describe('agent toolkit', () => {
     })
 
     it('should describe a subtree by path', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string', title: 'Name' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string', title: 'Name' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId, path: '/name' })
 
       assert.ok(!('root' in result.state))
@@ -118,8 +145,9 @@ describe('agent toolkit', () => {
     })
 
     it('should throw for unknown path', () => {
-      const { id } = toolkit.compile({ schema: { type: 'object', properties: { name: { type: 'string' } } } })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      schemas['test-schema'] = { type: 'object', properties: { name: { type: 'string' } } }
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
 
       assert.throws(
         () => toolkit.describeState({ stateId, path: '/nonexistent' }),
@@ -130,16 +158,16 @@ describe('agent toolkit', () => {
 
   describe('setData', () => {
     it('should set data and return updated state', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          required: ['name'],
-          properties: {
-            name: { type: 'string' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
 
       const result = toolkit.setData({ stateId, data: { name: 'Bob' } })
       assert.equal(result.valid, true)
@@ -147,18 +175,17 @@ describe('agent toolkit', () => {
     })
 
     it('should report validation errors', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          required: ['name'],
-          properties: {
-            name: { type: 'string', minLength: 1 }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 1 }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
 
-      // set empty string — should violate minLength
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
+
       const result = toolkit.setData({ stateId, data: { name: '' } })
       assert.equal(result.valid, false)
       assert.ok(result.errors.length > 0)
@@ -167,16 +194,16 @@ describe('agent toolkit', () => {
 
   describe('setFieldValue', () => {
     it('should set a specific field value', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            age: { type: 'integer' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'integer' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id, data: { name: '', age: 0 } })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema', data: { name: '', age: 0 } })
 
       const result = toolkit.setFieldValue({ stateId, path: '/name', value: 'Charlie' })
       assert.deepEqual(result.state.root.data, { name: 'Charlie', age: 0 })
@@ -185,16 +212,16 @@ describe('agent toolkit', () => {
 
   describe('validateState', () => {
     it('should trigger full validation', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          required: ['name'],
-          properties: {
-            name: { type: 'string', minLength: 1 }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 1 }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id, data: {} })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema', data: {} })
 
       const result = toolkit.validateState({ stateId })
       assert.equal(result.valid, false)
@@ -205,30 +232,28 @@ describe('agent toolkit', () => {
 
   describe('destroyById', () => {
     it('should destroy a compiled layout by id', () => {
-      const { id } = toolkit.compile({ schema: { type: 'string' } })
+      schemas['test-schema'] = { type: 'string' }
+      toolkit.compile({ path: 'test-schema' })
 
-      const result = toolkit.destroyById({ compiledId: id })
+      const result = toolkit.destroyById({ compiledId: 'test-schema' })
       assert.equal(result.deletedCompiled, true)
       assert.equal(result.deletedState, false)
 
-      // creating state from deleted compiled should throw
       assert.throws(
-        () => toolkit.createState({ compiledId: id }),
+        () => toolkit.createState({ compiledId: 'test-schema' }),
         /compiled layout not found/
       )
     })
 
     it('should destroy a stateful layout by id', () => {
-      const { id } = toolkit.compile({
-        schema: { type: 'object', properties: { name: { type: 'string' } } }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      schemas['test-schema'] = { type: 'object', properties: { name: { type: 'string' } } }
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
 
       const result = toolkit.destroyById({ stateId })
       assert.equal(result.deletedCompiled, false)
       assert.equal(result.deletedState, true)
 
-      // accessing destroyed state should throw
       assert.throws(
         () => toolkit.describeState({ stateId }),
         /stateful layout not found/
@@ -236,12 +261,11 @@ describe('agent toolkit', () => {
     })
 
     it('should destroy both compiled and state at once', () => {
-      const { id } = toolkit.compile({
-        schema: { type: 'object', properties: { name: { type: 'string' } } }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      schemas['test-schema'] = { type: 'object', properties: { name: { type: 'string' } } }
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
 
-      const result = toolkit.destroyById({ compiledId: id, stateId })
+      const result = toolkit.destroyById({ compiledId: 'test-schema', stateId })
       assert.equal(result.deletedCompiled, true)
       assert.equal(result.deletedState, true)
     })
@@ -262,15 +286,15 @@ describe('agent toolkit', () => {
 
   describe('getData', () => {
     it('should return current data and validity', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id, data: { name: 'test' } })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema', data: { name: 'test' } })
 
       const result = toolkit.getData({ stateId })
       assert.deepEqual(result.data, { name: 'test' })
@@ -280,15 +304,15 @@ describe('agent toolkit', () => {
 
   describe('constraints projection', () => {
     it('should expose min/max/step on number fields', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            num: { type: 'number', minimum: 0, maximum: 100, title: 'A number' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          num: { type: 'number', minimum: 0, maximum: 100, title: 'A number' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
       const tree = result.state as import('../src/types.ts').ProjectedStateTree
       const numNode = tree.root.children![0]
@@ -299,15 +323,15 @@ describe('agent toolkit', () => {
     })
 
     it('should expose min/max on slider', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            slider: { type: 'integer', minimum: 0, maximum: 50, layout: 'slider' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          slider: { type: 'integer', minimum: 0, maximum: 50, layout: 'slider' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
       const tree = result.state as import('../src/types.ts').ProjectedStateTree
       const sliderNode = tree.root.children![0]
@@ -318,15 +342,15 @@ describe('agent toolkit', () => {
     })
 
     it('should expose format on date-picker', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            d: { type: 'string', format: 'date-time', layout: 'date-picker' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          d: { type: 'string', format: 'date-time', layout: 'date-picker' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
       const tree = result.state as import('../src/types.ts').ProjectedStateTree
       const dateNode = tree.root.children![0]
@@ -336,15 +360,15 @@ describe('agent toolkit', () => {
     })
 
     it('should expose separator on combobox', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            s: { type: 'string', layout: { separator: ',' } }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          s: { type: 'string', layout: { separator: ',' } }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
       const tree = result.state as import('../src/types.ts').ProjectedStateTree
       const comboNode = tree.root.children![0]
@@ -354,15 +378,15 @@ describe('agent toolkit', () => {
     })
 
     it('should not include constraints when none apply', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
       const tree = result.state as import('../src/types.ts').ProjectedStateTree
       const nameNode = tree.root.children![0]
@@ -373,16 +397,16 @@ describe('agent toolkit', () => {
 
   describe('oneOf variants', () => {
     it('should expose oneOfItems in the projected state', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          oneOf: [
-            { title: 'Option A', properties: { key: { const: 'a' }, str1: { type: 'string' } } },
-            { title: 'Option B', properties: { key: { const: 'b' }, str2: { type: 'string' } } }
-          ]
-        }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      schemas['test-schema'] = {
+        type: 'object',
+        oneOf: [
+          { title: 'Option A', properties: { key: { const: 'a' }, str1: { type: 'string' } } },
+          { title: 'Option B', properties: { key: { const: 'b' }, str2: { type: 'string' } } }
+        ]
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = toolkit.describeState({ stateId })
       const tree = result.state as import('../src/types.ts').ProjectedStateTree
       const oneOfNode = tree.root.children![0]
@@ -395,17 +419,17 @@ describe('agent toolkit', () => {
     })
 
     it('should return oneOf variants via getFieldSuggestions', async () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          oneOf: [
-            { title: 'Variant 1', properties: { key: { const: 'v1' } } },
-            { title: 'Variant 2', properties: { key: { const: 'v2' } } },
-            { title: 'Variant 3', properties: { key: { const: 'v3' } } }
-          ]
-        }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      schemas['test-schema'] = {
+        type: 'object',
+        oneOf: [
+          { title: 'Variant 1', properties: { key: { const: 'v1' } } },
+          { title: 'Variant 2', properties: { key: { const: 'v2' } } },
+          { title: 'Variant 3', properties: { key: { const: 'v3' } } }
+        ]
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       const result = await toolkit.getFieldSuggestions({ stateId, path: '/$oneOf' })
       assert.deepEqual(result.items, [
         { value: 0, title: 'Variant 1' },
@@ -417,15 +441,15 @@ describe('agent toolkit', () => {
 
   describe('coerceTypes', () => {
     it('should coerce a scalar value into an array', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            tags: { type: 'array', items: { type: 'string' } }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          tags: { type: 'array', items: { type: 'string' } }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       toolkit.setData({ stateId, data: { tags: 'single' } })
       const result = toolkit.getData({ stateId })
       assert.deepEqual(result.data, { tags: ['single'] })
@@ -433,15 +457,15 @@ describe('agent toolkit', () => {
     })
 
     it('should coerce a string to a number', () => {
-      const { id } = toolkit.compile({
-        schema: {
-          type: 'object',
-          properties: {
-            age: { type: 'integer' }
-          }
+      schemas['test-schema'] = {
+        type: 'object',
+        properties: {
+          age: { type: 'integer' }
         }
-      })
-      const { stateId } = toolkit.createState({ compiledId: id })
+      }
+
+      toolkit.compile({ path: 'test-schema' })
+      const { stateId } = toolkit.createState({ compiledId: 'test-schema' })
       toolkit.setData({ stateId, data: { age: '42' } })
       const result = toolkit.getData({ stateId })
       assert.deepEqual(result.data, { age: 42 })

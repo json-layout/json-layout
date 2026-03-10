@@ -12,6 +12,8 @@ export interface Store {
   generateId: () => string
   setCompiled: (id: string, value: CompiledLayout) => void
   getCompiled: (id: string) => CompiledLayout | undefined
+  setCompiledByPath: (path: string, value: CompiledLayout, updateDate: number) => void
+  getCompiledByPath: (path: string) => { layout: CompiledLayout, updateDate: number } | undefined
   setState: (id: string, value: StatefulLayout) => void
   getState: (id: string) => StatefulLayout | undefined
   deleteCompiled: (id: string) => boolean
@@ -45,16 +47,22 @@ export interface ProjectedStateTree {
 
 // --- Tool input/output types ---
 
+export type GetSchemaContext = (
+  path: string,
+  updateDate?: number
+) => { schema: Record<string, unknown>, updateDate: number } | null
+
 export interface CompileInput {
-  schema: Record<string, unknown>
+  path: string
   options?: Record<string, unknown>
-  id?: string
 }
 
 export interface CompileResult {
   id: string
   valid: boolean
   errors: Array<{ pointer: string, messages: string[] }>
+  recompiled: boolean
+  updateDate: number
 }
 
 export interface CreateStateInput {

@@ -2,14 +2,18 @@ import { z } from 'zod'
 import { tool } from 'ai'
 import { compile as compileSchema } from '@json-layout/core'
 import type { PartialCompileOptions } from '@json-layout/core'
-import type { Store, CompileInput, CompileResult } from '../types.ts'
-import { store } from '../store.ts'
+import type { Store, CompileInput, CompileResult, GetSchemaContext } from '../types.ts'
 import { validationErrorsSchema } from './schemas.ts'
 
-export function compile (input: CompileInput, store: Store): CompileResult {
-  const id = input.id ?? store.generateId()
-  const inputOptions = (input.options ?? {}) as Partial<PartialCompileOptions> & { ajvOptions?: Record<string, unknown> }
-  const options: Partial<PartialCompileOptions> = {
+export function compile (
+  input: CompileInput,
+  store: Store,
+  getSchema: GetSchemaContext
+): CompileResult {
+  const { path, options } = input
+
+  const inputOptions = (options ?? {}) as Partial<PartialCompileOptions> & { ajvOptions?: Record<string, unknown> }
+  const compileOptions: Partial<PartialCompileOptions> = {
     ...inputOptions,
     ajvOptions: {
       ...inputOptions.ajvOptions,
@@ -17,7 +21,25 @@ export function compile (input: CompileInput, store: Store): CompileResult {
     }
   }
 
-  const compiledLayout = compileSchema(input.schema, options)
+  const cached = store.getCompiledByPath(path)
+
+  const result = getSchema(path, cached?.updateDate)
+
+  if (!result) {
+    if (!cached) {
+      throw new Error(`no compiled layout found for path: ${path}`)
+    }
+    return {
+      id: path,
+      valid: true,
+      errors: [],
+      recompiled: false,
+      updateDate: cached.updateDate
+    }
+  }
+
+  const { schema, updateDate } = result
+  const compiledLayout = compileSchema(schema, compileOptions)
 
   const errors: CompileResult['errors'] = []
   for (const [pointer, messages] of Object.entries(compiledLayout.validationErrors)) {
@@ -26,34 +48,47 @@ export function compile (input: CompileInput, store: Store): CompileResult {
     }
   }
 
-  store.setCompiled(id, compiledLayout)
+  store.setCompiledByPath(path, compiledLayout, updateDate)
 
   return {
-    id,
+    id: path,
     valid: errors.length === 0,
-    errors
+    errors,
+    recompiled: true,
+    updateDate
   }
 }
 
-const description = 'Compile a JSON Schema with optional json-layout annotations. Returns compilation errors and stores the compiled layout for use with createState.'
+const description = 'Compile a JSON Schema from a path. Uses getSchema to fetch the schema and caches the compiled layout.'
 
 const inputSchema = z.object({
-  schema: z.record(z.unknown()).describe('The JSON Schema to compile'),
-  options: z.record(z.unknown()).optional().describe('Compile options (locale, components, etc.)'),
-  id: z.string().optional().describe('Optional ID for the compiled layout (auto-generated if omitted)')
+  path: z.string().describe('Path/identifier for the schema'),
+  options: z.record(z.unknown()).optional().describe('Compile options (locale, components, etc.)')
 })
 
 const outputSchema = z.object({
   id: z.string(),
   valid: z.boolean(),
-  errors: validationErrorsSchema
+  errors: validationErrorsSchema,
+  recompiled: z.boolean(),
+  updateDate: z.number()
 })
 
-const execute = async (params: z.infer<typeof inputSchema>) => {
-  return compile(params, store)
+interface CompileExecuteContext {
+  store: Store
+  getSchema: GetSchemaContext
 }
 
-const createTool = () => tool({ description, inputSchema, outputSchema, execute })
+const execute = (params: z.infer<typeof inputSchema>, context: CompileExecuteContext) => {
+  return compile(params, context.store, context.getSchema)
+}
+
+const createTool = (context: CompileExecuteContext) => tool({
+  description,
+  inputSchema,
+  outputSchema,
+  execute: (params) => execute(params, context)
+})
 
 export { description, inputSchema, outputSchema, execute, createTool }
 

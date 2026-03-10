@@ -9,7 +9,7 @@ import { validateState } from './tools/validate.ts'
 import { getData } from './tools/get-data.ts'
 import { destroy } from './tools/destroy.ts'
 import type {
-  CompileInput, CompileResult,
+  CompileInput, CompileResult, GetSchemaContext,
   CreateStateInput, CreateStateResult,
   DescribeStateInput, DescribeStateResult,
   SetDataInput, SetDataResult,
@@ -36,13 +36,16 @@ export interface AgentToolkit {
 export interface AgentToolkitOptions {
   /** TTL for stored objects in milliseconds (default: 30 minutes) */
   ttlMs?: number
+  /** Function to fetch schema by path, returns schema and updateDate, or null if unchanged */
+  getSchema: GetSchemaContext
 }
 
-export function createAgentToolkit (options?: AgentToolkitOptions): AgentToolkit {
-  const store = createStore(options?.ttlMs ?? 30 * 60 * 1000)
+export function createAgentToolkit (options: AgentToolkitOptions): AgentToolkit {
+  const store = createStore(options.ttlMs ?? 30 * 60 * 1000)
+  const getSchema = options.getSchema
 
   return {
-    compile: (input) => compile(input, store),
+    compile: (input) => compile(input, store, getSchema),
     createState: (input) => createState(input, store),
     describeState: (input) => describeState(input, store),
     setData: (input) => setData(input, store),

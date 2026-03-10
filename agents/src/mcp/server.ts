@@ -1,6 +1,24 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { readFileSync, statSync } from 'node:fs'
 import { compile, createState, describeState, setData, setFieldValue, getFieldSuggestions, validateState, getData, destroy } from '../tools/index.ts'
+import { store } from '../store.ts'
+
+function getSchemaFromFile (
+  path: string,
+  updateDate?: number
+): { schema: Record<string, unknown>, updateDate: number } | null {
+  const currentMtime = statSync(path).mtimeMs
+
+  if (updateDate !== undefined && updateDate === currentMtime) {
+    return null
+  }
+
+  const content = readFileSync(path, 'utf-8')
+  return { schema: JSON.parse(content), updateDate: currentMtime }
+}
+
+const compileContext = { store, getSchema: getSchemaFromFile }
 
 function toolResult (data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
@@ -21,7 +39,7 @@ server.tool(
   compile.inputSchema as any,
   async (params: any) => {
     try {
-      return toolResult(await compile.execute(params))
+      return toolResult(compile.execute(params, compileContext))
     } catch (err: unknown) {
       return toolError(`Compilation failed: ${err instanceof Error ? err.message : String(err)}`)
     }
