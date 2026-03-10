@@ -414,4 +414,38 @@ describe('agent toolkit', () => {
       ])
     })
   })
+
+  describe('coerceTypes', () => {
+    it('should coerce a scalar value into an array', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            tags: { type: 'array', items: { type: 'string' } }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      toolkit.setData({ stateId, data: { tags: 'single' } })
+      const result = toolkit.getData({ stateId })
+      assert.deepEqual(result.data, { tags: ['single'] })
+      assert.ok(result.valid)
+    })
+
+    it('should coerce a string to a number', () => {
+      const { id } = toolkit.compile({
+        schema: {
+          type: 'object',
+          properties: {
+            age: { type: 'integer' }
+          }
+        }
+      })
+      const { stateId } = toolkit.createState({ compiledId: id })
+      toolkit.setData({ stateId, data: { age: '42' } })
+      const result = toolkit.getData({ stateId })
+      assert.deepEqual(result.data, { age: 42 })
+      assert.ok(result.valid)
+    })
+  })
 })

@@ -51,7 +51,16 @@ export function createStateTree (
 ) {
   logStateTree('createStateTree', skeleton.root)
   const validate = compiledLayout.validates[skeleton.refPointer]
-  const valid = validate(data)
+  let valid
+  if (compiledLayout.options?.ajvOptions?.coerceTypes) {
+    const serializedBefore = JSON.stringify(data)
+    valid = validate(data)
+    if (JSON.stringify(data) !== serializedBefore) {
+      data = { .../** @type {Record<string, unknown>} */(data) }
+    }
+  } else {
+    valid = validate(data)
+  }
   if (validate.errors) {
     logValidation(`${skeleton.root} new state tree initial validation errors`, validate.errors, validationState)
     for (const error of validate.errors) {

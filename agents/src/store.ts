@@ -42,3 +42,5 @@ export function createStore (ttlMs: number = 30 * 60 * 1000): Store {
     clear: () => { compiledLayouts.clear(); statefulLayouts.clear() }
   }
 }
+
+export const store = createStore()

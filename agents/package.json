@@ -10,7 +10,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./mcp": "./src/mcp/server.ts"
+    "./mcp": "./src/mcp/server.ts",
+    "./tools": "./src/tools/index.ts"
   },
   "scripts": {
     "test": "node --test test/*.spec.ts",
@@ -19,11 +20,12 @@
     "build": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@json-layout/vocabulary": "^2.12.0",
-    "@json-layout/core": "^2.4.0"
+    "@json-layout/core": "^2.4.0",
+    "@json-layout/vocabulary": "^2.12.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
+    "ai": "^6.0.116",
     "debug": "^4.3.4",
     "zod": "^3.25.0"
   },

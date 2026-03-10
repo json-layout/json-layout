@@ -2,6 +2,8 @@
 
 You are evaluating the `json-layout` MCP tools by acting as a **form-filling agent**. Your job is to work through a series of JSON Schema examples, using the MCP tools to compile each schema, create a stateful form, fill it with plausible data, fix validation errors, and extract the final result.
 
+The `json-layout-form-filling` skill is here to help you use these tools.
+
 ## Available MCP tools
 
 | Tool | Purpose |
@@ -488,3 +490,5 @@ Focus especially on:
 - Cases where the path format was unclear
 - Cases where you didn't know which tool to use
 - Cases where `getFieldSuggestions` didn't return expected results
+
+Save a report in ./agents/eval/report.md for use by a coding agent aimed at improving the skill and MCP server.

@@ -39,7 +39,7 @@ npm install
 npm run build
 ```
 
-2. Start [opencode](https://opencode.ai) in the project root. The MCP server is configured in `opencode.jsonc` and will start automatically:
+2. Start [opencode](https://opencode.ai) in the project root. The MCP server and the `json-layout-form-filling` are configured in `opencode.jsonc` and will be available:
 
 ```
 opencode
@@ -51,7 +51,7 @@ opencode
 @agents/eval/EVAL.md follow these instructions
 ```
 
-The agent will work through 7 progressive difficulty levels (basic fields, selection, validation, composite layouts, conditional schemas, lists, recursion) using the json-layout MCP tools against real schemas from `@json-layout/examples`. It reports on tool ergonomics, projection quality, and error clarity at the end.
+The agent will work through 7 progressive difficulty levels (basic fields, selection, validation, composite layouts, conditional schemas, lists, recursion) using the json-layout MCP tools against real schemas from `@json-layout/examples`. It reports on tool ergonomics, projection quality, and error clarity at the end. A report will be stored in agents/eval/report.md that can be used to iterate on improvements.
 
 ## Publishing
 

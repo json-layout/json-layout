@@ -6,5 +6,8 @@
       "command": ["node", "agents/src/mcp/server.ts"],
       "enabled": true
     }
+  },
+  "skills": {
+    "paths": ["./skills"]
   }
 }

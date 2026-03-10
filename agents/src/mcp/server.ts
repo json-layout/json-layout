@@ -1,18 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { z } from 'zod'
-import { createStore } from '../store.ts'
-import { compile } from '../tools/compile.ts'
-import { createState } from '../tools/create-state.ts'
-import { describeState } from '../tools/describe-state.ts'
-import { setData } from '../tools/set-data.ts'
-import { setFieldValue } from '../tools/set-field.ts'
-import { getFieldSuggestions } from '../tools/get-suggestions.ts'
-import { validateState } from '../tools/validate.ts'
-import { getData } from '../tools/get-data.ts'
-import { destroy } from '../tools/destroy.ts'
-
-const store = createStore()
+import { compile, createState, describeState, setData, setFieldValue, getFieldSuggestions, validateState, getData, destroy } from '../tools/index.ts'
 
 function toolResult (data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
@@ -27,162 +15,123 @@ const server = new McpServer({
   version: '0.1.0'
 })
 
-// --- compile ---
 server.tool(
   'compile',
-  'Compile a JSON Schema with optional json-layout annotations. Returns compilation errors and stores the compiled layout for use with createState.',
-  {
-    schema: z.record(z.unknown()).describe('The JSON Schema to compile'),
-    options: z.record(z.unknown()).optional().describe('Compile options (locale, components, etc.)'),
-    id: z.string().optional().describe('Optional ID for the compiled layout (auto-generated if omitted)')
-  },
-  async ({ schema, options, id }) => {
+  compile.description,
+  compile.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(compile({ schema, options, id }, store))
+      return toolResult(await compile.execute(params))
     } catch (err: unknown) {
       return toolError(`Compilation failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- createState ---
 server.tool(
   'createState',
-  'Create a StatefulLayout from a compiled layout. Returns the initial state tree projected for agent consumption.',
-  {
-    compiledId: z.string().describe('ID of a previously compiled layout'),
-    data: z.unknown().optional().describe('Initial data to populate the form'),
-    options: z.record(z.unknown()).optional().describe('StatefulLayout options (readOnly, validateOn, etc.)')
-  },
-  async ({ compiledId, data, options }) => {
+  createState.description,
+  createState.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(createState({ compiledId, data, options }, store))
+      return toolResult(await createState.execute(params))
     } catch (err: unknown) {
       return toolError(`Create state failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- describeState ---
 server.tool(
   'describeState',
-  'Describe the current state tree. Optionally focus on a subtree by path to reduce output size.',
-  {
-    stateId: z.string().describe('ID of the stateful layout'),
-    path: z.string().optional().describe('Path to a specific node (e.g. "/address/city"). Omit for full tree.')
-  },
-  async ({ stateId, path }) => {
+  describeState.description,
+  describeState.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(describeState({ stateId, path }, store))
+      return toolResult(await describeState.execute(params))
     } catch (err: unknown) {
       return toolError(`Describe state failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- setData ---
 server.tool(
   'setData',
-  'Set the entire form data at once (bulk update). Returns the updated state tree and validation errors.',
-  {
-    stateId: z.string().describe('ID of the stateful layout'),
-    data: z.unknown().describe('The complete data object to set')
-  },
-  async ({ stateId, data }) => {
+  setData.description,
+  setData.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(setData({ stateId, data }, store))
+      return toolResult(await setData.execute(params))
     } catch (err: unknown) {
       return toolError(`Set data failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- setFieldValue ---
 server.tool(
   'setFieldValue',
-  'Set the value of a specific field by path. For oneOf nodes, pass the variant index as value to switch variants.',
-  {
-    stateId: z.string().describe('ID of the stateful layout'),
-    path: z.string().describe('Path to the field (e.g. "/name", "/items/0/quantity")'),
-    value: z.unknown().describe('The value to set')
-  },
-  async ({ stateId, path, value }) => {
+  setFieldValue.description,
+  setFieldValue.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(setFieldValue({ stateId, path, value }, store))
+      return toolResult(await setFieldValue.execute(params))
     } catch (err: unknown) {
       return toolError(`Set field value failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- getFieldSuggestions ---
 server.tool(
   'getFieldSuggestions',
-  'Get available options for a select/autocomplete/combobox field. Supports query-based filtering.',
-  {
-    stateId: z.string().describe('ID of the stateful layout'),
-    path: z.string().describe('Path to the field'),
-    query: z.string().optional().describe('Search query to filter suggestions')
-  },
-  async ({ stateId, path, query }) => {
+  getFieldSuggestions.description,
+  getFieldSuggestions.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(await getFieldSuggestions({ stateId, path, query }, store))
+      return toolResult(await getFieldSuggestions.execute(params))
     } catch (err: unknown) {
       return toolError(`Get suggestions failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- validateState ---
 server.tool(
   'validateState',
-  'Trigger full form validation and return all errors with their paths, plus the current data.',
-  {
-    stateId: z.string().describe('ID of the stateful layout')
-  },
-  async ({ stateId }) => {
+  validateState.description,
+  validateState.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(validateState({ stateId }, store))
+      return toolResult(await validateState.execute(params))
     } catch (err: unknown) {
       return toolError(`Validation failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- getData ---
 server.tool(
   'getData',
-  'Get the current form data and validity status.',
-  {
-    stateId: z.string().describe('ID of the stateful layout')
-  },
-  async ({ stateId }) => {
+  getData.description,
+  getData.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(getData({ stateId }, store))
+      return toolResult(await getData.execute(params))
     } catch (err: unknown) {
       return toolError(`Get data failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- destroy ---
 server.tool(
   'destroy',
-  'Destroy a stored compiled layout and/or stateful layout by ID to free resources. Provide at least one of compiledId or stateId.',
-  {
-    compiledId: z.string().optional().describe('ID of a compiled layout to destroy'),
-    stateId: z.string().optional().describe('ID of a stateful layout to destroy')
-  },
-  async ({ compiledId, stateId }) => {
+  destroy.description,
+  destroy.inputSchema as any,
+  async (params: any) => {
     try {
-      return toolResult(destroy({ compiledId, stateId }, store))
+      return toolResult(await destroy.execute(params))
     } catch (err: unknown) {
       return toolError(`Destroy failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 )
 
-// --- Start server ---
 async function main () {
   const transport = new StdioServerTransport()
   await server.connect(transport)
