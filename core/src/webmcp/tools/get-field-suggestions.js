@@ -19,6 +19,31 @@ export const inputSchema = {
   required: ['path']
 }
 
+export const outputSchema = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          value: {},
+          title: { type: 'string' },
+          key: { type: 'string' }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @param {string} dataTitle
+ * @returns {string}
+ */
+export function getDescription (dataTitle) {
+  return `Get available options for a select/autocomplete/combobox field of form "${dataTitle}". Supports query-based filtering.`
+}
+
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, query?: string }} args

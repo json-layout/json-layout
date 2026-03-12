@@ -2,6 +2,8 @@
  * @file Projection functions for webmcp tools
  */
 
+import { isItemsLayout } from '@json-layout/vocabulary'
+
 const constraintKeys = {
   'number-field': ['min', 'max', 'step', 'precision'],
   slider: ['min', 'max', 'step'],
@@ -23,6 +25,7 @@ function getConstraintKeys (comp) {
 
 /**
  * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {{
  *   key: string|number,
  *   path: string,
@@ -38,9 +41,10 @@ function getConstraintKeys (comp) {
  *   constraints?: Record<string, unknown>,
  *   oneOfItems?: Array<{key: number, title: string}>,
  *   children?: Array<any>
+ *   getSuffections?: boolean
  * }}
  */
-export function projectNode (node) {
+export function projectNode (node, statefulLayout) {
   /**
    * @type {{
    *   key: string|number,
@@ -57,6 +61,7 @@ export function projectNode (node) {
    *   constraints?: Record<string, unknown>,
    *   oneOfItems?: Array<{key: number, title: string}>,
    *   children?: Array<any>
+   *   getSuggestions?: boolean
    * }}
    */
   const out = {
@@ -76,6 +81,7 @@ export function projectNode (node) {
 
   if (node.skeleton.required) out.required = true
   if (node.options.readOnly) out.readOnly = true
+  if (isItemsLayout(node.layout, statefulLayout.compiledLayout.components)) out.getSuggestions = true
 
   const keys = getConstraintKeys(node.layout.comp)
   if (keys) {
@@ -97,7 +103,7 @@ export function projectNode (node) {
   if (node.children) {
     out.children = node.children
       .filter((c) => c.layout.comp !== 'none')
-      .map(projectNode)
+      .map(node => projectNode(node, statefulLayout))
   }
 
   return out
@@ -105,11 +111,12 @@ export function projectNode (node) {
 
 /**
  * @param {import('../state/types.js').StateTree} stateTree
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {{ root: ReturnType<typeof projectNode>, valid: boolean }}
  */
-export function projectStateTree (stateTree) {
+export function projectStateTree (stateTree, statefulLayout) {
   return {
-    root: projectNode(stateTree.root),
+    root: projectNode(stateTree.root, statefulLayout),
     valid: stateTree.valid
   }
 }

@@ -15,6 +15,37 @@ export const inputSchema = {
   }
 }
 
+export const outputSchema = {
+  type: 'object',
+  properties: {
+    state: {
+      type: 'object',
+      description: 'Projected state tree or single node'
+    },
+    valid: {
+      type: 'boolean'
+    },
+    errors: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          path: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @param {string} dataTitle
+ * @returns {string}
+ */
+export function getDescription (dataTitle) {
+  return `Describe the current "${dataTitle}" state tree. Optionally focus on a subtree by path to reduce output size.`
+}
+
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path?: string }} args
@@ -29,14 +60,14 @@ export function execute (statefulLayout, args) {
       throw new Error(`node not found at path: ${args.path}`)
     }
     return {
-      state: projectNode(node),
+      state: projectNode(node, statefulLayout),
       valid: statefulLayout.valid,
       errors
     }
   }
 
   return {
-    state: projectStateTree(statefulLayout.stateTree),
+    state: projectStateTree(statefulLayout.stateTree, statefulLayout),
     valid: statefulLayout.valid,
     errors
   }

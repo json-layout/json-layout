@@ -7,6 +7,22 @@ export const inputSchema = {
   properties: {}
 }
 
+export const outputSchema = {
+  type: 'object',
+  properties: {
+    data: {},
+    valid: { type: 'boolean' }
+  }
+}
+
+/**
+ * @param {string} dataTitle
+ * @returns {string}
+ */
+export function getDescription (dataTitle) {
+  return `Get the current "${dataTitle}" data and validity status.`
+}
+
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{}} _args

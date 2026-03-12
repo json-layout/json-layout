@@ -1,27 +1,19 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { compile } from '../compile/index.js'
-import { StatefulLayout } from '../state/index.js'
-import { WebMCP } from '../webmcp/index.js'
-import {
-  describeState,
-  describeStateSchema,
-  setFieldValue,
-  setFieldValueSchema,
-  setData,
-  setDataSchema,
-  getData,
-  getDataSchema,
-  validateState,
-  validateStateSchema,
-  getFieldSuggestionsSchema,
-  skillFetcher,
-  skillFetcherSchema
-} from '../webmcp/tools/index.js'
-import { projectStateTree, collectErrors } from '../webmcp/project.js'
-import { resolveNode } from '../webmcp/resolve.js'
-import { generateSkill } from '../webmcp/skill.js'
+import { compile } from '../src/compile/index.js'
+import { StatefulLayout } from '../src/state/index.js'
+import { WebMCP } from '../src/webmcp/index.js'
+
+import * as describeState from '../src/webmcp/tools/describe-state.js'
+import * as setFieldValue from '../src/webmcp/tools/set-field-value.js'
+import * as setData from '../src/webmcp/tools/set-data.js'
+import * as getData from '../src/webmcp/tools/get-data.js'
+import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.js'
+import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
+
+import { projectStateTree, collectErrors } from '../src/webmcp/project.js'
+import { resolveNode } from '../src/webmcp/resolve.js'
 
 const simpleSchema = {
   type: 'object',
@@ -39,7 +31,7 @@ describe('webmcp project functions', () => {
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
 
-    const projected = projectStateTree(layout.stateTree)
+    const projected = projectStateTree(layout.stateTree, layout)
 
     assert.equal(projected.valid, true)
     assert.equal(projected.root.key, '')
@@ -92,24 +84,13 @@ describe('webmcp resolveNode', () => {
   })
 })
 
-describe('webmcp generateSkill', () => {
-  it('should generate skill with dataTitle', () => {
-    const skill = generateSkill('user-form')
-
-    assert.ok(skill.includes('JSON User-form Form-Filling Guide'))
-    assert.ok(skill.includes('describeState'))
-    assert.ok(skill.includes('setFieldValue'))
-    assert.ok(skill.includes('user-form'))
-  })
-})
-
 describe('webmcp tool functions', () => {
   it('should describeState return full tree', () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
 
-    const result = describeState(layout, {})
+    const result = describeState.execute(layout, {})
 
     assert.equal(result.valid, true)
     const state = /** @type {any} */(result.state)
@@ -122,7 +103,7 @@ describe('webmcp tool functions', () => {
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
 
-    const result = describeState(layout, { path: '/name' })
+    const result = describeState.execute(layout, { path: '/name' })
 
     assert.equal(result.valid, true)
     const state = /** @type {any} */(result.state)
@@ -138,7 +119,7 @@ describe('webmcp tool functions', () => {
     // Check initial state - should be invalid because name is required
     assert.equal(layout.valid, false)
 
-    const result = setFieldValue(layout, { path: '/name', value: 'Bob' })
+    const result = setFieldValue.execute(layout, { path: '/name', value: 'Bob' })
 
     // After setting name, should be valid
     // Note: validation is on input, so it validates as you type
@@ -150,7 +131,7 @@ describe('webmcp tool functions', () => {
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, {})
 
-    const result = setData(layout, { data: { name: 'Charlie', age: 30 } })
+    const result = setData.execute(layout, { data: { name: 'Charlie', age: 30 } })
 
     const data = /** @type {any} */(layout.data)
     assert.equal(data.name, 'Charlie')
@@ -163,7 +144,7 @@ describe('webmcp tool functions', () => {
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice', age: 25 })
 
-    const result = getData(layout, {})
+    const result = getData.execute(layout, {})
 
     const data = /** @type {any} */(result.data)
     assert.equal(data.name, 'Alice')
@@ -171,69 +152,45 @@ describe('webmcp tool functions', () => {
     assert.equal(result.valid, true)
   })
 
-  it('should validateState', () => {
+  it('should use fillFormSkill', () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, {})
+    const layout = new StatefulLayout(compiled, mainTree, {}, {})
 
-    const result = validateState(layout, {})
-
-    assert.equal(result.valid, false)
-    assert.equal(result.errors.length, 1)
-    assert.equal(result.errors[0].path, '/name')
-  })
-
-  it('should skillFetcher', () => {
-    const result = skillFetcher({ dataTitle: 'test-form' }, { topic: 'json-layout-form-filling' })
-
-    assert.ok(result.content.includes('JSON Test-form Form-Filling Guide'))
-  })
-
-  it('should skillFetcher return error for unknown topic', () => {
-    const result = skillFetcher({ dataTitle: 'test-form' }, { topic: 'unknown-topic' })
-
-    assert.ok(result.content.includes('No skill available'))
+    const result = fillFormSkill.generateSkill('test-form', '', false, layout)
+    assert.ok(result.includes('JSON Test-form Form-Filling Guide'))
   })
 })
 
 describe('webmcp tool schemas', () => {
   it('should have valid describeStateSchema', () => {
-    assert.equal(describeStateSchema.type, 'object')
-    assert.ok(describeStateSchema.properties.path)
+    assert.equal(describeState.inputSchema.type, 'object')
+    assert.ok(describeState.inputSchema.properties.path)
   })
 
   it('should have valid setFieldValueSchema', () => {
-    assert.equal(setFieldValueSchema.type, 'object')
-    assert.ok(setFieldValueSchema.properties.path)
-    assert.ok(setFieldValueSchema.properties.value)
-    assert.deepEqual(setFieldValueSchema.required, ['path', 'value'])
+    assert.equal(setFieldValue.inputSchema.type, 'object')
+    assert.ok(setFieldValue.inputSchema.properties.path)
+    assert.ok(setFieldValue.inputSchema.properties.value)
+    assert.deepEqual(setFieldValue.inputSchema.required, ['path', 'value'])
   })
 
   it('should have valid setDataSchema', () => {
-    assert.equal(setDataSchema.type, 'object')
-    assert.ok(setDataSchema.properties.data)
-    assert.deepEqual(setDataSchema.required, ['data'])
+    assert.equal(setData.inputSchema.type, 'object')
+    assert.ok(setData.inputSchema.properties.data)
+    assert.deepEqual(setData.inputSchema.required, ['data'])
   })
 
   it('should have valid getDataSchema', () => {
-    assert.equal(getDataSchema.type, 'object')
-    assert.deepEqual(Object.keys(getDataSchema.properties), [])
-  })
-
-  it('should have valid validateStateSchema', () => {
-    assert.equal(validateStateSchema.type, 'object')
+    assert.equal(getData.inputSchema.type, 'object')
+    assert.deepEqual(Object.keys(getData.inputSchema.properties), [])
   })
 
   it('should have valid getFieldSuggestionsSchema', () => {
-    assert.equal(getFieldSuggestionsSchema.type, 'object')
-    assert.ok(getFieldSuggestionsSchema.properties.path)
-    assert.ok(getFieldSuggestionsSchema.properties.query)
-    assert.deepEqual(getFieldSuggestionsSchema.required, ['path'])
-  })
-
-  it('should have valid skillFetcherSchema', () => {
-    assert.equal(skillFetcherSchema.type, 'object')
-    assert.ok(skillFetcherSchema.properties.topic)
+    assert.equal(getFieldSuggestions.inputSchema.type, 'object')
+    assert.ok(getFieldSuggestions.inputSchema.properties.path)
+    assert.ok(getFieldSuggestions.inputSchema.properties.query)
+    assert.deepEqual(getFieldSuggestions.inputSchema.required, ['path'])
   })
 })
 
@@ -259,13 +216,12 @@ describe('webmcp WebMCP class', () => {
 
     const tools = webmcp.getTools()
 
-    assert.equal(tools[0].name, 'myform_describeState')
-    assert.equal(tools[1].name, 'myform_setFieldValue')
+    assert.equal(tools[0].name, 'myform_fillFormSkill')
+    assert.equal(tools[1].name, 'myform_getData')
     assert.equal(tools[2].name, 'myform_setData')
-    assert.equal(tools[3].name, 'myform_getData')
-    assert.equal(tools[4].name, 'myform_validateState')
+    assert.equal(tools[3].name, 'myform_describeState')
+    assert.equal(tools[4].name, 'myform_setFieldValue')
     assert.equal(tools[5].name, 'myform_getFieldSuggestions')
-    assert.equal(tools[6].name, 'myform_skillFetcher')
   })
 
   it('should generate tool names without prefix', () => {
@@ -277,8 +233,8 @@ describe('webmcp WebMCP class', () => {
 
     const tools = webmcp.getTools()
 
-    assert.equal(tools[0].name, 'describeState')
-    assert.equal(tools[1].name, 'setFieldValue')
+    assert.equal(tools[0].name, 'fillFormSkill')
+    assert.equal(tools[1].name, 'getData')
   })
 
   it('should inject dataTitle in descriptions', () => {
@@ -291,10 +247,11 @@ describe('webmcp WebMCP class', () => {
     const tools = webmcp.getTools()
 
     assert.ok(tools[0].description.includes('registration'))
+    assert.ok(tools[1].description.includes('registration'))
     assert.ok(tools[2].description.includes('registration'))
     assert.ok(tools[3].description.includes('registration'))
     assert.ok(tools[4].description.includes('registration'))
-    assert.ok(tools[6].description.includes('registration'))
+    assert.ok(tools[5].description.includes('registration'))
   })
 
   it('should execute describeState tool', async () => {
@@ -334,7 +291,7 @@ describe('webmcp WebMCP class', () => {
     assert.ok(!result.isError || result.content[0].text.includes('Error') === false)
   })
 
-  it('should execute skillFetcher tool', async () => {
+  it('should execute fillFormSkill tool', async () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, {}, {})
@@ -342,7 +299,7 @@ describe('webmcp WebMCP class', () => {
     const webmcp = new WebMCP(layout, { dataTitle: 'myform' })
     const tools = webmcp.getTools()
 
-    const skillTool = tools.find((t) => t.name === 'skillFetcher')
+    const skillTool = tools.find((t) => t.name === 'fillFormSkill')
     assert.ok(skillTool)
 
     const result = await /** @type {any} */(skillTool).execute({})

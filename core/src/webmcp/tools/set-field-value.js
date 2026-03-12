@@ -19,6 +19,32 @@ export const inputSchema = {
   required: ['path', 'value']
 }
 
+export const outputSchema = {
+  type: 'object',
+  properties: {
+    state: { type: 'object' },
+    valid: { type: 'boolean' },
+    errors: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          path: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @param {string} dataTitle
+ * @returns {string}
+ */
+export function getDescription (dataTitle) {
+  return `Set the value of a specific field of "${dataTitle}" by path. For oneOf nodes, pass the variant index as value to switch variants.`
+}
+
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value: unknown }} args
@@ -34,10 +60,11 @@ export function execute (statefulLayout, args) {
     statefulLayout.activateItem(node, args.value)
   } else {
     statefulLayout.input(node, args.value)
+    statefulLayout.blur(node)
   }
 
   return {
-    state: projectStateTree(statefulLayout.stateTree),
+    state: projectStateTree(statefulLayout.stateTree, statefulLayout),
     valid: statefulLayout.valid,
     errors: collectErrors(statefulLayout.stateTree.root)
   }

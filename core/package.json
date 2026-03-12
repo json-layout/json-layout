@@ -48,8 +48,8 @@
     },
     "./webmcp": {
       "import": {
-        "types": "./types/webmcp.d.ts",
-        "default": "./src/webmcp.js"
+        "types": "./types/webmcp/index.d.ts",
+        "default": "./src/webmcp/index.js"
       }
     }
   },
