@@ -45,6 +45,12 @@
         "types": "./types/utils/doc-options.d.ts",
         "default": "./src/utils/doc-options.js"
       }
+    },
+    "./webmcp": {
+      "import": {
+        "types": "./types/webmcp.d.ts",
+        "default": "./src/webmcp.js"
+      }
     }
   },
   "files": [
@@ -89,6 +95,7 @@
     "marked": "^15.0.7"
   },
   "devDependencies": {
+    "@mcp-b/webmcp-types": "^2.2.0",
     "@types/debug": "^4.1.7",
     "@types/node-fetch": "^2.6.5",
     "json-schema-to-typescript": "^14.0.0",
