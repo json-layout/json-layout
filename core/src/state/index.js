@@ -107,7 +107,7 @@ export class StatefulLayout {
     this._validationState = {
       initialized: validationState.initialized ?? this._validationState.initialized ?? false,
       validatedForm: validationState.validatedForm ?? this._validationState.validatedForm ?? false,
-      validatedChildren: validationState.validatedChildren ?? this._validationState.validatedChildren ?? []
+      validatedChildren: validationState.validatedChildren ?? this._validationState.validatedChildren ?? new Set()
     }
   }
 
@@ -221,7 +221,7 @@ export class StatefulLayout {
     this._validationState = {
       initialized: initialValidation,
       validatedForm: initialValidation,
-      validatedChildren: []
+      validatedChildren: new Set()
     }
   }
 
@@ -286,6 +286,7 @@ export class StatefulLayout {
       rootData: this._data,
       files: [],
       nodes: [],
+      nodesMap: new Map(),
       getItemsDataRequests: [],
       rehydrateErrors: rehydrate ? this._lastCreateStateTreeContext?.errors : undefined
     }
@@ -307,7 +308,7 @@ export class StatefulLayout {
     if (!this.validationState.initialized) {
       this.validationState = {
         initialized: true,
-        validatedChildren: createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey)
+        validatedChildren: new Set(createStateTreeContext.nodes.filter(n => n.validated).map(n => n.fullKey))
       }
     }
     this.files = shallowProduceArray(this.files, createStateTreeContext.files)
@@ -367,7 +368,7 @@ export class StatefulLayout {
    * @returns {import('../compile/types.js').ParentContextExpression | null}
    */
   getParentContextExpression (node) {
-    const parentNode = this._lastCreateStateTreeContext.nodes.find(n => n.fullKey === node.parentFullKey)
+    const parentNode = node.parentFullKey != null && this._lastCreateStateTreeContext.nodesMap.get(node.parentFullKey)
     if (!parentNode) return null
     return {
       parent: this.getParentContextExpression(parentNode),
@@ -416,8 +417,8 @@ export class StatefulLayout {
       data = transformedData
     }
 
-    if (validated && !this.validationState.validatedChildren.includes(node.fullKey)) {
-      this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    if (validated && !this.validationState.validatedChildren.has(node.fullKey)) {
+      this.validationState = { validatedChildren: new Set(this.validationState.validatedChildren).add(node.fullKey) }
     }
 
     if (activateKey !== undefined) {
@@ -431,7 +432,7 @@ export class StatefulLayout {
       this.updateState()
       return
     }
-    const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
+    const parentNode = this._lastCreateStateTreeContext.nodesMap.get(node.parentFullKey)
     if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
     const newParentValue = producePatchedData(
       // WARN: this manner of creating empty object or array based on the type of the child key does not seem very safe
@@ -519,9 +520,9 @@ export class StatefulLayout {
     logDataBinding('received blur event from node', node)
     if (
       (node.options.validateOn === 'input' || node.options.validateOn === 'blur') &&
-      !this.validationState.validatedChildren.includes(node.fullKey)
+      !this.validationState.validatedChildren.has(node.fullKey)
     ) {
-      this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+      this.validationState = { validatedChildren: new Set(this.validationState.validatedChildren).add(node.fullKey) }
       this.updateState()
     }
 
@@ -536,7 +537,7 @@ export class StatefulLayout {
    * @param {StateNode} node
    */
   validateNodeRecurse (node) {
-    this.validationState = { validatedChildren: this.validationState.validatedChildren.concat([node.fullKey]) }
+    this.validationState = { validatedChildren: new Set(this.validationState.validatedChildren).add(node.fullKey) }
     if (node.children) {
       for (const child of node.children) {
         this.validateNodeRecurse(child)
@@ -693,7 +694,7 @@ export class StatefulLayout {
     this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
       if (node.layout.emptyData && node.data && typeof node.data === 'object' && node.children?.[0]) {
-        const parentNode = this._lastCreateStateTreeContext.nodes.find(p => p.fullKey === node.parentFullKey)
+        const parentNode = node.parentFullKey != null && this._lastCreateStateTreeContext.nodesMap.get(node.parentFullKey)
         if (!parentNode) throw new Error(`parent with key "${node.parentFullKey}" not found`)
         if (!parentNode.data || typeof parentNode.data !== 'object') throw new Error(`parent with key "${node.parentFullKey}" is missing data object`)
         /** @type {Record<string, any>} */

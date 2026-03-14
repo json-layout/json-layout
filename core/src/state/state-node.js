@@ -382,7 +382,7 @@ export function createStateNode (
   // NOTE we have to exclude nodes with errors from the cache, because context.errors is unpurely modified
   // TODO: implement a cleaner way to filter context.errors while being able to reuse nodes with errors
   if (skeleton.pure && !reusedNode?.error && !reusedNode?.childError && !parentOptions.noStateCache) {
-    const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.includes(fullKey)
+    const validatedCacheKey = validationState.validatedForm || validationState.validatedChildren.has(fullKey)
     cacheKey = [
       reusedNode,
       parentOptions,
@@ -821,7 +821,7 @@ export function createStateNode (
   }
 
   const validated = validationState.validatedForm ||
-    validationState.validatedChildren.includes(fullKey) ||
+    validationState.validatedChildren.has(fullKey) ||
     (validationState.initialized === false && options.initialValidation === 'always') ||
     (validationState.initialized === false && options.initialValidation === 'withData' && !isDataEmpty(nodeData))
 

@@ -78,6 +78,7 @@ export interface CreateStateTreeContext {
   cacheKeys: Record<string, StateNodeCacheKey>
   rootData: unknown
   nodes: StateNode[],
+  nodesMap: Map<string, StateNode>,
   getItemsDataRequests: StateNode[]
 }
 
@@ -105,7 +106,7 @@ export type StateNodeCacheKey = [
 export interface ValidationState {
   initialized: boolean
   validatedForm: boolean
-  validatedChildren: string[]
+  validatedChildren: Set<string>
 }
 
 // StateNodeOptionsBase come from the vocabulary and should contain all node options that can be set in the layout

@@ -109,9 +109,11 @@ export function createStateTree (
   )
 
   context.nodes = []
+  context.nodesMap = new Map()
   context.files = []
   for (const node of traverseNodes(root)) {
     context.nodes.push(node)
+    context.nodesMap.set(node.fullKey, node)
     if (node.data instanceof File) {
       context.files.push({ dataPath: node.dataPath, file: node.data })
     }
