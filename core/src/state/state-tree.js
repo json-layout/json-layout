@@ -105,6 +105,7 @@ export function createStateTree (
     data,
     null,
     validationState,
+    options.titleDepth,
     reusedStateTree?.root
   )
 

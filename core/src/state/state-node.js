@@ -34,8 +34,8 @@ export const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, autofocus: boolean, shouldLoadData: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, autofocus, shouldLoadData, props, slots, itemsCacheKey, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, titleDepth: number, autofocus: boolean, shouldLoadData: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, titleDepth, autofocus, shouldLoadData, props, slots, itemsCacheKey, children) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -47,6 +47,7 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.layout = layout
   draft.width = width
   draft.options = options
+  draft.titleDepth = titleDepth
   draft.cols = cols
   if (shouldLoadData || (draft.loading && draft.data === data)) draft.loading = true
   else delete draft.loading
@@ -182,11 +183,6 @@ const produceNodeOptions = produce((draft, parentNodeOptions, nodeOptions = {}) 
 const produceReadonlyArrayItemOptions = produce((draft) => {
   draft.readOnly = true
   draft.summary = true
-})
-
-/** @type {(draft: import('./types.js').StateNodeOptions, section: import('@json-layout/vocabulary').CompositeCompObject) => import('./types.js').StateNodeOptions} */
-const produceCompositeChildrenOptions = produce((draft, section) => {
-  if (section.title && draft.titleDepth < 6) draft.titleDepth += 1
 })
 
 /**
@@ -354,6 +350,7 @@ const getCompObject = (normalizedLayout, childDefinition, options, compiledLayou
  * @param {any} data
  * @param {import('../compile/types.js').ParentContextExpression | null} parentContext
  * @param {import('./types.js').ValidationState} validationState
+ * @param {number} titleDepth
  * @param {import('./types.js').StateNode} [reusedNode]
  * @returns {import('./types.js').StateNode}
  */
@@ -372,6 +369,7 @@ export function createStateNode (
   data,
   parentContext,
   validationState,
+  titleDepth,
   reusedNode
 ) {
   logStateNode('createStateNode', fullKey)
@@ -396,9 +394,11 @@ export function createStateNode (
       context.activatedItems,
       context.initial,
       context.rehydrateErrors?.length ?? 0,
-      data
+      data,
+      titleDepth
     ]
-    if (reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
+    const hasNewErrors = context.errors?.some(e => matchLocalError(e, skeleton, dataPath, parentDataPath))
+    if (!hasNewErrors && reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
       logStateNode('createStateNode cache hit', fullKey)
       // @ts-ignore
       if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['hit'])
@@ -456,7 +456,7 @@ export function createStateNode (
   /** @type {import('./types.js').StateNode[] | undefined} */
   let children
   if (isCompositeLayout(layout, compiledLayout.components)) {
-    const childrenOptions = produceCompositeChildrenOptions(options, layout)
+    const childTitleDepth = (layout.title && titleDepth < 6) ? titleDepth + 1 : titleDepth
     let actualPropertyKeys = skeleton.propertyKeys
     const removePropertyKeys = options.readOnlyPropertiesMode === 'remove' ? skeleton.roPropertyKeys : []
     children = []
@@ -506,7 +506,7 @@ export function createStateNode (
       }
       const child = createStateNode(
         context,
-        childrenOptions,
+        options,
         compiledLayout,
         childLayout.key,
         childFullKey,
@@ -519,6 +519,7 @@ export function createStateNode (
         childData,
         { parent: parentContext, data: objectData },
         validationState,
+        childTitleDepth,
         reusedNode?.children?.find(c => c.fullKey === childFullKey)
       )
       if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
@@ -621,6 +622,7 @@ export function createStateNode (
         nodeData,
         { parent: parentContext, data: nodeData },
         validationState,
+        titleDepth,
         reusedNode?.children?.[0]
       )
       // the oneOf was hydrated
@@ -672,6 +674,7 @@ export function createStateNode (
             valueChildData,
             { parent: parentContext, data: objectData },
             validationState,
+            titleDepth,
             reusedNode?.children?.find(c => c.key === childKey)
           )
           if (valueChild.autofocus || valueChild.autofocusChild !== undefined) focusChild = false
@@ -714,6 +717,7 @@ export function createStateNode (
           itemData,
           { parent: parentContext, data: arrayData },
           validationState,
+          titleDepth,
           reusedNode?.children?.[i]
         )
         if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
@@ -738,6 +742,7 @@ export function createStateNode (
           arrayData[i],
           { parent: parentContext, data: arrayData },
           validationState,
+          titleDepth,
           reusedNode?.children?.[i]
         )
         children.push(activeChild)
@@ -903,6 +908,7 @@ export function createStateNode (
     error?.message,
     validated,
     options,
+    titleDepth,
     autofocus,
     shouldLoadData,
     props,

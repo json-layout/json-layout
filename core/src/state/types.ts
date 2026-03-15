@@ -48,6 +48,7 @@ export interface StateNode {
   validated: boolean
   width: number
   options: StateNodeOptions
+  titleDepth: number
   messages: LocaleMessages
   autofocus?: boolean
   loading?: boolean
@@ -100,7 +101,8 @@ export type StateNodeCacheKey = [
   Record<string, number | string>,
   boolean,
   number,
-  unknown
+  unknown,
+  number
 ]
 
 export interface ValidationState {
