@@ -62,6 +62,10 @@ export async function serialize (compiledLayout) {
     code = 'import ucs2length from "ajv/dist/runtime/ucs2length.js";\n' + code
     code = code.replace(/require\("ajv\/dist\/runtime\/ucs2length"\)/g, 'ucs2length')
   }
+  if (code.includes('require("ajv/dist/runtime/equal")')) {
+    code = 'import equal from "ajv/dist/runtime/equal.js";\n' + code
+    code = code.replace(/require\("ajv\/dist\/runtime\/equal"\)\.default/g, 'equal')
+  }
 
   // import only the current locale from ajv-i18n
   let ajvI18nPath = `ajv-i18n/localize/${compiledLayout.locale}/index.js`
