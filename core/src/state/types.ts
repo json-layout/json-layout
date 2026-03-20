@@ -45,6 +45,8 @@ export interface StateNode {
   data: unknown
   error: string | undefined
   childError: boolean | undefined
+  modified: boolean | undefined
+  childModified: boolean | undefined
   validated: boolean
   width: number
   options: StateNodeOptions
@@ -78,6 +80,7 @@ export interface CreateStateTreeContext {
   rehydrate: boolean
   cacheKeys: Record<string, StateNodeCacheKey>
   rootData: unknown
+  savedData: unknown
   nodes: StateNode[],
   nodesMap: Map<string, StateNode>,
   getItemsDataRequests: StateNode[]
@@ -102,7 +105,8 @@ export type StateNodeCacheKey = [
   boolean,
   number,
   unknown,
-  number
+  number,
+  unknown // savedData resolved for this node
 ]
 
 export interface ValidationState {

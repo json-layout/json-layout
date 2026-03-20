@@ -5,6 +5,7 @@ import { Display, getChildDisplay } from './utils/display.js'
 import { shallowEqualArray, shallowProduceArray, shallowProduceObject } from './utils/immutable.js'
 import { getRegexp } from './utils/regexps.js'
 import { pathURL } from './utils/urls.js'
+import { resolveDataPath, isNodeModified } from './utils/modified.js'
 
 const logStateNode = debug('jl:state-node')
 const logValidation = debug('jl:validation')
@@ -34,8 +35,8 @@ export const useDefaultData = (data, layout, options) => {
 }
 
 // use Immer for efficient updating with immutability and no-op detection
-/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, titleDepth: number, autofocus: boolean, shouldLoadData: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined) => import('../index.js').StateNode} */
-const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, titleDepth, autofocus, shouldLoadData, props, slots, itemsCacheKey, children) => {
+/** @type {(draft: import('./types.js').StateNode, key: string | number, fullKey: string, parentFullKey: string | null, dataPath: string, parentDataPath: string | null, skeleton: import('../index.js').SkeletonNode, layout: import('@json-layout/vocabulary').BaseCompObject, width: number, cols: number, data: unknown, error: string | undefined, validated: boolean, options: import('./types.js').StateNodeOptions, titleDepth: number, autofocus: boolean, shouldLoadData: boolean, props: import('@json-layout/vocabulary').StateNodePropsLib, slots: import('@json-layout/vocabulary').Slots | undefined, itemsCacheKey: any, children: import('../index.js').StateNode[] | undefined, modified: boolean | undefined, childModified: boolean | undefined) => import('../index.js').StateNode} */
+const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, parentDataPath, skeleton, layout, width, cols, data, error, validated, options, titleDepth, autofocus, shouldLoadData, props, slots, itemsCacheKey, children, modified, childModified) => {
   draft.messages = layout.messages ? produceStateNodeMessages(draft.messages || {}, layout.messages, options) : options.messages
 
   draft.key = key
@@ -55,6 +56,8 @@ const produceStateNode = produce((draft, key, fullKey, parentFullKey, dataPath, 
   draft.error = error
   draft.itemsCacheKey = itemsCacheKey
   draft.childError = children && (children.findIndex(c => c.error || c.childError) !== -1)
+  draft.modified = modified
+  draft.childModified = childModified
   draft.validated = validated
   if (autofocus) {
     draft.autofocus = true
@@ -374,6 +377,10 @@ export function createStateNode (
 ) {
   logStateNode('createStateNode', fullKey)
 
+  // Resolve saved data for this node (needed for cache key and modified computation)
+  const nodeSavedData = context.savedData !== undefined ? resolveDataPath(context.savedData, dataPath) : undefined
+  let suppressChildModified = false
+
   /** @type {import('./types.js').StateNodeCacheKey | null} */
   let cacheKey = null
 
@@ -395,7 +402,8 @@ export function createStateNode (
       context.initial,
       context.rehydrateErrors?.length ?? 0,
       data,
-      titleDepth
+      titleDepth,
+      context.savedData !== undefined ? nodeSavedData : undefined
     ]
     const hasNewErrors = context.errors?.some(e => matchLocalError(e, skeleton, dataPath, parentDataPath))
     if (!hasNewErrors && reusedNode && context.cacheKeys[fullKey] && shallowEqualArray(context.cacheKeys[fullKey], cacheKey)) {
@@ -607,30 +615,39 @@ export function createStateNode (
       const activeChildKey = `${fullKey}/${activeChildTreeIndex}`
       if (context.autofocusTarget === fullKey) context.autofocusTarget = activeChildKey
 
-      const child = createStateNode(
-        context,
-        options,
-        compiledLayout,
-        activeChildTreeIndex,
-        activeChildKey,
-        fullKey,
-        dataPath,
-        dataPath,
-        activeChildNode,
-        null,
-        display,
-        nodeData,
-        { parent: parentContext, data: nodeData },
-        validationState,
-        titleDepth,
-        reusedNode?.children?.[0]
-      )
-      // the oneOf was hydrated
-      if (child.data !== nodeData) {
-        // nodeData = produceHydratedStateNodeData(nodeData, dataPath, child, skeleton.children?.map(childSkeletonKey => compiledLayout.skeletonNodes[childSkeletonKey]))
-        nodeData = child.data
+      const savedDataBackup = context.savedData
+      if (context.savedData !== undefined && isNodeModified(nodeSavedData, nodeData)) {
+        suppressChildModified = true
+        context.savedData = undefined
       }
-      children = [child]
+      try {
+        const child = createStateNode(
+          context,
+          options,
+          compiledLayout,
+          activeChildTreeIndex,
+          activeChildKey,
+          fullKey,
+          dataPath,
+          dataPath,
+          activeChildNode,
+          null,
+          display,
+          nodeData,
+          { parent: parentContext, data: nodeData },
+          validationState,
+          titleDepth,
+          reusedNode?.children?.[0]
+        )
+        // the oneOf was hydrated
+        if (child.data !== nodeData) {
+          // nodeData = produceHydratedStateNodeData(nodeData, dataPath, child, skeleton.children?.map(childSkeletonKey => compiledLayout.skeletonNodes[childSkeletonKey]))
+          nodeData = child.data
+        }
+        children = [child]
+      } finally {
+        context.savedData = savedDataBackup
+      }
     }
   }
 
@@ -698,54 +715,64 @@ export function createStateNode (
       const listItemOptions = layout.listEditMode === 'inline' ? options : produceReadonlyArrayItemOptions(options)
       children = []
       let focusChild = context.autofocusTarget === fullKey
-      for (let i = 0; i < arrayData.length; i++) {
-        const itemData = arrayData[i]
-        const childFullKey = `${fullKey}/${i}`
-        if (focusChild) context.autofocusTarget = childFullKey
-        const child = createStateNode(
-          context,
-          (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
-          compiledLayout,
-          i,
-          childFullKey,
-          fullKey,
-          `${dataPath}/${i}`,
-          dataPath,
-          childSkeleton,
-          null,
-          display,
-          itemData,
-          { parent: parentContext, data: arrayData },
-          validationState,
-          titleDepth,
-          reusedNode?.children?.[i]
-        )
-        if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
-        children.push(child)
+      // For arrays: check if saved data differs, suppress child modified tracking if so
+      const savedDataBackup = context.savedData
+      if (context.savedData !== undefined && isNodeModified(nodeSavedData, nodeData)) {
+        suppressChildModified = true
+        context.savedData = undefined
       }
+      try {
+        for (let i = 0; i < arrayData.length; i++) {
+          const itemData = arrayData[i]
+          const childFullKey = `${fullKey}/${i}`
+          if (focusChild) context.autofocusTarget = childFullKey
+          const child = createStateNode(
+            context,
+            (layout.listEditMode === 'inline-single' && context.activatedItems[fullKey] === i) ? options : listItemOptions,
+            compiledLayout,
+            i,
+            childFullKey,
+            fullKey,
+            `${dataPath}/${i}`,
+            dataPath,
+            childSkeleton,
+            null,
+            display,
+            itemData,
+            { parent: parentContext, data: arrayData },
+            validationState,
+            titleDepth,
+            reusedNode?.children?.[i]
+          )
+          if (child.autofocus || child.autofocusChild !== undefined) focusChild = false
+          children.push(child)
+        }
 
-      // duplicate active child at the end of the list in case of dialog/menu edition
-      if (context.activatedItems[fullKey] !== undefined && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
-        const i = /** @type {number} */(context.activatedItems[fullKey])
-        const activeChild = createStateNode(
-          context,
-          options,
-          compiledLayout,
-          i,
-          `${fullKey}/${i}`,
-          fullKey,
-          `${dataPath}/${i}`,
-          dataPath,
-          childSkeleton,
-          null,
-          new Display(layout.listEditMode === 'menu' ? options.listMenuWidth : options.listDialogWidth),
-          arrayData[i],
-          { parent: parentContext, data: arrayData },
-          validationState,
-          titleDepth,
-          reusedNode?.children?.[i]
-        )
-        children.push(activeChild)
+        // duplicate active child at the end of the list in case of dialog/menu edition
+        if (context.activatedItems[fullKey] !== undefined && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
+          const i = /** @type {number} */(context.activatedItems[fullKey])
+          const activeChild = createStateNode(
+            context,
+            options,
+            compiledLayout,
+            i,
+            `${fullKey}/${i}`,
+            fullKey,
+            `${dataPath}/${i}`,
+            dataPath,
+            childSkeleton,
+            null,
+            new Display(layout.listEditMode === 'menu' ? options.listMenuWidth : options.listDialogWidth),
+            arrayData[i],
+            { parent: parentContext, data: arrayData },
+            validationState,
+            titleDepth,
+            reusedNode?.children?.[i]
+          )
+          children.push(activeChild)
+        }
+      } finally {
+        context.savedData = savedDataBackup
       }
     }
   }
@@ -893,6 +920,26 @@ export function createStateNode (
     logGetItems(fullKey, 'list component with unchanged getItems cache key, no fetch will be triggered', itemsCacheKey)
   }
 
+  // Compute modified flags
+  /** @type {boolean | undefined} */
+  let modified
+  /** @type {boolean | undefined} */
+  let childModified
+  if (context.savedData !== undefined) {
+    if (suppressChildModified) {
+      // Array or oneOf that differs from saved — mark as modified, children were not individually compared
+      modified = true
+      childModified = true
+    } else if (children) {
+      // Composite node (including equal arrays/oneOf): aggregate from children
+      modified = false
+      childModified = children.some(c => c.modified || c.childModified) || false
+    } else {
+      // Leaf node: compare directly
+      modified = isNodeModified(nodeSavedData, nodeData)
+    }
+  }
+
   const node = produceStateNode(
     reusedNode ?? /** @type {import('./types.js').StateNode} */({}),
     key,
@@ -914,7 +961,9 @@ export function createStateNode (
     props,
     slots,
     itemsCacheKey,
-    children && shallowProduceArray(reusedNode?.children, children)
+    children && shallowProduceArray(reusedNode?.children, children),
+    modified,
+    childModified
   )
 
   if (cacheKey) {

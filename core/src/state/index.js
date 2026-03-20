@@ -184,12 +184,19 @@ export class StatefulLayout {
   files = []
 
   /**
+   * @private
+   * @type {unknown}
+   */
+  _savedData
+
+  /**
    * @param {import("../index.js").CompiledLayout} compiledLayout
    * @param {import("../index.js").SkeletonTree} skeletonTree
    * @param {Partial<StatefulLayoutOptions>} options
    * @param {unknown} [data]
+   * @param {unknown} [savedData]
    */
-  constructor (compiledLayout, skeletonTree, options, data) {
+  constructor (compiledLayout, skeletonTree, options, data, savedData) {
     logDataBinding('create stateful layout', compiledLayout, skeletonTree, options, data)
     this._compiledLayout = compiledLayout
     this.skeletonTree = skeletonTree
@@ -197,6 +204,7 @@ export class StatefulLayout {
     this._autofocusTarget = this.options.autofocus ? '' : null
     this._previousAutofocusTarget = null
     this._data = data
+    this._savedData = savedData
     this._previousData = data
     this.initValidationState()
     this.activatedItems = {}
@@ -284,6 +292,7 @@ export class StatefulLayout {
       rehydrate,
       cacheKeys: this._lastCreateStateTreeContext?.cacheKeys ?? {},
       rootData: this._data,
+      savedData: this._savedData,
       files: [],
       nodes: [],
       nodesMap: new Map(),
@@ -360,6 +369,21 @@ export class StatefulLayout {
    */
   get hasHiddenError () {
     return this._lastCreateStateTreeContext.nodes.findIndex(node => node.error && !node.validated) !== -1
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  get modified () {
+    if (this._savedData === undefined) return false
+    return !!(this._stateTree.root.modified || this._stateTree.root.childModified)
+  }
+
+  get savedData () { return this._savedData }
+  /** @param {unknown} savedData */
+  set savedData (savedData) {
+    this._savedData = savedData
+    this.updateState()
   }
 
   /**
