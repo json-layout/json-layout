@@ -1,12 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "json-layout": {
-      "type": "local",
-      "command": ["node", "agents/src/mcp/server.ts"],
-      "enabled": true
-    }
-  },
+  "mcp": {},
   "skills": {
     "paths": ["./skills"]
   }

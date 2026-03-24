@@ -12,15 +12,5 @@ export default [
       'jsdoc/require-returns-description': 'off',
       'jsdoc/require-returns': 'off'
     }
-  },
-  {
-    files: ['agents/**/*.ts'],
-    rules: {
-      'jsdoc/require-jsdoc': 'off',
-      'jsdoc/require-param': 'off',
-      'jsdoc/require-param-type': 'off',
-      'jsdoc/require-returns': 'off',
-      'jsdoc/require-returns-type': 'off'
-    }
   }
 ]

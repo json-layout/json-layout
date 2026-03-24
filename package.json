@@ -2,9 +2,9 @@
   "description": "JSON Layout. Vocabulary and tools for rendering and edition of schematized JSON documents.",
   "main": "index.js",
   "scripts": {
-    "test": "run-s 'test -w vocabulary' 'test -w core' 'test -w agents'",
-    "test:only": "run-s 'test:only -w vocabulary' 'test:only -w core' 'test:only -w agents'",
-    "build": "run-s 'build -w vocabulary' 'build -w core' 'build -w examples' 'build -w agents'",
+    "test": "run-s 'test -w vocabulary' 'test -w core'",
+    "test:only": "run-s 'test:only -w vocabulary' 'test:only -w core'",
+    "build": "run-s 'build -w vocabulary' 'build -w core' 'build -w examples'",
     "lint": "eslint .",
     "prepare": "husky",
     "dev-zellij": "zellij --layout .zellij.kdl",
@@ -30,8 +30,7 @@
   "workspaces": [
     "vocabulary",
     "core",
-    "examples",
-    "agents"
+    "examples"
   ],
   "devDependencies": {
     "@commitlint/cli": "^17.5.1",

@@ -8,10 +8,8 @@ descriptions for form rendering. Four npm workspaces:
 - `vocabulary/` (`@json-layout/vocabulary`) - JSON schemas, TS types, normalize/validate
 - `core/` (`@json-layout/core`) - Compilation and stateful layout management
 - `examples/` (`@json-layout/examples`) - Standard examples for docs/testing
-- `agents/` (`@json-layout/agents`) - AI agent tools (programmatic API + MCP server)
 
 Source in vocabulary/core/examples is **plain JavaScript with JSDoc type annotations**.
-The `agents/` workspace uses **pure TypeScript** (executed directly by Node.js v24 type stripping, no build step).
 
 ## Build / Lint / Test Commands
 
@@ -25,7 +23,7 @@ npm run quality
 # Lint (neostandard + eslint-plugin-jsdoc, flat config)
 npm run lint
 
-# Build all (must be in order: vocabulary -> core -> examples -> agents)
+# Build all (must be in order: vocabulary -> core -> examples)
 npm run build
 
 # Build a single workspace
@@ -48,7 +46,6 @@ node --test --test-only core/test/compile.spec.js
 # Watch tests
 npm run watch:test -w core
 npm run watch:test -w vocabulary
-npm run watch:test -w agents
 ```
 
 ### Running a Single Test
@@ -84,7 +81,7 @@ node --test --test-only core/test/compile.spec.js
 ### Imports
 
 - **Named imports** preferred; default imports only for CJS/ESM interop workarounds
-- Always use **`.js` extension** in relative imports (`import { foo } from './bar.js'`), except in `agents/` which uses `.ts`
+- Always use **`.js` extension** in relative imports (`import { foo } from './bar.js'`)
 - External packages first, then local modules
 - No import sorting enforced, but follow the existing convention
 
@@ -205,5 +202,4 @@ describe('feature X', () => {
 
 - `core` depends on `vocabulary` (peer dependency)
 - `examples` depends on `vocabulary` (regular dependency)
-- `agents` depends on `vocabulary` and `core` (peer dependencies)
 - Always build `vocabulary` before `core` (handled by `npm run build`)
