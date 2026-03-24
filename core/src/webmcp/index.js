@@ -44,6 +44,7 @@ function parseIfJsonString (value) {
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
  * @property {object} [schema] - The original JSON schema
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
+ * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
  */
 
 /**
@@ -98,6 +99,12 @@ export class WebMCP {
   _includeFillFormSkill = false
 
   /**
+   * @readonly
+   * @type {boolean}
+   */
+  _includeSubAgent = false
+
+  /**
    * @type {string[]}
    */
   _registeredTools = []
@@ -112,6 +119,7 @@ export class WebMCP {
     this._dataTitle = options.dataTitle || 'form'
     this._schema = options.schema || null
     this._includeFillFormSkill = options.includeFillFormSkill || false
+    this._includeSubAgent = options.includeSubAgent || false
     this._complexity = getComplexity(statefulLayout)
   }
 
@@ -330,6 +338,28 @@ export class WebMCP {
           return {
             content: [{ type: 'text', text: JSON.stringify(this._schema) }],
             structuredContent: this._schema
+          }
+        }
+      })
+    }
+
+    if (this._includeSubAgent) {
+      const toolNames = tools.map(t => t.name)
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, !!this._schema, this._statefulLayout)
+      tools.push({
+        name: `subagent_${this._toolName('form')}`,
+        description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            task: { type: 'string', description: 'The task to delegate to this sub-agent' }
+          },
+          required: ['task']
+        },
+        execute: async () => {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ prompt, tools: toolNames }) }],
+            structuredContent: { prompt, tools: toolNames }
           }
         }
       })

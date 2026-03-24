@@ -605,4 +605,40 @@ describe('webmcp WebMCP class', () => {
     assert.equal(result.structuredContent.data.name, 'Alice')
     assert.equal(result.structuredContent.valid, true)
   })
+
+  it('should include subagent tool when includeSubAgent is true', async () => {
+    const compiled = compile(simpleSchema)
+    const mainTree = compiled.skeletonTrees[compiled.mainTree]
+    const layout = new StatefulLayout(compiled, mainTree, {}, {})
+
+    const webmcp = new WebMCP(layout, { prefixName: 'myform_', dataTitle: 'registration', includeSubAgent: true })
+    const tools = webmcp.getTools()
+
+    const subagentTool = tools.find((t) => t.name === 'subagent_myform_form')
+    assert.ok(subagentTool, 'should have a subagent tool')
+    assert.ok(subagentTool.description.includes('registration'))
+
+    const result = await /** @type {any} */(subagentTool).execute({ task: 'fill the form' })
+    assert.ok(!result.isError)
+
+    const structured = result.structuredContent
+    assert.ok(structured.prompt.includes('Form-Filling Guide'))
+    assert.ok(Array.isArray(structured.tools))
+    assert.ok(structured.tools.includes('myform_getData'))
+    assert.ok(structured.tools.includes('myform_setData'))
+    assert.ok(structured.tools.includes('myform_setFieldValue'))
+    assert.ok(!structured.tools.includes('subagent_myform_form'), 'subagent tool should not include itself')
+  })
+
+  it('should use "form" as subagent name when no prefixName', async () => {
+    const compiled = compile(simpleSchema)
+    const mainTree = compiled.skeletonTrees[compiled.mainTree]
+    const layout = new StatefulLayout(compiled, mainTree, {}, {})
+
+    const webmcp = new WebMCP(layout, { dataTitle: 'registration', includeSubAgent: true })
+    const tools = webmcp.getTools()
+
+    const subagentTool = tools.find((t) => t.name === 'subagent_form')
+    assert.ok(subagentTool, 'should use "form" as subagent name when no prefixName')
+  })
 })
