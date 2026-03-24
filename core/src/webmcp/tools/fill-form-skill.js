@@ -45,7 +45,7 @@ Only use ${prefixName}describeState and iterate with ${prefixName}setFieldValue 
 `
   }
 
-  if (complexity === 'small') {
+  if (complexity === 'medium') {
     skill += `
 Given the medium complexity of this form you should start by reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}, if you have a satisfying understanding of the schema you can attempt updating the whole data using ${prefixName}setData at least once.
 Then use ${prefixName}describeState and iterate with ${prefixName}setFieldValue.
@@ -60,7 +60,7 @@ Prefer using ${prefixName}describeState and iterating with ${prefixName}setField
   }
 
   skill += `
-If you encounter getItems definitions in the schema or getSuggestions flags in the state. You must use ${prefixName}getFieldSuggestions to fetch the accepted values.
+If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values, then pass the chosen value directly to ${prefixName}setFieldValue or include it in ${prefixName}setData.
 `
 
   return skill

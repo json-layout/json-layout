@@ -2,7 +2,7 @@
  * @file setFieldValue tool
  */
 
-import { projectStateTree, collectErrors } from '../project.js'
+import { projectFieldResult, collectErrors } from '../project.js'
 import { resolveNode } from '../resolve.js'
 
 export const inputSchema = {
@@ -13,7 +13,7 @@ export const inputSchema = {
       description: 'Path to the field (e.g. "/name", "/items/0/quantity")'
     },
     value: {
-      description: 'The value to set'
+      description: 'The value to set. For variant-selector fields, pass the variant index to switch variants.'
     }
   },
   required: ['path', 'value']
@@ -22,8 +22,16 @@ export const inputSchema = {
 export const outputSchema = {
   type: 'object',
   properties: {
-    state: { type: 'object' },
     valid: { type: 'boolean' },
+    field: {
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        type: { type: 'string' },
+        data: {},
+        error: { type: 'string' }
+      }
+    },
     errors: {
       type: 'array',
       items: {
@@ -42,13 +50,13 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Set the value of a specific field of "${dataTitle}" by path. For oneOf nodes, pass the variant index as value to switch variants.`
+  return `Set the value of a specific field of "${dataTitle}" by path. For fields with suggestions, use the value returned by getFieldSuggestions. To switch a variant selector, set value to the desired variant index (shown in describeState).`
 }
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value: unknown }} args
- * @returns {{ state: ReturnType<typeof projectStateTree>, valid: boolean, errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
@@ -63,9 +71,13 @@ export function execute (statefulLayout, args) {
     statefulLayout.blur(node)
   }
 
+  // Re-resolve node from updated state tree
+  const updatedNode = resolveNode(statefulLayout.stateTree.root, args.path)
+  const errors = collectErrors(statefulLayout.stateTree.root)
+
   return {
-    state: projectStateTree(statefulLayout.stateTree, statefulLayout),
     valid: statefulLayout.valid,
-    errors: collectErrors(statefulLayout.stateTree.root)
+    field: projectFieldResult(updatedNode || node, statefulLayout),
+    errors
   }
 }

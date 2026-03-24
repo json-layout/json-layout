@@ -2,7 +2,7 @@
  * @file setData tool
  */
 
-import { projectStateTree, collectErrors } from '../project.js'
+import { collectErrors } from '../project.js'
 
 export const inputSchema = {
   type: 'object',
@@ -17,7 +17,6 @@ export const inputSchema = {
 export const outputSchema = {
   type: 'object',
   properties: {
-    state: { type: 'object' },
     valid: { type: 'boolean' },
     errors: {
       type: 'array',
@@ -34,22 +33,25 @@ export const outputSchema = {
 
 /**
  * @param {string} dataTitle
+ * @param {"small"|"medium"|"large"} [complexity]
  * @returns {string}
  */
-export function getDescription (dataTitle) {
-  return `Bulk-set the "${dataTitle}" data. Use for initial fill or replacing all data at once.`
+export function getDescription (dataTitle, complexity) {
+  if (complexity === 'large') {
+    return `Set all "${dataTitle}" data at once. For complex forms, prefer setFieldValue for incremental changes.`
+  }
+  return `Set all "${dataTitle}" data at once. Best for simple forms. Check errors in the response, use describeState if you need the full form structure.`
 }
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ data: unknown }} args
- * @returns {{ state: ReturnType<typeof projectStateTree>, valid: boolean, errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, errors: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args) {
   statefulLayout.data = args.data
 
   return {
-    state: projectStateTree(statefulLayout.stateTree, statefulLayout),
     valid: statefulLayout.valid,
     errors: collectErrors(statefulLayout.stateTree.root)
   }
