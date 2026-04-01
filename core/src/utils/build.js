@@ -8,7 +8,8 @@ export const commonjsDeps = [
   'ajv-formats/dist/formats.js',
   'ajv-i18n',
   'ajv-errors',
-  'debug'
+  'debug',
+  'fast-deep-equal'
 ]
 
 /** @type {string[][]} */
@@ -19,5 +20,6 @@ export const commonjsDepsPaths = [
   ['@json-layout/core', 'ajv-formats/dist/formats.js'],
   ['@json-layout/core', 'ajv-i18n'],
   ['@json-layout/core', 'ajv-errors'],
-  ['@json-layout/core', 'debug']
+  ['@json-layout/core', 'debug'],
+  ['@json-layout/core', 'fast-deep-equal']
 ]

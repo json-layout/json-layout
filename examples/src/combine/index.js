@@ -1,4 +1,5 @@
 import oneOf from './one-of.js'
+import oneOfAutocomplete from './one-of-autocomplete.js'
 import allOf from './all-of.js'
 import layoutIf from './layout-if.js'
 import layoutSwitch from './layout-switch.js'
@@ -11,7 +12,7 @@ const category = {
   title: 'Combinations',
   id: 'combine',
   description: 'This section contains examples of combining schemas and layout options using conditions and higher level keywords than simple properties.',
-  examples: [oneOf, allOf, layoutIf, layoutSwitch, depedentSchemas, ifThenElse, recursion]
+  examples: [oneOf, oneOfAutocomplete, allOf, layoutIf, layoutSwitch, depedentSchemas, ifThenElse, recursion]
 }
 
 export default category

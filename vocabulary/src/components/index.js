@@ -255,6 +255,7 @@ export const standardComponents = [
       required: ['oneOfItems'],
       properties: {
         emptyData: { type: 'boolean' },
+        autocomplete: { type: 'boolean' },
         oneOfItems: {
           type: 'array',
           items: {

@@ -324,6 +324,14 @@ export function makeSkeletonNode (
           if (compObject.defaultData === undefined) compObject.defaultData = defaultData
           if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
           if (compObject.getDefaultData) pushExpression(expressions, compObject.getDefaultData)
+
+          if (compObject.options !== undefined && !compObject.getOptions) compObject.getOptions = { type: 'js-eval', expr: 'layout.options', pure: true, dataAlias: 'value' }
+          if (compObject.getOptions) pushExpression(expressions, compObject.getOptions)
+
+          if (compObject.props !== undefined && !compObject.getProps) compObject.getProps = { type: 'js-eval', expr: 'layout.props', pure: true, dataAlias: 'value' }
+          if (compObject.getProps) pushExpression(expressions, compObject.getProps)
+
+          if (compObject.transformData) pushExpression(expressions, compObject.transformData)
         }
 
         normalizedLayouts[oneOfPointer] = normalizationResult.layout
