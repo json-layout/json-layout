@@ -571,12 +571,28 @@ export function createStateNode (
     // or the one matching the specified discriminator
     // or the one that is valid with current data
     let activeChildTreeIndex = /** @type {number} */(context.activatedItems[fullKey])
-    const validChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
-    if (activeChildTreeIndex === undefined) {
-      if (skeleton.discriminator !== undefined && validChildTreeIndex === -1) {
-        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined && data[skeleton.discriminator] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
+    let validChildTreeIndex = -1
+    if (activeChildTreeIndex !== undefined) {
+      // already explicitly activated, just check if data validates against the active variant
+      const activeTree = skeleton.childrenTrees[activeChildTreeIndex]
+      if (activeTree !== undefined && compiledLayout.validates[compiledLayout.skeletonTrees[activeTree].refPointer](data)) {
+        validChildTreeIndex = activeChildTreeIndex
+      }
+    } else {
+      // try discriminator-based resolution first (cheap string comparison)
+      if (skeleton.discriminator !== undefined && data?.[skeleton.discriminator] !== undefined) {
+        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => data[/** @type {string} */(skeleton.discriminator)] === compiledLayout.skeletonTrees[childTree].discriminatorValue)
+      }
+      // fall back to full schema validation if discriminator didn't match
+      if (activeChildTreeIndex === undefined || activeChildTreeIndex === -1) {
+        activeChildTreeIndex = skeleton.childrenTrees?.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
+        validChildTreeIndex = activeChildTreeIndex
       } else {
-        activeChildTreeIndex = validChildTreeIndex
+        // discriminator matched, validate just that variant
+        const matchedTree = skeleton.childrenTrees[activeChildTreeIndex]
+        if (compiledLayout.validates[compiledLayout.skeletonTrees[matchedTree].refPointer](data)) {
+          validChildTreeIndex = activeChildTreeIndex
+        }
       }
     }
 
