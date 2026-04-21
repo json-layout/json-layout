@@ -7,7 +7,7 @@ import { isGetItemsExpression, isGetItemsFetch, isItemsLayout } from '@json-layo
 import { shallowProduceArray } from './utils/immutable.js'
 import { fillOptions } from './options.js'
 
-export { Display } from './utils/display.js'
+export { Display }
 export { getRegexp } from './utils/regexps.js'
 
 /**
