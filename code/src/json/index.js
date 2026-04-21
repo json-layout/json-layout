@@ -1,2 +1,4 @@
-// Populated in later tasks.
-export {}
+export { parse, pathToRange, offsetToPath } from './parser.js'
+export { scaffold } from './scaffold.js'
+export { insertProperty } from './insert-property.js'
+export { jsonFormatAdapter } from './adapter.js'
