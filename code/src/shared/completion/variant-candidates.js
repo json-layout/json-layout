@@ -9,8 +9,10 @@ import { resolveSkeletonNode, scaffoldDefault } from '@json-layout/core'
 /**
  * Locate the variant-carrying skeleton node reachable from `node`. If `node`
  * itself has `childrenTrees`, return it. Otherwise, fold through a synthetic
- * `$oneOf` child if present — this matches the shape produced by compile for
- * inline oneOf/anyOf unions at an object value position.
+ * `$oneOf` child if present — that's the shape compile produces for inline
+ * `oneOf` unions at an object value position. In v1 only `oneOf` produces
+ * variant trees; `anyOf` does not (it's only resolved for `$ref` + the
+ * nullable-pair idiom, neither of which becomes a `$oneOf` child).
  * @param {import('@json-layout/core').CompiledLayout} compiledLayout
  * @param {import('@json-layout/core').CompiledLayout['skeletonNodes'][string] | undefined} node
  * @returns {import('@json-layout/core').CompiledLayout['skeletonNodes'][string] | undefined}
