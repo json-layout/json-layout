@@ -23,11 +23,11 @@
     "LICENSE"
   ],
   "scripts": {
-    "test:only": "node --test --test-only test/*.spec.js",
-    "test": "node --test test/*.spec.js",
+    "test:only": "node --test --test-only 'test/**/*.spec.js'",
+    "test": "node --test 'test/**/*.spec.js'",
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
     "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "watch:test": "node --test --watch test/*.spec.js"
+    "watch:test": "node --test --watch 'test/**/*.spec.js'"
   },
   "repository": {
     "type": "git",
