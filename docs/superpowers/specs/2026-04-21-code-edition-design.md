@@ -8,6 +8,15 @@ The three heads share the same compiled foundation: forms project the skeleton t
 
 v1 delivers JSON edition only. YAML and mini-markup parsers are future iterations.
 
+## Architectural invariant: `core` owns all schema interpretation
+
+`@json-layout/core` is the single source of truth for everything derived from the JSON Schema. The `code/` workspace **never parses or walks a raw JSON Schema**. Its only schema-derived inputs are the artifacts produced by `core`:
+
+- `CompiledLayout` — `normalizedLayouts` (title/description/help/items/getItems/errorMessages/etc.), `skeletonTrees` / `skeletonNodes` (structural walk), `validates` (AJV functions), `validationErrors` (message templates), `expressions` (compiled expression functions), `localizeErrors`.
+- `StatefulLayout` — per-node resolved state after expression evaluation (effective title/description/help, items, options, readOnly, required set, resolved error messages, modified flags).
+
+Any capability `code/` needs that isn't reachable through these artifacts must be added to `core` first (see *Changes required in `core/`* at the end of this spec), not re-implemented by walking the schema in `code/`. This keeps schema semantics consistent across all three heads and means improvements to schema handling in `core` automatically benefit the editor.
+
 ## Scope
 
 ### In scope for v1
@@ -65,12 +74,14 @@ Format-specific surface lives in `json/` (and later `yaml/`, `markup/`). Format-
 
 **`shared/` responsibilities**
 
-- Completion candidate generation from the schema (enum, const, examples, default).
-- Dynamic completion candidates via `getItems` (lifted from `core/webmcp/tools/get-field-suggestions.js`).
-- Help / description resolution (title, description, help markdown).
-- AJV-error → CM `Diagnostic` mapping, reusing `StatefulLayout`'s per-node resolved error messages (i18n + `errorMessages` layout option already applied).
-- Widget / slot registry and inline widget descriptors (format-agnostic in concept; placement is delegated to the format adapter).
+All schema-derived values come from `CompiledLayout` / `StatefulLayout`, never from walking the raw schema.
+
+- Completion candidate extraction from compiled artifacts — static candidates read from `normalizedLayouts[pointer].items` (which already encodes enum/const/examples normalization done in `vocabulary/`); dynamic candidates via `getItems` lifted from `core/webmcp/tools/get-field-suggestions.js`.
+- Help / description surfacing — read from the matched `NormalizedLayout` (fast path) or the resolved `StateNode` (committed path, post-expression). Markdown rendering reuses `core`'s existing `marked` pipeline.
+- Diagnostic mapping — reads `StatefulLayout`'s already-resolved per-node error messages (i18n + `errorMessages` layout option already applied) and maps them to text ranges via the format adapter.
+- Widget / slot registry and inline widget descriptors — selection driven by `NormalizedLayout.comp` and `SkeletonNode` type info, not schema inspection.
 - The StatefulLayout sync loop — debounced ingestion of parsed data, freeze-at-last-good on syntax error.
+- Path → node resolution — uses `core`'s exposed `resolveNode` (currently internal to `webmcp/resolve.js`, to be promoted — see *Changes required in `core/`*).
 
 **`json/` responsibilities (the format adapter contract)**
 
@@ -115,7 +126,7 @@ The text buffer is authoritative. The user owns whitespace, comments (relevant f
 
 ### Two-tier execution
 
-**Fast path (every keystroke).** Uses CM's own language parser and the format adapter's `offsetToPath`. Provides completion, hover, and help without touching `StatefulLayout`. Works while the buffer is mid-edit or syntactically invalid. Resolves static completion candidates (enum/const/examples/default) directly from `normalizedLayouts`.
+**Fast path (every keystroke).** Uses CM's own language parser and the format adapter's `offsetToPath` to get a data path. The path is resolved against the `SkeletonTree` (via a `core`-exposed path→skeleton resolver, analogous to `resolveNode` but over skeleton nodes) to get the matching `NormalizedLayout` pointer. Completion, hover, and help are generated from that `NormalizedLayout` — no `StatefulLayout` touch, no schema re-walk. Works while the buffer is mid-edit or syntactically invalid.
 
 **Committed path (debounced / commit-point triggered).** Runs full `format.parse(text)` → updates `StatefulLayout` data → runs AJV validation → pushes diagnostics, widget state, and dynamic completion candidates back into the editor via CM facets / effects.
 
@@ -138,12 +149,12 @@ A v1 non-goal: incremental diffing into `StatefulLayout`. On each committed sync
 
 Completion is exposed via a CM6 `CompletionSource`. Scope for v1:
 
-1. **Leaf value completion.** Enum, const, examples, default → static. `getItems` scalars → dynamic (may be async, may depend on form state evaluated by `StatefulLayout`). Both kinds flow through the same `CompletionResult`; static candidates appear immediately, dynamic candidates arrive on the next committed sync.
-2. **Property-name completion.** When the cursor is at a key position inside an object, offer all schema properties with `title` / `description` as detail / info, `required` ones ranked first. Accepting a completion inserts `"<name>": <scaffold>` using the adapter's `scaffold` for the property's value schema.
-3. **oneOf / anyOf / discriminator scaffolding.** At a value position whose schema is a oneOf/anyOf (or discriminated variant), offer one completion per variant, each labeled with the variant's `title` / `description`. Accepting inserts a default-data scaffold for that variant, built from `StatefulLayout`'s default-data logic. Discriminator-based oneOfs auto-fill the discriminator property.
-4. **Required-object scaffold.** At an empty object position (or on explicit trigger), offer a "fill required" completion that scaffolds all required properties with their defaults / placeholders, built from the same default-data primitive as (3).
+1. **Leaf value completion.** Static candidates read from `NormalizedLayout.items` (which already encodes enum, const, and examples normalization from `vocabulary/normalize`). `getItems` scalars are dynamic (may be async, may depend on form state evaluated by `StatefulLayout`). Both kinds flow through the same `CompletionResult`; static candidates appear immediately, dynamic candidates arrive on the next committed sync.
+2. **Property-name completion.** When the cursor is at a key position inside an object, offer properties from the matched `SkeletonNode.propertyKeys`, with `title` / `description` (from each property's `NormalizedLayout`) shown as detail / info. Required properties (known from the skeleton) ranked first. Accepting a completion inserts `"<name>": <scaffold>` using the adapter's `scaffold` for the property's default-data value.
+3. **oneOf / anyOf / discriminator scaffolding.** At a value position whose skeleton node has `childrenTrees` (the shape core uses for oneOf/anyOf variants), offer one completion per variant, each labeled with the variant's `SkeletonTree.title`. Accepting inserts the variant's default-data scaffold. Discriminator-based oneOfs use `SkeletonTree.discriminatorValue` to auto-fill the discriminator property.
+4. **Required-object scaffold.** At an empty object position (or on explicit trigger), offer a "fill required" completion that scaffolds all required properties with their defaults, built from the same default-data primitive as (3).
 
-(3) and (4) share one implementation — a function `scaffoldDefault(schemaNode, compiledLayout): unknown` that walks the skeleton tree and applies `StatefulLayout`'s default-computation rules — with two different trigger surfaces in the completion source.
+(3) and (4) share one implementation — a public `core` utility `scaffoldDefault(skeletonPointer, compiledLayout): unknown` (to be exposed — see *Changes required in `core/`*) that walks the skeleton tree and reuses `StatefulLayout`'s existing default-computation rules. The `code/` workspace consumes this utility but does not re-implement the walk.
 
 **Deferred:** lint quick-fix code actions for structural corrections ("add missing required property X") — v2.
 
@@ -311,11 +322,23 @@ To `doc/package.json`: the vjsf/doc set pared down — Nuxt, `vuetify-nuxt-modul
 - **`getItems` async cancellation.** A keystroke can invalidate an in-flight dynamic completion. Use an abort controller keyed to the current completion token; discard stale results.
 - **Slot lifecycle.** Cleanup callbacks must run when the tooltip closes or the editor is destroyed. Needs a small registry + CM state effect to track mounted slots.
 
+## Changes required in `core/`
+
+The architectural invariant (no schema re-parsing in `code/`) means a few capabilities currently internal to `core` need to become public. Each is a small, orthogonal exposure — they should land in `core` before or alongside the initial `code/` work.
+
+1. **`resolveNode(root, path)` → promote.** Currently lives at `core/src/webmcp/resolve.js`. Move or re-export from a neutral location (e.g. `core/src/utils/resolve.js`) so both `webmcp/` and `code/` consume it, and add a sibling `resolveSkeletonNode(skeletonTree, skeletonNodes, path)` for the fast-path case where no `StatefulLayout` exists yet.
+2. **`scaffoldDefault(skeletonPointer, compiledLayout) → unknown` → new public utility.** Extracts the default-data computation currently internal to `state-node.js` so that `code/` can build property / variant / required-object scaffolds without re-walking the schema. Should honor the same rules `StatefulLayout` already applies: schema `default`, required propagation, oneOf variant defaulting, discriminator fill. Covered by the existing "default data management" test suite; new tests confirm the public surface.
+3. **`getFieldSuggestions` → promote.** Currently at `core/src/webmcp/tools/get-field-suggestions.js`. Extract its core (schema-pointer + current-state → candidate list) into a shared utility under `core/src/utils/` or `core/src/suggestions/`, keep the webmcp tool as a thin wrapper, let `code/` consume the same shared utility.
+4. **`NormalizedLayout` lookup by data path** — optional convenience. A helper `lookupNormalizedLayout(compiledLayout, path)` combining `resolveSkeletonNode` + `compiledLayout.normalizedLayouts[node.pointer]`. Might be folded into (1).
+
+None of these introduce new semantics; they're pure exposure of logic that already exists and is already tested inside `core`. The only implementation risk is (2), which must be careful to use the same code path `StatefulLayout` uses rather than diverging.
+
 ## Build order
 
 Implementation plan will decompose further, but the natural build order is:
 
-1. `code/shared/` format-agnostic primitives + `scaffoldDefault` + diagnostic mapping + help resolution.
+0. **`core/` exposures** — the four items in *Changes required in `core/`* above. Must land first so `code/` has its inputs.
+1. `code/shared/` format-agnostic primitives — path resolution, completion candidate extraction, diagnostic mapping, help resolution (all built on the `core/` exposures).
 2. `code/json/` format adapter.
 3. `jsonLayoutExtensions()` wiring the two together.
 4. Fast path (completion, hover, help).
