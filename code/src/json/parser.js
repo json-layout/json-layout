@@ -89,6 +89,136 @@ function walkValue (valueNode, text, segments) {
 }
 
 /**
+ * Find the smallest node containing `offset`.
+ * Uses half-open intervals (from <= offset < to) with a fallback for the
+ * last token in the file (from <= offset <= to) so that end-of-input
+ * offsets still resolve. When a token's end boundary equals `offset` AND
+ * the very next sibling starts at `offset`, we prefer the next sibling
+ * (avoids misclassifying the boundary between `:` and a value node).
+ * @param {import('@lezer/common').SyntaxNode} node
+ * @param {number} offset
+ * @returns {import('@lezer/common').SyntaxNode | null}
+ */
+function smallestEnclosing (node, offset) {
+  /** @type {import('@lezer/common').SyntaxNode | null} */
+  let best = null
+  let child = node.firstChild
+  while (child) {
+    const inRange = offset >= child.from && offset < child.to
+    const atEnd = !inRange && offset === child.to
+    if (inRange || atEnd) {
+      // If we matched only at the end boundary, check if next sibling starts here
+      if (atEnd && child.nextSibling && child.nextSibling.from === offset) {
+        child = child.nextSibling
+        continue
+      }
+      const deeper = smallestEnclosing(child, offset)
+      best = deeper ?? child
+      break
+    }
+    child = child.nextSibling
+  }
+  return best
+}
+
+/**
+ * Compute the JSON pointer path from the root down to the Property/Array-item
+ * containing `node`.
+ * @param {import('@lezer/common').SyntaxNode} node
+ * @param {string} text
+ * @returns {string}
+ */
+function buildPathTo (node, text) {
+  /** @type {string[]} */
+  const segments = []
+  /** @type {import('@lezer/common').SyntaxNode | null} */
+  let cursor = node
+  while (cursor && cursor.parent) {
+    /** @type {import('@lezer/common').SyntaxNode} */
+    const parent = cursor.parent
+    if (parent.name === 'Property' && cursor.name !== 'PropertyName') {
+      // cursor is the value half of a Property — the property's key contributes a segment
+      const nameNode = parent.firstChild
+      if (nameNode?.name === 'PropertyName') {
+        segments.unshift(unquote(text.slice(nameNode.from, nameNode.to)))
+      }
+      cursor = parent.parent // skip Property itself; continue from its Object parent
+      continue
+    }
+    if (parent.name === 'Array' && VALUE_TYPES.has(cursor.name)) {
+      // cursor is an array element — count the element index
+      let idx = 0
+      let sib = parent.firstChild
+      while (sib) {
+        if (VALUE_TYPES.has(sib.name)) {
+          if (sib.from === cursor.from && sib.to === cursor.to) break
+          idx++
+        }
+        sib = sib.nextSibling
+      }
+      segments.unshift(String(idx))
+      cursor = parent
+      continue
+    }
+    cursor = parent
+  }
+  return segments.length === 0 ? '' : '/' + segments.join('/')
+}
+
+/**
+ * Classify a cursor offset as key/value/structural and return the enclosing path.
+ * @param {string} text
+ * @param {number} offset
+ * @returns {OffsetLocation | null}
+ */
+export function offsetToPath (text, offset) {
+  if (typeof text !== 'string' || typeof offset !== 'number') return null
+  if (offset < 0 || offset > text.length) return null
+  const tree = lezerJsonParser.parse(text)
+  const topNode = tree.topNode
+  let rootValue = topNode.firstChild
+  while (rootValue && !VALUE_TYPES.has(rootValue.name)) rootValue = rootValue.nextSibling
+  if (!rootValue) return null
+
+  const deepest = smallestEnclosing(topNode, offset) ?? rootValue
+
+  // Key position: cursor inside a PropertyName.
+  if (deepest.name === 'PropertyName') {
+    const property = deepest.parent
+    const obj = property?.parent
+    if (obj) {
+      const pathToObj = buildPathTo(obj, text)
+      return { path: pathToObj, at: 'key' }
+    }
+  }
+
+  // Value position: cursor is inside a VALUE_TYPES node.
+  /** @type {import('@lezer/common').SyntaxNode | null} */
+  let valueAncestor = deepest
+  while (valueAncestor && !VALUE_TYPES.has(valueAncestor.name)) {
+    valueAncestor = valueAncestor.parent
+  }
+
+  // Structural position: cursor is on punctuation or whitespace inside a container
+  // but not inside a leaf value.
+  if (!valueAncestor) {
+    return { path: '', at: 'structural' }
+  }
+
+  const path = buildPathTo(valueAncestor, text)
+
+  // If the ancestor is a container and the deepest node is either the container itself
+  // or a structural/punctuation token (not a value type), treat as structural.
+  if (valueAncestor.name === 'Object' || valueAncestor.name === 'Array') {
+    if (deepest === valueAncestor || !VALUE_TYPES.has(deepest.name)) {
+      return { path, at: 'structural' }
+    }
+  }
+
+  return { path, at: 'value' }
+}
+
+/**
  * Map a JSON pointer path to the text range of its value token.
  * Returns null if the path cannot be resolved (path missing, text not parseable
  * as a JSON value, etc.).

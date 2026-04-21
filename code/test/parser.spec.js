@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { parse, pathToRange } from '../src/json/parser.js'
+import { parse, pathToRange, offsetToPath } from '../src/json/parser.js'
 
 describe('parse', () => {
   it('parses a primitive value', () => {
@@ -67,5 +67,61 @@ describe('pathToRange', () => {
     const range = pathToRange(text, '/b')
     assert.ok(range)
     assert.equal(text.slice(range.from, range.to), '2')
+  })
+})
+
+describe('offsetToPath', () => {
+  it('returns value context inside a leaf', () => {
+    // {"a":1,"b":"two"}
+    //  0   4 6   10
+    const text = '{"a":1,"b":"two"}'
+    assert.deepEqual(offsetToPath(text, 5), { path: '/a', at: 'value' })
+    assert.deepEqual(offsetToPath(text, 13), { path: '/b', at: 'value' })
+  })
+
+  it('returns key context when cursor is inside a PropertyName', () => {
+    // {"a":1}
+    //  1 2 3
+    const text = '{"ab":1}'
+    const loc = offsetToPath(text, 2) // inside "ab"
+    assert.equal(loc?.path, '')
+    assert.equal(loc?.at, 'key')
+  })
+
+  it('returns nested path for nested objects', () => {
+    // {"outer":{"inner":42}}
+    //          9       18
+    const text = '{"outer":{"inner":42}}'
+    const loc = offsetToPath(text, 18)
+    assert.deepEqual(loc, { path: '/outer/inner', at: 'value' })
+  })
+
+  it('returns path with array index for values inside an array', () => {
+    const text = '["a","b","c"]'
+    assert.deepEqual(offsetToPath(text, 2), { path: '/0', at: 'value' })
+    assert.deepEqual(offsetToPath(text, 10), { path: '/2', at: 'value' })
+  })
+
+  it('returns structural context inside an empty object', () => {
+    const text = '{ }'
+    assert.deepEqual(offsetToPath(text, 1), { path: '', at: 'structural' })
+  })
+
+  it('returns structural context between properties', () => {
+    // {"a":1, "b":2}
+    //       6 7 8
+    const text = '{"a":1, "b":2}'
+    const loc = offsetToPath(text, 7) // the space between "," and "\"b\""
+    assert.equal(loc?.at, 'structural')
+    assert.equal(loc?.path, '')
+  })
+
+  it('returns null for an offset outside text bounds', () => {
+    assert.equal(offsetToPath('{}', -1), null)
+    assert.equal(offsetToPath('{}', 1000), null)
+  })
+
+  it('returns null for unparseable text', () => {
+    assert.equal(offsetToPath('total garbage', 5), null)
   })
 })
