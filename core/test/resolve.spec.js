@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 import { resolveNode, resolveSkeletonNode, lookupNormalizedLayout } from '../src/utils/resolve.js'
+import * as publicApi from '../src/index.js'
 
 const defaultOptions = { debounceInputMs: 0 }
 
@@ -131,5 +132,15 @@ describe('lookupNormalizedLayout', () => {
   it('should return undefined for unknown path', async () => {
     const compiledLayout = await compile({ type: 'object', properties: { a: { type: 'string' } } })
     assert.equal(lookupNormalizedLayout(compiledLayout, '/missing'), undefined)
+  })
+})
+
+describe('public API surface', () => {
+  it('exports resolveNode, resolveSkeletonNode, lookupNormalizedLayout, scaffoldDefault, getFieldSuggestions', () => {
+    assert.equal(typeof publicApi.resolveNode, 'function')
+    assert.equal(typeof publicApi.resolveSkeletonNode, 'function')
+    assert.equal(typeof publicApi.lookupNormalizedLayout, 'function')
+    assert.equal(typeof publicApi.scaffoldDefault, 'function')
+    assert.equal(typeof publicApi.getFieldSuggestions, 'function')
   })
 })
