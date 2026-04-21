@@ -2,7 +2,7 @@ import neostandard from 'neostandard'
 import jsdoc from 'eslint-plugin-jsdoc'
 
 export default [
-  { ignores: ['**/tmp/*', '**/types/*', 'vocabulary/**/types.ts', 'core/**/types.ts', 'examples/**/types.ts', '**/*.d.ts', '**/schema.js'] },
+  { ignores: ['**/tmp/*', '**/types/*', 'vocabulary/**/types.ts', 'core/**/types.ts', 'examples/**/types.ts', 'code/**/types.ts', '**/*.d.ts', '**/schema.js'] },
   ...neostandard({ ts: true, noJsx: true }),
   jsdoc.configs['flat/recommended-typescript-flavor'],
   {
