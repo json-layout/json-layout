@@ -30,7 +30,8 @@
   "workspaces": [
     "vocabulary",
     "core",
-    "examples"
+    "examples",
+    "code"
   ],
   "devDependencies": {
     "@commitlint/cli": "^17.5.1",

@@ -1,0 +1,55 @@
+{
+  "name": "@json-layout/code",
+  "version": "0.1.0",
+  "description": "Schema-assisted code editor primitives for JSON Layout.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./types/index.d.ts",
+        "default": "./src/index.js"
+      }
+    },
+    "./json": {
+      "import": {
+        "types": "./types/json/index.d.ts",
+        "default": "./src/json/index.js"
+      }
+    }
+  },
+  "files": [
+    "src",
+    "types",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test:only": "node --test --test-only test/*.spec.js",
+    "test": "node --test test/*.spec.js",
+    "build": "rm -rf ./types && tsc -p tsconfig.build.json",
+    "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "watch:test": "node --test --watch test/*.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/json-layout/json-layout.git"
+  },
+  "keywords": [
+    "json",
+    "schema",
+    "editor",
+    "codemirror"
+  ],
+  "author": "Alban Mouton <alban.mouton@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/json-layout/json-layout/issues"
+  },
+  "homepage": "https://github.com/json-layout/json-layout#readme",
+  "peerDependencies": {
+    "@json-layout/vocabulary": "^2.13.0"
+  },
+  "dependencies": {
+    "@json-layout/core": "^2.7.1",
+    "@lezer/json": "^1.0.3"
+  }
+}
