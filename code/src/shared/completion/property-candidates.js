@@ -22,7 +22,6 @@ function firstCompObject (normalizedLayout) {
  * `label` and `description` into (markdown-rendered) `help` on the normalized
  * layout, so to surface the original human-authored strings we walk the
  * compiled raw schema by JSON pointer.
- *
  * @param {any} rootSchema
  * @param {string} pointer
  * @returns {any}
@@ -49,6 +48,12 @@ function resolveSchemaFragment (rootSchema, pointer) {
  * supplied. Returns `[]` if `objectPath` does not resolve to a section
  * (object) skeleton node.
  *
+ * v1 limitation: walks `skeleton.children` and filters `$`-prefixed synthetic
+ * keys, so for a oneOf-narrowed object (whose `skeleton.children` is a single
+ * `$oneOf` synthetic) this function returns `[]`. `propertyKeys` would offer
+ * a union of variant keys, but those need per-key scaffolds the pure-structural
+ * path can't produce — discriminator-driven completion is handled by
+ * `getVariantCandidates` (Task 4) instead.
  * @param {import('@json-layout/core').CompiledLayout} compiledLayout
  * @param {string} objectPath
  * @param {string[]} [existingKeys]
