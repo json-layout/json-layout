@@ -1,14 +1,12 @@
 /**
  * @file Scaffold a JS value as a JSON string with caller-controlled indent.
+ * @typedef {import('./types.js').IndentOptions} IndentOptions
  */
-
-/** @typedef {import('./types.js').IndentOptions} IndentOptions */
 
 /**
  * Serialize `value` as JSON with `indent.unit` as the base indentation, then
  * prefix every line after the first with `indent.column` spaces so the text
  * can be dropped into a buffer at a specific column without re-flowing.
- *
  * @param {unknown} value
  * @param {IndentOptions} indent
  * @returns {string}
