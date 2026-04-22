@@ -21,7 +21,8 @@ export async function getDynamicCandidates (statefulLayout, path, query) {
   try {
     result = await getFieldSuggestions(statefulLayout, { path, query })
   } catch (/** @type {any} */ err) {
-    if (typeof err?.message === 'string' && err.message.includes('node not found')) return []
+    if (typeof err?.message === 'string' &&
+        (err.message.includes('node not found') || err.message.includes('node is not a component'))) return []
     throw err
   }
   return result.items.map((i) => {

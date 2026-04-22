@@ -6,10 +6,12 @@ import { lookupNormalizedLayout } from '@json-layout/core'
 import {
   getValueCandidates,
   getPropertyCandidates,
-  getVariantCandidates
+  getVariantCandidates,
+  getDynamicCandidates
 } from '../shared/completion/index.js'
 import { jsonFormatAdapter } from '../json/adapter.js'
 import { compiledLayoutField } from './compiled-layout-field.js'
+import { statefulLayoutField } from './stateful-layout-field.js'
 
 /** @typedef {import('@codemirror/state').EditorState} EditorState */
 /** @typedef {import('@codemirror/autocomplete').CompletionResult} CompletionResult */
@@ -148,4 +150,44 @@ export function computeCompletions (state, pos, _explicit) {
  */
 export function jsonLayoutCompletion (context) {
   return computeCompletions(context.state, context.pos, context.explicit)
+}
+
+/**
+ * Project a dynamic `CompletionCandidate` to a CM6 `Completion`.
+ * @param {CompletionCandidate} v
+ * @returns {Completion}
+ */
+function dynamicCompletion (v) {
+  return { label: v.title, apply: JSON.stringify(v.value), type: 'enum' }
+}
+
+/**
+ * Async dynamic completion computation. Returns candidates only at value
+ * positions and only when a StatefulLayout is installed on the state.
+ * @param {EditorState} state
+ * @param {number} pos
+ * @returns {Promise<CompletionResult | null>}
+ */
+export async function computeDynamicCompletions (state, pos) {
+  const statefulLayout = state.field(statefulLayoutField, false)
+  if (!statefulLayout) return null
+
+  const text = state.doc.toString()
+  const loc = jsonFormatAdapter.offsetToPath(text, pos)
+  if (!loc || loc.at !== 'value') return null
+
+  const candidates = await getDynamicCandidates(statefulLayout, loc.path)
+  if (!candidates.length) return null
+
+  const { from, to } = wordRangeAt(state, pos, VALUE_WORD_RE)
+  return { from, to, options: candidates.map(dynamicCompletion) }
+}
+
+/**
+ * CM6 async CompletionSource wrapper for dynamic (getItems) candidates.
+ * @param {CompletionContext} context
+ * @returns {Promise<CompletionResult | null>}
+ */
+export async function jsonLayoutDynamicCompletion (context) {
+  return computeDynamicCompletions(context.state, context.pos)
 }
