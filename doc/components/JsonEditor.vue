@@ -4,6 +4,7 @@ import { EditorView, lineNumbers, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { lintGutter } from '@codemirror/lint'
+import { oneDark } from '@codemirror/theme-one-dark'
 import { jsonLayoutExtensions } from '@json-layout/code'
 
 const props = defineProps({
@@ -45,6 +46,7 @@ onMounted(() => {
     state: EditorState.create({
       doc: props.initialText,
       extensions: [
+        oneDark,
         lineNumbers(),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
