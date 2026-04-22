@@ -49,8 +49,10 @@ export function syncStatefulLayoutData (statefulLayout, formatAdapter, text) {
 export function runCommittedSync (state, dispatch) {
   const statefulLayout = state.field(statefulLayoutField, false)
   if (!statefulLayout) return
-  const compiledLayout = state.field(compiledLayoutField, false)
-  if (!compiledLayout) return
+  // Misconfig guard: jsonLayoutExtensions always installs compiledLayoutField
+  // before statefulLayoutField, so seeing one without the other means the host
+  // composed extensions manually and skipped a step. Bail rather than crash.
+  if (!state.field(compiledLayoutField, false)) return
 
   const text = state.doc.toString()
   if (!syncStatefulLayoutData(statefulLayout, jsonFormatAdapter, text)) return
