@@ -49,6 +49,12 @@
     "@json-layout/vocabulary": "^2.13.0"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/lint": "^6.8.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.26.0",
     "@json-layout/core": "^2.7.1",
     "@lezer/json": "^1.0.3"
   }

@@ -1,3 +1,5 @@
+import type { LanguageSupport } from '@codemirror/language'
+
 export interface Range {
   from: number
   to: number
@@ -20,6 +22,7 @@ export interface InsertOp {
 }
 
 export interface FormatAdapter {
+  language: LanguageSupport
   parse(text: string): unknown
   pathToRange(text: string, path: string): Range | null
   offsetToPath(text: string, offset: number): OffsetLocation | null
