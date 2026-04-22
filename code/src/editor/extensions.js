@@ -1,13 +1,15 @@
 /**
  * @file CM6 extension factory for @json-layout/code. Fast-path wiring:
- * JSON language, CompiledLayout StateField, schema-driven completion.
- * Hover is wired in the next task.
+ * JSON language, CompiledLayout StateField, schema-driven completion,
+ * schema-driven hover.
  */
 
 import { autocompletion } from '@codemirror/autocomplete'
+import { hoverTooltip } from '@codemirror/view'
 import { jsonFormatAdapter } from '../json/adapter.js'
 import { compiledLayoutField } from './compiled-layout-field.js'
 import { jsonLayoutCompletion } from './completion.js'
+import { jsonLayoutHover } from './hover.js'
 
 /** @typedef {import('@json-layout/core').CompiledLayout} CompiledLayout */
 /** @typedef {import('@codemirror/state').Extension} Extension */
@@ -21,6 +23,7 @@ export function jsonLayoutExtensions (compiledLayout) {
   return [
     jsonFormatAdapter.language,
     compiledLayoutField.init(() => compiledLayout),
-    autocompletion({ override: [jsonLayoutCompletion] })
+    autocompletion({ override: [jsonLayoutCompletion] }),
+    hoverTooltip(jsonLayoutHover)
   ]
 }
