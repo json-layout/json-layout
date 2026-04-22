@@ -24,6 +24,23 @@ export default defineNuxtConfig({
       include: [
         '@vue/devtools-core',
         '@vue/devtools-kit',
+        '@codemirror/view',
+        '@codemirror/state',
+        '@codemirror/commands',
+        '@codemirror/lint',
+        '@codemirror/theme-one-dark',
+        'ajv-i18n', // CJS
+        'debug', // CJS
+        'immer',
+        'ajv/dist/2019.js', // CJS
+        'ajv-formats', // CJS
+        'ajv-errors', // CJS
+        'marked',
+        '@lezer/json',
+        '@codemirror/lang-json',
+        '@codemirror/autocomplete',
+        'fast-deep-equal', // CJS
+
       ],
     },
   },
