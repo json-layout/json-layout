@@ -13,6 +13,7 @@
     "lint-fix": "eslint --fix ."
   },
   "dependencies": {
+    "@codemirror/commands": "^6.6.0",
     "@json-layout/code": "*",
     "@json-layout/core": "*",
     "@mdi/font": "^7.4.47",
