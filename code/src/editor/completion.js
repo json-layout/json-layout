@@ -1,0 +1,151 @@
+/**
+ * @file Fast-path completion source. Pure computation + CM6 wrapper.
+ */
+
+import { lookupNormalizedLayout } from '@json-layout/core'
+import {
+  getValueCandidates,
+  getPropertyCandidates,
+  getVariantCandidates
+} from '../shared/completion/index.js'
+import { jsonFormatAdapter } from '../json/adapter.js'
+import { compiledLayoutField } from './compiled-layout-field.js'
+
+/** @typedef {import('@codemirror/state').EditorState} EditorState */
+/** @typedef {import('@codemirror/autocomplete').CompletionResult} CompletionResult */
+/** @typedef {import('@codemirror/autocomplete').CompletionContext} CompletionContext */
+/** @typedef {import('@codemirror/autocomplete').Completion} Completion */
+/** @typedef {import('../shared/types.js').PropertyCandidate} PropertyCandidate */
+/** @typedef {import('../shared/types.js').CompletionCandidate} CompletionCandidate */
+/** @typedef {import('../shared/types.js').VariantCandidate} VariantCandidate */
+
+const KEY_WORD_RE = /[\w"]/
+const VALUE_WORD_RE = /[\w"'.-]/
+
+/**
+ * Parse `text` via the JSON adapter and return keys of the object at
+ * `objectPath`, or undefined if parsing fails or the path is not an object.
+ * Used to filter already-present keys out of property-name completions.
+ * @param {string} text
+ * @param {string} objectPath
+ * @returns {string[] | undefined}
+ */
+function existingKeysAt (text, objectPath) {
+  /** @type {unknown} */
+  let value
+  try {
+    value = jsonFormatAdapter.parse(text)
+  } catch {
+    return undefined
+  }
+  const segments = objectPath === '' || objectPath === '/' ? [] : objectPath.replace(/^\//, '').split('/')
+  /** @type {any} */
+  let current = value
+  for (const seg of segments) {
+    if (current == null || typeof current !== 'object') return undefined
+    current = current[seg]
+  }
+  if (!current || typeof current !== 'object' || Array.isArray(current)) return undefined
+  return Object.keys(current)
+}
+
+/**
+ * @param {PropertyCandidate} pc
+ * @returns {Completion}
+ */
+function propertyCompletion (pc) {
+  const scaffold = pc.defaultValue !== undefined ? JSON.stringify(pc.defaultValue) : null
+  const apply = scaffold !== null ? `"${pc.key}": ${scaffold}` : `"${pc.key}": `
+  /** @type {Completion} */
+  const c = { label: pc.key, apply, type: 'property' }
+  if (pc.description) c.info = pc.description
+  if (pc.title) c.detail = pc.title
+  return c
+}
+
+/**
+ * @param {CompletionCandidate} v
+ * @returns {Completion}
+ */
+function valueCompletion (v) {
+  return { label: v.title, apply: JSON.stringify(v.value), type: 'enum' }
+}
+
+/**
+ * @param {VariantCandidate} v
+ * @returns {Completion}
+ */
+function variantCompletion (v) {
+  return { label: v.title, apply: JSON.stringify(v.value, null, 2), type: 'class' }
+}
+
+/**
+ * Compute word boundary at `pos` using `re` (one-char regex tested per char).
+ * @param {EditorState} state
+ * @param {number} pos
+ * @param {RegExp} re
+ * @returns {{ from: number, to: number }}
+ */
+function wordRangeAt (state, pos, re) {
+  const line = state.doc.lineAt(pos)
+  const lineText = line.text
+  const col = pos - line.from
+  let from = col
+  let to = col
+  while (from > 0 && re.test(lineText[from - 1])) from--
+  while (to < lineText.length && re.test(lineText[to])) to++
+  return { from: line.from + from, to: line.from + to }
+}
+
+/**
+ * Pure fast-path completion computation.
+ * @param {EditorState} state
+ * @param {number} pos
+ * @param {boolean} _explicit
+ * @returns {CompletionResult | null}
+ */
+export function computeCompletions (state, pos, _explicit) {
+  const compiledLayout = state.field(compiledLayoutField, false)
+  if (!compiledLayout) return null
+
+  const text = state.doc.toString()
+  const loc = jsonFormatAdapter.offsetToPath(text, pos)
+  if (!loc) return null
+
+  if (loc.at === 'key' || loc.at === 'structural') {
+    const existing = existingKeysAt(text, loc.path)
+    const pcs = getPropertyCandidates(compiledLayout, loc.path, existing)
+    if (pcs.length) {
+      const { from, to } = wordRangeAt(state, pos, KEY_WORD_RE)
+      return { from, to, options: pcs.map(propertyCompletion) }
+    }
+    // Structural positions can also land inside an empty oneOf placeholder —
+    // fall through to variant candidates before giving up.
+    if (loc.at === 'structural') {
+      const variants = getVariantCandidates(compiledLayout, loc.path)
+      if (variants.length) {
+        const { from, to } = wordRangeAt(state, pos, VALUE_WORD_RE)
+        return { from, to, options: variants.map(variantCompletion) }
+      }
+    }
+    return null
+  }
+
+  const normalized = lookupNormalizedLayout(compiledLayout, loc.path)
+  /** @type {Completion[]} */
+  const options = []
+  for (const v of getValueCandidates(normalized)) options.push(valueCompletion(v))
+  for (const v of getVariantCandidates(compiledLayout, loc.path)) options.push(variantCompletion(v))
+  if (!options.length) return null
+  const { from, to } = wordRangeAt(state, pos, VALUE_WORD_RE)
+  return { from, to, options }
+}
+
+/**
+ * CM6 CompletionSource wrapper.
+ * @param {CompletionContext} context
+ * @returns {CompletionResult | null}
+ */
+export function jsonLayoutCompletion (context) {
+  return computeCompletions(context.state, context.pos, context.explicit)
+}
