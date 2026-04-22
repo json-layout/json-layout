@@ -7,8 +7,15 @@ const expectedEditorSymbols = [
   'jsonLayoutExtensions',
   'compiledLayoutField',
   'setCompiledLayoutEffect',
+  'statefulLayoutField',
+  'setStatefulLayoutEffect',
+  'statefulLayoutSyncPlugin',
+  'syncStatefulLayoutData',
+  'runCommittedSync',
   'computeCompletions',
   'jsonLayoutCompletion',
+  'computeDynamicCompletions',
+  'jsonLayoutDynamicCompletion',
   'computeHover',
   'jsonLayoutHover'
 ]
