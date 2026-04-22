@@ -31,7 +31,8 @@
     "vocabulary",
     "core",
     "examples",
-    "code"
+    "code",
+    "doc"
   ],
   "devDependencies": {
     "@commitlint/cli": "^17.5.1",
