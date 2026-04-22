@@ -153,15 +153,6 @@ export function jsonLayoutCompletion (context) {
 }
 
 /**
- * Project a dynamic `CompletionCandidate` to a CM6 `Completion`.
- * @param {CompletionCandidate} v
- * @returns {Completion}
- */
-function dynamicCompletion (v) {
-  return { label: v.title, apply: JSON.stringify(v.value), type: 'enum' }
-}
-
-/**
  * Async dynamic completion computation. Returns candidates only at value
  * positions and only when a StatefulLayout is installed on the state.
  * @param {EditorState} state
@@ -180,7 +171,7 @@ export async function computeDynamicCompletions (state, pos) {
   if (!candidates.length) return null
 
   const { from, to } = wordRangeAt(state, pos, VALUE_WORD_RE)
-  return { from, to, options: candidates.map(dynamicCompletion) }
+  return { from, to, options: candidates.map(valueCompletion) }
 }
 
 /**

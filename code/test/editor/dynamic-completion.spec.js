@@ -41,7 +41,7 @@ describe('computeDynamicCompletions', () => {
     assert.equal(result, null)
   })
 
-  it('returns candidates at a value position with a getItems enum', async () => {
+  it('returns candidates at a value position with an enum schema', async () => {
     const schema = {
       type: 'object',
       properties: {
@@ -54,7 +54,7 @@ describe('computeDynamicCompletions', () => {
     const state = await stateFor('{"color": ""}', schema, { color: '' })
     // pos 11 is inside the empty string value.
     const result = await computeDynamicCompletions(state, 11)
-    assert.ok(result, 'expected a completion result for the getItems field')
+    assert.ok(result, 'expected a completion result for the enum field')
     const labels = result.options.map((o) => o.label).sort()
     assert.deepEqual(labels, ['blue', 'green', 'red'])
   })
