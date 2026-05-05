@@ -215,4 +215,203 @@ describe('Lists with items fetching', () => {
 
     nock.cleanAll()
   })
+
+  describe('produceListData merge behavior', () => {
+    /**
+     * Build a stateful layout whose `arr1` array is filled by `getItems` from
+     * `http://test.com/${parent.data.str1}`. The schema items have a `key`
+     * (used as itemKey by default) and a `local` field that is locally editable.
+     * Optionally extends the array layout with extra options (e.g. listActions).
+     * @param {object} initialData
+     * @param {Record<string, any>} [extraArrayLayout]
+     */
+    const buildLayout = (initialData, extraArrayLayout = {}) => {
+      const compiledLayout = compile({
+        type: 'object',
+        properties: {
+          arr1: {
+            type: 'array',
+            // eslint-disable-next-line no-template-curly-in-string
+            layout: { comp: 'list', getItems: { url: 'http://test.com/${parent.data.str1}' }, ...extraArrayLayout },
+            items: { type: 'object', properties: { key: { type: 'string' }, local: { type: 'string' } } }
+          },
+          str1: { type: 'string' }
+        }
+      })
+      return new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { debounceInputMs: 0 }, initialData)
+    }
+
+    it('preserves the full local data object on a matching key (current behavior)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1', local: 'from-server' }, { key: 'val2', local: 'from-server' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val1', local: 'edited-locally' }, { key: 'val2' }]
+      })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      // local edits win over server values; the new item.value is discarded for matching keys
+      assert.deepEqual(arrNode.data, [{ key: 'val1', local: 'edited-locally' }, { key: 'val2' }])
+      nock.cleanAll()
+    })
+
+    it('uses getItems order, not local order, when listActions does not include sort (current behavior)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val3' }, { key: 'val1' }, { key: 'val2' }]
+      })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      nock.cleanAll()
+    })
+
+    it('drops items absent from a fresh getItems result (current behavior)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val1' }, { key: 'val2' }, { key: 'val3', local: 'edited-locally' }]
+      })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      // val3 is gone even though it had local edits — getItems is the source of truth for membership
+      assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }])
+      nock.cleanAll()
+    })
+
+    it('appends items new to a getItems result (current behavior)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val1', local: 'edited-locally' }]
+      })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.deepEqual(arrNode.data, [{ key: 'val1', local: 'edited-locally' }, { key: 'val2' }, { key: 'val3' }])
+      nock.cleanAll()
+    })
+
+    it('preserves local order across a re-fetch when listActions includes sort', async () => {
+      nock('http://test.com')
+        .get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+        .get('/req2').reply(200, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val3' }, { key: 'val1', local: 'edited-locally' }, { key: 'val2' }]
+      }, { listActions: ['edit', 'sort'] })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      let arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      // local order is kept on the first fetch when keys match
+      assert.deepEqual(arrNode.data, [{ key: 'val3' }, { key: 'val1', local: 'edited-locally' }, { key: 'val2' }])
+
+      // trigger a re-fetch by changing the parent dep
+      const strNode = statefulLayout.stateTree.root.children?.[1]
+      assert.ok(strNode)
+      statefulLayout.input(strNode, 'req2')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.deepEqual(arrNode.data, [{ key: 'val3' }, { key: 'val1', local: 'edited-locally' }, { key: 'val2' }])
+      nock.cleanAll()
+    })
+
+    it('appends new keys at the end while preserving local order (sort enabled)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val2' }, { key: 'val1' }]
+      }, { listActions: ['edit', 'sort'] })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.deepEqual(arrNode.data, [{ key: 'val2' }, { key: 'val1' }, { key: 'val3' }])
+      nock.cleanAll()
+    })
+
+    it('drops removed keys while preserving local order (sort enabled)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val3' }, { key: 'val1' }, { key: 'val2' }]
+      }, { listActions: ['edit', 'sort'] })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }])
+      nock.cleanAll()
+    })
+
+    it('falls back to getItems order on the very first fetch when no local data exists (sort enabled)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: []
+      }, { listActions: ['edit', 'sort'] })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
+      nock.cleanAll()
+    })
+
+    it('replaces local data on key match when listActions has no "edit" and listEditMode is not "inline" (capability B)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1', local: 'from-server' }, { key: 'val2', local: 'from-server' }])
+      // default listEditMode for object items is 'inline-single', not 'inline'
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val1', local: 'edited-locally' }, { key: 'val2', local: 'edited-locally' }]
+      }, { listActions: ['delete'] })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      // server values win over local because items can't be edited (no "edit" action, listEditMode != "inline")
+      assert.deepEqual(arrNode.data, [{ key: 'val1', local: 'from-server' }, { key: 'val2', local: 'from-server' }])
+      nock.cleanAll()
+    })
+
+    it('preserves local data on key match when listEditMode is "inline" even without an edit action (capability B inactive)', async () => {
+      nock('http://test.com').get('/req1').reply(200, [{ key: 'val1', local: 'from-server' }])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [{ key: 'val1', local: 'edited-locally' }]
+      }, { listActions: ['delete'], listEditMode: 'inline' })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      // listEditMode 'inline' makes items editable even without the 'edit' action, so local wins
+      assert.deepEqual(arrNode.data, [{ key: 'val1', local: 'edited-locally' }])
+      nock.cleanAll()
+    })
+
+    it('combines sort and replaceData: preserves local order while replacing values on match', async () => {
+      nock('http://test.com').get('/req1').reply(200, [
+        { key: 'val1', local: 'srv-1' },
+        { key: 'val2', local: 'srv-2' },
+        { key: 'val3', local: 'srv-3' }
+      ])
+      const statefulLayout = buildLayout({
+        str1: 'req1',
+        arr1: [
+          { key: 'val3', local: 'old-3' },
+          { key: 'val1', local: 'old-1' },
+          { key: 'val2', local: 'old-2' }
+        ]
+      }, { listActions: ['sort'] })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const arrNode = statefulLayout.stateTree.root.children?.[0]
+      assert.ok(arrNode)
+      // local order preserved; server values applied to each matching key
+      assert.deepEqual(arrNode.data, [
+        { key: 'val3', local: 'srv-3' },
+        { key: 'val1', local: 'srv-1' },
+        { key: 'val2', local: 'srv-2' }
+      ])
+      nock.cleanAll()
+    })
+  })
 })

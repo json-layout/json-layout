@@ -331,7 +331,12 @@ export class StatefulLayout {
         logGetItems(node.fullKey, 'automatic get items, fetched results', items)
         const rawData = /** @type {any[]} */(node.data ?? [])
         const existingItems = rawData.map(item => this.prepareSelectItem(node, item))
-        const data = produceListData(rawData, existingItems, items)
+        const isList = node.layout.comp === 'list'
+        const listActions = isList ? /** @type {any} */(node.layout).listActions : null
+        const listEditMode = isList ? /** @type {any} */(node.layout).listEditMode : null
+        const preserveOrder = isList && Array.isArray(listActions) && listActions.includes('sort')
+        const replaceData = isList && Array.isArray(listActions) && !listActions.includes('edit') && listEditMode !== 'inline'
+        const data = produceListData(rawData, existingItems, items, preserveOrder, replaceData)
         logGetItems(node.fullKey, 'automatic get items, input produced data', data)
         this.input(node, data)
       }, err => console.error('error fetching items', node.fullKey, err))

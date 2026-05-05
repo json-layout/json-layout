@@ -1010,8 +1010,52 @@ export const producePatchedData = produce((draft, node, data) => {
   }
 })
 
-/** @type {(existingData: any[], existingItems: import('@json-layout/vocabulary').SelectItems, newItems: import('@json-layout/vocabulary').SelectItems) => any} */
-export const produceListData = (existingData, existingItems, newItems) => {
+/**
+ * Merge a fresh getItems result into the list's current data.
+ *
+ * For every item in newItems, matched by key against existingItems:
+ * - matching key: the existing data entry is preserved (local edits win,
+ * the new item.value is discarded);
+ * - new key: the new item.value is used;
+ * - existing keys absent from newItems: dropped.
+ *
+ * When preserveOrder is true (used when listActions includes 'sort'):
+ * - the user's current order is kept for items that are still present;
+ * - items new in newItems are appended at the end, in newItems order;
+ * - items dropped from newItems are still removed.
+ *
+ * When preserveOrder is false (default), the order from newItems is used.
+ *
+ * When replaceData is true (used when items are not editable locally — i.e.
+ * listActions does not include 'edit' and listEditMode is not 'inline'):
+ * - on a matching key, the new item.value replaces the existing data
+ * entry (server is the source of truth for non-editable items).
+ *
+ * When replaceData is false (default), local data is preserved on match.
+ * @type {(existingData: any[], existingItems: import('@json-layout/vocabulary').SelectItems, newItems: import('@json-layout/vocabulary').SelectItems, preserveOrder?: boolean, replaceData?: boolean) => any}
+ */
+export const produceListData = (existingData, existingItems, newItems, preserveOrder = false, replaceData = false) => {
+  if (preserveOrder) {
+    const newKeys = new Set(newItems.map(i => i.key))
+    const existingKeys = new Set(existingItems.map(i => i.key))
+    const data = []
+    for (let i = 0; i < existingItems.length; i++) {
+      if (newKeys.has(existingItems[i].key)) {
+        if (replaceData) {
+          data.push(newItems.find(n => n.key === existingItems[i].key)?.value)
+        } else {
+          data.push(existingData[i])
+        }
+      }
+    }
+    for (const item of newItems) {
+      if (!existingKeys.has(item.key)) data.push(item.value)
+    }
+    return shallowProduceArray(existingData, data)
+  }
+  if (replaceData) {
+    return shallowProduceArray(existingData, newItems.map(i => i.value))
+  }
   const data = []
   for (const item of newItems) {
     const existingItem = existingItems.find(i => i.key === item.key)
