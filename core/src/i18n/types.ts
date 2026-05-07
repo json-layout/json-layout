@@ -12,6 +12,7 @@ export interface StateOptionsMessages {
   edit: string
   close: string
   duplicate: string
+  insertAfter: string
   copy: string
   paste: string
   sort: string
