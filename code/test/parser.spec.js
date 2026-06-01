@@ -86,6 +86,7 @@ describe('offsetToPath', () => {
     const loc = offsetToPath(text, 2) // inside "ab"
     assert.equal(loc?.path, '')
     assert.equal(loc?.at, 'key')
+    assert.equal(loc?.key, 'ab')
   })
 
   it('returns nested path for nested objects', () => {
@@ -123,6 +124,17 @@ describe('offsetToPath', () => {
 
   it('returns null for unparseable text', () => {
     assert.equal(offsetToPath('total garbage', 5), null)
+  })
+})
+
+describe('offsetToPath key name', () => {
+  it('reports the key name at a property-name position', () => {
+    // {"color": "red"}  - offset 3 is inside the "color" key token (1..8).
+    const loc = offsetToPath('{"color": "red"}', 3)
+    assert.ok(loc)
+    assert.equal(loc.at, 'key')
+    assert.equal(loc.path, '')
+    assert.equal(loc.key, 'color')
   })
 })
 

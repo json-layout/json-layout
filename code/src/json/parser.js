@@ -188,7 +188,8 @@ export function offsetToPath (text, offset) {
     const obj = property?.parent
     if (obj) {
       const pathToObj = buildPathTo(obj, text)
-      return { path: pathToObj, at: 'key' }
+      const key = unquote(text.slice(deepest.from, deepest.to))
+      return { path: pathToObj, at: 'key', key }
     }
   }
 

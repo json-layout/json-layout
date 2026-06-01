@@ -6,7 +6,7 @@ export interface Range {
 }
 
 export type OffsetLocation =
-  | { path: string, at: 'key' }
+  | { path: string, at: 'key', key: string }
   | { path: string, at: 'value' }
   | { path: string, at: 'structural' }
 

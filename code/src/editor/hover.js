@@ -70,10 +70,18 @@ export function computeHover (state, pos) {
   const loc = jsonFormatAdapter.offsetToPath(text, pos)
   if (!loc) return null
 
-  const info = getHelp(compiledLayout, loc.path)
+  // At a key position, loc.path is the enclosing OBJECT - resolve help for the
+  // property under the cursor, not for its parent object.
+  const helpPath = loc.at === 'key'
+    ? (loc.path === '' ? `/${loc.key}` : `${loc.path}/${loc.key}`)
+    : loc.path
+
+  const info = getHelp(compiledLayout, helpPath)
   if (!hasAnyText(info)) return null
 
-  const range = jsonFormatAdapter.pathToRange(text, loc.path)
+  // pathToRange resolves the value token for helpPath, so when hovering a key
+  // the tooltip anchors on the property's value, not the key token. Intentional.
+  const range = jsonFormatAdapter.pathToRange(text, helpPath)
   const end = range ? range.to : pos
   return {
     pos,
