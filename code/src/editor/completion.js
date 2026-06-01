@@ -67,10 +67,14 @@ function propertyCompletion (pc) {
 
 /**
  * @param {CompletionCandidate} v
+ * @param {boolean} quoted - true when the cursor sits inside a JSON string, so
+ *   the apply text must be the bare value (the quotes already exist) rather
+ *   than a JSON literal.
  * @returns {Completion}
  */
-function valueCompletion (v) {
-  return { label: v.title, apply: JSON.stringify(v.value), type: 'enum' }
+function valueCompletion (v, quoted) {
+  const apply = quoted && typeof v.value === 'string' ? v.value : JSON.stringify(v.value)
+  return { label: v.title, apply, type: 'enum' }
 }
 
 /**
@@ -97,6 +101,23 @@ function wordRangeAt (state, pos, re) {
   while (from > 0 && re.test(lineText[from - 1])) from--
   while (to < lineText.length && re.test(lineText[to])) to++
   return { from: line.from + from, to: line.from + to }
+}
+
+/**
+ * Resolve the text range a value completion should replace at `pos`, and
+ * whether the cursor sits inside a JSON string (so apply text must be bare).
+ * Prefers the quote-aware value token; falls back to a word-range scan at
+ * structural positions.
+ * @param {EditorState} state
+ * @param {string} text
+ * @param {number} pos
+ * @returns {{ from: number, to: number, quoted: boolean }}
+ */
+function resolveValueRange (state, text, pos) {
+  const token = jsonFormatAdapter.valueTokenAt(text, pos)
+  if (token) return token
+  const range = wordRangeAt(state, pos, VALUE_WORD_RE)
+  return { from: range.from, to: range.to, quoted: false }
 }
 
 /**
@@ -134,12 +155,16 @@ export function computeCompletions (state, pos, _explicit) {
   }
 
   const normalized = lookupNormalizedLayout(compiledLayout, loc.path)
+  const valueCandidates = getValueCandidates(normalized)
+  const variants = getVariantCandidates(compiledLayout, loc.path)
+  if (!valueCandidates.length && !variants.length) return null
+
+  const { from, to, quoted } = resolveValueRange(state, text, pos)
+
   /** @type {Completion[]} */
   const options = []
-  for (const v of getValueCandidates(normalized)) options.push(valueCompletion(v))
-  for (const v of getVariantCandidates(compiledLayout, loc.path)) options.push(variantCompletion(v))
-  if (!options.length) return null
-  const { from, to } = wordRangeAt(state, pos, VALUE_WORD_RE)
+  for (const v of valueCandidates) options.push(valueCompletion(v, quoted))
+  for (const v of variants) options.push(variantCompletion(v))
   return { from, to, options }
 }
 
@@ -170,8 +195,8 @@ export async function computeDynamicCompletions (state, pos) {
   const candidates = await getDynamicCandidates(statefulLayout, loc.path)
   if (!candidates.length) return null
 
-  const { from, to } = wordRangeAt(state, pos, VALUE_WORD_RE)
-  return { from, to, options: candidates.map(valueCompletion) }
+  const { from, to, quoted } = resolveValueRange(state, text, pos)
+  return { from, to, options: candidates.map((c) => valueCompletion(c, quoted)) }
 }
 
 /**

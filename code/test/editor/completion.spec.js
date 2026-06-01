@@ -113,6 +113,38 @@ describe('computeCompletions', () => {
     assert.equal(result, null)
   })
 
+  it('places the completion range INSIDE the string quotes with bare apply text', async () => {
+    const doc = '{"color": ""}'
+    const state = await stateFor(doc, {
+      type: 'object',
+      properties: { color: { type: 'string', enum: ['red', 'green', 'blue'] } }
+    })
+    // Cursor between the two value quotes.
+    const result = computeCompletions(state, 11, false)
+    assert.ok(result, 'expected completions at /color value position')
+    // Range must start AFTER the opening quote (offset 11), not on it (10) -
+    // otherwise CM filters every candidate against the query '"'.
+    assert.equal(result.from, 11)
+    assert.equal(result.to, 11)
+    const red = result.options.find((o) => o.label === 'red')
+    assert.ok(red, 'red candidate missing')
+    // Inside a string the apply text is the bare value, not a JSON literal.
+    assert.equal(red.apply, 'red')
+  })
+
+  it('places range correctly when cursor is mid-word inside a string value', async () => {
+    const doc = '{"color": "re"}'
+    const state = await stateFor(doc, {
+      type: 'object',
+      properties: { color: { type: 'string', enum: ['red', 'green', 'blue'] } }
+    })
+    const result = computeCompletions(state, 13, false) // cursor after "re"
+    assert.ok(result)
+    assert.equal(result.from, 11)
+    assert.equal(result.to, 13)
+    assert.equal(result.options.find((o) => o.label === 'red')?.apply, 'red')
+  })
+
   it('property candidates scaffold default values in their apply text', async () => {
     const doc = '{}'
     const state = await stateFor(doc, {

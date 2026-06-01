@@ -57,6 +57,13 @@ describe('computeDynamicCompletions', () => {
     assert.ok(result, 'expected a completion result for the enum field')
     const labels = result.options.map((o) => o.label).sort()
     assert.deepEqual(labels, ['blue', 'green', 'red'])
+    // Range must be the interior of the quoted string (quote-aware token).
+    assert.equal(result.from, 11)
+    assert.equal(result.to, 11)
+    // Apply text must be the bare value, not a JSON literal, because quoted=true.
+    const red = result.options.find((o) => o.label === 'red')
+    assert.ok(red, 'red candidate missing')
+    assert.equal(red.apply, 'red')
   })
 
   it('returns null at a key position', async () => {

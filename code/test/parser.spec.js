@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { parse, pathToRange, offsetToPath } from '../src/json/parser.js'
+import { parse, pathToRange, offsetToPath, valueTokenAt } from '../src/json/parser.js'
 
 describe('parse', () => {
   it('parses a primitive value', () => {
@@ -123,5 +123,26 @@ describe('offsetToPath', () => {
 
   it('returns null for unparseable text', () => {
     assert.equal(offsetToPath('total garbage', 5), null)
+  })
+})
+
+describe('valueTokenAt', () => {
+  it('returns the interior range of an empty string with quoted=true', () => {
+    // {"color": ""}  - offset 11 is between the value quotes (10..12).
+    assert.deepEqual(valueTokenAt('{"color": ""}', 11), { from: 11, to: 11, quoted: true })
+  })
+
+  it('returns the interior range of a non-empty string', () => {
+    // {"color": "red"}  - String spans 10..15, interior 11..14.
+    assert.deepEqual(valueTokenAt('{"color": "red"}', 12), { from: 11, to: 14, quoted: true })
+  })
+
+  it('returns the whole token for a number with quoted=false', () => {
+    // {"n": 42}  - Number spans 6..8.
+    assert.deepEqual(valueTokenAt('{"n": 42}', 7), { from: 6, to: 8, quoted: false })
+  })
+
+  it('returns null at a structural (empty object) position', () => {
+    assert.equal(valueTokenAt('{ }', 1), null)
   })
 })

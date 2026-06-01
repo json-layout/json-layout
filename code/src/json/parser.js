@@ -219,6 +219,37 @@ export function offsetToPath (text, offset) {
 }
 
 /**
+ * Locate the value token enclosing `offset` and report the range a value
+ * completion should replace, plus whether that token is a quoted string.
+ *
+ * For a String token the range is the INTERIOR (between the quotes) so a
+ * completion replaces the string contents without disturbing the quotes - and
+ * so CM's fuzzy filter matches candidate labels against the typed contents
+ * rather than against a leading `"`. For other scalar tokens (Number/True/
+ * False/Null) the range is the whole token. Returns null at structural
+ * positions (inside an Object/Array but not on a leaf value), where the caller
+ * falls back to a word-range scan.
+ * @param {string} text
+ * @param {number} offset
+ * @returns {{ from: number, to: number, quoted: boolean } | null}
+ */
+export function valueTokenAt (text, offset) {
+  if (typeof text !== 'string' || typeof offset !== 'number') return null
+  if (offset < 0 || offset > text.length) return null
+  const tree = lezerJsonParser.parse(text)
+  /** @type {import('@lezer/common').SyntaxNode | null} */
+  let node = smallestEnclosing(tree.topNode, offset)
+  while (node && !VALUE_TYPES.has(node.name)) node = node.parent
+  if (!node) return null
+  if (node.name === 'Object' || node.name === 'Array') return null
+  // For a well-formed String, node.to - node.from >= 2 (the two quote chars),
+  // so the interior range is valid (zero-width for ""). A malformed/unterminated
+  // string could yield from > to; callers treat that as a harmless zero-width range.
+  if (node.name === 'String') return { from: node.from + 1, to: node.to - 1, quoted: true }
+  return { from: node.from, to: node.to, quoted: false }
+}
+
+/**
  * Map a JSON pointer path to the text range of its value token.
  * Returns null if the path cannot be resolved (path missing, text not parseable
  * as a JSON value, etc.).

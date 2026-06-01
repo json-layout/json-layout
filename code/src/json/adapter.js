@@ -3,7 +3,7 @@
  */
 
 import { json } from '@codemirror/lang-json'
-import { parse, pathToRange, offsetToPath } from './parser.js'
+import { parse, pathToRange, offsetToPath, valueTokenAt } from './parser.js'
 import { scaffold } from './scaffold.js'
 import { insertProperty } from './insert-property.js'
 
@@ -15,6 +15,7 @@ export const jsonFormatAdapter = {
   parse,
   pathToRange,
   offsetToPath,
+  valueTokenAt,
   scaffold,
   insertProperty
 }

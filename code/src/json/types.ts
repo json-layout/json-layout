@@ -26,6 +26,7 @@ export interface FormatAdapter {
   parse(text: string): unknown
   pathToRange(text: string, path: string): Range | null
   offsetToPath(text: string, offset: number): OffsetLocation | null
+  valueTokenAt(text: string, offset: number): { from: number, to: number, quoted: boolean } | null
   scaffold(value: unknown, indent: IndentOptions): string
   insertProperty(text: string, objectPath: string, name: string, value: unknown): InsertOp
 }
