@@ -1,18 +1,9 @@
 /**
- * @file Pure helpers for the committed path: apply a parsed buffer to a
- * StatefulLayout and derive the matching setDiagnostics transaction. Split
- * out of the ViewPlugin so all behavior is testable with an EditorState and
- * a stub `dispatch` — no DOM required.
+ * @file Pure helper for the committed path: apply a parsed buffer to a
+ * StatefulLayout. Kept separate from the linter so the parse/freeze semantics
+ * are unit-testable with no DOM.
  */
 
-import { setDiagnostics } from '@codemirror/lint'
-import { collectDiagnostics } from '../shared/diagnostics.js'
-import { jsonFormatAdapter } from '../json/adapter.js'
-import { compiledLayoutField } from './compiled-layout-field.js'
-import { statefulLayoutField } from './stateful-layout-field.js'
-
-/** @typedef {import('@codemirror/state').EditorState} EditorState */
-/** @typedef {import('@codemirror/state').TransactionSpec} TransactionSpec */
 /** @typedef {import('@json-layout/core').StatefulLayout} StatefulLayout */
 /** @typedef {import('../json/types.js').FormatAdapter} FormatAdapter */
 
@@ -35,28 +26,4 @@ export function syncStatefulLayoutData (statefulLayout, formatAdapter, text) {
   }
   statefulLayout.data = parsed
   return true
-}
-
-/**
- * Run one committed sync: pull the StatefulLayout off `state`, re-sync it
- * against the current doc, and (on success) dispatch a setDiagnostics
- * transaction with the resolved schema diagnostics. Does nothing if no
- * StatefulLayout is installed or if the doc is unparseable.
- * @param {EditorState} state
- * @param {(tr: TransactionSpec) => void} dispatch
- * @returns {void}
- */
-export function runCommittedSync (state, dispatch) {
-  const statefulLayout = state.field(statefulLayoutField, false)
-  if (!statefulLayout) return
-  // Misconfig guard: jsonLayoutExtensions always installs compiledLayoutField
-  // before statefulLayoutField, so seeing one without the other means the host
-  // composed extensions manually and skipped a step. Bail rather than crash.
-  if (!state.field(compiledLayoutField, false)) return
-
-  const text = state.doc.toString()
-  if (!syncStatefulLayoutData(statefulLayout, jsonFormatAdapter, text)) return
-
-  const diagnostics = collectDiagnostics(statefulLayout, text, jsonFormatAdapter)
-  dispatch(setDiagnostics(state, diagnostics))
 }

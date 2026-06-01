@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { examples } from '../fixtures/examples.js'
 import { setDocAndCursor } from './_helpers.js'
 
-test('basic: invalid JSON surfaces a lint diagnostic', async ({ page }) => {
+test('basic: out-of-enum value surfaces a schema diagnostic', async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => window.__ready === true)
 
@@ -12,12 +12,13 @@ test('basic: invalid JSON surfaces a lint diagnostic', async ({ page }) => {
     [ex.schema, ex.initialData]
   )
 
-  // Malformed JSON (unquoted key + trailing comma).
-  await setDocAndCursor(page, '{ color: red, }', 15)
+  // Syntactically valid, but "purple" is not in enum [red, amber, green].
+  await setDocAndCursor(page, '{"color": "purple"}', 18)
 
-  // Linter is debounced (250 ms); wait until the lint state holds a diagnostic.
   await page.waitForFunction(() => window.__diagnostics().length > 0, null, { timeout: 4000 })
   const diags = await page.evaluate(() => window.__diagnostics())
   expect(diags.length).toBeGreaterThan(0)
   expect(diags[0].severity).toBe('error')
+  // The diagnostic is anchored to the /color value token, not offset 0.
+  expect(diags[0].from).toBeGreaterThan(0)
 })

@@ -1,7 +1,7 @@
 /**
  * @file CM6 StateField + StateEffect carrying a host-owned StatefulLayout on
  * an EditorState. The field holds a reference; `.data` mutations happen
- * out-of-band in the sync plugin and do not change field identity. Read via
+ * out-of-band in the linter source and do not change field identity. Read via
  * `state.field(statefulLayoutField)`; replace via a transaction with
  * `setStatefulLayoutEffect.of(statefulLayout)`.
  */

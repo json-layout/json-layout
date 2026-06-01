@@ -12,6 +12,7 @@
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { startCompletion, completionStatus, currentCompletions } from '@codemirror/autocomplete'
+import { forEachDiagnostic } from '@codemirror/lint'
 import { compile, StatefulLayout } from '@json-layout/core'
 import { jsonLayoutExtensions, computeCompletions } from '@json-layout/code'
 
@@ -70,6 +71,12 @@ async function mount (schema, data, layoutOptions) {
     const result = computeCompletions(view.state, pos ?? view.state.selection.main.head, explicit)
     if (!result) return null
     return { from: result.from, to: result.to, options: result.options.map((o) => ({ label: o.label, type: o.type })) }
+  }
+  window.__diagnostics = () => {
+    /** @type {Array<{from:number,to:number,message:string,severity:string}>} */
+    const out = []
+    forEachDiagnostic(view.state, (d) => out.push({ from: d.from, to: d.to, message: d.message, severity: d.severity }))
+    return out
   }
 
   await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))

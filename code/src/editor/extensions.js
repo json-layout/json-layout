@@ -2,17 +2,16 @@
  * @file CM6 extension factory for @json-layout/code. Composes the fast-path
  * wiring (JSON language, CompiledLayout StateField, schema-driven completion
  * and hover) and, when a StatefulLayout is passed, the committed-path wiring
- * (StatefulLayout StateField, debounced sync plugin, lint host, dynamic
- * completion source).
+ * (StatefulLayout StateField + the single json-layout linter that owns syntax
+ * and schema diagnostics and feeds dynamic completion).
  */
 
 import { autocompletion } from '@codemirror/autocomplete'
 import { hoverTooltip } from '@codemirror/view'
-import { linter } from '@codemirror/lint'
 import { jsonFormatAdapter } from '../json/adapter.js'
 import { compiledLayoutField } from './compiled-layout-field.js'
 import { statefulLayoutField } from './stateful-layout-field.js'
-import { statefulLayoutSyncPlugin } from './sync-plugin.js'
+import { jsonLayoutLinter } from './lint.js'
 import { jsonLayoutCompletion, jsonLayoutDynamicCompletion } from './completion.js'
 import { jsonLayoutHover } from './hover.js'
 
@@ -26,7 +25,7 @@ import { jsonLayoutHover } from './hover.js'
  * `StatefulLayout` in `options` to activate the committed path (live schema
  * diagnostics + dynamic completion); omit it for fast-path only.
  * @param {CompiledLayout} compiledLayout
- * @param {{ statefulLayout?: StatefulLayout }} [options]
+ * @param {{ statefulLayout?: StatefulLayout, onData?: (data: unknown) => void }} [options]
  * @returns {Extension[]}
  */
 export function jsonLayoutExtensions (compiledLayout, options) {
@@ -46,8 +45,7 @@ export function jsonLayoutExtensions (compiledLayout, options) {
   if (statefulLayout) {
     extensions.push(
       statefulLayoutField.init(() => statefulLayout),
-      statefulLayoutSyncPlugin,
-      linter(null)
+      jsonLayoutLinter(options?.onData)
     )
   }
 
