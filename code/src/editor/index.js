@@ -10,3 +10,4 @@ export {
   jsonLayoutDynamicCompletion
 } from './completion.js'
 export { computeHover, jsonLayoutHover } from './hover.js'
+export { JsonEditor } from './json-editor.js'

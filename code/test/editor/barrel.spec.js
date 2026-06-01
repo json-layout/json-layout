@@ -16,7 +16,8 @@ const expectedEditorSymbols = [
   'computeDynamicCompletions',
   'jsonLayoutDynamicCompletion',
   'computeHover',
-  'jsonLayoutHover'
+  'jsonLayoutHover',
+  'JsonEditor'
 ]
 
 describe('editor barrel', () => {

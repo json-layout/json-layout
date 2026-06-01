@@ -14,7 +14,7 @@ import { EditorState } from '@codemirror/state'
 import { startCompletion, completionStatus, currentCompletions } from '@codemirror/autocomplete'
 import { forEachDiagnostic } from '@codemirror/lint'
 import { compile, StatefulLayout } from '@json-layout/core'
-import { jsonLayoutExtensions, computeCompletions } from '@json-layout/code'
+import { jsonLayoutExtensions, computeCompletions, JsonEditor } from '@json-layout/code'
 
 const host = /** @type {HTMLElement} */(document.getElementById('app'))
 
@@ -83,4 +83,30 @@ async function mount (schema, data, layoutOptions) {
 }
 
 window.__mount = mount
+
+/**
+ * Mount the turnkey JsonEditor class (rather than raw extensions) so e2e can
+ * exercise the public class surface. Resolves once the editor is ready.
+ * @param {object} schema
+ * @param {unknown} data
+ * @param {object} [statefulLayoutOptions]
+ */
+async function mountClass (schema, data, statefulLayoutOptions) {
+  if (window.__editor) {
+    window.__editor.destroy()
+    host.innerHTML = ''
+  }
+  const editor = new JsonEditor(host, {
+    schema,
+    data,
+    statefulLayoutOptions,
+    onData: (d) => { window.__lastData = d }
+  })
+  await editor.whenReady
+  window.__editor = editor
+  window.__view = editor._view
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+}
+
+window.__mountClass = mountClass
 window.__ready = true
