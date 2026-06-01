@@ -8,6 +8,7 @@ export default {
   edit: 'Bewerken',
   close: 'Sluiten',
   duplicate: 'Verveelvoudigen',
+  insertAfter: 'Hierna invoegen',
   copy: 'Kopiëren',
   paste: 'Plakken',
   sort: 'Sorteren',
