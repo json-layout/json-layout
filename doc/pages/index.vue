@@ -34,8 +34,8 @@ const contexts = [
     <p class="text-body-1 mb-8">
       JSON Layout is a framework-agnostic building block for rich forms based on
       JSON schemas. It compiles a schema annotated with a <code>layout</code>
-      keyword into a layout description, then manages form state — data binding,
-      validation and immutable updates — so UI libraries can stay thin.
+      keyword into a layout description. It then manages form state (data binding,
+      validation, immutable updates) so UI libraries can stay thin.
     </p>
 
     <v-row justify="center">

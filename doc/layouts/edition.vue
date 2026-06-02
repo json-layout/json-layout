@@ -4,14 +4,16 @@ import examples from '~/examples/index.js'
 
 <template>
   <v-app>
-    <v-app-bar flat>
-      <v-app-bar-title>JSON Layout — JSON edition</v-app-bar-title>
-    </v-app-bar>
+    <TopBar />
 
-    <v-navigation-drawer permanent width="260">
+    <v-navigation-drawer
+      permanent
+      width="260"
+      color="background"
+      class="drawer-border"
+    >
       <v-list nav density="compact">
-        <v-list-item to="/" title="Home" prepend-icon="mdi-home" />
-        <v-list-item to="/json-edition" title="All examples" prepend-icon="mdi-format-list-bulleted" />
+        <v-list-item to="/json-edition" title="Overview" prepend-icon="mdi-book-open-variant" />
         <v-list-subheader>Examples</v-list-subheader>
         <v-list-item
           v-for="ex in examples"
@@ -32,3 +34,9 @@ import examples from '~/examples/index.js'
     </v-main>
   </v-app>
 </template>
+
+<style scoped>
+.drawer-border {
+  border-right: 1px solid #fff !important;
+}
+</style>

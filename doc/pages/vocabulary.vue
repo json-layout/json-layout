@@ -24,6 +24,24 @@ useHead({ title: 'JSON Layout — Vocabulary & API' })
       validates these keywords, fills them with defaults and transforms them into
       a normalized form that downstream tools can rely on.
     </p>
+    <p class="text-body-1 mb-6">
+      Source:
+      <a
+        href="https://github.com/json-layout/json-layout/blob/main/vocabulary/src/layout-keyword/schema.json"
+        target="_blank"
+        rel="noopener"
+      >layout keyword schema</a>,
+      <a
+        href="https://github.com/json-layout/json-layout/blob/main/vocabulary/src/normalized-layout/schema.json"
+        target="_blank"
+        rel="noopener"
+      >normalized layout schema</a>,
+      <a
+        href="https://github.com/json-layout/json-layout/blob/main/vocabulary/src/components/index.js"
+        target="_blank"
+        rel="noopener"
+      >standard components list</a>.
+    </p>
 
     <h2 class="text-h6 mb-2">
       <code>compile</code>
