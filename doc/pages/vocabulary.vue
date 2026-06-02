@@ -1,0 +1,86 @@
+<script setup>
+useHead({ title: 'JSON Layout — Vocabulary & API' })
+</script>
+
+<template>
+  <div class="mx-auto" style="max-width: 820px;">
+    <h1 class="text-h4 mb-4">
+      Vocabulary &amp; API
+    </h1>
+
+    <p class="text-body-1 mb-6">
+      JSON Layout is split into small packages so that wrapping a UI library
+      stays as light as possible. The vocabulary defines the annotations; the
+      core turns them into something a renderer can consume and keeps form state.
+    </p>
+
+    <h2 class="text-h6 mb-2">
+      The <code>layout</code> keyword
+    </h2>
+    <p class="text-body-1 mb-6">
+      A JSON Schema is augmented with a <code>layout</code> keyword that carries
+      rendering information — which component to use, labels, help, conditional
+      display, expressions, and so on. <code>@json-layout/vocabulary</code>
+      validates these keywords, fills them with defaults and transforms them into
+      a normalized form that downstream tools can rely on.
+    </p>
+
+    <h2 class="text-h6 mb-2">
+      <code>compile</code>
+    </h2>
+    <p class="text-body-1 mb-2">
+      <code>compile</code> (from <code>@json-layout/core</code>) does the
+      pre-processing: it produces Ajv validation functions, compiles markdown
+      help to HTML, compiles expressions into JS functions, and recurses through
+      the schema to normalize layouts and build a skeleton component tree. Its
+      result can be evaluated at runtime or serialized in a build step for a
+      lighter, faster browser bundle.
+    </p>
+
+    <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>import { compile, StatefulLayout } from '@json-layout/core'
+
+// compile is async — it builds Ajv validators, compiles markdown and expressions
+const compiled = await compile({
+  type: 'object',
+  properties: { name: { type: 'string', title: 'Name' } }
+})</code></pre>
+
+    <h2 class="text-h6 mb-2">
+      <code>StatefulLayout</code>
+    </h2>
+    <p class="text-body-1 mb-2">
+      <code>StatefulLayout</code> consumes a compiled layout and manages a live
+      form instance: a full state tree of rendered components, bi-directional
+      data binding, placement of validation errors on the right nodes, and
+      immutable state updates (via <a
+        href="https://www.npmjs.com/package/immer"
+        target="_blank"
+        rel="noopener"
+      >immer</a>).
+    </p>
+
+    <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>const layout = new StatefulLayout(
+  compiled,
+  compiled.skeletonTrees[compiled.mainTree],
+  {
+    onUpdate: (sl) => { /* sl.stateTree — the rendered component tree */ },
+    onData: (data) => { /* data — the current valid data */ }
+  },
+  { name: 'Alice' } // initial data
+)</code></pre>
+
+    <v-alert
+      type="info"
+      variant="tonal"
+      class="mb-4"
+    >
+      For a complete, component-level form implementation built on this API, see
+      the
+      <a
+        href="https://koumoul-dev.github.io/vuetify-jsonschema-form/latest/"
+        target="_blank"
+        rel="noopener"
+      >vjsf documentation</a>.
+    </v-alert>
+  </div>
+</template>
