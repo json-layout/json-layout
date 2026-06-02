@@ -2,6 +2,27 @@
 definePageMeta({ layout: 'edition' })
 
 useHead({ title: 'JSON Layout — JSON edition' })
+
+const installExample = 'npm install @json-layout/code'
+
+const editorExample = `import { JsonEditor } from '@json-layout/code'
+
+const editor = new JsonEditor(host, {
+  schema: {
+    type: 'object',
+    properties: { name: { type: 'string', title: 'Name' } }
+  },
+  data: { name: 'Alice' },          // optional initial data
+  statefulLayoutOptions: {},        // e.g. { context: {...} } for expressions
+  onText: (text) => { /* every doc change */ },
+  onData: (data) => { /* resolved data after each committed sync */ }
+})
+
+await editor.whenReady
+editor.statefulLayout            // the live StatefulLayout instance
+editor.data                      // current resolved data
+editor.diagnostics()             // active lint diagnostics
+editor.destroy()                 // tear down the CodeMirror view`
 </script>
 
 <template>
@@ -25,7 +46,10 @@ useHead({ title: 'JSON Layout — JSON edition' })
     <h2 class="text-h6 mb-2">
       Install
     </h2>
-    <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>npm install @json-layout/code</code></pre>
+    <CodeBlock
+      language="bash"
+      :code="installExample"
+    />
 
     <h2 class="text-h6 mb-2">
       The <code>JsonEditor</code> class
@@ -38,24 +62,10 @@ useHead({ title: 'JSON Layout — JSON edition' })
       <code>whenReady</code> before reaching for <code>statefulLayout</code>.
     </p>
 
-    <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>import { JsonEditor } from '@json-layout/code'
-
-const editor = new JsonEditor(host, {
-  schema: {
-    type: 'object',
-    properties: { name: { type: 'string', title: 'Name' } }
-  },
-  data: { name: 'Alice' },          // optional initial data
-  statefulLayoutOptions: {},        // e.g. { context: {...} } for expressions
-  onText: (text) => { /* every doc change */ },
-  onData: (data) => { /* resolved data after each committed sync */ }
-})
-
-await editor.whenReady
-editor.statefulLayout            // the live StatefulLayout instance
-editor.data                      // current resolved data
-editor.diagnostics()             // active lint diagnostics
-editor.destroy()                 // tear down the CodeMirror view</code></pre>
+    <CodeBlock
+      language="javascript"
+      :code="editorExample"
+    />
 
     <h2 class="text-h6 mb-2">
       Composable extensions

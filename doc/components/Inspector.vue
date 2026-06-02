@@ -45,7 +45,11 @@ const dataPretty = computed(() => JSON.stringify(props.data, null, 2))
     <v-card class="mb-3" data-testid="inspector-data">
       <v-card-title>Data</v-card-title>
       <v-card-text>
-        <pre class="jl-pre">{{ dataPretty }}</pre>
+        <CodeBlock
+          language="json"
+          :code="dataPretty"
+          class="jl-data"
+        />
       </v-card-text>
     </v-card>
 
@@ -85,10 +89,14 @@ const dataPretty = computed(() => JSON.stringify(props.data, null, 2))
   flex-direction: column;
   gap: 0;
 }
-.jl-pre {
-  white-space: pre-wrap;
-  margin: 0;
-  font-family: 'Fira Code', 'Menlo', monospace;
+/* Let the data code block fill the card body flush, like the input schema
+   fills its expansion panel — no padded-box-inside-a-padded-box. */
+[data-testid="inspector-data"] :deep(.v-card-text) {
+  padding: 0;
+}
+.jl-data {
+  margin-bottom: 0;
+  border-radius: 0;
   font-size: 12px;
 }
 .jl-diag-list,

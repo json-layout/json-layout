@@ -40,7 +40,11 @@ export default defineNuxtConfig({
         '@codemirror/lang-json',
         '@codemirror/autocomplete',
         'fast-deep-equal', // CJS
-
+        'prismjs', // CJS
+        'prismjs/components/prism-javascript', // CJS
+        'prismjs/components/prism-bash', // CJS
+        'prismjs/components/prism-json', // CJS
+        'prismjs/components/prism-yaml', // CJS
       ],
     },
   },

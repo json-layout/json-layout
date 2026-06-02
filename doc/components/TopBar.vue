@@ -5,9 +5,9 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const labels = {
-  vocabulary: 'Vocabulary & API',
-  webmcp: 'WebMCP tools',
-  'json-edition': 'JSON edition'
+  'vocabulary': 'Vocabulary & API',
+  'webmcp': 'WebMCP tools',
+  'json-edition': 'JSON edition',
 }
 
 const breadcrumbs = computed(() => {
@@ -19,7 +19,7 @@ const breadcrumbs = computed(() => {
     items.push({
       title: labels[segment] ?? segment,
       to: path,
-      disabled: index === segments.length - 1
+      disabled: index === segments.length - 1,
     })
   })
   return items
@@ -33,7 +33,10 @@ const breadcrumbs = computed(() => {
     class="topbar-border"
   >
     <v-app-bar-title class="flex-grow-0">JSON Layout</v-app-bar-title>
-    <v-breadcrumbs :items="breadcrumbs" density="comfortable" />
+    <v-breadcrumbs
+      :items="breadcrumbs"
+      density="comfortable"
+    />
     <v-spacer />
     <v-btn
       href="https://github.com/json-layout/json-layout"

@@ -1,5 +1,24 @@
 <script setup>
 useHead({ title: 'JSON Layout — Vocabulary & API' })
+
+const compileExample = `import { compile, StatefulLayout } from '@json-layout/core'
+
+// compile builds Ajv validators, compiles markdown and expressions, then
+// returns a layout you can evaluate at runtime or serialize at build time
+const compiled = compile({
+  type: 'object',
+  properties: { name: { type: 'string', title: 'Name' } }
+})`
+
+const statefulLayoutExample = `const layout = new StatefulLayout(
+  compiled,
+  compiled.skeletonTrees[compiled.mainTree],
+  {
+    onUpdate: (sl) => { /* sl.stateTree — the rendered component tree */ },
+    onData: (data) => { /* data — the current valid data */ }
+  },
+  { name: 'Alice' } // initial data
+)`
 </script>
 
 <template>
@@ -55,14 +74,10 @@ useHead({ title: 'JSON Layout — Vocabulary & API' })
       lighter, faster browser bundle.
     </p>
 
-    <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>import { compile, StatefulLayout } from '@json-layout/core'
-
-// compile builds Ajv validators, compiles markdown and expressions, then
-// returns a layout you can evaluate at runtime or serialize at build time
-const compiled = compile({
-  type: 'object',
-  properties: { name: { type: 'string', title: 'Name' } }
-})</code></pre>
+    <CodeBlock
+      language="javascript"
+      :code="compileExample"
+    />
 
     <h2 class="text-h6 mb-2">
       <code>StatefulLayout</code>
@@ -78,15 +93,10 @@ const compiled = compile({
       >immer</a>).
     </p>
 
-    <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>const layout = new StatefulLayout(
-  compiled,
-  compiled.skeletonTrees[compiled.mainTree],
-  {
-    onUpdate: (sl) => { /* sl.stateTree — the rendered component tree */ },
-    onData: (data) => { /* data — the current valid data */ }
-  },
-  { name: 'Alice' } // initial data
-)</code></pre>
+    <CodeBlock
+      language="javascript"
+      :code="statefulLayoutExample"
+    />
 
     <v-alert
       type="info"

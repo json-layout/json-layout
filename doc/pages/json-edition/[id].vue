@@ -12,6 +12,7 @@ if (!example) {
 }
 
 const initialText = JSON.stringify(example.initialData, null, 2)
+const schemaPretty = JSON.stringify(example.schema, null, 2)
 const statefulLayout = shallowRef(null)
 const liveData = ref(example.initialData)
 const liveText = ref(initialText)
@@ -71,6 +72,17 @@ function onUpdateData(data) {
       cols="12"
       md="5"
     >
+      <v-expansion-panels class="mb-3" data-testid="example-schema">
+        <v-expansion-panel title="Input schema">
+          <template #text>
+            <CodeBlock
+              language="json"
+              :code="schemaPretty"
+            />
+          </template>
+        </v-expansion-panel>
+      </v-expansion-panels>
+
       <ClientOnly>
         <Inspector
           v-if="statefulLayout"
@@ -83,3 +95,15 @@ function onUpdateData(data) {
     </v-col>
   </v-row>
 </template>
+
+<style scoped>
+/* Let the schema code block fill the expansion panel body flush, instead of
+   sitting as a padded box inside the panel's own padded box. */
+[data-testid="example-schema"] :deep(.v-expansion-panel-text__wrapper) {
+  padding: 0;
+}
+[data-testid="example-schema"] :deep(.code-block) {
+  margin-bottom: 0;
+  border-radius: 0;
+}
+</style>
