@@ -8,6 +8,18 @@ import { getNodeBuilder } from './utils/state-tree.js'
 // @ts-ignore
 global.fetch = fetch
 
+// Poll until no node in the state tree is still loading — i.e. every asynchronous
+// getItems fetch has resolved and been applied. Replaces the arbitrary setTimeout
+// waits that raced the fetch and made these tests flaky under load.
+const waitForSettled = async (statefulLayout, timeoutMs = 2000) => {
+  const isLoading = (node) => !!node && (node.loading === true || (node.children ?? []).some(isLoading))
+  const start = Date.now()
+  while (isLoading(statefulLayout.stateTree.root)) {
+    if (Date.now() - start > timeoutMs) throw new Error('timeout waiting for layout to settle (loading never cleared)')
+    await new Promise(resolve => setTimeout(resolve, 5))
+  }
+}
+
 describe('Lists with items fetching', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
@@ -30,7 +42,7 @@ describe('Lists with items fetching', () => {
     assert.equal(arrNode.layout.comp, 'list')
     assert.equal(arrNode.loading, true)
     assert.deepEqual(arrNode.data, undefined)
-    await new Promise(resolve => setTimeout(resolve, 1))
+    await waitForSettled(statefulLayout)
     arrNode = statefulLayout.stateTree.root.children?.[0]
     assert.ok(arrNode)
     assert.equal(arrNode.loading, undefined)
@@ -61,7 +73,7 @@ describe('Lists with items fetching', () => {
     assert.ok(arrNode)
     assert.equal(arrNode.loading, true)
     assert.deepEqual(arrNode.data, undefined)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await waitForSettled(statefulLayout)
     assert.ok(nockScope.isDone())
     arrNode = statefulLayout.stateTree.root.children?.[0]
     assert.ok(arrNode)
@@ -87,7 +99,7 @@ describe('Lists with items fetching', () => {
     arrNode = statefulLayout.stateTree.root.children?.[0]
     assert.ok(arrNode)
     assert.equal(arrNode.loading, true)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await waitForSettled(statefulLayout)
     assert.ok(nockScope.isDone())
     arrNode = statefulLayout.stateTree.root.children?.[0]
     assert.ok(arrNode)
@@ -179,13 +191,13 @@ describe('Lists with items fetching', () => {
     // select field, icons whould be filled
     statefulLayout.input(getNode('$oneOf.1.field'), fields[0].value)
     assert.equal(getNode('$oneOf.1.$deps-field.icons').children?.length, 0)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await waitForSettled(statefulLayout)
     assert.equal(getNode('$oneOf.1.$deps-field.icons').children?.length, 2)
     assert.deepEqual(getNode('$oneOf.1.$deps-field.icons.0').data, { value: 'val_1', icon: { name: 'map-marker' } })
 
     // select other field, icons whould be re-filled
     statefulLayout.input(getNode('$oneOf.1.field'), fields[1].value)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await waitForSettled(statefulLayout)
     assert.equal(getNode('$oneOf.1.$deps-field.icons').children?.length, 2)
     assert.deepEqual(getNode('$oneOf.1.$deps-field.icons.0').data, { value: 'val_a', icon: { name: 'map-marker' } })
 
@@ -199,7 +211,7 @@ describe('Lists with items fetching', () => {
     // select field, icons whould be re-filled
     statefulLayout.input(getNode('$oneOf.1.field'), fields[1].value)
     assert.equal(getNode('$oneOf.1.$deps-field.icons').children?.length, 0)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await waitForSettled(statefulLayout)
     assert.equal(getNode('$oneOf.1.$deps-field.icons').children?.length, 2)
     assert.deepEqual(getNode('$oneOf.1.$deps-field.icons.0').data, { value: 'val_a', icon: { name: 'map-marker' } })
     assert.deepEqual(statefulLayout.data, {
@@ -247,7 +259,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val1', local: 'edited-locally' }, { key: 'val2' }]
       })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       // local edits win over server values; the new item.value is discarded for matching keys
@@ -261,7 +273,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val3' }, { key: 'val1' }, { key: 'val2' }]
       })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
@@ -274,7 +286,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val1' }, { key: 'val2' }, { key: 'val3', local: 'edited-locally' }]
       })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       // val3 is gone even though it had local edits — getItems is the source of truth for membership
@@ -288,7 +300,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val1', local: 'edited-locally' }]
       })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.deepEqual(arrNode.data, [{ key: 'val1', local: 'edited-locally' }, { key: 'val2' }, { key: 'val3' }])
@@ -303,7 +315,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val3' }, { key: 'val1', local: 'edited-locally' }, { key: 'val2' }]
       }, { listActions: ['edit', 'sort'] })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       let arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       // local order is kept on the first fetch when keys match
@@ -313,7 +325,7 @@ describe('Lists with items fetching', () => {
       const strNode = statefulLayout.stateTree.root.children?.[1]
       assert.ok(strNode)
       statefulLayout.input(strNode, 'req2')
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.deepEqual(arrNode.data, [{ key: 'val3' }, { key: 'val1', local: 'edited-locally' }, { key: 'val2' }])
@@ -326,7 +338,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val2' }, { key: 'val1' }]
       }, { listActions: ['edit', 'sort'] })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.deepEqual(arrNode.data, [{ key: 'val2' }, { key: 'val1' }, { key: 'val3' }])
@@ -339,7 +351,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val3' }, { key: 'val1' }, { key: 'val2' }]
       }, { listActions: ['edit', 'sort'] })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }])
@@ -352,7 +364,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: []
       }, { listActions: ['edit', 'sort'] })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       assert.deepEqual(arrNode.data, [{ key: 'val1' }, { key: 'val2' }, { key: 'val3' }])
@@ -366,7 +378,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val1', local: 'edited-locally' }, { key: 'val2', local: 'edited-locally' }]
       }, { listActions: ['delete'] })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       // server values win over local because items can't be edited (no "edit" action, listEditMode != "inline")
@@ -380,7 +392,7 @@ describe('Lists with items fetching', () => {
         str1: 'req1',
         arr1: [{ key: 'val1', local: 'edited-locally' }]
       }, { listActions: ['delete'], listEditMode: 'inline' })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       // listEditMode 'inline' makes items editable even without the 'edit' action, so local wins
@@ -402,7 +414,7 @@ describe('Lists with items fetching', () => {
           { key: 'val2', local: 'old-2' }
         ]
       }, { listActions: ['sort'] })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await waitForSettled(statefulLayout)
       const arrNode = statefulLayout.stateTree.root.children?.[0]
       assert.ok(arrNode)
       // local order preserved; server values applied to each matching key
