@@ -3,6 +3,8 @@ import { ref, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 import examples from '~/examples/index.js'
 
+definePageMeta({ layout: 'edition' })
+
 const route = useRoute()
 const example = examples.find(e => e.id === route.params.id)
 if (!example) {
