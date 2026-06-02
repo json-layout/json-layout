@@ -1,5 +1,5 @@
 /**
- * Curated examples for the dev/doc app. Each entry is rendered at /examples/:id
+ * Curated examples for the dev/doc app. Each entry is rendered at /json-edition/:id
  * and drives the full editor wiring (compile → StatefulLayout → CM6 extensions).
  *
  * Teaching notes are rendered above the editor so the user knows what to try.

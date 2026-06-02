@@ -39,8 +39,9 @@ useHead({ title: 'JSON Layout — Vocabulary & API' })
 
     <pre v-pre class="bg-grey-darken-4 pa-4 rounded mb-6 overflow-auto"><code>import { compile, StatefulLayout } from '@json-layout/core'
 
-// compile is async — it builds Ajv validators, compiles markdown and expressions
-const compiled = await compile({
+// compile builds Ajv validators, compiles markdown and expressions, then
+// returns a layout you can evaluate at runtime or serialize at build time
+const compiled = compile({
   type: 'object',
   properties: { name: { type: 'string', title: 'Name' } }
 })</code></pre>
