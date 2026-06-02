@@ -245,8 +245,11 @@ export function valueTokenAt (text, offset) {
   if (node.name === 'Object' || node.name === 'Array') return null
   // For a well-formed String, node.to - node.from >= 2 (the two quote chars),
   // so the interior range is valid (zero-width for ""). A malformed/unterminated
-  // string could yield from > to; callers treat that as a harmless zero-width range.
-  if (node.name === 'String') return { from: node.from + 1, to: node.to - 1, quoted: true }
+  // string could yield from > to, so clamp to a zero-width range at `from`.
+  if (node.name === 'String') {
+    const from = node.from + 1
+    return { from, to: Math.max(from, node.to - 1), quoted: true }
+  }
   return { from: node.from, to: node.to, quoted: false }
 }
 
