@@ -1,11 +1,12 @@
 <script setup>
 import { ref, shallowRef } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import examples from '~/examples/index.js'
 
 definePageMeta({ layout: 'edition' })
 
 const route = useRoute()
+const router = useRouter()
 const example = examples.find(e => e.id === route.params.id)
 if (!example) {
   throw createError({ statusCode: 404, statusMessage: `Unknown example: ${route.params.id}` })
@@ -28,6 +29,15 @@ function onUpdateText(text) {
 function onUpdateData(data) {
   liveData.value = data
 }
+
+function editInPlayground() {
+  window.localStorage.setItem('jl-editor-state', JSON.stringify({
+    schema: example.schema,
+    options: example.statefulLayoutOptions ?? {},
+    data: example.initialData,
+  }))
+  router.push('/json-edition/editor')
+}
 </script>
 
 <template>
@@ -36,6 +46,17 @@ function onUpdateData(data) {
       <h2 class="text-h5 mb-2">
         {{ example.title }}
       </h2>
+      <v-btn
+        color="primary"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-pencil"
+        class="mb-4"
+        data-testid="edit-example"
+        @click="editInPlayground"
+      >
+        Edit in playground
+      </v-btn>
       <ul class="mb-4">
         <li
           v-for="note in example.teachingNotes"
@@ -72,7 +93,10 @@ function onUpdateData(data) {
       cols="12"
       md="5"
     >
-      <v-expansion-panels class="mb-3" data-testid="example-schema">
+      <v-expansion-panels
+        class="mb-3"
+        data-testid="example-schema"
+      >
         <v-expansion-panel title="Input schema">
           <template #text>
             <CodeBlock
