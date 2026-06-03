@@ -12,8 +12,21 @@ import examples from '~/examples/index.js'
       color="background"
       class="drawer-border"
     >
-      <v-list nav density="compact">
-        <v-list-item to="/json-edition" title="Overview" prepend-icon="mdi-book-open-variant" />
+      <v-list
+        nav
+        density="compact"
+      >
+        <v-list-item
+          to="/json-edition"
+          title="Overview"
+          prepend-icon="mdi-book-open-variant"
+        />
+        <v-list-item
+          to="/json-edition/editor"
+          title="Editor"
+          prepend-icon="mdi-pencil-box-outline"
+          data-testid="nav-editor"
+        />
         <v-list-subheader>Examples</v-list-subheader>
         <v-list-item
           v-for="ex in examples"

@@ -8,6 +8,7 @@ const labels = {
   'vocabulary': 'Vocabulary & API',
   'webmcp': 'WebMCP tools',
   'json-edition': 'JSON edition',
+  'editor': 'Editor',
 }
 
 const breadcrumbs = computed(() => {
@@ -32,7 +33,9 @@ const breadcrumbs = computed(() => {
     color="background"
     class="topbar-border"
   >
-    <v-app-bar-title class="flex-grow-0">JSON Layout</v-app-bar-title>
+    <v-app-bar-title class="flex-grow-0">
+      JSON Layout
+    </v-app-bar-title>
     <v-breadcrumbs
       :items="breadcrumbs"
       density="comfortable"
