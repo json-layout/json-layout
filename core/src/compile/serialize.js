@@ -51,6 +51,8 @@ export async function serialize (compiledLayout) {
   let code = standaloneCode.default(ajv, validatesExports)
 
   code = code.replace('"use strict";', '')
+  // make the exportN validates module-local so the object below can reference them
+  code = code.replace(/export const (export\d+) =/g, 'const $1 =')
 
   // some internal imports to ajv are not translated to esm, we do it here
   // cf https://github.com/ajv-validator/ajv-formats/pull/73
@@ -76,8 +78,7 @@ export async function serialize (compiledLayout) {
     ajvI18nPath = 'ajv-i18n/localize/en/index.js'
   }
 
-  code = `import localizeErrors from "${ajvI18nPath}";
-export const exportLocalizeErrors = localizeErrors;\n` + code
+  code = `import localizeErrors from "${ajvI18nPath}";\n` + code
 
   i = 0
   const expressionsNodes = []
@@ -91,30 +92,32 @@ export const exportLocalizeErrors = localizeErrors;\n` + code
     expressionsNodes.push(builders.raw(id))
   }
 
-  const ast = parseModule(code)
+  // reference the validate functions by name, keyed by json-pointer
+  /** @type {Record<string, any>} */
+  const validatesNodes = {}
+  i = 0
+  for (const pointer of Object.keys(compiledLayout.validates)) {
+    validatesNodes[pointer] = builders.raw(`export${i++}`)
+  }
+
+  // run magicast only on the small object literal; keep the large generated `code` as
+  // a raw string prefix (parsing it was the serialization bottleneck)
+  const ast = parseModule('export const compiledLayout = {}')
   ast.exports.compiledLayout = {
     mainTree: compiledLayout.mainTree,
     skeletonTrees: clone(compiledLayout.skeletonTrees),
     skeletonNodes: clone(compiledLayout.skeletonNodes),
     normalizedLayouts: clone(compiledLayout.normalizedLayouts),
-    validates: {},
+    validates: validatesNodes,
     validationErrors: compiledLayout.validationErrors,
     expressions: expressionsNodes,
     locale: compiledLayout.locale,
     messages: compiledLayout.messages,
     components: compiledLayout.options.components,
-    localizeErrors: ast.exports.exportLocalizeErrors
-  }
-  delete ast.exports.exportLocalizeErrors
-
-  i = 0
-  for (const pointer of Object.keys(compiledLayout.validates)) {
-    const exportKey = `export${i++}`
-    ast.exports.compiledLayout.validates[pointer] = ast.exports[exportKey]
-    delete ast.exports[exportKey]
+    localizeErrors: builders.raw('localizeErrors')
   }
 
-  const generatedCode = generateCode(ast).code.replace('export const compiledLayout = {', 'const compiledLayout = {')
+  const objectCode = generateCode(ast).code.replace('export const compiledLayout = {', 'const compiledLayout = {')
 
-  return generatedCode
+  return `${code}\n${objectCode}`
 }
