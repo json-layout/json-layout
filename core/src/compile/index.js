@@ -7,6 +7,7 @@ import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import { resolveXI18n } from './utils/x-i18n.js'
 import { clone } from '@json-layout/vocabulary'
 import { fillOptions } from './options.js'
+import { rewriteDiscriminatedOneOfs } from './utils/discriminated-oneof.js'
 
 export { resolveLocaleRefs } from './utils/resolve-refs.js'
 export { resolveXI18n } from './utils/x-i18n.js'
@@ -90,6 +91,20 @@ export function compile (_schema, partialOptions = {}) {
       }
     }
     if (!updatedPropertyKeys) break
+  }
+
+  // Turn discriminated `oneOf`s into `if/then` chains so ajv validates only the
+  // matching branch (huge speedup on large discriminated unions) while keeping the
+  // exact same validation semantics. Done after the skeleton is built (it still
+  // sees the original `oneOf`) and before compiling the validators.
+  /** @type {Record<string, any>} */
+  const schemasById = { [schema.$id]: schema }
+  for (const [key, value] of Object.entries(options.ajv.schemas)) {
+    if (key.startsWith('https://json-schema.org/') || !value?.schema) continue
+    schemasById[key] = value.schema
+  }
+  for (const registeredSchema of new Set(Object.values(schemasById))) {
+    rewriteDiscriminatedOneOfs(registeredSchema, schemasById)
   }
 
   options.ajv.removeSchema(schema.$id) // just in case it was previously added
