@@ -97,20 +97,27 @@ export function compile (_schema, partialOptions = {}) {
   // matching branch (huge speedup on large discriminated unions) while keeping the
   // exact same validation semantics. Done after the skeleton is built (it still
   // sees the original `oneOf`) and before compiling the validators.
+  options.ajv.removeSchema(schema.$id) // just in case it was previously added
+  const uriResolver = options.ajv.opts.uriResolver
   /** @type {Record<string, any>} */
   const schemasById = { [schema.$id]: schema }
   for (const [key, value] of Object.entries(options.ajv.schemas)) {
-    if (key.startsWith('https://json-schema.org/') || !value?.schema) continue
+    if (key.startsWith('https://json-schema.org/') || !value?.schema || typeof value.schema !== 'object') continue
     schemasById[key] = value.schema
   }
-  for (const registeredSchema of new Set(Object.values(schemasById))) {
-    rewriteDiscriminatedOneOfs(registeredSchema, schemasById)
+  rewriteDiscriminatedOneOfs(schema, schemasById, schema.$id, uriResolver)
+  for (const [key, registeredSchema] of Object.entries(schemasById)) {
+    if (registeredSchema === schema) continue
+    // registered schemas belong to the caller, do not mutate them, only replace
+    // them in the ajv registry with a rewritten clone
+    const rewrittenSchema = clone(registeredSchema)
+    if (rewriteDiscriminatedOneOfs(rewrittenSchema, schemasById, key, uriResolver)) {
+      options.ajv.removeSchema(key)
+      options.ajv.addSchema(rewrittenSchema, key === rewrittenSchema.$id ? undefined : key)
+    }
   }
 
-  options.ajv.removeSchema(schema.$id) // just in case it was previously added
   options.ajv.addSchema(schema)
-
-  const uriResolver = options.ajv.opts.uriResolver
   /** @type {Record<string, import('ajv').ValidateFunction>} */
   const validates = {}
 
