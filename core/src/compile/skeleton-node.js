@@ -305,6 +305,7 @@ export function makeSkeletonNode (
       /** @type {string | undefined} */
       let discriminator
       if (schema.discriminator?.propertyName) discriminator = schema.discriminator?.propertyName
+      else discriminator = inferDiscriminator(schema.oneOf, schemaId, getJSONRef)
       const oneOfPointer = `${refPointerPrefix}/oneOf`
       if (!normalizedLayouts[oneOfPointer]) {
         const normalizationResult = normalizeLayoutFragment(
@@ -593,4 +594,28 @@ export function makeSkeletonNode (
   }
 
   return node
+}
+
+/**
+ * infer a discriminator when the keyword was not declared:
+ * a property that has a distinct const string value in every branch of the oneOf
+ * @param {any[]} oneOf
+ * @param {string} schemaId
+ * @param {(schemaId: string, ref: string) => [any, string, string]} getJSONRef
+ * @returns {string | undefined}
+ */
+function inferDiscriminator (oneOf, schemaId, getJSONRef) {
+  const fragments = oneOf.map(branch => branch.$ref ? getJSONRef(schemaId, branch.$ref)[0] : branch)
+  const candidateKeys = Object.keys(fragments[0]?.properties ?? {})
+  for (const key of candidateKeys) {
+    /** @type {string[]} */
+    const values = []
+    const distinct = fragments.every(fragment => {
+      const value = fragment?.properties?.[key]?.const
+      if (typeof value !== 'string' || values.includes(value)) return false
+      values.push(value)
+      return true
+    })
+    if (distinct) return key
+  }
 }

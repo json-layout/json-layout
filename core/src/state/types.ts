@@ -73,6 +73,12 @@ export interface CreateStateTreeContext {
   additionalPropertiesErrors?: ErrorObject[]
   files: FileRef[]
   activatedItems: Record<string, number | string>
+  // keys of activatedItems that were explicitly selected by the user (activateItem / input with activateKey)
+  // as opposed to auto-activated from the data, they are not challenged by the discriminator value in the data
+  explicitActivatedItems: Set<string>
+  // true on the first state tree creation after data was replaced from outside (main data setter),
+  // activated oneOf branches that do not validate the new data are then re-resolved
+  reResolveActivatedItems: boolean
   autoActivatedItems: Record<string, number | number>
   autofocusTarget: string | null
   currentInput: string | null

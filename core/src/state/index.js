@@ -139,6 +139,10 @@ export class StatefulLayout {
   set data (data) {
     logDataBinding('apply main data setter', data)
     this._data = data
+    // data replaced from outside is authoritative, previously activated oneOf branches
+    // are re-resolved from the new data (discriminator based or validation based)
+    this._explicitActivatedItems.clear()
+    this._reResolveActivatedItems = true
     this.updateState()
   }
 
@@ -285,6 +289,10 @@ export class StatefulLayout {
     /** @type {CreateStateTreeContext} */
     const createStateTreeContext = {
       activatedItems: this.activatedItems,
+      explicitActivatedItems: this._explicitActivatedItems,
+      // only the first tree creation after the data setter re-resolves activated branches,
+      // the following hydration iterations preserve them so that they cannot oscillate
+      reResolveActivatedItems: this._reResolveActivatedItems,
       autoActivatedItems: {},
       autofocusTarget: this._autofocusTarget,
       currentInput: this._currentInput,
@@ -302,6 +310,8 @@ export class StatefulLayout {
 
     // @ts-ignore
     if (this._options._debugCache) createStateTreeContext._debugCache = this._lastCreateStateTreeContext?._debugCache ?? {}
+
+    this._reResolveActivatedItems = false
 
     this._stateTree = createStateTree(
       createStateTreeContext,
@@ -453,6 +463,7 @@ export class StatefulLayout {
     if (activateKey !== undefined) {
       logActivatedItems(node.fullKey, 'activated item on input', activateKey)
       this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = activateKey })
+      this._explicitActivatedItems.add(node.fullKey)
       this._autofocusTarget = node.fullKey + '/' + activateKey
     }
     if (node.parentFullKey === null) {
@@ -714,12 +725,28 @@ export class StatefulLayout {
   activatedItems
 
   /**
+   * keys of activatedItems that were explicitly selected by the user,
+   * as opposed to auto-activated from the data
+   * @private
+   * @type {Set<string>}
+   */
+  _explicitActivatedItems = new Set()
+
+  /**
+   * true after data was replaced from outside, consumed by the next state tree creation
+   * @private
+   * @type {boolean}
+   */
+  _reResolveActivatedItems = false
+
+  /**
    * @param {StateNode} node
    * @param {number | string} key
    */
   activateItem (node, key) {
     logActivatedItems(node.fullKey, 'activate item explicitly', key)
     this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = key })
+    this._explicitActivatedItems.add(node.fullKey)
     this._autofocusTarget = node.fullKey + '/' + key
     if (node.key === '$oneOf') {
       if (node.layout.emptyData && node.data && typeof node.data === 'object' && node.children?.[0]) {
@@ -764,6 +791,7 @@ export class StatefulLayout {
         if (key.startsWith(node.fullKey)) {
           logActivatedItems(node.fullKey, 'item deactivation deletes a key', key)
           delete draft[key]
+          this._explicitActivatedItems.delete(key)
         }
       }
     })
