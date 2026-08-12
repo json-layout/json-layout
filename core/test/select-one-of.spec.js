@@ -842,4 +842,185 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
     assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'datasets-list', columns: 2, cardConfig: { actionsLocation: 'bottom' } })
   })
+
+  const discriminatorReResolveSchema = {
+    type: 'object',
+    discriminator: { propertyName: 'key' },
+    oneOf: [{
+      required: ['str1'],
+      properties: {
+        key: { type: 'string', const: 'key1' },
+        str1: { type: 'string', default: 'default1' }
+      }
+    }, {
+      required: ['str2'],
+      properties: {
+        key: { type: 'string', const: 'key2' },
+        str2: { type: 'string', default: 'default2' }
+      }
+    }]
+  }
+
+  it('should re-resolve the discriminated oneOf branch when data is replaced from outside', async () => {
+    const compiledLayout = await compile(discriminatorReResolveSchema)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1', str1: 'value1' })
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.deepEqual(statefulLayout.data, { key: 'key1', str1: 'value1' })
+
+    // data fully replaced from outside (e.g. v-model updated by the application)
+    statefulLayout.data = { key: 'key2', str2: 'value2' }
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+    assert.deepEqual(statefulLayout.data, { key: 'key2', str2: 'value2' })
+    assert.ok(statefulLayout.valid)
+  })
+
+  it('should preserve an explicitly activated discriminated oneOf branch over the discriminator value in data', async () => {
+    const compiledLayout = await compile(discriminatorReResolveSchema)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1', str1: 'value1' })
+    const getNode = getNodeBuilder(statefulLayout)
+
+    // the user explicitly switches branch, the stale discriminator value in data must not revert this choice
+    statefulLayout.activateItem(getNode('$oneOf'), 1)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+    assert.equal(/** @type {any} */(statefulLayout.data).key, 'key2')
+  })
+
+  it('should re-resolve a discriminated oneOf branch from replaced data even after an explicit activation', async () => {
+    const compiledLayout = await compile(discriminatorReResolveSchema)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { key: 'key1', str1: 'value1' })
+    const getNode = getNodeBuilder(statefulLayout)
+
+    statefulLayout.activateItem(getNode('$oneOf'), 1)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+
+    // a full replacement of the data from outside is authoritative over the previous explicit activation
+    statefulLayout.data = { key: 'key1', str1: 'value1' }
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.deepEqual(statefulLayout.data, { key: 'key1', str1: 'value1' })
+    assert.ok(statefulLayout.valid)
+  })
+
+  it('should infer a discriminator from distinct const properties without the discriminator keyword', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      oneOf: [{
+        required: ['str1'],
+        properties: {
+          kind: { type: 'string', const: 'kind1' },
+          str1: { type: 'string' }
+        }
+      }, {
+        required: ['str2'],
+        properties: {
+          kind: { type: 'string', const: 'kind2' },
+          str2: { type: 'string' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { kind: 'kind1', str1: 'value1' })
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(getNode('$oneOf').skeleton.discriminator, 'kind')
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+
+    statefulLayout.data = { kind: 'kind2', str2: 'value2' }
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+    assert.deepEqual(statefulLayout.data, { kind: 'kind2', str2: 'value2' })
+    assert.ok(statefulLayout.valid)
+  })
+
+  it('should not infer a discriminator when const values are not distinct across branches', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      oneOf: [{
+        required: ['str1'],
+        properties: {
+          kind: { type: 'string', const: 'kind1' },
+          str1: { type: 'string' }
+        }
+      }, {
+        required: ['str2'],
+        properties: {
+          kind: { type: 'string', const: 'kind1' },
+          str2: { type: 'string' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { kind: 'kind1', str1: 'value1' })
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(getNode('$oneOf').skeleton.discriminator, undefined)
+  })
+
+  const validationReResolveSchema = {
+    type: 'object',
+    oneOf: [{
+      required: ['str1'],
+      properties: {
+        str1: { type: 'string' },
+        shared: { type: 'string' }
+      }
+    }, {
+      required: ['str2'],
+      properties: {
+        str2: { type: 'string' },
+        shared: { type: 'string' }
+      }
+    }]
+  }
+
+  it('should re-resolve a oneOf branch by validation when data is replaced from outside', async () => {
+    const compiledLayout = await compile(validationReResolveSchema)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: 'value1' })
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+
+    // the replaced data does not validate against the active branch but validates against another
+    statefulLayout.data = { str2: 'value2' }
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+    assert.deepEqual(statefulLayout.data, { str2: 'value2' })
+    assert.ok(statefulLayout.valid)
+  })
+
+  it('should keep the active oneOf branch when replaced data still validates against it', async () => {
+    const compiledLayout = await compile(validationReResolveSchema)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'value2' })
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+
+    // the replaced data validates against both branches, the active one is kept (no switch to the first matching branch)
+    statefulLayout.data = { str1: 'value1', str2: 'value2' }
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 1)
+  })
+
+  it('should keep the active oneOf branch when replaced data validates no branch', async () => {
+    const compiledLayout = await compile(validationReResolveSchema)
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: 'value1' })
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+
+    statefulLayout.data = { shared: 'value' }
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.ok(!statefulLayout.valid)
+  })
+
+  it('should not switch oneOf branch on invalid intermediate data during edition', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      oneOf: [{
+        required: ['str1'],
+        properties: {
+          str1: { type: 'string' }
+        }
+      }, {
+        properties: {
+          str2: { type: 'string' }
+        }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: 'value1' })
+    const getNode = getNodeBuilder(statefulLayout)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+
+    // the data becomes invalid for the active branch and valid for the permissive sibling,
+    // but a branch is sticky during edition, it is only re-resolved when data is set externally
+    statefulLayout.input(getNode('$oneOf.0.str1'), undefined)
+    assert.equal(statefulLayout.activatedItems['/$oneOf'], 0)
+    assert.equal(getNode('$oneOf').children?.[0]?.key, 0)
+  })
 })

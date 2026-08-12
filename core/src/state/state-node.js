@@ -570,13 +570,34 @@ export function createStateNode (
     // find the oneOf child that was either previously selected
     // or the one matching the specified discriminator
     // or the one that is valid with current data
-    let activeChildTreeIndex = /** @type {number} */(context.activatedItems[fullKey])
+    let activeChildTreeIndex = /** @type {number | undefined} */(context.activatedItems[fullKey])
     let validChildTreeIndex = -1
+    if (
+      activeChildTreeIndex !== undefined &&
+      skeleton.discriminator !== undefined &&
+      !context.explicitActivatedItems.has(fullKey) &&
+      data?.[skeleton.discriminator] !== undefined
+    ) {
+      // an auto-activated branch is only kept as long as the discriminator value in the data still matches it,
+      // so that data replaced from outside (main data setter) is re-resolved to the right branch
+      const activeTree = skeleton.childrenTrees[activeChildTreeIndex]
+      if (activeTree !== undefined && compiledLayout.skeletonTrees[activeTree].discriminatorValue !== data[skeleton.discriminator]) {
+        activeChildTreeIndex = undefined
+      }
+    }
     if (activeChildTreeIndex !== undefined) {
-      // already explicitly activated, just check if data validates against the active variant
+      // already activated, just check if data validates against the active variant
       const activeTree = skeleton.childrenTrees[activeChildTreeIndex]
       if (activeTree !== undefined && compiledLayout.validates[compiledLayout.skeletonTrees[activeTree].refPointer](data)) {
         validChildTreeIndex = activeChildTreeIndex
+      } else if (context.reResolveActivatedItems) {
+        // data was replaced from outside (main data setter) and does not validate against the active branch,
+        // switch to another branch that validates the new data, keep the active branch if none does
+        const reResolvedIndex = skeleton.childrenTrees.findIndex((childTree) => compiledLayout.validates[compiledLayout.skeletonTrees[childTree].refPointer](data))
+        if (reResolvedIndex !== -1) {
+          activeChildTreeIndex = reResolvedIndex
+          validChildTreeIndex = reResolvedIndex
+        }
       }
     } else {
       // try discriminator-based resolution first (cheap string comparison)
@@ -599,7 +620,8 @@ export function createStateNode (
     if (activeChildTreeIndex !== -1) {
       const activeChildTree = compiledLayout.skeletonTrees[skeleton.childrenTrees[activeChildTreeIndex]]
       const activeChildNode = compiledLayout.skeletonNodes[activeChildTree.root]
-      if (!(fullKey in context.activatedItems)) context.autoActivatedItems[fullKey] = activeChildTreeIndex
+      // record the auto-activated branch, also when it changed compared to a stale previously activated branch
+      if (context.activatedItems[fullKey] !== activeChildTreeIndex) context.autoActivatedItems[fullKey] = activeChildTreeIndex
       context.errors = context.errors?.filter(error => {
         // if an item was selected, remove the oneOf error
         if (matchLocalError(error, skeleton, dataPath, parentDataPath)) {
