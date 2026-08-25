@@ -4,6 +4,15 @@
 
 import { isItemsLayout } from '@json-layout/vocabulary'
 
+import { visibleChildren, resolveNode } from './resolve.js'
+import { projectDeclaredFields } from './schema.js'
+
+/**
+ * Suggestion values can be arbitrarily large objects (a whole dataset definition for example),
+ * they are truncated in the tools output and retrieved by index with setFieldValue.
+ */
+export const SUGGESTION_VALUE_MAX_LENGTH = 300
+
 const constraintKeys = {
   'number-field': ['min', 'max', 'step', 'precision'],
   slider: ['min', 'max', 'step'],
@@ -46,6 +55,34 @@ function getConstraintKeys (comp) {
 }
 
 /**
+ * A list item rendered as a summary is read-only only because the list did not activate it,
+ * the agent should not be told that this item cannot be edited.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {boolean}
+ */
+function isEditableListItemSummary (node, statefulLayout) {
+  if (!node.options.summary) return false
+  if (node.parentFullKey === null || node.parentFullKey === undefined) return false
+  const parent = resolveNode(statefulLayout.stateTree.root, node.parentFullKey)
+  if (!parent || parent.layout.comp !== 'list' || parent.options.readOnly) return false
+  // a list that does not allow item edition really has read-only items
+  const listActions = /** @type {Record<string, unknown>} */(parent.layout).listActions
+  if (Array.isArray(listActions) && !listActions.includes('edit')) return false
+  return true
+}
+
+/**
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {boolean}
+ */
+function isReadOnly (node, statefulLayout) {
+  if (!node.options.readOnly) return false
+  return !isEditableListItemSummary(node, statefulLayout)
+}
+
+/**
  * @typedef {{
  *   path: string,
  *   type: string,
@@ -61,6 +98,7 @@ function getConstraintKeys (comp) {
  *   variants?: Array<{index: number, title: string}>,
  *   selectedVariant?: number,
  *   children?: Array<ProjectedNode>,
+ *   declaredFields?: Array<import('./schema.js').DeclaredField>,
  *   getSuggestions?: boolean
  * }} ProjectedNode
  */
@@ -86,7 +124,7 @@ export function projectNode (node, statefulLayout) {
   if (node.error) out.error = node.error
 
   if (node.skeleton.required) out.required = true
-  if (node.options.readOnly) out.readOnly = true
+  if (isReadOnly(node, statefulLayout)) out.readOnly = true
   if (node.modified) out.modified = true
   if (isItemsLayout(node.layout, statefulLayout.compiledLayout.components)) out.getSuggestions = true
 
@@ -110,10 +148,14 @@ export function projectNode (node, statefulLayout) {
     if (selected) out.selectedVariant = selected.key
   }
 
-  if (node.children) {
-    out.children = node.children
-      .filter((c) => c.layout.comp !== 'none')
-      .map(node => projectNode(node, statefulLayout))
+  const children = visibleChildren(node)
+  if (children.length > 0) {
+    out.children = children.map(child => projectNode(child, statefulLayout))
+  } else if (node.skeleton.children?.length) {
+    // the state tree did not hydrate the children of this node (a collapsed list item for example),
+    // the agent still needs to know which fields it can fill
+    const declaredFields = projectDeclaredFields(node, statefulLayout)
+    if (declaredFields.length > 0) out.declaredFields = declaredFields
   }
 
   return out
@@ -163,7 +205,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0) {
   // build metadata tags
   const meta = [type]
   if (node.skeleton.required) meta.push('required')
-  if (node.options.readOnly) meta.push('readOnly')
+  if (isReadOnly(node, statefulLayout)) meta.push('readOnly')
   if (node.error) meta.push('error')
   if (node.modified) meta.push('modified')
 
@@ -195,8 +237,10 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0) {
   if (typeof layout.label === 'string') line += ` label="${layout.label}"`
   else if (typeof layout.title === 'string') line += ` title="${layout.title}"`
 
+  const children = visibleChildren(node)
+
   // value for leaf nodes (no children or empty children)
-  if (!node.children || node.children.length === 0) {
+  if (children.length === 0) {
     line += ` value=${JSON.stringify(node.data)}`
   }
 
@@ -213,10 +257,18 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0) {
   }
 
   // recurse children
-  if (node.children) {
-    for (const child of node.children) {
-      if (child.layout.comp === 'none') continue
-      lines.push(projectNodeToMarkdown(child, statefulLayout, depth + 1))
+  for (const child of children) {
+    lines.push(projectNodeToMarkdown(child, statefulLayout, depth + 1))
+  }
+
+  // fields known from the skeleton but not hydrated in the state tree
+  if (children.length === 0 && node.skeleton.children?.length) {
+    for (const field of projectDeclaredFields(node, statefulLayout)) {
+      const fieldMeta = ['declared']
+      if (field.type) fieldMeta.unshift(field.type)
+      if (field.required) fieldMeta.push('required')
+      if (field.enum) fieldMeta.push(`enum=${JSON.stringify(field.enum)}`)
+      lines.push(`${indent}  - ${field.path} (${fieldMeta.join(', ')})`)
     }
   }
 
@@ -254,13 +306,33 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout) {
 /**
  * Format a mutation result as concise text for LLM-readable output.
  * @param {boolean} valid
- * @param {Array<{path: string, message: string}>} errors
+ * @param {Array<{path: string, message: string}>} errors - errors of the mutated subtree
  * @param {string} [prefix] - optional prefix line (e.g. field info)
+ * @param {number} [otherErrors] - number of errors of the form outside of the mutated subtree
  * @returns {string}
  */
-export function formatMutationResult (valid, errors, prefix) {
+export function formatMutationResult (valid, errors, prefix, otherErrors) {
   const lines = []
   if (prefix) lines.push(prefix)
+
+  // scoped mode, the errors are the ones of the mutated subtree only
+  if (otherErrors !== undefined) {
+    if (errors.length === 0) lines.push('no error here')
+    else {
+      lines.push(`${errors.length} error(s) here:`)
+      for (const e of errors) {
+        lines.push(`- ${e.path}: ${e.message}`)
+      }
+    }
+    if (otherErrors > 0) {
+      lines.push(`form has ${otherErrors} other error(s) elsewhere, use describeState to list them`)
+    } else if (!valid) {
+      lines.push('form is invalid')
+    } else {
+      lines.push('form is valid')
+    }
+    return lines.join('\n')
+  }
 
   if (valid) {
     lines.push('valid, no errors')
@@ -278,19 +350,47 @@ export function formatMutationResult (valid, errors, prefix) {
 }
 
 /**
- * Format field suggestions as markdown for LLM-readable output.
+ * @typedef {{index: number, title: string, key?: string, value?: unknown, truncated?: boolean, valueLength?: number}} ProjectedSuggestion
+ */
+
+/**
+ * Project suggestions for the tools output: large values are truncated, the agent
+ * refers to them by index instead of copying them around.
  * @param {Array<{value: unknown, title: string, key?: string}>} items
+ * @returns {ProjectedSuggestion[]}
+ */
+export function projectSuggestions (items) {
+  return items.map((item, index) => {
+    /** @type {ProjectedSuggestion} */
+    const out = { index, title: item.title }
+    if (item.key !== undefined && item.key !== item.title) out.key = item.key
+    const json = JSON.stringify(item.value)
+    if (json === undefined) return out
+    if (json.length <= SUGGESTION_VALUE_MAX_LENGTH) {
+      out.value = item.value
+    } else {
+      out.value = json.slice(0, SUGGESTION_VALUE_MAX_LENGTH) + '…'
+      out.truncated = true
+      out.valueLength = json.length
+    }
+    return out
+  })
+}
+
+/**
+ * Format field suggestions as markdown for LLM-readable output.
+ * @param {ProjectedSuggestion[]} suggestions
  * @returns {string}
  */
-export function formatSuggestions (items) {
-  if (items.length === 0) return 'No suggestions available'
-  const lines = ['Suggestions (use the value with setFieldValue or setData):']
-  for (const item of items) {
-    const val = JSON.stringify(item.value)
-    if (item.key && item.key !== item.title) {
-      lines.push(`- value=${val} — ${item.title} (${item.key})`)
+export function formatSuggestions (suggestions) {
+  if (suggestions.length === 0) return 'No suggestions available'
+  const lines = [`${suggestions.length} suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):`]
+  for (const suggestion of suggestions) {
+    const title = suggestion.key ? `${suggestion.title} (${suggestion.key})` : suggestion.title
+    if (suggestion.truncated) {
+      lines.push(`- [${suggestion.index}] ${title} — value truncated (${suggestion.valueLength} chars), use suggestionIndex=${suggestion.index}: ${suggestion.value}`)
     } else {
-      lines.push(`- value=${val} — ${item.title}`)
+      lines.push(`- [${suggestion.index}] ${title} — value=${JSON.stringify(suggestion.value)}`)
     }
   }
   return lines.join('\n')
@@ -308,6 +408,18 @@ export function collectErrors (node) {
 }
 
 /**
+ * Errors of the subtree of a node, and count of the errors of the rest of the form.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number }}
+ */
+export function collectScopedErrors (statefulLayout, node) {
+  const errors = collectErrors(node)
+  const allErrors = collectErrors(statefulLayout.stateTree.root)
+  return { errors, otherErrors: Math.max(0, allErrors.length - errors.length) }
+}
+
+/**
  * @param {import('../state/types.js').StateNode} node
  * @param {Array<{path: string, message: string}>} errors
  */
@@ -315,9 +427,10 @@ function collectErrorsRecurse (node, errors) {
   if (node.error) {
     errors.push({ path: node.fullKey, message: node.error })
   }
-  if (node.children) {
-    for (const child of node.children) {
-      collectErrorsRecurse(child, errors)
-    }
+  // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
+  // occurrences of an activated item do not carry the same errors, and deduplicating
+  // here silently drops them (verified: 2 errors became 0).
+  for (const child of node.children ?? []) {
+    collectErrorsRecurse(child, errors)
   }
 }

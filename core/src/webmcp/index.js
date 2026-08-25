@@ -11,8 +11,10 @@ import * as setData from './tools/set-data.js'
 import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
+import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions } from './project.js'
+import { formatMutationResult, formatSuggestions, projectSuggestions } from './project.js'
+import { SuggestionsStore } from './suggestions-store.js'
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -108,6 +110,13 @@ export class WebMCP {
    * @type {string[]}
    */
   _registeredTools = []
+
+  /**
+   * memory of the last suggestions per node path, used by setFieldValue's suggestionIndex
+   * @readonly
+   * @type {SuggestionsStore}
+   */
+  _suggestionsStore = new SuggestionsStore()
 
   /**
    * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -245,14 +254,15 @@ export class WebMCP {
             if (!args?.path) {
               throw new Error('path is required')
             }
-            args.value = parseIfJsonString(args.value)
+            if (args.value !== undefined) args.value = parseIfJsonString(args.value)
             const result = setFieldValue.execute(
               this._statefulLayout,
-              /** @type {{ path: string, value: unknown }} */(args)
+              /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
+              this._suggestionsStore
             )
             const fieldInfo = `${result.field.path} (${result.field.type}) = ${JSON.stringify(result.field.data)}`
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo) }],
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }],
               structuredContent: result
             }
           } catch (err) {
@@ -266,7 +276,7 @@ export class WebMCP {
       },
       {
         name: this._toolName('getFieldSuggestions'),
-        description: `Get allowed values for a dropdown or autocomplete field in "${dataTitle}". Required when describeState shows "suggestions" for a field. Pass the returned value directly to setFieldValue or include it in setData.`,
+        description: getFieldSuggestions.getDescription(dataTitle),
         inputSchema: getFieldSuggestions.inputSchema,
         outputSchema: getFieldSuggestions.outputSchema,
         execute: async (args) => {
@@ -276,11 +286,13 @@ export class WebMCP {
             }
             const result = await getFieldSuggestions.execute(
               this._statefulLayout,
-              /** @type {{ path: string, query?: string }} */(args)
+              /** @type {{ path: string, query?: string }} */(args),
+              this._suggestionsStore
             )
+            const suggestions = projectSuggestions(result.items)
             return {
-              content: [{ type: 'text', text: formatSuggestions(result.items) }],
-              structuredContent: result
+              content: [{ type: 'text', text: formatSuggestions(suggestions) }],
+              structuredContent: { items: suggestions }
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -308,11 +320,14 @@ export class WebMCP {
               this._statefulLayout,
               /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args)
             )
-            const actionInfo = args.action === 'add'
-              ? `added item, ${result.itemCount} total`
-              : `removed item, ${result.itemCount} remaining`
+            let actionInfo = args.action === 'add'
+              ? `added item at index ${result.index}, ${result.itemCount} total`
+              : `removed item at index ${result.index}, ${result.itemCount} remaining`
+            if (result.itemMarkdown) {
+              actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
+            }
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo) }],
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }],
               structuredContent: result
             }
           } catch (err) {
@@ -329,15 +344,22 @@ export class WebMCP {
     if (this._schema) {
       tools.push({
         name: this._toolName('getSchema'),
-        description: `Get the JSON schema that governs the "${dataTitle}" form.`,
-        outputSchema: {
-          type: 'object',
-          description: 'The JSON schema definition'
-        },
+        description: getSchema.getDescription(dataTitle),
+        inputSchema: getSchema.inputSchema,
+        outputSchema: getSchema.outputSchema,
         execute: async (args) => {
-          return {
-            content: [{ type: 'text', text: JSON.stringify(this._schema) }],
-            structuredContent: this._schema
+          try {
+            const result = getSchema.execute(this._statefulLayout, this._schema, /** @type {{ path?: string }} */(args || {}))
+            return {
+              content: [{ type: 'text', text: getSchema.toText(result) }],
+              structuredContent: result.schema && !result.path ? result.schema : result
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            return {
+              content: [{ type: 'text', text: `Error: ${message}` }],
+              isError: true
+            }
           }
         }
       })

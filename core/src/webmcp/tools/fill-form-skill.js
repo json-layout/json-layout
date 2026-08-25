@@ -57,10 +57,18 @@ Then use ${prefixName}describeState and iterate with ${prefixName}setFieldValue.
 Given the large complexity of this form you should avoid reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}.
 Prefer using ${prefixName}describeState and iterating with ${prefixName}setFieldValue.
 `
+    if (hasSchema) {
+      skill += `The full schema will not even be returned by ${prefixName}getSchema if it is too large, call it with a "path" parameter (a node path returned by ${prefixName}describeState) to read only the sub-schema of this node.
+`
+    }
   }
 
   skill += `
-If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values, then pass the chosen value directly to ${prefixName}setFieldValue or include it in ${prefixName}setData.
+If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values. Each returned suggestion has an "index" and its value may be truncated: do not copy back a truncated value, call ${prefixName}setFieldValue with the same path and "suggestionIndex" set to the index of the chosen suggestion. Short values can also be passed directly to ${prefixName}setFieldValue or included in ${prefixName}setData.
+
+To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.
+
+The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are only counted.
 `
 
   return skill

@@ -2,7 +2,7 @@
  * @file editArray tool
  */
 
-import { collectErrors } from '../project.js'
+import { collectScopedErrors, projectNode, projectNodeToMarkdown } from '../project.js'
 import { resolveNode } from '../resolve.js'
 
 export const inputSchema = {
@@ -33,8 +33,14 @@ export const outputSchema = {
   properties: {
     valid: { type: 'boolean' },
     itemCount: { type: 'number' },
+    index: { type: 'number', description: 'Index of the added or removed item' },
+    item: {
+      type: 'object',
+      description: 'The added item and its editable children'
+    },
     errors: {
       type: 'array',
+      description: 'Errors of the array and its items only',
       items: {
         type: 'object',
         properties: {
@@ -42,6 +48,10 @@ export const outputSchema = {
           message: { type: 'string' }
         }
       }
+    },
+    otherErrors: {
+      type: 'number',
+      description: 'Number of errors in the rest of the form'
     }
   }
 }
@@ -51,13 +61,13 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Add or remove items in an array field of "${dataTitle}". Use describeState to see current array contents.`
+  return `Add or remove items in an array field of "${dataTitle}". Use describeState to see current array contents. When adding an item it is activated for edition and its children fields are returned, they can then be filled with setFieldValue. The returned errors are scoped to this array.`
 }
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} args
- * @returns {{ valid: boolean, itemCount: number, errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, item?: import('../project.js').ProjectedNode, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }}
  */
 export function execute (statefulLayout, args) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
@@ -70,15 +80,16 @@ export function execute (statefulLayout, args) {
   }
 
   const currentData = Array.isArray(node.data) ? [...node.data] : []
+  let index
 
   if (args.action === 'add') {
-    const index = args.index !== undefined ? args.index : currentData.length
+    index = args.index !== undefined ? args.index : currentData.length
     currentData.splice(index, 0, args.value !== undefined ? args.value : undefined)
   } else if (args.action === 'remove') {
     if (currentData.length === 0) {
       throw new Error('cannot remove from an empty array')
     }
-    const index = args.index !== undefined ? args.index : currentData.length - 1
+    index = args.index !== undefined ? args.index : currentData.length - 1
     if (index < 0 || index >= currentData.length) {
       throw new Error(`index ${index} out of bounds (array length: ${currentData.length})`)
     }
@@ -89,9 +100,37 @@ export function execute (statefulLayout, args) {
 
   statefulLayout.input(node, currentData)
 
-  return {
+  // the list components only hydrate the editable children of an item when it is activated,
+  // the same activation is applied here so that the agent can fill the new item
+  const listEditMode = /** @type {Record<string, unknown>} */(node.layout).listEditMode
+  const listNodeAfterInput = resolveNode(statefulLayout.stateTree.root, args.path)
+  if (listNodeAfterInput) {
+    if (args.action === 'add' && listEditMode !== 'inline') {
+      statefulLayout.activateItem(listNodeAfterInput, index)
+    } else if (args.action === 'remove' && statefulLayout.activatedItems[listNodeAfterInput.fullKey] !== undefined) {
+      statefulLayout.deactivateItem(listNodeAfterInput)
+    }
+  }
+
+  const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
+  const { errors, otherErrors } = collectScopedErrors(statefulLayout, listNode)
+
+  /** @type {{ valid: boolean, itemCount: number, index: number, item?: import('../project.js').ProjectedNode, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }} */
+  const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
-    errors: collectErrors(statefulLayout.stateTree.root)
+    index,
+    errors,
+    otherErrors
   }
+
+  if (args.action === 'add') {
+    const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
+    if (itemNode) {
+      result.item = projectNode(itemNode, statefulLayout)
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout)
+    }
+  }
+
+  return result
 }
