@@ -62,6 +62,26 @@ function topLevelPaths (statefulLayout) {
 }
 
 /**
+ * The fields a node declares, with a message that matches what the agent can actually do with
+ * them: they are empty on a node the skeleton says nothing about, and unreachable when they
+ * belong to array items that do not exist yet.
+ * @param {import('../../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('../../state/types.js').StateNode} node
+ * @param {object|null} schema
+ * @returns {{fields: Array<import('../schema.js').DeclaredField>, note: string}}
+ */
+function declaredFieldsWithNote (statefulLayout, node, schema) {
+  const fields = projectDeclaredFields(node, statefulLayout, schema)
+  if (fields.length === 0) {
+    return { fields, note: 'It declares no field that can be listed here, use describeState on this path to explore it.' }
+  }
+  if (!resolveNode(statefulLayout.stateTree.root, fields[0].path)) {
+    return { fields, note: 'Here are the fields declared by its items, add an item with editArray before reading or filling them.' }
+  }
+  return { fields, note: 'Here are the fields it declares, call getSchema again on one of them for more details.' }
+}
+
+/**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {object|null} schema
  * @param {{ path?: string }} args
@@ -79,18 +99,20 @@ export function execute (statefulLayout, schema, args) {
       if (length <= SCHEMA_MAX_LENGTH) {
         return { path: args.path, schema: subSchema }
       }
+      const tooLargeFields = declaredFieldsWithNote(statefulLayout, node, schema)
       return {
         path: args.path,
         length,
         tooLarge: true,
-        fields: projectDeclaredFields(node, statefulLayout, schema),
-        message: `The sub-schema at path "${args.path}" is still too large (${length} characters). Here are the fields it declares, call getSchema again on one of them for more details.`
+        fields: tooLargeFields.fields,
+        message: `The sub-schema at path "${args.path}" is still too large (${length} characters). ${tooLargeFields.note}`
       }
     }
+    const unresolved = declaredFieldsWithNote(statefulLayout, node, schema)
     return {
       path: args.path,
-      fields: projectDeclaredFields(node, statefulLayout, schema),
-      message: `No JSON sub-schema could be resolved for path "${args.path}", here are the fields declared by the form for this node.`
+      fields: unresolved.fields,
+      message: `No JSON sub-schema could be resolved for path "${args.path}". ${unresolved.note}`
     }
   }
 

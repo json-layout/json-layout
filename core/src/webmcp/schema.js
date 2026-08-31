@@ -112,7 +112,16 @@ function getSkeletonComp (statefulLayout, pointer) {
 export function projectDeclaredFields (node, statefulLayout, originalSchema) {
   /** @type {DeclaredField[]} */
   const fields = []
-  const childrenKeys = node.skeleton.children ?? []
+  let childrenKeys = node.skeleton.children ?? []
+  let pathPrefix = node.fullKey
+  if (childrenKeys.length === 0 && node.skeleton.childrenTrees?.length &&
+    (Array.isArray(node.data) || node.layout.comp === 'list')) {
+    // an array keeps the skeleton of its items in a separate tree, so the fields it declares
+    // are those of an item, addressed through an index
+    const itemSkeleton = statefulLayout.compiledLayout.skeletonNodes[node.skeleton.childrenTrees[0]]
+    childrenKeys = itemSkeleton?.children ?? []
+    pathPrefix = `${node.fullKey}/0`
+  }
   for (const childKey of childrenKeys) {
     const childSkeleton = statefulLayout.compiledLayout.skeletonNodes[childKey]
     if (!childSkeleton) continue
@@ -121,7 +130,7 @@ export function projectDeclaredFields (node, statefulLayout, originalSchema) {
     /** @type {DeclaredField} */
     const field = {
       key: childSkeleton.key,
-      path: `${node.fullKey}/${childSkeleton.key}`,
+      path: `${pathPrefix}/${childSkeleton.key}`,
       declared: true
     }
     if (childSkeleton.title) field.title = childSkeleton.title

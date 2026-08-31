@@ -84,6 +84,11 @@ export function execute (statefulLayout, args) {
 
   if (args.action === 'add') {
     index = args.index !== undefined ? args.index : currentData.length
+    // splice() would silently clamp an out of bounds index, but the reported index and the
+    // item activated below would then designate an item that does not exist
+    if (!Number.isInteger(index) || index < 0 || index > currentData.length) {
+      throw new Error(`index ${index} out of bounds (array length: ${currentData.length}, an item can be added at 0 to ${currentData.length})`)
+    }
     currentData.splice(index, 0, args.value !== undefined ? args.value : undefined)
   } else if (args.action === 'remove') {
     if (currentData.length === 0) {

@@ -4,7 +4,7 @@
 
 import { isItemsLayout } from '@json-layout/vocabulary'
 
-import { visibleChildren, resolveNode } from './resolve.js'
+import { visibleChildren, resolveNode, nodeOccurrences } from './resolve.js'
 import { projectDeclaredFields } from './schema.js'
 
 /**
@@ -83,6 +83,48 @@ function isReadOnly (node, statefulLayout) {
 }
 
 /**
+ * Validation errors of the whole state tree indexed by node path.
+ * Only the first of the two occurrences of an activated list item captures the errors, so a
+ * node reached through the editable occurrence has to look its own error up by path.
+ * @param {import('../state/types.js').StateNode} root
+ * @returns {Record<string, string>}
+ */
+function indexErrorsByPath (root) {
+  /** @type {Record<string, string>} */
+  const byPath = {}
+  /** @param {import('../state/types.js').StateNode} node */
+  const recurse = (node) => {
+    if (node.error && byPath[node.fullKey] === undefined) byPath[node.fullKey] = node.error
+    for (const child of node.children ?? []) recurse(child)
+  }
+  recurse(root)
+  return byPath
+}
+
+/**
+ * A node whose value is picked as a whole from getItems (a select or an autocomplete over
+ * objects) declares properties that are not nodes of the form: it is filled from
+ * getFieldSuggestions, never field by field. A list is itemsBased too, but its items do
+ * become real nodes, so its declared fields remain useful.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {boolean}
+ */
+function isValuePickedFromItems (node, statefulLayout) {
+  if (node.layout.comp === 'list') return false
+  return isItemsLayout(node.layout, statefulLayout.compiledLayout.components)
+}
+
+/**
+ * @param {import('../state/types.js').StateNode} node
+ * @param {Record<string, string>} [errorsByPath]
+ * @returns {string|undefined}
+ */
+function nodeError (node, errorsByPath) {
+  return node.error ?? errorsByPath?.[node.fullKey]
+}
+
+/**
  * @typedef {{
  *   path: string,
  *   type: string,
@@ -106,9 +148,10 @@ function isReadOnly (node, statefulLayout) {
 /**
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {Record<string, string>} [errorsByPath] - computed on the root node when not given
  * @returns {ProjectedNode}
  */
-export function projectNode (node, statefulLayout) {
+export function projectNode (node, statefulLayout, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)) {
   /** @type {ProjectedNode} */
   const out = {
     path: node.fullKey,
@@ -121,7 +164,8 @@ export function projectNode (node, statefulLayout) {
   if (typeof layout.label === 'string') out.label = layout.label
   if (node.layout.help) out.help = node.layout.help
 
-  if (node.error) out.error = node.error
+  const error = nodeError(node, errorsByPath)
+  if (error) out.error = error
 
   if (node.skeleton.required) out.required = true
   if (isReadOnly(node, statefulLayout)) out.readOnly = true
@@ -150,10 +194,11 @@ export function projectNode (node, statefulLayout) {
 
   const children = visibleChildren(node)
   if (children.length > 0) {
-    out.children = children.map(child => projectNode(child, statefulLayout))
-  } else if (node.skeleton.children?.length) {
+    out.children = children.map(child => projectNode(child, statefulLayout, errorsByPath))
+  } else if (node.skeleton.children?.length && !isValuePickedFromItems(node, statefulLayout)) {
     // the state tree did not hydrate the children of this node (a collapsed list item for example),
-    // the agent still needs to know which fields it can fill
+    // the agent still needs to know which fields it can fill. A node fed by getItems is skipped:
+    // its properties are not separate nodes, it is filled as a whole from getFieldSuggestions.
     const declaredFields = projectDeclaredFields(node, statefulLayout)
     if (declaredFields.length > 0) out.declaredFields = declaredFields
   }
@@ -174,7 +219,8 @@ export function projectFieldResult (node, statefulLayout) {
     type: compToType[node.layout.comp] || node.layout.comp,
     data: node.data
   }
-  if (node.error) out.error = node.error
+  const error = nodeError(node, indexErrorsByPath(statefulLayout.stateTree.root))
+  if (error) out.error = error
   return out
 }
 
@@ -195,18 +241,20 @@ export function projectStateTree (stateTree, statefulLayout) {
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {number} [depth]
+ * @param {Record<string, string>} [errorsByPath] - computed on the root node when not given
  * @returns {string}
  */
-export function projectNodeToMarkdown (node, statefulLayout, depth = 0) {
+export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)) {
   const indent = '  '.repeat(depth)
   const type = compToType[node.layout.comp] || node.layout.comp
   const layout = /** @type {Record<string, unknown>} */(node.layout)
 
   // build metadata tags
   const meta = [type]
+  const error = nodeError(node, errorsByPath)
   if (node.skeleton.required) meta.push('required')
   if (isReadOnly(node, statefulLayout)) meta.push('readOnly')
-  if (node.error) meta.push('error')
+  if (error) meta.push('error')
   if (node.modified) meta.push('modified')
 
   // constraints
@@ -244,7 +292,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0) {
     line += ` value=${JSON.stringify(node.data)}`
   }
 
-  if (node.error) line += ` — ${node.error}`
+  if (error) line += ` — ${error}`
 
   const lines = [line]
 
@@ -258,11 +306,13 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0) {
 
   // recurse children
   for (const child of children) {
-    lines.push(projectNodeToMarkdown(child, statefulLayout, depth + 1))
+    lines.push(projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath))
   }
 
-  // fields known from the skeleton but not hydrated in the state tree
-  if (children.length === 0 && node.skeleton.children?.length) {
+  // fields known from the skeleton but not hydrated in the state tree, skipped on a node fed by
+  // getItems: its properties are not separate nodes, it is filled from getFieldSuggestions
+  if (children.length === 0 && node.skeleton.children?.length &&
+    !isValuePickedFromItems(node, statefulLayout)) {
     for (const field of projectDeclaredFields(node, statefulLayout)) {
       const fieldMeta = ['declared']
       if (field.type) fieldMeta.unshift(field.type)
@@ -414,9 +464,21 @@ export function collectErrors (node) {
  * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number }}
  */
 export function collectScopedErrors (statefulLayout, node) {
-  const errors = collectErrors(node)
-  const allErrors = collectErrors(statefulLayout.stateTree.root)
-  return { errors, otherErrors: Math.max(0, allErrors.length - errors.length) }
+  const root = statefulLayout.stateTree.root
+  /** @type {Array<{path: string, message: string}>} */
+  const collected = []
+  // both occurrences of an activated list item are walked: the editable one the tools resolve
+  // to carries no error at all, they were all captured by the read-only summary
+  for (const occurrence of nodeOccurrences(root, node)) collectErrorsRecurse(occurrence, collected)
+  const errors = collected.filter((e, i) =>
+    collected.findIndex((o) => o.path === e.path && o.message === e.message) === i)
+
+  const prefix = node.fullKey
+  const isInScope = (/** @type {string} */path) =>
+    prefix === '' || path === prefix || path.startsWith(`${prefix}/`)
+  const otherErrors = collectErrors(root).filter((e) => !isInScope(e.path)).length
+
+  return { errors, otherErrors }
 }
 
 /**

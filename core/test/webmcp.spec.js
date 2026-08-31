@@ -14,7 +14,7 @@ import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { projectStateTree, projectNode, projectFieldResult, collectErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { projectStateTree, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 
@@ -770,6 +770,35 @@ describe('webmcp getSchema tool', () => {
     assert.ok(result.schema || result.fields, 'should return something usable')
   })
 
+  it('should list the item fields when an array sub-schema is too large', () => {
+    /** @type {any} */
+    const bigItem = { type: 'object', properties: {} }
+    for (let i = 0; i < 130; i++) {
+      bigItem.properties[`prop${i}`] = {
+        type: 'string',
+        title: `A fairly long title to inflate the schema ${i}`,
+        description: 'A long description so that the serialized sub-schema goes over the getSchema limit.'
+      }
+    }
+    const schema = { type: 'object', properties: { filters: { type: 'array', layout: { comp: 'list' }, items: bigItem } } }
+    const compiled = compile(schema)
+
+    // an array keeps its item skeleton in childrenTrees, not in children
+    const withItem = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { filters: [{}] })
+    const result = getSchema.execute(withItem, schema, { path: '/filters' })
+    assert.equal(result.tooLarge, true)
+    assert.ok(result.fields && result.fields.length > 0, 'the fields promised by the message must be listed')
+    assert.ok(result.fields?.find((f) => f.path === '/filters/0/prop0'))
+    assert.ok(resolveNode(withItem.stateTree.root, '/filters/0/prop0'), 'the listed paths should resolve')
+
+    // with no item yet those paths cannot be reached, the message must say so
+    const empty = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { filters: [] })
+    const emptyResult = getSchema.execute(empty, schema, { path: '/filters' })
+    assert.ok(emptyResult.fields && emptyResult.fields.length > 0)
+    assert.ok(/** @type {string} */(emptyResult.message).includes('editArray'),
+      `the agent should be told to add an item first, got: ${emptyResult.message}`)
+  })
+
   it('should have a description mentioning the path parameter', () => {
     assert.ok(getSchema.getDescription('config').includes('path'))
     assert.ok(getSchema.inputSchema.properties.path)
@@ -939,6 +968,89 @@ describe('webmcp menu and dialog list edit modes', () => {
       assert.equal(new Set(errors.map((e) => e.path)).size, 2)
     })
   }
+})
+
+describe('webmcp errors of an activated list item', () => {
+  // the activated item is kept twice and only the read-only summary captures the validation
+  // errors, so the editable occurrence the tools resolve to carries none of them
+  for (const mode of ['menu', 'dialog']) {
+    it(`should scope the item errors to the item itself in "${mode}" mode`, () => {
+      const layout = layoutWithActivatedItem(mode)
+      const item = resolveNode(layout.stateTree.root, '/filters/0')
+      assert.ok(item)
+      const { errors, otherErrors } = collectScopedErrors(layout, /** @type {any} */(item))
+      assert.deepEqual(errors.map((e) => e.path).sort(), ['/filters/0/field', '/filters/0/type'])
+      assert.equal(otherErrors, 0, 'the errors of the item must not be reported as being elsewhere')
+    })
+
+    it(`should still flag the erroring fields of the item in "${mode}" mode`, () => {
+      const layout = layoutWithActivatedItem(mode)
+      const text = describeState.toMarkdown(layout, { path: '/filters/0' })
+      assert.ok(text.includes('/filters/0/field (text, required, error)'), `the field should be flagged in error, got:\n${text}`)
+      assert.ok(text.includes('2 error(s) here'), `the errors should be scoped to the item, got:\n${text}`)
+      assert.ok(!text.includes('other error(s) elsewhere'), `the errors are here, not elsewhere, got:\n${text}`)
+    })
+  }
+})
+
+describe('webmcp editArray add index bounds', () => {
+  const emptyListLayout = () => {
+    const compiled = compile(listModeSchema('menu'))
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: [] })
+  }
+
+  it('should reject an out of bounds index instead of silently misplacing the item', () => {
+    const layout = emptyListLayout()
+    const before = JSON.stringify(layout.data)
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'add', index: 5 }), /out of bounds/)
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'add', index: -1 }), /out of bounds/)
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'add', index: 1.5 }), /out of bounds/)
+    assert.equal(JSON.stringify(layout.data), before, 'a rejected add must not touch the data')
+    assert.deepEqual(layout.activatedItems, {}, 'a rejected add must not activate anything')
+  })
+
+  it('should accept adding at the end of the array', () => {
+    const layout = emptyListLayout()
+    editArray.execute(layout, { path: '/filters', action: 'add' })
+    const result = editArray.execute(layout, { path: '/filters', action: 'add', index: 1 })
+    assert.equal(result.index, 1)
+    assert.equal(result.itemCount, 2)
+    assert.equal(/** @type {any[]} */(layout.data.filters).length, 2)
+  })
+
+  it('should accept adding at the beginning of the array', () => {
+    const layout = emptyListLayout()
+    editArray.execute(layout, { path: '/filters', action: 'add' })
+    const result = editArray.execute(layout, { path: '/filters', action: 'add', index: 0 })
+    assert.equal(result.index, 0)
+    assert.equal(result.itemCount, 2)
+  })
+})
+
+describe('webmcp declared fields of a value picked from getItems', () => {
+  const datasetSchema = {
+    type: 'object',
+    properties: {
+      dataset: {
+        type: 'object',
+        properties: { id: { type: 'string' }, title: { type: 'string' } },
+        layout: { getItems: 'context.datasets.map(d => ({ title: d.title, key: d.id, value: d }))' }
+      }
+    }
+  }
+
+  it('should not present the properties of the picked value as fillable fields', () => {
+    const compiled = compile(datasetSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { context: { datasets: [{ id: 'a', title: 'A' }] } }, {})
+    const node = resolveNode(layout.stateTree.root, '/dataset')
+    assert.ok(node)
+    const projected = projectNode(/** @type {any} */(node), layout)
+    assert.equal(projected.getSuggestions, true, 'the field is filled from getFieldSuggestions')
+    assert.equal(projected.declaredFields, undefined, 'its properties are not nodes of the form')
+    // the paths that used to be advertised do not resolve
+    assert.throws(() => setFieldValue.execute(layout, { path: '/dataset/id', value: 'x' }), /node not found/)
+  })
 })
 
 describe('webmcp array item edition', () => {
