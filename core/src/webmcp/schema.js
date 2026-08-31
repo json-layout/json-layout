@@ -4,6 +4,8 @@
  * these utilities extract the fragment that governs a single node of the form.
  */
 
+import { resolvePointerFragment } from '../utils/json-pointer.js'
+
 /** @typedef {import('../state/types.js').StateNode} StateNode */
 /** @typedef {import('../state/index.js').StatefulLayout} StatefulLayout */
 
@@ -13,15 +15,6 @@ const internalSchemaKeys = ['__pointer']
 /**
  * @typedef {{ key: string | number, path: string, type?: string, title?: string, required?: boolean, enum?: unknown[], declared: true }} DeclaredField
  */
-
-/**
- * Unescape a JSON pointer segment (RFC 6901).
- * @param {string} segment
- * @returns {string}
- */
-function unescapePointerSegment (segment) {
-  return segment.replace(/~1/g, '/').replace(/~0/g, '~')
-}
 
 /**
  * Deep clone a schema fragment while removing the keys added by the compilation step.
@@ -57,15 +50,9 @@ export function resolveSchemaPointer (schema, pointer) {
   // '_jl' is the default id given by the compilation step to an anonymous schema
   if (schemaId && schemaId !== '_jl' && schemaObject.$id !== undefined && schemaObject.$id !== schemaId) return undefined
   if (!fragment) return schema
-  /** @type {any} */
-  let current = schema
-  for (const rawSegment of fragment.replace(/^\//, '').split('/')) {
-    const segment = unescapePointerSegment(rawSegment)
-    if (current === null || typeof current !== 'object') return undefined
-    current = Array.isArray(current) ? current[Number(segment)] : current[segment]
-    if (current === undefined) return undefined
-  }
-  return current && typeof current === 'object' ? current : undefined
+  const resolved = resolvePointerFragment(schema, fragment)
+  if (!resolved.found) return undefined
+  return resolved.value && typeof resolved.value === 'object' ? /** @type {object} */(resolved.value) : undefined
 }
 
 /**
@@ -96,6 +83,10 @@ export function resolveNodeSchema (node, statefulLayout, originalSchema) {
 }
 
 /**
+ * Component of a node known only from its skeleton, used as a display hint.
+ * This is an approximation of the resolution done in state-node.js: a switch is resolved
+ * there by evaluating its expressions against the data, which is not available for a node
+ * the state tree did not hydrate, so the first case is taken as a representative one.
  * @param {StatefulLayout} statefulLayout
  * @param {string} pointer
  * @returns {string|undefined}

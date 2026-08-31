@@ -749,6 +749,19 @@ describe('webmcp getSchema tool', () => {
     assert.ok(parsed.title.includes('3'))
   })
 
+  it('should resolve a sub-schema whose property key contains json pointer escape sequences', () => {
+    // skeleton pointers are built by concatenation, without RFC 6901 escaping,
+    // so their segments must be resolved raw: unescaping '~0' here would look for 'a~b'
+    const schema = {
+      type: 'object',
+      properties: { 'a~0b': { type: 'string', title: 'Tilde prop' } }
+    }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const result = getSchema.execute(layout, schema, { path: '/a~0b' })
+    assert.deepEqual(result.schema, schema.properties['a~0b'])
+  })
+
   it('should fall back on the declared fields when no sub-schema can be resolved', async () => {
     const compiled = compile(arrayOfObjectsSchema)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: [{}] })
