@@ -27,7 +27,10 @@ export const outputSchema = {
       items: {
         type: 'object',
         properties: {
-          value: {},
+          index: { type: 'number', description: 'Pass it as "suggestionIndex" to setFieldValue to apply this suggestion' },
+          value: { description: 'The value to use, truncated when too large (see "truncated")' },
+          truncated: { type: 'boolean' },
+          valueLength: { type: 'number' },
           title: { type: 'string' },
           key: { type: 'string' }
         }
@@ -41,15 +44,16 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Get available options for a select/autocomplete/combobox field of form "${dataTitle}". Supports query-based filtering.`
+  return `Get available options for a select/autocomplete/combobox field of form "${dataTitle}". Supports query-based filtering. Each option is returned with an "index"; large option values are truncated, do not copy them: call setFieldValue with the field path and "suggestionIndex" set to the index of the chosen option, the full original value is applied.`
 }
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, query?: string }} args
+ * @param {import('../suggestions-store.js').SuggestionsStore} [store] - memorizes the full items so that setFieldValue can apply one by index
  * @returns {Promise<{items: Array<{value: unknown, title: string, key?: string}>}>}
  */
-export async function execute (statefulLayout, args) {
+export async function execute (statefulLayout, args, store) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
     throw new Error(`node not found at path: ${args.path}`)
@@ -61,6 +65,7 @@ export async function execute (statefulLayout, args) {
     const items = (oneOfItems || [])
       .filter((item) => !item.header)
       .map((item) => ({ value: item.key, title: item.title }))
+    store?.set(args.path, items)
     return { items }
   }
 
@@ -79,6 +84,8 @@ export async function execute (statefulLayout, args) {
       }
       return result
     })
+
+  store?.set(args.path, items)
 
   return { items }
 }

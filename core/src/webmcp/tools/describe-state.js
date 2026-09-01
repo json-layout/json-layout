@@ -2,7 +2,7 @@
  * @file describeState tool
  */
 
-import { projectStateTree, projectNode, collectErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
+import { projectStateTree, projectNode, collectErrors, collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
 import { resolveNode } from '../resolve.js'
 
 export const inputSchema = {
@@ -89,9 +89,10 @@ export function toMarkdown (statefulLayout, args) {
     if (!node) {
       throw new Error(`node not found at path: ${args.path}`)
     }
-    const errors = collectErrors(node)
+    const { errors, otherErrors } = collectScopedErrors(statefulLayout, node)
     return formatMutationResult(statefulLayout.valid, errors,
-      projectNodeToMarkdown(node, statefulLayout)
+      projectNodeToMarkdown(node, statefulLayout),
+      otherErrors
     )
   }
 
