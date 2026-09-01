@@ -209,6 +209,8 @@ export class WebMCP {
               this._statefulLayout,
               /** @type {{ data: unknown }} */(args)
             )
+            // the whole data was replaced, what a memorized path designates may have changed
+            this._suggestionsStore.clear()
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors) }],
               structuredContent: result
@@ -320,6 +322,9 @@ export class WebMCP {
               this._statefulLayout,
               /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args)
             )
+            // adding or removing an item shifts the paths of the items after it, so the
+            // suggestions memorized for those paths now designate another item
+            this._suggestionsStore.clear()
             let actionInfo = args.action === 'add'
               ? `added item at index ${result.index}, ${result.itemCount} total`
               : `removed item at index ${result.index}, ${result.itemCount} remaining`

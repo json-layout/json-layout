@@ -9,8 +9,10 @@ import { resolvePointerFragment } from '../utils/json-pointer.js'
 /** @typedef {import('../state/types.js').StateNode} StateNode */
 /** @typedef {import('../state/index.js').StatefulLayout} StatefulLayout */
 
-// keys injected in the schema by the compilation step, they are noise for a LLM agent
-const internalSchemaKeys = ['__pointer']
+// keys injected in the schema by the compilation step, they are noise for a LLM agent.
+// errorMessage is always written by skeleton-node.js, at least as an empty object; a user
+// defined one survives in the pristine schema, which is preferred and never cleaned.
+const internalSchemaKeys = ['__pointer', 'errorMessage']
 
 /**
  * @typedef {{ key: string | number, path: string, type?: string, title?: string, required?: boolean, enum?: unknown[], declared: true }} DeclaredField
@@ -47,8 +49,10 @@ export function resolveSchemaPointer (schema, pointer) {
   const schemaId = pointer.slice(0, hashIndex)
   const fragment = pointer.slice(hashIndex + 1)
   const schemaObject = /** @type {Record<string, unknown>} */(schema)
-  // '_jl' is the default id given by the compilation step to an anonymous schema
-  if (schemaId && schemaId !== '_jl' && schemaObject.$id !== undefined && schemaObject.$id !== schemaId) return undefined
+  // '_jl' is the default id given by the compilation step to an anonymous schema. A pointer into
+  // another schema is refused even when this one has no $id at all: resolving it here would
+  // silently return a same-shaped fragment of the wrong document instead of failing over.
+  if (schemaId && schemaId !== '_jl' && schemaObject.$id !== schemaId) return undefined
   if (!fragment) return schema
   const resolved = resolvePointerFragment(schema, fragment)
   if (!resolved.found) return undefined

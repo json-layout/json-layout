@@ -80,6 +80,8 @@ export function execute (statefulLayout, args) {
   }
 
   const currentData = Array.isArray(node.data) ? [...node.data] : []
+  // input() drops the activation when the array shrinks, so it has to be read before
+  const activatedBefore = statefulLayout.activatedItems[node.fullKey]
   let index
 
   if (args.action === 'add') {
@@ -112,8 +114,11 @@ export function execute (statefulLayout, args) {
   if (listNodeAfterInput) {
     if (args.action === 'add' && listEditMode !== 'inline') {
       statefulLayout.activateItem(listNodeAfterInput, index)
-    } else if (args.action === 'remove' && statefulLayout.activatedItems[listNodeAfterInput.fullKey] !== undefined) {
-      statefulLayout.deactivateItem(listNodeAfterInput)
+    } else if (args.action === 'remove' && typeof activatedBefore === 'number' && activatedBefore !== index) {
+      // input() dropped the activation, but the item being edited is not the one that was
+      // removed: it is restored, shifted down by one when it was after the removed item, so
+      // that the agent does not silently lose the item it was filling
+      statefulLayout.activateItem(listNodeAfterInput, activatedBefore > index ? activatedBefore - 1 : activatedBefore)
     }
   }
 

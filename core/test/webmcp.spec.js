@@ -17,6 +17,7 @@ import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 import { projectStateTree, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
+import { resolveSchemaPointer, resolveNodeSchema } from '../src/webmcp/schema.js'
 
 const simpleSchema = {
   type: 'object',
@@ -1050,6 +1051,74 @@ describe('webmcp declared fields of a value picked from getItems', () => {
     assert.equal(projected.declaredFields, undefined, 'its properties are not nodes of the form')
     // the paths that used to be advertised do not resolve
     assert.throws(() => setFieldValue.execute(layout, { path: '/dataset/id', value: 'x' }), /node not found/)
+  })
+})
+
+describe('webmcp sub-schema resolution guards', () => {
+  it('should refuse a pointer into another schema even when this one has no $id', () => {
+    const local = { type: 'object', properties: { street: { type: 'string', title: 'LOCAL street' } } }
+    // the path exists locally, but the pointer designates a different document
+    assert.equal(resolveSchemaPointer(local, 'https://schemas.example/address#/properties/street'), undefined)
+    // the anonymous id given by the compilation step and a matching $id are still accepted
+    assert.ok(resolveSchemaPointer(local, '_jl#/properties/street'))
+    assert.ok(resolveSchemaPointer({ ...local, $id: 'https://mine' }, 'https://mine#/properties/street'))
+  })
+
+  it('should not return the errorMessage injected by the compilation step', () => {
+    const schema = { type: 'object', required: ['type'], properties: { type: { type: 'string' } } }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    // no pristine schema given, so the compiled one is used and cleaned
+    const resolved = /** @type {any} */(resolveNodeSchema(layout.stateTree.root, layout, null))
+    assert.ok(resolved, 'the compiled schema should still resolve')
+    assert.equal(resolved.errorMessage, undefined)
+    assert.equal(resolved.properties.type.errorMessage, undefined)
+    assert.equal(resolved.properties.type.type, 'string', 'the actual schema must be preserved')
+  })
+})
+
+describe('webmcp activation across an array removal', () => {
+  const layoutWith4Items = () => {
+    const compiled = compile(listModeSchema('menu'))
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { validateOn: 'input' }, { filters: [{}, {}, {}, {}] })
+  }
+
+  for (const [activated, removed, expected] of [[3, 0, 2], [1, 3, 1], [2, 2, undefined], [0, 3, 0]]) {
+    it(`should keep editing item ${activated} after removing item ${removed}`, () => {
+      const layout = layoutWith4Items()
+      layout.activateItem(/** @type {any} */(resolveNode(layout.stateTree.root, '/filters')), activated)
+      editArray.execute(layout, { path: '/filters', action: 'remove', index: removed })
+      assert.equal(layout.activatedItems['/filters'], expected)
+    })
+  }
+})
+
+describe('webmcp suggestions invalidation', () => {
+  const suggestionsSchema = {
+    type: 'object',
+    properties: {
+      filters: {
+        type: 'array',
+        layout: { comp: 'list' },
+        items: { type: 'object', properties: { field: { type: 'string', layout: { getItems: 'context.fields' } } } }
+      }
+    }
+  }
+
+  it('should forget the suggestions of a path whose item was removed', async () => {
+    const compiled = compile(suggestionsSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { debounceInputMs: 0, context: { fields: ['a', 'b', 'c'] } }, { filters: [{ field: 'a' }, { field: 'b' }] })
+    const webmcp = new WebMCP(layout)
+    const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
+
+    await /** @type {any} */(tools.getFieldSuggestions).execute({ path: '/filters/0/field' })
+    await /** @type {any} */(tools.editArray).execute({ path: '/filters', action: 'remove', index: 0 })
+    // /filters/0/field now designates the item that was at index 1
+    const result = await /** @type {any} */(tools.setFieldValue).execute({ path: '/filters/0/field', suggestionIndex: 2 })
+    assert.equal(result.isError, true, 'a stale suggestionIndex must not be applied silently')
+    assert.deepEqual(layout.data, { filters: [{ field: 'b' }] }, 'the data must be untouched')
   })
 })
 
