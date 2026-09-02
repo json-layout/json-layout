@@ -18,6 +18,10 @@ const internalSchemaKeys = ['__pointer', 'errorMessage']
  * @typedef {{ key: string | number, path: string, type?: string, title?: string, required?: boolean, enum?: unknown[], declared: true }} DeclaredField
  */
 
+// keywords whose value maps a name chosen by the user to a sub-schema: their keys are not
+// schema keywords, a property may legitimately be named "errorMessage" or "__pointer"
+const schemaMapKeys = ['properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas']
+
 /**
  * Deep clone a schema fragment while removing the keys added by the compilation step.
  * @param {unknown} fragment
@@ -30,11 +34,24 @@ export function cleanSchemaFragment (fragment) {
     const clean = {}
     for (const [key, value] of Object.entries(fragment)) {
       if (internalSchemaKeys.includes(key)) continue
-      clean[key] = cleanSchemaFragment(value)
+      clean[key] = schemaMapKeys.includes(key) ? cleanSchemaMap(value) : cleanSchemaFragment(value)
     }
     return clean
   }
   return fragment
+}
+
+/**
+ * Clean the sub-schemas of a map without filtering the names used as its keys.
+ * @param {unknown} map
+ * @returns {unknown}
+ */
+function cleanSchemaMap (map) {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) return cleanSchemaFragment(map)
+  /** @type {Record<string, unknown>} */
+  const clean = {}
+  for (const [name, subSchema] of Object.entries(map)) clean[name] = cleanSchemaFragment(subSchema)
+  return clean
 }
 
 /**

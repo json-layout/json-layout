@@ -17,7 +17,7 @@ import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 import { projectStateTree, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
-import { resolveSchemaPointer, resolveNodeSchema } from '../src/webmcp/schema.js'
+import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
 
 const simpleSchema = {
   type: 'object',
@@ -1119,6 +1119,104 @@ describe('webmcp suggestions invalidation', () => {
     const result = await /** @type {any} */(tools.setFieldValue).execute({ path: '/filters/0/field', suggestionIndex: 2 })
     assert.equal(result.isError, true, 'a stale suggestionIndex must not be applied silently')
     assert.deepEqual(layout.data, { filters: [{ field: 'b' }] }, 'the data must be untouched')
+  })
+})
+
+describe('webmcp errors below an activated list item', () => {
+  const deepSchema = {
+    type: 'object',
+    properties: {
+      filters: {
+        type: 'array',
+        layout: { comp: 'list', listEditMode: 'menu' },
+        items: {
+          type: 'object',
+          required: ['type', 'field'],
+          properties: { type: { type: 'string' }, field: { type: 'string', minLength: 3 } }
+        }
+      }
+    }
+  }
+
+  it('should report the error of a field nested in the activated item', () => {
+    const compiled = compile(deepSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { validateOn: 'input', initialValidation: 'always', debounceInputMs: 0 }, { filters: [{ type: 'x', field: 'abc' }] })
+    layout.activateItem(/** @type {any} */(resolveNode(layout.stateTree.root, '/filters')), 0)
+
+    const result = setFieldValue.execute(layout, { path: '/filters/0/field', value: 'ab' })
+    assert.equal(result.errors.length, 1, 'the error of the field just edited must be reported')
+    assert.equal(result.errors[0].path, '/filters/0/field')
+    assert.equal(result.otherErrors, 0, 'it must not be counted as being elsewhere')
+
+    // the markdown used to flag the node in error and claim "no error here" right after
+    const text = describeState.toMarkdown(layout, { path: '/filters/0/field' })
+    assert.ok(text.includes('1 error(s) here'), `got:\n${text}`)
+    assert.ok(!text.includes('no error here'), `got:\n${text}`)
+  })
+
+  it('should not present the fields of a summary item as readOnly', () => {
+    const compiled = compile(deepSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { validateOn: 'input', debounceInputMs: 0 },
+      { filters: [{ type: 'a', field: 'aaa' }, { type: 'b', field: 'bbb' }] })
+    layout.activateItem(/** @type {any} */(resolveNode(layout.stateTree.root, '/filters')), 0)
+
+    const text = describeState.toMarkdown(layout, { path: '/filters/1' })
+    assert.ok(!text.includes('readOnly'), `the fields of an editable item are writable, got:\n${text}`)
+    // and they really are writable
+    setFieldValue.execute(layout, { path: '/filters/1/field', value: 'zzz' })
+    assert.equal(/** @type {any} */(layout.data).filters[1].field, 'zzz')
+  })
+})
+
+describe('webmcp editArray remove index bounds', () => {
+  it('should reject a non integer remove index', () => {
+    const compiled = compile(listModeSchema('menu'))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { validateOn: 'input' }, { filters: [{}, {}, {}] })
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'remove', index: 1.7 }), /out of bounds/)
+    assert.equal(/** @type {any[]} */(/** @type {any} */(layout.data).filters).length, 3, 'nothing must have been removed')
+  })
+})
+
+describe('webmcp schema cleaning', () => {
+  it('should strip the injected keys without touching properties of the same name', () => {
+    const cleaned = /** @type {any} */(cleanSchemaFragment({
+      errorMessage: { required: 'injected' },
+      __pointer: '_jl#/x',
+      properties: { errorMessage: { type: 'string' }, __pointer: { type: 'number' }, ok: { type: 'string' } }
+    }))
+    assert.equal(cleaned.errorMessage, undefined, 'the injected keyword should be removed')
+    assert.equal(cleaned.__pointer, undefined)
+    assert.deepEqual(cleaned.properties, {
+      errorMessage: { type: 'string' },
+      __pointer: { type: 'number' },
+      ok: { type: 'string' }
+    }, 'properties named like an internal key are real fields of the form')
+  })
+})
+
+describe('webmcp suggestions invalidation on setFieldValue', () => {
+  it('should forget suggestions that depended on another field', async () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        country: { type: 'string' },
+        city: { type: 'string', layout: { getItems: 'context.cities[parent.data.country] || []' } }
+      }
+    }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree],
+      { debounceInputMs: 0, context: { cities: { fr: ['paris', 'lyon'], it: ['roma', 'milano'] } } }, { country: 'fr' })
+    const tools = Object.fromEntries(new WebMCP(layout).getTools().map((t) => [t.name, t]))
+
+    await /** @type {any} */(tools.getFieldSuggestions).execute({ path: '/city' })
+    await /** @type {any} */(tools.setFieldValue).execute({ path: '/country', value: 'it' })
+    const result = await /** @type {any} */(tools.setFieldValue).execute({ path: '/city', suggestionIndex: 1 })
+
+    assert.equal(result.isError, true, 'a suggestion from the previous country must not be applied')
+    assert.equal(/** @type {any} */(layout.data).city, undefined)
   })
 })
 

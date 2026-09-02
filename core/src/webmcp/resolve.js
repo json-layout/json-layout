@@ -39,24 +39,6 @@ export function resolveNode (root, path) {
 }
 
 /**
- * All the occurrences of a node in its parent's children. In "menu" and "dialog" list edit
- * modes the activated item is kept twice and the two copies do not carry the same
- * information: validation errors are captured by the first node that matches them
- * (state-node.js consumes them from a shared context), so they all land on the read-only
- * summary while only the appended occurrence is editable.
- * @param {import('../state/types.js').StateNode} root
- * @param {import('../state/types.js').StateNode} node
- * @returns {import('../state/types.js').StateNode[]}
- */
-export function nodeOccurrences (root, node) {
-  const parentFullKey = node.parentFullKey
-  if (parentFullKey === null || parentFullKey === undefined) return [node]
-  const parent = resolveNode(root, parentFullKey)
-  const occurrences = parent?.children?.filter((c) => c.fullKey === node.fullKey)
-  return occurrences && occurrences.length > 1 ? occurrences : [node]
-}
-
-/**
  * Children of a node as they should be presented to an agent: hidden nodes are removed
  * and the duplicated activated list item is deduplicated.
  * @param {import('../state/types.js').StateNode} node

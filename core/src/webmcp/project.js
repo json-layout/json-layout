@@ -4,7 +4,7 @@
 
 import { isItemsLayout } from '@json-layout/vocabulary'
 
-import { visibleChildren, resolveNode, nodeOccurrences } from './resolve.js'
+import { visibleChildren, resolveNode } from './resolve.js'
 import { projectDeclaredFields } from './schema.js'
 
 /**
@@ -73,13 +73,24 @@ function isEditableListItemSummary (node, statefulLayout) {
 }
 
 /**
+ * readOnly is inherited by everything below a list item rendered as a summary, so the exemption
+ * has to look at the ancestors too: the fields of such an item are writable, and presenting them
+ * as read-only makes an agent skip fields it is allowed to fill. Only walked for a readOnly node.
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {boolean}
  */
 function isReadOnly (node, statefulLayout) {
   if (!node.options.readOnly) return false
-  return !isEditableListItemSummary(node, statefulLayout)
+  /** @type {import('../state/types.js').StateNode|undefined} */
+  let current = node
+  while (current) {
+    if (isEditableListItemSummary(current, statefulLayout)) return false
+    const parentFullKey = current.parentFullKey
+    if (parentFullKey === null || parentFullKey === undefined) break
+    current = resolveNode(statefulLayout.stateTree.root, parentFullKey)
+  }
+  return true
 }
 
 /**
@@ -464,20 +475,21 @@ export function collectErrors (node) {
  * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number }}
  */
 export function collectScopedErrors (statefulLayout, node) {
-  const root = statefulLayout.stateTree.root
-  /** @type {Array<{path: string, message: string}>} */
-  const collected = []
-  // both occurrences of an activated list item are walked: the editable one the tools resolve
-  // to carries no error at all, they were all captured by the read-only summary
-  for (const occurrence of nodeOccurrences(root, node)) collectErrorsRecurse(occurrence, collected)
-  const errors = collected.filter((e, i) =>
-    collected.findIndex((o) => o.path === e.path && o.message === e.message) === i)
-
+  // the path index is used rather than a walk of the subtree: an activated list item is kept
+  // twice and the tools resolve to the editable occurrence, which carries no error at all,
+  // neither on the item nor on anything below it. Indexing by path merges the two.
+  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
   const prefix = node.fullKey
   const isInScope = (/** @type {string} */path) =>
     prefix === '' || path === prefix || path.startsWith(`${prefix}/`)
-  const otherErrors = collectErrors(root).filter((e) => !isInScope(e.path)).length
 
+  /** @type {Array<{path: string, message: string}>} */
+  const errors = []
+  let otherErrors = 0
+  for (const [path, message] of Object.entries(errorsByPath)) {
+    if (isInScope(path)) errors.push({ path, message })
+    else otherErrors++
+  }
   return { errors, otherErrors }
 }
 

@@ -75,10 +75,14 @@ function declaredFieldsWithNote (statefulLayout, node, schema) {
   if (fields.length === 0) {
     return { fields, note: 'It declares no field that can be listed here, use describeState on this path to explore it.' }
   }
-  if (!resolveNode(statefulLayout.stateTree.root, fields[0].path)) {
+  if (fields.every((field) => resolveNode(statefulLayout.stateTree.root, field.path))) {
+    return { fields, note: 'Here are the fields it declares, call getSchema again on one of them for more details.' }
+  }
+  if (node.layout.comp === 'list') {
     return { fields, note: 'Here are the fields declared by its items, add an item with editArray before reading or filling them.' }
   }
-  return { fields, note: 'Here are the fields it declares, call getSchema again on one of them for more details.' }
+  // not a list, editArray would refuse it: the paths simply are not in the state tree yet
+  return { fields, note: 'Here are the fields it declares, they are not present in the form state yet so describeState and setFieldValue may not reach all of them.' }
 }
 
 /**

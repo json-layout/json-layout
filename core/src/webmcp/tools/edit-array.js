@@ -97,7 +97,7 @@ export function execute (statefulLayout, args) {
       throw new Error('cannot remove from an empty array')
     }
     index = args.index !== undefined ? args.index : currentData.length - 1
-    if (index < 0 || index >= currentData.length) {
+    if (!Number.isInteger(index) || index < 0 || index >= currentData.length) {
       throw new Error(`index ${index} out of bounds (array length: ${currentData.length})`)
     }
     currentData.splice(index, 1)

@@ -262,6 +262,9 @@ export class WebMCP {
               /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
               this._suggestionsStore
             )
+            // a getItems expression can depend on another field, so writing one may change the
+            // options of a field whose suggestions were memorized under an unchanged path
+            this._suggestionsStore.clear()
             const fieldInfo = `${result.field.path} (${result.field.type}) = ${JSON.stringify(result.field.data)}`
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }],
