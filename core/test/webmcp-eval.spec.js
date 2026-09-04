@@ -1,8 +1,8 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { cases, getCase } from '../eval/cases/index.js'
-import { EvalSession } from '../eval/session.js'
+import { cases, getCase } from '../webmcp-eval/cases/index.js'
+import { EvalSession } from '../webmcp-eval/session.js'
 
 /**
  * These are not agent runs — no model is involved. They drive each case through a
@@ -12,7 +12,7 @@ import { EvalSession } from '../eval/session.js'
  * makes a form need twice as many calls fails here, deterministically, before anyone
  * spends tokens discovering it.
  */
-describe('eval harness', () => {
+describe('webmcp eval harness', () => {
   it('should expose the same tools a page would register, including the skill', () => {
     const session = new EvalSession(getCase('contact'))
     const names = session.tools.map((t) => t.name)

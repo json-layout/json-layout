@@ -22,7 +22,7 @@ regression the harness exists to catch.
 
 ## Deterministic runs (CI)
 
-`core/test/eval-harness.spec.js` drives every case through a hand-written but realistic
+`core/test/webmcp-eval.spec.js` drives every case through a hand-written but realistic
 tool sequence. No model involved, so it is reproducible and runs with `npm test`. It pins
 that a competent path exists and stays in budget, and that the scorer itself correctly
 fails truncated or over-budget runs.
@@ -37,12 +37,12 @@ per case, so a coding agent can drive a real form:
 2. Give the agent **only** the case goal — printed on stderr when the server starts, and
    available from `cases/index.js`. Do not tell it which tools to call; how it finds its
    way through the protocol is the thing being measured.
-3. The server records every call to `core/tmp/eval-<case>.json` as it goes.
+3. The server records every call to `core/tmp/webmcp-eval-<case>.json` as it goes.
 4. Score it:
 
 ```bash
-npm run eval:score -w core            # every case with a transcript
-npm run eval:score -w core -- team    # one case
+npm run webmcp-eval:score -w core            # every case with a transcript
+npm run webmcp-eval:score -w core -- team    # one case
 ```
 
 Exit code is non-zero if any scored run failed, so this can gate a change to the tools.

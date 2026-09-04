@@ -13,9 +13,9 @@
  * for a surface this small.
  *
  * Usage (see .mcp.json):
- *   JL_EVAL_CASE=team node core/eval/server.js
+ *   JL_WEBMCP_EVAL_CASE=team node core/webmcp-eval/server.js
  *
- * On exit it writes the recorded run to core/tmp/eval-<case>.json for score.js.
+ * On exit it writes the recorded run to core/tmp/webmcp-eval-<case>.json for score.js.
  */
 
 import { createInterface } from 'node:readline'
@@ -27,11 +27,11 @@ import { getCase } from './cases/index.js'
 import { EvalSession } from './session.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const caseName = process.env.JL_EVAL_CASE || 'contact'
+const caseName = process.env.JL_WEBMCP_EVAL_CASE || 'contact'
 const evalCase = getCase(caseName)
 const session = new EvalSession(evalCase)
 
-const transcriptPath = join(here, '..', 'tmp', `eval-${caseName}.json`)
+const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${caseName}.json`)
 
 /** Write the run so far to the transcript file scored by score.js. */
 function persist () {
@@ -82,7 +82,7 @@ async function handle (msg) {
       // clients over a field none of the three implemented methods depend on.
       protocolVersion: params?.protocolVersion ?? '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: `json-layout-eval:${caseName}`, version: '1.0.0' }
+      serverInfo: { name: `json-layout-webmcp-eval:${caseName}`, version: '1.0.0' }
     })
     return
   }
@@ -145,4 +145,4 @@ rl.on('line', (line) => {
 })
 rl.on('close', persist)
 
-process.stderr.write(`json-layout eval server ready — case "${caseName}": ${evalCase.goal}\n`)
+process.stderr.write(`json-layout webmcp eval server ready — case "${caseName}": ${evalCase.goal}\n`)

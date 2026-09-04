@@ -2,7 +2,7 @@
 /**
  * @file Print the score of an agent-driven run recorded by server.js.
  *
- * Usage: node core/eval/score.js [case ...]   (default: every case with a transcript)
+ * Usage: node core/webmcp-eval/score.js [case ...]   (default: every case with a transcript)
  */
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -19,10 +19,10 @@ let failed = false
 let found = 0
 
 for (const name of names) {
-  const path = join(here, '..', 'tmp', `eval-${name}.json`)
+  const path = join(here, '..', 'tmp', `webmcp-eval-${name}.json`)
   if (!existsSync(path)) {
     if (wanted.length) {
-      console.error(`no transcript for "${name}" — run the agent against JL_EVAL_CASE=${name} first`)
+      console.error(`no transcript for "${name}" — run the agent against JL_WEBMCP_EVAL_CASE=${name} first`)
       failed = true
     }
     continue
@@ -40,7 +40,7 @@ for (const name of names) {
 }
 
 if (!found) {
-  console.error('no transcripts found — see core/eval/README.md for how to run an agent against a case')
+  console.error('no transcripts found — see core/webmcp-eval/README.md for how to run an agent against a case')
   process.exit(1)
 }
 process.exit(failed ? 1 : 0)

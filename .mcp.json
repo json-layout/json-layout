@@ -1,22 +1,22 @@
 {
   "mcpServers": {
-    "jl-eval-contact": {
+    "webmcp-eval-contact": {
       "type": "stdio",
       "command": "node",
-      "args": ["core/eval/server.js"],
-      "env": { "JL_EVAL_CASE": "contact" }
+      "args": ["core/webmcp-eval/server.js"],
+      "env": { "JL_WEBMCP_EVAL_CASE": "contact" }
     },
-    "jl-eval-team": {
+    "webmcp-eval-team": {
       "type": "stdio",
       "command": "node",
-      "args": ["core/eval/server.js"],
-      "env": { "JL_EVAL_CASE": "team" }
+      "args": ["core/webmcp-eval/server.js"],
+      "env": { "JL_WEBMCP_EVAL_CASE": "team" }
     },
-    "jl-eval-dataset": {
+    "webmcp-eval-dataset": {
       "type": "stdio",
       "command": "node",
-      "args": ["core/eval/server.js"],
-      "env": { "JL_EVAL_CASE": "dataset" }
+      "args": ["core/webmcp-eval/server.js"],
+      "env": { "JL_WEBMCP_EVAL_CASE": "dataset" }
     }
   }
 }
