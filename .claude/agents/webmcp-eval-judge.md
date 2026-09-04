@@ -28,6 +28,12 @@ Pay particular attention to:
 - calls that bought no information, or repeated work already done
 - the number of round-trips relative to what the form actually required
 
+A form's labels and titles may be written in a different language from the goal — the
+vendored app schemas are labelled in French while their goals are in English. That is what
+a real page looks like and is not itself protocol friction: report it only if a tool
+response left the agent unable to tell which field was meant, never merely because a
+translation step was needed.
+
 The metrics are evidence, not thresholds. A high call count on a genuinely large form is
 fine; five calls to read five closed lists that the form already knew is not.
 

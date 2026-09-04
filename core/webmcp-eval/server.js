@@ -13,7 +13,7 @@
  * for a surface this small.
  *
  * Usage (see .mcp.json):
- *   JL_WEBMCP_EVAL_CASE=team node core/webmcp-eval/server.js
+ *   JL_WEBMCP_EVAL_CASE=contact node core/webmcp-eval/server.js
  *
  * On exit it writes the recorded run to core/tmp/webmcp-eval-<case>.json as evidence for
  * the webmcp-eval-judge agent to read.
@@ -76,7 +76,10 @@ async function handle (msg) {
       // clients over a field none of the three implemented methods depend on.
       protocolVersion: params?.protocolVersion ?? '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: `json-layout-webmcp-eval:${caseName}`, version: '1.0.0' }
+      // Wire-visible, so it carries no evaluation language for the same reason the
+      // server and tool names do not: a runner that reads "eval" here has been told
+      // what it must not be told.
+      serverInfo: { name: `page-form:${caseName}`, version: '1.0.0' }
     })
     return
   }

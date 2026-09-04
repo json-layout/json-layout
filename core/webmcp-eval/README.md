@@ -26,6 +26,25 @@ independent of each other: `calendar` is `large` yet its schema still fits in a 
 `getSchema` response, so `charts` is the only case that exercises the refusal path and
 forces the agent to navigate by path instead.
 
+### Where the vendored schemas came from
+
+Copies live in `cases/schemas/`, pinned so a run today is comparable to one months later.
+Both come from the [data-fair](https://github.com/data-fair) applications:
+
+| file | upstream repo | upstream path |
+|---|---|---|
+| `cases/schemas/app-charts.json` | `data-fair/app-charts` | `src/config/schema.json` |
+| `cases/schemas/app-calendar.json` | `data-fair/app-calendar` | `public/config-schema.json` |
+
+`app-charts` is vendored from its **source** schema, not its published one:
+`public/config-schema.json` there is a build artefact (`df-build-types && ncp
+src/config/.type/resolved-schema.json public/config-schema.json`), so it is the resolved
+schema — 185 660 characters against 29 472, for a byte-identical state projection.
+`app-calendar` has no `src/config/schema.json`, so its published file is the source.
+
+Both are labelled in French while the goals are in English, as real pages of theirs are.
+The judge is told this so it does not score a translation step as protocol friction.
+
 ## Deterministic runs (CI)
 
 `core/test/webmcp-eval.spec.js` compiles every case and pins its declared band and
@@ -43,10 +62,27 @@ Real runs are driven by isolated coding-agent subagents, orchestrated through th
    browser page would expose. Run `npm run webmcp-eval:config -w core` to (re)generate
    `.mcp.json` and the per-case runner agent definitions after adding or changing a
    case, then restart the session so the new servers load.
+
+   `.mcp.json` sits at the repository root because that is where Claude Code reads it,
+   so **every contributor session in this repository starts three extra stdio node
+   processes**, one per case. They are cheap (a compiled form each, idle until called)
+   and they must exist at session start: MCP servers connect once, when the session
+   opens, so a server generated mid-session is not available until the next one. That is
+   the trade for being able to dispatch a runner without any setup step.
+
 2. The skill dispatches one `page-form-runner-<case>` subagent per case, in parallel,
    giving it only the case's goal — no mention of json-layout, the schema, or the tools
-   available. Those runners have no filesystem access, so what they see is what a real
-   page visit would give them.
+   available. Those runners have no filesystem access, so what they see is close to what
+   a real page visit would give them.
+
+   **Residual leakage.** "Close to", not "identical to": Claude Code injects its own
+   preamble into every subagent, including an environment block naming the working
+   directory. A runner therefore knows it is inside the json-layout repository, and no
+   rename of a generated identifier can remove that inference. What the harness does
+   guarantee is that the runner can read nothing — not the case registry, not the tool
+   implementations, not another case — and that nothing generated here (server name, tool
+   names, agent name, description or prompt) tells it that it is being evaluated.
+
 3. Each server records every call it receives to `core/tmp/webmcp-eval-<case>.json` as
    it goes — this is the evidence, not a score.
 4. Because a case's server holds one form's state for the life of the session, **each
@@ -65,8 +101,8 @@ so re-running a case discards its previous run and verdict.
 ## Reporting
 
 ```bash
-npm run webmcp-eval:report -w core            # every case with a transcript
-npm run webmcp-eval:report -w core -- charts  # one case
+npm run webmcp-eval:report -w core            # every case in the registry
+npm run webmcp-eval:report -w core -- charts  # only the cases named
 ```
 
 This aggregates the evidence and verdict files and prints, per case, the verdict and
@@ -75,9 +111,20 @@ reasoning, the goal, and the metrics (`toolCalls`, `outputBytes`, `valid`) as *c
 threshold: a run within any call count can still be judged unsatisfactory, and a run
 with a high call count on a genuinely large form can still be satisfactory.
 
-The report — and its exit code — fails whenever any run is `unsatisfactory` **or**
-unjudged. A transcript nobody read is not evidence of anything, so a missing or
-unreadable verdict counts the same as a bad one.
+The report — and its exit code — fails whenever any run is `unsatisfactory`, unjudged,
+or missing:
+
+| line | means |
+|---|---|
+| `<case>: UNSATISFACTORY` | the judge read the transcript and found the session did not get through the protocol |
+| `<case>: not judged` | a transcript exists but its verdict file is missing, malformed, or written for another case |
+| `<case>: not run` | no transcript at all — the case never dispatched, usually because its MCP server was not loaded |
+
+A transcript nobody read is not evidence of anything, and a case that never ran is not a
+case that passed. Each line also prints `started <timestamp>`: evidence files persist
+across sessions and are only overwritten when a case actually runs, so the timestamp is
+what tells a leftover transcript from a fresh one. The `/webmcp-eval` skill deletes
+`core/tmp/webmcp-eval-*` before dispatching for the same reason.
 
 ## Reading a result
 

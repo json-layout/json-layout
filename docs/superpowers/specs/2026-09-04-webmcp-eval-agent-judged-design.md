@@ -143,9 +143,29 @@ inherits MCP access — the guarantee is unchanged.
 
 Three properties make a run trustworthy:
 
-- the runner cannot read `cases/index.js`, `src/webmcp/`, or the review report
-- it is not told it is being evaluated, so it behaves as it would on a real page
-- the goal string is its only input
+- the runner is granted no filesystem, shell or network tools, so it cannot read
+  `cases/index.js`, `src/webmcp/`, or the review report
+- no generated surface the runner can see carries evaluation language: the MCP server
+  name, every tool name derived from it, and the agent's `name`, `description` and prompt
+  body are all asserted leak-free in `core/test/webmcp-eval-config.spec.js`. The tool
+  descriptions and the fill-form skill text are not generated here at all — they are the
+  ones `src/webmcp/` gives a browser page, which is the point of running against them
+- the goal string is the only text *this harness* gives it: nothing about the case, the
+  schema, the tools, or the fact that a run is being judged
+
+### Residual leakage
+
+The goal string is not the runner's only input in absolute terms, and the spec should not
+claim it is. Claude Code injects its own preamble into every subagent, including an
+environment block naming the working directory (`/home/alban/github/json-layout`). A
+runner therefore knows it is inside the json-layout repository while holding tools named
+`page-form-*`, and could in principle infer what it is participating in. No rename of a
+generated identifier removes that inference; only a runner dispatched outside this
+repository would.
+
+What holds is narrower and still worth having: the runner cannot *read* anything —
+neither the goal it was not given, the expected behaviour, the tool implementations, nor
+another case — and nothing this harness writes tells it that it is being evaluated.
 
 ### Generated configuration
 
@@ -234,7 +254,7 @@ deliberate act.
 |--------|------|
 | add | `core/webmcp-eval/cases/schemas/*.json` |
 | add | `core/webmcp-eval/generate-config.js` |
-| add | `.claude/agents/webmcp-eval-runner-<case>.md`, `.claude/agents/webmcp-eval-judge.md` |
+| add | `.claude/agents/page-form-runner-<case>.md`, `.claude/agents/webmcp-eval-judge.md` |
 | add | `.claude/skills/webmcp-eval/SKILL.md` |
 | rewrite | `core/webmcp-eval/cases/index.js`, `cases/types.ts` |
 | rewrite | `core/webmcp-eval/session.js` (drop scoring) |

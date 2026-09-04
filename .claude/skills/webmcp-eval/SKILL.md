@@ -23,7 +23,18 @@ data. To re-run, start a fresh session.
 1. Read the case list from `core/webmcp-eval/cases/index.js`. Note each case's `name` and
    `goal`.
 
-2. Dispatch one runner per case, **in parallel, in a single message**. Use the agent type
+2. Delete the evidence left by any earlier session:
+
+   ```bash
+   rm -f core/tmp/webmcp-eval-*
+   ```
+
+   These files persist and are only overwritten when a case actually runs. If a case
+   fails to dispatch in this session, the previous session's transcript and its verdict
+   would be reported as this session's result. Deleting first turns that into a visible
+   `not run`.
+
+3. Dispatch one runner per case, **in parallel, in a single message**. Use the agent type
    `page-form-runner-<case>` and pass **only the goal string** as the prompt.
 
    Do not add context. Do not mention json-layout, the eval, the schema, or what you know
@@ -31,16 +42,18 @@ data. To re-run, start a fresh session.
    the only thing it knows, and every extra sentence makes the result less like a real
    page visit.
 
-3. When a runner finishes, its transcript is at `core/tmp/webmcp-eval-<case>.json`. Read
+4. When a runner finishes, its transcript is at `core/tmp/webmcp-eval-<case>.json`. Read
    it.
 
-4. Dispatch a `webmcp-eval-judge` subagent per case. Give it, in the prompt: the goal, the
+5. Dispatch a `webmcp-eval-judge` subagent per case. Give it, in the prompt: the goal, the
    case's schema, the transcript's `calls` array, and its `metrics`, `data` and `valid`
    fields. Ask for the JSON verdict its definition describes.
 
-5. Write each verdict to `core/tmp/webmcp-eval-<case>.verdict.json`.
+6. Write each verdict to `core/tmp/webmcp-eval-<case>.verdict.json`.
 
-6. Run `npm run webmcp-eval:report -w core` and relay the summary.
+7. Run `npm run webmcp-eval:report -w core` and relay the summary. A case reported as
+   `not run` never executed — usually its MCP server was not loaded — and fails the
+   report; do not read the cases that did run as the result of the suite.
 
 ## Reading the result
 
