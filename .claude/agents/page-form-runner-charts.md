@@ -1,7 +1,7 @@
 ---
-name: webmcp-eval-runner-charts
+name: page-form-runner-charts
 description: Fills in the form on the page the user is viewing.
-tools: mcp__webmcp-eval-charts__fillFormSkill, mcp__webmcp-eval-charts__getData, mcp__webmcp-eval-charts__setData, mcp__webmcp-eval-charts__describeState, mcp__webmcp-eval-charts__setFieldValue, mcp__webmcp-eval-charts__getFieldSuggestions, mcp__webmcp-eval-charts__editArray, mcp__webmcp-eval-charts__getSchema
+tools: mcp__page-form-charts__fillFormSkill, mcp__page-form-charts__getData, mcp__page-form-charts__setData, mcp__page-form-charts__describeState, mcp__page-form-charts__setFieldValue, mcp__page-form-charts__getFieldSuggestions, mcp__page-form-charts__editArray, mcp__page-form-charts__getSchema
 ---
 
 You are assisting a user with a form on the page they are currently viewing.

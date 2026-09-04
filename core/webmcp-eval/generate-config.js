@@ -60,7 +60,11 @@ export function buildConfig (evalCases) {
   const agents = []
 
   for (const evalCase of evalCases) {
-    const server = `webmcp-eval-${evalCase.name}`
+    // The server name becomes every tool name the runner sees
+    // (mcp__page-form-<case>__<tool>), so it must carry no evaluation language: tool
+    // names sit in the runner's live context, unlike the module path or env var below,
+    // which the runner has no filesystem access to read.
+    const server = `page-form-${evalCase.name}`
     mcpServers[server] = {
       type: 'stdio',
       command: 'node',
@@ -70,9 +74,9 @@ export function buildConfig (evalCases) {
 
     const tools = TOOL_NAMES.map((tool) => `mcp__${server}__${tool}`).join(', ')
     agents.push({
-      path: `.claude/agents/webmcp-eval-runner-${evalCase.name}.md`,
+      path: `.claude/agents/page-form-runner-${evalCase.name}.md`,
       content: `---
-name: webmcp-eval-runner-${evalCase.name}
+name: page-form-runner-${evalCase.name}
 description: Fills in the form on the page the user is viewing.
 tools: ${tools}
 ---

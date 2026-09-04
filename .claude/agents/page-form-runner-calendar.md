@@ -1,7 +1,7 @@
 ---
-name: webmcp-eval-runner-contact
+name: page-form-runner-calendar
 description: Fills in the form on the page the user is viewing.
-tools: mcp__webmcp-eval-contact__fillFormSkill, mcp__webmcp-eval-contact__getData, mcp__webmcp-eval-contact__setData, mcp__webmcp-eval-contact__describeState, mcp__webmcp-eval-contact__setFieldValue, mcp__webmcp-eval-contact__getFieldSuggestions, mcp__webmcp-eval-contact__editArray, mcp__webmcp-eval-contact__getSchema
+tools: mcp__page-form-calendar__fillFormSkill, mcp__page-form-calendar__getData, mcp__page-form-calendar__setData, mcp__page-form-calendar__describeState, mcp__page-form-calendar__setFieldValue, mcp__page-form-calendar__getFieldSuggestions, mcp__page-form-calendar__editArray, mcp__page-form-calendar__getSchema
 ---
 
 You are assisting a user with a form on the page they are currently viewing.

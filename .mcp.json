@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "webmcp-eval-contact": {
+    "page-form-contact": {
       "type": "stdio",
       "command": "node",
       "args": [
@@ -10,7 +10,7 @@
         "JL_WEBMCP_EVAL_CASE": "contact"
       }
     },
-    "webmcp-eval-calendar": {
+    "page-form-calendar": {
       "type": "stdio",
       "command": "node",
       "args": [
@@ -20,7 +20,7 @@
         "JL_WEBMCP_EVAL_CASE": "calendar"
       }
     },
-    "webmcp-eval-charts": {
+    "page-form-charts": {
       "type": "stdio",
       "command": "node",
       "args": [

@@ -120,13 +120,17 @@ of the eval, not an obstacle to it.
 
 ## Runner Isolation
 
-One agent definition per case, so a runner is only ever exposed to one form:
+One agent definition per case, so a runner is only ever exposed to one form. The
+MCP server (and therefore every tool name) is named `page-form-<case>`, not
+`webmcp-eval-<case>`: tool names sit in the runner's live context the same way the
+prompt body does, so a runner-visible identifier that read "eval" would defeat the
+guarantee below just as surely as a prompt that said so directly.
 
 ```
-.claude/agents/webmcp-eval-runner-charts.md
+.claude/agents/page-form-runner-charts.md
 ---
-name: webmcp-eval-runner-charts
-tools: mcp__webmcp-eval-charts__getData, mcp__webmcp-eval-charts__setFieldValue, ...
+name: page-form-runner-charts
+tools: mcp__page-form-charts__getData, mcp__page-form-charts__setFieldValue, ...
 ---
 You are helping a user fill in a form on the page they are viewing.
 ```

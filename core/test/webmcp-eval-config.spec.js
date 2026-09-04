@@ -1,8 +1,27 @@
 import { strict as assert } from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
 
 import { cases } from '../webmcp-eval/cases/index.js'
 import { buildConfig, TOOL_NAMES } from '../webmcp-eval/generate-config.js'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const repoRoot = join(here, '..', '..')
+
+/**
+ * Pulls one frontmatter field's raw value out of an agent file's rendered content.
+ * @param {string} content
+ * @param {string} field
+ * @returns {string}
+ */
+function frontmatterField (content, field) {
+  const frontmatter = content.split('---')[1] ?? ''
+  const match = frontmatter.match(new RegExp(`^${field}:\\s*(.*)$`, 'm'))
+  assert.ok(match, `missing "${field}:" in frontmatter`)
+  return match[1].trim()
+}
 
 /**
  * The isolation guarantee is enforced here. A runner that could read the repository
@@ -17,7 +36,7 @@ describe('webmcp eval config generation', () => {
     const servers = Object.keys(config.mcpJson.mcpServers)
     assert.equal(servers.length, cases.length)
     for (const evalCase of cases) {
-      const server = config.mcpJson.mcpServers[`webmcp-eval-${evalCase.name}`]
+      const server = config.mcpJson.mcpServers[`page-form-${evalCase.name}`]
       assert.ok(server, `missing server for ${evalCase.name}`)
       assert.deepEqual(server.args, ['core/webmcp-eval/server.js'])
       assert.equal(server.env.JL_WEBMCP_EVAL_CASE, evalCase.name)
@@ -28,40 +47,49 @@ describe('webmcp eval config generation', () => {
     assert.equal(config.agents.length, cases.length)
     for (const evalCase of cases) {
       assert.ok(
-        config.agents.some((a) => a.path === `.claude/agents/webmcp-eval-runner-${evalCase.name}.md`),
+        config.agents.some((a) => a.path === `.claude/agents/page-form-runner-${evalCase.name}.md`),
         `missing agent for ${evalCase.name}`
       )
     }
   })
 
-  it('should grant a runner only its own case tools', () => {
-    // Cross-case tools would let one runner see another form; filesystem tools would
-    // let it read the case file. Both must be absent.
-    const agent = config.agents.find((a) => a.path.endsWith('webmcp-eval-runner-contact.md'))
-    assert.ok(agent)
-    for (const tool of TOOL_NAMES) {
-      assert.ok(agent.content.includes(`mcp__webmcp-eval-contact__${tool}`), `missing ${tool}`)
+  it('should grant each runner exactly its own case tools and nothing else', () => {
+    // A positive allow-list check, run for every agent: an empty TOOL_NAMES, or a tool
+    // list scoped to the wrong case, must fail this test rather than pass it vacuously.
+    assert.ok(TOOL_NAMES.length >= 8, 'TOOL_NAMES must not be emptied out, or this check is vacuous')
+    for (const evalCase of cases) {
+      const agent = config.agents.find((a) => a.path === `.claude/agents/page-form-runner-${evalCase.name}.md`)
+      assert.ok(agent, `missing agent for ${evalCase.name}`)
+      const entries = frontmatterField(agent.content, 'tools').split(',').map((t) => t.trim()).filter(Boolean)
+      assert.equal(entries.length, TOOL_NAMES.length, `${agent.path} must declare exactly TOOL_NAMES.length tools`)
+      const ownCasePattern = new RegExp(`^mcp__page-form-${evalCase.name}__\\w+$`)
+      for (const entry of entries) {
+        assert.ok(ownCasePattern.test(entry), `${agent.path} tool "${entry}" must scope to its own case only`)
+      }
     }
-    assert.ok(!agent.content.includes('webmcp-eval-charts'), 'must not reach another case')
   })
 
   it('should never grant a runner a filesystem or network tool', () => {
     for (const agent of config.agents) {
+      const entries = frontmatterField(agent.content, 'tools').split(',').map((t) => t.trim())
       for (const forbidden of ['Read', 'Grep', 'Bash', 'Write', 'Edit', 'WebFetch', 'WebSearch', 'Glob']) {
-        assert.ok(
-          !new RegExp(`(^|[\\s,:])${forbidden}([\\s,]|$)`, 'm').test(agent.content),
-          `${agent.path} must not grant ${forbidden}`
-        )
+        assert.ok(!entries.includes(forbidden), `${agent.path} must not grant ${forbidden}`)
       }
     }
   })
 
   it('should not tell the runner it is being evaluated', () => {
-    // Being told changes behaviour; the run must look like an ordinary page visit.
+    // Being told changes behaviour; the run must look like an ordinary page visit. Tool
+    // names sit in the runner's live context too, so the identifiers it can actually see
+    // (name, description, prompt body) must all be checked, not just the prompt body.
     for (const agent of config.agents) {
       const body = agent.content.split('---')[2] ?? ''
+      const name = frontmatterField(agent.content, 'name')
+      const description = frontmatterField(agent.content, 'description')
       for (const leak of ['eval', 'judge', 'benchmark', 'test', 'score']) {
         assert.ok(!body.toLowerCase().includes(leak), `${agent.path} prompt leaks "${leak}"`)
+        assert.ok(!name.toLowerCase().includes(leak), `${agent.path} name leaks "${leak}"`)
+        assert.ok(!description.toLowerCase().includes(leak), `${agent.path} description leaks "${leak}"`)
       }
     }
   })
@@ -73,6 +101,17 @@ describe('webmcp eval config generation', () => {
       for (const evalCase of cases) {
         assert.ok(!agent.content.includes(evalCase.goal), `${agent.path} must not embed a goal`)
       }
+    }
+  })
+
+  it('should match the checked-in .mcp.json and agent files on disk', () => {
+    // The security property lives in the files Claude Code actually reads. A hand-edit
+    // to an agent file, or a case added without re-running the generator, must fail here.
+    const diskMcpJson = JSON.parse(readFileSync(join(repoRoot, '.mcp.json'), 'utf8'))
+    assert.deepEqual(diskMcpJson, config.mcpJson, '.mcp.json on disk does not match the generator output — re-run npm run webmcp-eval:config -w core')
+    for (const agent of config.agents) {
+      const diskContent = readFileSync(join(repoRoot, agent.path), 'utf8')
+      assert.equal(diskContent, agent.content, `${agent.path} on disk does not match the generator output — re-run npm run webmcp-eval:config -w core`)
     }
   })
 })
