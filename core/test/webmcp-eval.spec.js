@@ -1,18 +1,63 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
+import { compile } from '../src/compile/index.js'
+import { StatefulLayout } from '../src/state/index.js'
+import { getComplexity } from '../src/webmcp/index.js'
+import * as getSchema from '../src/webmcp/tools/get-schema.js'
+
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
 import { EvalSession } from '../webmcp-eval/session.js'
 
 /**
- * These are not agent runs — no model is involved. They drive each case through a
- * hand-written but realistic tool sequence, which pins two things an agent-driven eval
- * cannot pin reproducibly in CI: that a competent path through the protocol EXISTS and
- * stays within budget, and that the harness itself scores correctly. A regression that
- * makes a form need twice as many calls fails here, deterministically, before anyone
- * spends tokens discovering it.
+ * These assertions need no model. They cannot tell you whether a form is usable by an
+ * agent — that is the judged eval's job — but they pin that each case is the case it
+ * claims to be. The previous suite could not: it replayed sequences written alongside
+ * the fixtures, and passed while `dataset` was labelled large, returned its whole
+ * schema, and finished in a quarter of its call budget.
  */
-describe('webmcp eval harness', () => {
+describe('webmcp eval cases', () => {
+  for (const evalCase of cases) {
+    it(`should compile the ${evalCase.name} schema`, () => {
+      const compiled = compile(evalCase.schema)
+      assert.ok(compiled.skeletonTrees[compiled.mainTree], 'should produce a main tree')
+    })
+
+    it(`should place ${evalCase.name} in its declared complexity band`, () => {
+      // The check the old dataset case slipped past: it was labelled large and was medium.
+      const compiled = compile(evalCase.schema)
+      const mainTree = compiled.skeletonTrees[compiled.mainTree]
+      const layout = new StatefulLayout(compiled, mainTree, {}, evalCase.data)
+      assert.equal(getComplexity(layout), evalCase.expectedComplexity)
+    })
+
+    it(`should match the declared getSchema behaviour for ${evalCase.name}`, () => {
+      // Band and schema size are independent — calendar is large yet its schema fits —
+      // so only a case declaring expectedSchemaFits false exercises path navigation.
+      const compiled = compile(evalCase.schema)
+      const mainTree = compiled.skeletonTrees[compiled.mainTree]
+      const layout = new StatefulLayout(compiled, mainTree, {}, evalCase.data)
+      const result = getSchema.execute(layout, evalCase.schema, {})
+      assert.equal(!result.tooLarge, evalCase.expectedSchemaFits)
+    })
+
+    it(`should state a usable goal for ${evalCase.name}`, () => {
+      // The goal is the runner's only input, so it must read as a user request.
+      assert.ok(evalCase.goal.length > 20, 'goal should be a sentence')
+      for (const toolName of ['setFieldValue', 'getSchema', 'describeState', 'editArray', 'setData']) {
+        assert.ok(!evalCase.goal.includes(toolName), `goal must not name the ${toolName} tool`)
+      }
+    })
+  }
+
+  it('should cover both getSchema branches across the case set', () => {
+    // Without at least one oversized schema, nothing reaches the refusal path.
+    assert.ok(cases.some((c) => c.expectedSchemaFits === false), 'need a case whose schema is refused')
+    assert.ok(cases.some((c) => c.expectedSchemaFits === true), 'need a case whose schema is returned whole')
+  })
+})
+
+describe('webmcp eval session', () => {
   it('should expose the same tools a page would register, including the skill', () => {
     const session = new EvalSession(getCase('contact'))
     const names = session.tools.map((t) => t.name)
@@ -36,91 +81,5 @@ describe('webmcp eval harness', () => {
     const result = await session.call('setFieldValu', { path: '/name', value: 'x' })
     assert.equal(result.isError, true)
     assert.equal(session.calls[0].isError, true)
-  })
-
-  it('should fill the small form in one setData, within budget', async () => {
-    // The skill tells agents to try a whole-object write on a small form; if that path
-    // ever stops working this budget is the thing that notices.
-    const evalCase = getCase('contact')
-    const session = new EvalSession(evalCase)
-    await session.call('fillFormSkill', {})
-    await session.call('getData', {})
-    await session.call('getSchema', {})
-    await session.call('setData', { data: evalCase.expected })
-
-    const { passed, checks } = session.score()
-    assert.ok(passed, session.report())
-    assert.ok(checks.every((c) => c.passed))
-    assert.deepEqual(session.data, evalCase.expected)
-  })
-
-  it('should fill an array form via editArray + per-field writes, within budget', async () => {
-    const evalCase = getCase('team')
-    const session = new EvalSession(evalCase)
-    await session.call('fillFormSkill', {})
-    await session.call('getSchema', {})
-    await session.call('setFieldValue', { path: '/teamName', value: 'Analytical Engine' })
-
-    for (const member of /** @type {any[]} */(evalCase.expected.members)) {
-      const added = await session.call('editArray', { path: '/members', action: 'add' })
-      assert.ok(!added.isError, `editArray add failed: ${JSON.stringify(added)}`)
-      const index = /** @type {any[]} */(/** @type {any} */(session.data).members).length - 1
-      await session.call('setFieldValue', { path: `/members/${index}/name`, value: member.name })
-      await session.call('setFieldValue', { path: `/members/${index}/role`, value: member.role })
-    }
-
-    assert.ok(session.score().passed, session.report())
-    assert.deepEqual(session.data, evalCase.expected)
-  })
-
-  it('should fill the large form field by field without reading the whole schema', async () => {
-    // The "large" branch of the skill steers agents away from the full schema. Reading
-    // it here anyway would still pass the data checks, so the byte budget is what
-    // actually enforces the guidance.
-    const evalCase = getCase('dataset')
-    const session = new EvalSession(evalCase)
-    await session.call('fillFormSkill', {})
-    await session.call('describeState', {})
-    for (const [key, value] of Object.entries(evalCase.expected)) {
-      const result = await session.call('setFieldValue', { path: `/${key}`, value })
-      assert.ok(!result.isError, `setFieldValue /${key} failed: ${JSON.stringify(result)}`)
-    }
-
-    assert.ok(session.score().passed, session.report())
-    for (const [key, value] of Object.entries(evalCase.expected)) {
-      assert.deepEqual(/** @type {any} */(session.data)[key], value, `field ${key}`)
-    }
-  })
-
-  it('should fail the score when a run leaves the form incomplete', async () => {
-    // Guards the harness itself: a truncated run — exactly what a step-capped sub-agent
-    // produces — must score as a failure, never as a pass with missing data.
-    const session = new EvalSession(getCase('contact'))
-    await session.call('setFieldValue', { path: '/name', value: 'Ada Lovelace' })
-
-    const { passed, checks } = session.score()
-    assert.equal(passed, false)
-    assert.equal(checks.find((c) => c.name === 'data')?.passed, false)
-  })
-
-  it('should fail the score when a run exceeds its call budget', async () => {
-    const evalCase = getCase('contact')
-    const session = new EvalSession(evalCase)
-    await session.call('setData', { data: evalCase.expected })
-    for (let i = 0; i < evalCase.budget.toolCalls; i++) await session.call('getData', {})
-
-    const { passed, checks } = session.score()
-    assert.equal(passed, false)
-    assert.equal(checks.find((c) => c.name === 'tool-calls')?.passed, false)
-    // The data itself was still correct — only the cost check should have failed.
-    assert.equal(checks.find((c) => c.name === 'data')?.passed, true)
-  })
-
-  it('should define a coherent budget for every case', () => {
-    for (const evalCase of cases) {
-      assert.ok(evalCase.budget.toolCalls > 0, `${evalCase.name} needs a call budget`)
-      assert.ok(evalCase.budget.outputBytes > 0, `${evalCase.name} needs a byte budget`)
-      assert.ok(Object.keys(evalCase.expected).length > 0, `${evalCase.name} needs expectations`)
-    }
   })
 })

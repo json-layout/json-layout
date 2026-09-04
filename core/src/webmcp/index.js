@@ -53,7 +53,7 @@ function parseIfJsonString (value) {
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {"small"|"medium"|"large"}
  */
-function getComplexity (statefulLayout) {
+export function getComplexity (statefulLayout) {
   const nbNormalizedLayouts = Object.keys(statefulLayout.compiledLayout.normalizedLayouts).length
   if (nbNormalizedLayouts > 50) return 'large'
   if (nbNormalizedLayouts > 15) return 'medium'

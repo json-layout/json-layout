@@ -1,25 +1,22 @@
-export type EvalBudget = {
-  /** Maximum tool calls a competent run should need. */
-  toolCalls: number
-  /** Maximum total bytes of tool output a run should read. Guards the agent's context. */
-  outputBytes: number
-}
+export type ComplexityBand = 'small' | 'medium' | 'large'
 
 export type EvalCase = {
   name: string
   /** Passed to WebMCP as dataTitle, so it appears in the tool descriptions. */
   title: string
-  /** The task, phrased as a user would. Handed to the agent verbatim. */
+  /**
+   * The task, phrased as a user would. The ONLY text the runner sees: it must name no
+   * tools and describe an outcome, not a procedure.
+   */
   goal: string
   schema: Record<string, unknown>
   /** Initial form data, usually empty. */
   data: Record<string, unknown>
-  /** Data a correct run must produce. */
-  expected: Record<string, unknown>
+  /** Band getComplexity must report. Asserted in CI, never read at runtime. */
+  expectedComplexity: ComplexityBand
   /**
-   * When true, `expected` is a subset check: the run must produce these values but may
-   * also fill fields the goal never mentioned. When false/absent the data must match exactly.
+   * Whether getSchema returns the whole schema. Independent of the band — a case can be
+   * large by node count while its schema still fits under SCHEMA_MAX_LENGTH.
    */
-  expectedIsPartial?: boolean
-  budget: EvalBudget
+  expectedSchemaFits: boolean
 }

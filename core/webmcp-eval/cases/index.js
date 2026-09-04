@@ -1,20 +1,32 @@
 /**
  * @file Eval cases: forms an agent is asked to fill through the WebMCP tools.
  *
- * Each case is a realistic schema plus a goal written the way a user would phrase it,
- * and the data a correct run must end up with. The budgets are the point of the whole
- * harness: unit tests prove a tool returns the right shape, but nothing proved a form
- * was *fillable* — that an agent can get from the goal to valid data without burning
- * an unreasonable number of calls or drowning in output. A case that still passes its
- * assertions while blowing its budget is a protocol regression, not a bug in the agent.
+ * Each case is a schema and a goal phrased as a user would phrase it. There is
+ * deliberately no expected result: a run is judged by reading its transcript, not by
+ * comparing its data to a blob written by whoever wrote the case. The declared band and
+ * schema-fit are assertions about the case itself, checked in CI so a case cannot drift
+ * into claiming a branch it never reaches.
  */
+
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /** @typedef {import('./types.js').EvalCase} EvalCase */
 
+const here = dirname(fileURLToPath(import.meta.url))
+
 /**
- * Small flat form. The skill tells agents to read the schema and try a single
- * setData here, so the call budget is deliberately tight: anything much above this
- * means the one-shot path stopped working and the agent fell back to field-by-field.
+ * @param {string} file
+ * @returns {Record<string, unknown>}
+ */
+function loadSchema (file) {
+  return JSON.parse(readFileSync(join(here, 'schemas', file), 'utf8'))
+}
+
+/**
+ * Small hand-written control. Fast, and the only case whose shape is fully under our
+ * control, which makes it the one to reach for when debugging the harness itself.
  * @type {EvalCase}
  */
 const contact = {
@@ -33,136 +45,43 @@ const contact = {
     }
   },
   data: {},
-  expected: {
-    name: 'Ada Lovelace',
-    birthYear: 1815,
-    email: 'ada@analytical.org',
-    contactMethod: 'email'
-  },
-  budget: { toolCalls: 8, outputBytes: 12_000 }
+  expectedComplexity: 'small',
+  expectedSchemaFits: true
 }
 
 /**
- * Array editing. `editArray` add + N `setFieldValue` per item is the most call-hungry
- * shape in the protocol, and the one that made a 10-step agent loop truncate mid-form:
- * two items alone need roughly a dozen calls before anything is valid.
+ * Real app schema, large band but small enough that getSchema still returns it whole.
+ * The pair with `charts` is the point: same band, opposite schema behaviour, which is
+ * the evidence that the band alone says nothing about what an agent can read.
  * @type {EvalCase}
  */
-const team = {
-  name: 'team',
-  title: 'team roster',
-  goal: 'Register the team "Analytical Engine" with two members: Ada Lovelace (role engineer) and Charles Babbage (role architect).',
-  schema: {
-    type: 'object',
-    title: 'Team',
-    required: ['teamName', 'members'],
-    properties: {
-      teamName: { type: 'string', title: 'Team name' },
-      members: {
-        type: 'array',
-        title: 'Members',
-        items: {
-          type: 'object',
-          required: ['name', 'role'],
-          properties: {
-            name: { type: 'string', title: 'Name' },
-            role: { type: 'string', title: 'Role', enum: ['engineer', 'architect', 'analyst'] }
-          }
-        }
-      }
-    }
-  },
+const calendar = {
+  name: 'calendar',
+  title: 'calendar configuration',
+  goal: 'Set up the calendar on the events dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.',
+  schema: loadSchema('app-calendar.json'),
   data: {},
-  expected: {
-    teamName: 'Analytical Engine',
-    members: [
-      { name: 'Ada Lovelace', role: 'engineer' },
-      { name: 'Charles Babbage', role: 'architect' }
-    ]
-  },
-  budget: { toolCalls: 20, outputBytes: 30_000 }
+  expectedComplexity: 'large',
+  expectedSchemaFits: true
 }
 
 /**
- * A form whose schema is big enough that getSchema refuses to return it whole, so the
- * agent has to navigate by path. This is the case the "large" branch of the skill is
- * written for, and the one where an unbounded describeState would blow the context
- * window — hence the byte budget matters more here than the call budget.
+ * Real app schema large enough that getSchema refuses it, so the agent has to navigate
+ * by path. The only case that reaches that branch.
  * @type {EvalCase}
  */
-const dataset = {
-  name: 'dataset',
-  title: 'dataset metadata',
-  goal: 'Describe the dataset: title "Air quality 2024", license "odc-odbl", topic "environment", and mark it as published with French as its language.',
-  schema: {
-    type: 'object',
-    title: 'Dataset',
-    required: ['title'],
-    properties: {
-      title: { type: 'string', title: 'Title' },
-      description: { type: 'string', title: 'Description', layout: 'textarea' },
-      license: { type: 'string', title: 'License', enum: ['odc-odbl', 'cc-by', 'cc-zero', 'proprietary'] },
-      topic: { type: 'string', title: 'Topic', enum: ['environment', 'transport', 'health', 'education', 'economy'] },
-      language: { type: 'string', title: 'Language', enum: ['fr', 'en', 'de', 'nl'] },
-      published: { type: 'boolean', title: 'Published' },
-      // Filler sections: not part of the goal, they exist to push the schema past the
-      // getSchema size limit so the agent must resolve sub-schemas by path.
-      contact: {
-        type: 'object',
-        title: 'Contact point',
-        properties: {
-          name: { type: 'string', title: 'Contact name' },
-          email: { type: 'string', title: 'Contact email', format: 'email' },
-          organization: { type: 'string', title: 'Organization' },
-          phone: { type: 'string', title: 'Phone' }
-        }
-      },
-      spatial: {
-        type: 'object',
-        title: 'Spatial coverage',
-        properties: {
-          country: { type: 'string', title: 'Country' },
-          region: { type: 'string', title: 'Region' },
-          city: { type: 'string', title: 'City' },
-          bbox: { type: 'string', title: 'Bounding box' }
-        }
-      },
-      temporal: {
-        type: 'object',
-        title: 'Temporal coverage',
-        properties: {
-          start: { type: 'string', title: 'Start date', format: 'date' },
-          end: { type: 'string', title: 'End date', format: 'date' },
-          frequency: { type: 'string', title: 'Update frequency', enum: ['daily', 'weekly', 'monthly', 'yearly'] }
-        }
-      },
-      provenance: {
-        type: 'object',
-        title: 'Provenance',
-        properties: {
-          source: { type: 'string', title: 'Source' },
-          method: { type: 'string', title: 'Collection method' },
-          processing: { type: 'string', title: 'Processing steps' },
-          quality: { type: 'string', title: 'Quality notes' }
-        }
-      }
-    }
-  },
+const charts = {
+  name: 'charts',
+  title: 'chart configuration',
+  goal: 'Make a bar chart of the average PM10 level per city from the air quality dataset, title it "PM10 by city" and put the legend on the right.',
+  schema: loadSchema('app-charts.json'),
   data: {},
-  expected: {
-    title: 'Air quality 2024',
-    license: 'odc-odbl',
-    topic: 'environment',
-    language: 'fr',
-    published: true
-  },
-  // Only the goal fields are checked; the filler sections may stay empty.
-  expectedIsPartial: true,
-  budget: { toolCalls: 16, outputBytes: 40_000 }
+  expectedComplexity: 'large',
+  expectedSchemaFits: false
 }
 
 /** @type {EvalCase[]} */
-export const cases = [contact, team, dataset]
+export const cases = [contact, calendar, charts]
 
 /**
  * @param {string} name
