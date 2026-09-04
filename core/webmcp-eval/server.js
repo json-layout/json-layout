@@ -37,14 +37,7 @@ const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${caseName}.json`)
 function persist () {
   try {
     mkdirSync(dirname(transcriptPath), { recursive: true })
-    writeFileSync(transcriptPath, JSON.stringify({
-      case: caseName,
-      goal: evalCase.goal,
-      calls: session.calls,
-      data: session.data,
-      valid: session.valid,
-      score: session.score()
-    }, null, 2))
+    writeFileSync(transcriptPath, JSON.stringify(session.evidence(), null, 2))
   } catch (/** @type {any} */err) {
     // Never let a bookkeeping failure take down the session mid-run; the agent's work
     // is the valuable part and stderr is out-of-band for an MCP client.

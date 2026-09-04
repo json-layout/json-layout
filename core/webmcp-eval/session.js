@@ -20,7 +20,8 @@ import { WebMCP } from '../src/webmcp/index.js'
  * @typedef {object} RecordedCall
  * @property {string} tool - name of the tool the agent called
  * @property {unknown} args - arguments it passed
- * @property {number} outputBytes - size of the text the agent actually reads back
+ * @property {string} response - the text the agent read back, verbatim
+ * @property {number} outputBytes - size of that text
  * @property {boolean} isError - whether the tool reported a failure
  */
 
@@ -78,7 +79,7 @@ export class EvalSession {
       // Recorded too: an agent guessing a tool name is itself a protocol signal.
       const message = `unknown tool "${name}", available: ${this._tools.map((t) => t.name).join(', ')}`
       const result = { content: [{ type: 'text', text: message }], isError: true }
-      this.calls.push({ tool: name, args, outputBytes: message.length, isError: true })
+      this.calls.push({ tool: name, args, response: message, outputBytes: message.length, isError: true })
       return result
     }
     // @ts-ignore - descriptor execute signature comes from webmcp-types generics
@@ -89,6 +90,7 @@ export class EvalSession {
     this.calls.push({
       tool: name,
       args,
+      response: text,
       outputBytes: Buffer.byteLength(text, 'utf8'),
       isError: !!result?.isError
     })
@@ -101,67 +103,34 @@ export class EvalSession {
   }
 
   /**
-   * Score the run against the case.
-   * @returns {{ passed: boolean, checks: { name: string, passed: boolean, detail: string }[] }}
+   * Everything the judge reads. No verdict: the point of the redesign is that whether a
+   * session went well is a judgement about the transcript, not a comparison against a
+   * blob written by whoever wrote the case.
+   * @returns {object}
    */
-  score () {
-    const { expected, expectedIsPartial, budget } = this._case
-    const data = /** @type {Record<string, unknown>} */(this.data ?? {})
-
-    /** @type {{ name: string, passed: boolean, detail: string }[]} */
-    const checks = []
-
-    const mismatches = []
-    for (const [key, want] of Object.entries(expected)) {
-      const got = data[key]
-      if (JSON.stringify(got) !== JSON.stringify(want)) {
-        mismatches.push(`${key}: expected ${JSON.stringify(want)}, got ${JSON.stringify(got)}`)
+  evidence () {
+    return {
+      case: this._case.name,
+      goal: this._case.goal,
+      calls: this.calls,
+      data: this.data,
+      valid: this.valid,
+      metrics: {
+        toolCalls: this.calls.length,
+        outputBytes: this.totalOutputBytes
       }
     }
-    checks.push({
-      name: 'data',
-      passed: mismatches.length === 0,
-      detail: mismatches.length ? mismatches.join('; ') : 'all expected values present'
-    })
-
-    if (!expectedIsPartial) {
-      const extra = Object.keys(data).filter((k) => !(k in expected) && data[k] !== undefined)
-      checks.push({
-        name: 'no-extra-data',
-        passed: extra.length === 0,
-        detail: extra.length ? `unexpected keys: ${extra.join(', ')}` : 'no unexpected keys'
-      })
-    }
-
-    checks.push({
-      name: 'valid',
-      passed: this.valid,
-      detail: this.valid ? 'form reports valid' : 'form still reports validation errors'
-    })
-
-    checks.push({
-      name: 'tool-calls',
-      passed: this.calls.length <= budget.toolCalls,
-      detail: `${this.calls.length} / ${budget.toolCalls} allowed`
-    })
-
-    checks.push({
-      name: 'output-bytes',
-      passed: this.totalOutputBytes <= budget.outputBytes,
-      detail: `${this.totalOutputBytes} / ${budget.outputBytes} allowed`
-    })
-
-    return { passed: checks.every((c) => c.passed), checks }
   }
 
-  /** @returns {string} */
+  /**
+   * Human-readable transcript, for reading a run in the terminal.
+   * @returns {string}
+   */
   report () {
-    const { passed, checks } = this.score()
-    const lines = [`eval case "${this._case.name}": ${passed ? 'PASS' : 'FAIL'}`]
-    for (const check of checks) {
-      lines.push(`  ${check.passed ? 'ok  ' : 'FAIL'} ${check.name}: ${check.detail}`)
+    const lines = [`eval case "${this._case.name}" — ${this.calls.length} calls, ${this.totalOutputBytes} bytes, valid=${this.valid}`]
+    for (const [i, call] of this.calls.entries()) {
+      lines.push(`  ${i + 1}. ${call.tool}${call.isError ? ' (error)' : ''} ${JSON.stringify(call.args)} → ${call.outputBytes}b`)
     }
-    lines.push('  calls: ' + (this.calls.map((c) => c.tool).join(' → ') || '(none)'))
     return lines.join('\n')
   }
 }

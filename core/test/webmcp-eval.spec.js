@@ -82,4 +82,22 @@ describe('webmcp eval session', () => {
     assert.equal(result.isError, true)
     assert.equal(session.calls[0].isError, true)
   })
+
+  it('should produce judge evidence without a verdict of its own', async () => {
+    // The session records; it does not decide. A score() here would re-introduce the
+    // hardcoded expectations the judge exists to replace.
+    const session = new EvalSession(getCase('contact'))
+    await session.call('setFieldValue', { path: '/name', value: 'Ada Lovelace' })
+
+    const evidence = session.evidence()
+    assert.equal(evidence.case, 'contact')
+    assert.equal(evidence.goal, getCase('contact').goal)
+    assert.equal(evidence.metrics.toolCalls, 1)
+    assert.ok(evidence.metrics.outputBytes > 0)
+    assert.equal(evidence.valid, false, 'email is still missing')
+    assert.deepEqual(evidence.data, { name: 'Ada Lovelace' })
+    assert.equal(evidence.calls[0].tool, 'setFieldValue')
+    assert.ok('response' in evidence.calls[0], 'the judge needs the response text, not just its size')
+    assert.equal(typeof (/** @type {any} */(session).score), 'undefined', 'score() must be gone')
+  })
 })
