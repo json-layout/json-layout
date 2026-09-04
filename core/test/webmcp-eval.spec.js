@@ -7,6 +7,7 @@ import { getComplexity } from '../src/webmcp/index.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
+import { TOOL_NAMES } from '../webmcp-eval/generate-config.js'
 import { EvalSession } from '../webmcp-eval/session.js'
 
 /**
@@ -39,6 +40,11 @@ describe('webmcp eval cases', () => {
       const layout = new StatefulLayout(compiled, mainTree, {}, evalCase.data)
       const result = getSchema.execute(layout, evalCase.schema, {})
       assert.equal(!result.tooLarge, evalCase.expectedSchemaFits)
+      // Refusing is only half of the contract: a case that declares the refusal branch
+      // must also hand the agent somewhere to go, or the branch is a dead end.
+      if (!evalCase.expectedSchemaFits) {
+        assert.ok((result.paths ?? []).length > 0, 'a refused schema must offer sub-paths to navigate by')
+      }
     })
 
     it(`should state a usable goal for ${evalCase.name}`, () => {
@@ -59,11 +65,14 @@ describe('webmcp eval cases', () => {
 
 describe('webmcp eval session', () => {
   it('should expose the same tools a page would register, including the skill', () => {
+    // TOOL_NAMES is what the generated runner agents grant, listed by hand so the
+    // generator needs no compiled form. Nothing else ties it to reality: a tool added or
+    // renamed under src/webmcp/ would leave every runner missing it, which reads in a
+    // transcript as protocol friction rather than as a broken setup. This is the tie.
     const session = new EvalSession(getCase('contact'))
-    const names = session.tools.map((t) => t.name)
-    for (const expected of ['fillFormSkill', 'getData', 'getSchema', 'describeState', 'setData', 'setFieldValue', 'editArray', 'getFieldSuggestions']) {
-      assert.ok(names.includes(expected), `missing tool ${expected}, got ${names.join(', ')}`)
-    }
+    const names = session.tools.map((t) => t.name).sort()
+    assert.deepEqual(names, [...TOOL_NAMES].sort(), 'TOOL_NAMES must match the tools a session registers — re-run npm run webmcp-eval:config -w core after changing it')
+    assert.ok(names.includes('fillFormSkill'), 'the skill a real page exposes must be among them')
   })
 
   it('should record the cost of every call', async () => {

@@ -17,6 +17,20 @@ import { cases } from './cases/index.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
+/**
+ * @typedef {object} McpServerConfig
+ * @property {'stdio'} type - transport Claude Code uses to reach the server
+ * @property {string} command - executable to launch
+ * @property {string[]} args - arguments, relative to the repository root
+ * @property {Record<string, string>} env - environment selecting the case the server serves
+ */
+
+/**
+ * @typedef {object} EvalConfig
+ * @property {{ mcpServers: Record<string, McpServerConfig> }} mcpJson - the .mcp.json contents
+ * @property {Array<{ path: string, content: string }>} agents - one runner agent definition per case
+ */
+
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
 
@@ -51,10 +65,10 @@ anything you could not complete.`
 
 /**
  * @param {EvalCase[]} evalCases
- * @returns {{ mcpJson: object, agents: Array<{ path: string, content: string }> }}
+ * @returns {EvalConfig}
  */
 export function buildConfig (evalCases) {
-  /** @type {Record<string, object>} */
+  /** @type {Record<string, McpServerConfig>} */
   const mcpServers = {}
   /** @type {Array<{ path: string, content: string }>} */
   const agents = []

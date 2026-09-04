@@ -11,14 +11,26 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..', '..')
 
 /**
+ * Splits an agent file into its frontmatter block and its prompt body. Anchored on the
+ * two delimiter lines rather than splitting on every `---`, so a prompt that one day
+ * contains a horizontal rule does not silently truncate the body the leak checks read.
+ * @param {string} content
+ * @returns {{ frontmatter: string, body: string }}
+ */
+function splitAgent (content) {
+  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(content)
+  assert.ok(match, 'agent file must start with a frontmatter block')
+  return { frontmatter: match[1], body: match[2] }
+}
+
+/**
  * Pulls one frontmatter field's raw value out of an agent file's rendered content.
  * @param {string} content
  * @param {string} field
  * @returns {string}
  */
 function frontmatterField (content, field) {
-  const frontmatter = content.split('---')[1] ?? ''
-  const match = frontmatter.match(new RegExp(`^${field}:\\s*(.*)$`, 'm'))
+  const match = splitAgent(content).frontmatter.match(new RegExp(`^${field}:\\s*(.*)$`, 'm'))
   assert.ok(match, `missing "${field}:" in frontmatter`)
   return match[1].trim()
 }
@@ -83,7 +95,8 @@ describe('webmcp eval config generation', () => {
     // names sit in the runner's live context too, so the identifiers it can actually see
     // (name, description, prompt body) must all be checked, not just the prompt body.
     for (const agent of config.agents) {
-      const body = agent.content.split('---')[2] ?? ''
+      const body = splitAgent(agent.content).body
+      assert.ok(body.trim().length > 0, 'an empty body would make this check vacuous')
       const name = frontmatterField(agent.content, 'name')
       const description = frontmatterField(agent.content, 'description')
       for (const leak of ['eval', 'judge', 'benchmark', 'test', 'score']) {
