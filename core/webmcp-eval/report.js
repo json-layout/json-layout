@@ -5,7 +5,8 @@
  * Deliberately has no thresholds. The old scorer failed a run whose call count exceeded
  * a number someone guessed; here the numbers are printed as context and the verdict is
  * the judge's. An unjudged run counts as a failure — a transcript nobody read is not
- * evidence of anything.
+ * evidence of anything — and so does a case with no transcript at all: a case that never
+ * dispatched must fail the report loudly rather than disappear from it.
  *
  * Usage: npm run webmcp-eval:report -w core [case ...]
  */
@@ -20,7 +21,15 @@ import { parseVerdict } from './verdict.js'
 const here = dirname(fileURLToPath(import.meta.url))
 
 /**
- * @param {Array<{ evidence: object, verdict: object|null }>} runs
+ * @typedef {object} EvalRun
+ * @property {string} name - the case this run was requested for
+ * @property {object|null} evidence - the recorded transcript, or null when the case never ran
+ * @property {object|null} verdict - the judge's answer, or null when it is missing, malformed
+ *   or written for a different case
+ */
+
+/**
+ * @param {EvalRun[]} runs
  * @returns {{ lines: string[], failed: boolean }}
  */
 export function summarise (runs) {
@@ -33,20 +42,34 @@ export function summarise (runs) {
     return { lines, failed: true }
   }
 
-  for (const { evidence, verdict } of runs) {
+  for (const { name, evidence, verdict } of runs) {
+    lines.push('')
+    if (!evidence) {
+      // A missing transcript is a case that never executed — usually because its MCP
+      // server was not loaded in this session, or because the runner failed to dispatch.
+      // Skipping it here is how a suite passes while two thirds of it never ran.
+      failed = true
+      lines.push(`${name}: not run`)
+      lines.push(`  no transcript at core/tmp/webmcp-eval-${name}.json — the case was never dispatched, or its MCP server was not loaded`)
+      continue
+    }
+
     const ev = /** @type {any} */(evidence)
     const metrics = ev.metrics ?? {}
-    lines.push('')
     if (!verdict) {
       failed = true
-      lines.push(`${ev.case}: not judged`)
+      lines.push(`${name}: not judged`)
     } else {
       const v = /** @type {any} */(verdict)
       if (v.verdict !== 'satisfactory') failed = true
-      lines.push(`${ev.case}: ${v.verdict.toUpperCase()}`)
+      lines.push(`${name}: ${v.verdict.toUpperCase()}`)
       lines.push(`  ${v.reasoning}`)
     }
     lines.push(`  goal: ${ev.goal}`)
+    // The age of the run, so a transcript left over from an earlier session cannot pass
+    // itself off as this one's: evidence files persist and are only overwritten when the
+    // case actually runs again.
+    lines.push(`  started ${ev.startedAt ?? 'unknown'}`)
     lines.push(`  ran ${metrics.toolCalls} calls, read ${metrics.outputBytes} bytes, form valid=${ev.valid}`)
 
     const friction = /** @type {any} */(verdict)?.friction ?? []
@@ -64,18 +87,24 @@ export function summarise (runs) {
 
 /**
  * @param {string[]} names
- * @returns {Array<{ evidence: object, verdict: object|null }>}
+ * @returns {EvalRun[]}
  */
 export function loadRuns (names) {
-  /** @type {Array<{ evidence: object, verdict: object|null }>} */
+  /** @type {EvalRun[]} */
   const runs = []
   for (const name of names) {
     const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${name}.json`)
-    if (!existsSync(evidencePath)) continue
+    // A requested case with no transcript is reported, never skipped: it is a failure of
+    // the run, not an absence of one.
+    if (!existsSync(evidencePath)) {
+      runs.push({ name, evidence: null, verdict: null })
+      continue
+    }
     const verdictPath = join(here, '..', 'tmp', `webmcp-eval-${name}.verdict.json`)
     runs.push({
+      name,
       evidence: JSON.parse(readFileSync(evidencePath, 'utf8')),
-      verdict: loadVerdict(verdictPath)
+      verdict: loadVerdict(verdictPath, name)
     })
   }
   return runs
@@ -86,13 +115,20 @@ export function loadRuns (names) {
  * absent rather than thrown: a malformed verdict must never read as "no problems
  * found" (that is the whole point of validating it), but it also must not crash the
  * report for every other case — it must surface as "not judged" instead.
+ *
+ * A verdict naming a different case is treated the same way: one judge answer copied
+ * into three verdict files, or a verdict written to the wrong path, would otherwise read
+ * as three independent clean judgements.
  * @param {string} verdictPath
+ * @param {string} name
  * @returns {object|null}
  */
-function loadVerdict (verdictPath) {
+function loadVerdict (verdictPath, name) {
   if (!existsSync(verdictPath)) return null
   try {
-    return parseVerdict(readFileSync(verdictPath, 'utf8'))
+    const verdict = parseVerdict(readFileSync(verdictPath, 'utf8'))
+    if (verdict.case !== name) return null
+    return verdict
   } catch {
     return null
   }

@@ -1,13 +1,13 @@
 /**
  * @file An instrumented WebMCP session over one eval case.
  *
- * Wraps the same tool descriptors a browser page would register, but records every
- * call and its response size. That recording is the eval: the tools' correctness is
- * already covered by unit tests, what is not covered is the *cost* of using them —
- * how many round-trips and how much context an agent spends to reach valid data.
+ * Wraps the same tool descriptors a browser page would register, and records every call
+ * with the exact text it returned. That recording is the whole output: nothing here
+ * decides whether a run went well — the transcript is evidence for the judge, and the
+ * call counts and byte sizes travel with it as context rather than as thresholds.
  *
  * Shared by the stdio MCP server (agent-driven runs) and the in-process spec
- * (deterministic runs), so both score identically.
+ * (deterministic runs), so both produce evidence in the same shape.
  */
 
 import { compile } from '../src/compile/index.js'
@@ -29,6 +29,8 @@ import { WebMCP } from '../src/webmcp/index.js'
  * @typedef {object} EvalEvidence
  * @property {string} case - the case name
  * @property {string} goal - the goal the agent was given
+ * @property {string} startedAt - ISO timestamp of when the session was opened, so a
+ *   transcript left behind by an earlier session cannot be read as a fresh run
  * @property {RecordedCall[]} calls - every tool call the agent made, in order
  * @property {unknown} data - the form data the session ended with
  * @property {boolean} valid - whether that data validates against the case's schema
@@ -45,6 +47,13 @@ export class EvalSession {
   _tools
   /** @type {RecordedCall[]} */
   calls = []
+  /**
+   * When this session was opened. Evidence files persist in core/tmp/ and are only
+   * overwritten when a case actually runs, so without a timestamp a stale transcript is
+   * indistinguishable from a fresh one in the report.
+   * @type {string}
+   */
+  startedAt = new Date().toISOString()
 
   /**
    * @param {EvalCase} evalCase
@@ -123,6 +132,7 @@ export class EvalSession {
     return {
       case: this._case.name,
       goal: this._case.goal,
+      startedAt: this.startedAt,
       calls: this.calls,
       data: this.data,
       valid: this.valid,
