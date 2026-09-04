@@ -15,7 +15,8 @@
  * Usage (see .mcp.json):
  *   JL_WEBMCP_EVAL_CASE=team node core/webmcp-eval/server.js
  *
- * On exit it writes the recorded run to core/tmp/webmcp-eval-<case>.json for score.js.
+ * On exit it writes the recorded run to core/tmp/webmcp-eval-<case>.json as evidence for
+ * the webmcp-eval-judge agent to read.
  */
 
 import { createInterface } from 'node:readline'
@@ -33,7 +34,7 @@ const session = new EvalSession(evalCase)
 
 const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${caseName}.json`)
 
-/** Write the run so far to the transcript file scored by score.js. */
+/** Write the run so far to the evidence file the judge agent reads. */
 function persist () {
   try {
     mkdirSync(dirname(transcriptPath), { recursive: true })
@@ -107,7 +108,7 @@ async function handle (msg) {
       })
     } catch (/** @type {any} */err) {
       // Surface a thrown tool as an MCP tool error rather than a transport error: the
-      // agent can then react to it, and the run is still scoreable.
+      // agent can then react to it, and the error is still recorded for the judge.
       persist()
       respond(id, { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true })
     }

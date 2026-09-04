@@ -25,6 +25,17 @@ import { WebMCP } from '../src/webmcp/index.js'
  * @property {boolean} isError - whether the tool reported a failure
  */
 
+/**
+ * @typedef {object} EvalEvidence
+ * @property {string} case - the case name
+ * @property {string} goal - the goal the agent was given
+ * @property {RecordedCall[]} calls - every tool call the agent made, in order
+ * @property {unknown} data - the form data the session ended with
+ * @property {boolean} valid - whether that data validates against the case's schema
+ * @property {{ toolCalls: number, outputBytes: number }} metrics - run size, reported
+ *   as context for the judge, not as a pass/fail threshold
+ */
+
 export class EvalSession {
   /** @type {EvalCase} */
   _case
@@ -106,7 +117,7 @@ export class EvalSession {
    * Everything the judge reads. No verdict: the point of the redesign is that whether a
    * session went well is a judgement about the transcript, not a comparison against a
    * blob written by whoever wrote the case.
-   * @returns {object}
+   * @returns {EvalEvidence}
    */
   evidence () {
     return {

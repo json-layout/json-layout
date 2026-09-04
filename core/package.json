@@ -61,7 +61,7 @@
   "scripts": {
     "test:only": "node --test --test-only test/*.spec.js",
     "test": "mkdir -p tmp && node --test test/*.spec.js",
-    "webmcp-eval:score": "node webmcp-eval/score.js",
+    "webmcp-eval:report": "node webmcp-eval/report.js",
     "webmcp-eval:config": "node webmcp-eval/generate-config.js",
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
     "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
