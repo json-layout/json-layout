@@ -61,6 +61,20 @@ function getComplexity (statefulLayout) {
 }
 
 /**
+ * Autonomous steps a form-filling sub-agent should be allowed, by form complexity.
+ *
+ * Filling a form is inherently many small calls — one setFieldValue per field, plus
+ * getFieldSuggestions round-trips and editArray + N fields per array item — so a host
+ * default tuned for coarse tools truncates the worker mid-form and reports a partially
+ * filled form as a result. The page is the only party that knows how big its form is,
+ * so it declares the budget and the host clamps it. These are deliberately generous:
+ * the budget is a ceiling, not a target, and stopping early costs far more than an
+ * unused allowance.
+ * @type {Record<"small"|"medium"|"large", number>}
+ */
+const SUBAGENT_MAX_STEPS = { small: 20, medium: 50, large: 100 }
+
+/**
  * WebMCP class that provides MCP tool descriptors for a StatefulLayout instance
  */
 export class WebMCP {
@@ -387,9 +401,10 @@ export class WebMCP {
           required: ['task']
         },
         execute: async () => {
+          const config = { prompt, tools: toolNames, maxSteps: SUBAGENT_MAX_STEPS[complexity] }
           return {
-            content: [{ type: 'text', text: JSON.stringify({ prompt, tools: toolNames }) }],
-            structuredContent: { prompt, tools: toolNames }
+            content: [{ type: 'text', text: JSON.stringify(config) }],
+            structuredContent: config
           }
         }
       })

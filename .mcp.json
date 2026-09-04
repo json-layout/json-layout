@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "jl-eval-contact": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["core/eval/server.js"],
+      "env": { "JL_EVAL_CASE": "contact" }
+    },
+    "jl-eval-team": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["core/eval/server.js"],
+      "env": { "JL_EVAL_CASE": "team" }
+    },
+    "jl-eval-dataset": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["core/eval/server.js"],
+      "env": { "JL_EVAL_CASE": "dataset" }
+    }
+  }
+}

@@ -634,6 +634,37 @@ describe('webmcp WebMCP class', () => {
     assert.ok(!structured.tools.includes('subagent_myform_form'), 'subagent tool should not include itself')
   })
 
+  it('should declare a step budget scaled to the form complexity', async () => {
+    // Filling a form is many small calls, so a host default tuned for coarse tools
+    // truncates the worker mid-form. The page declares what its form actually needs.
+    /** @param {object} schema @returns {Promise<any>} */
+    const declaredConfig = async (schema) => {
+      const compiled = compile(schema)
+      const mainTree = compiled.skeletonTrees[compiled.mainTree]
+      const layout = new StatefulLayout(compiled, mainTree, {}, {})
+      const webmcp = new WebMCP(layout, { includeSubAgent: true })
+      const subagentTool = /** @type {any} */(webmcp.getTools().find((t) => t.name === 'subagent_form'))
+      return (await subagentTool.execute({ task: 'fill the form' })).structuredContent
+    }
+
+    /** @param {number} nb @returns {object} */
+    const schemaWithFields = (nb) => ({
+      type: 'object',
+      properties: Object.fromEntries(
+        Array.from({ length: nb }, (_, i) => [`field${i}`, { type: 'string' }])
+      )
+    })
+
+    const small = await declaredConfig(simpleSchema)
+    assert.equal(small.maxSteps, 20)
+
+    const medium = await declaredConfig(schemaWithFields(20))
+    assert.ok(medium.maxSteps > small.maxSteps, `medium (${medium.maxSteps}) should exceed small (${small.maxSteps})`)
+
+    const large = await declaredConfig(schemaWithFields(60))
+    assert.ok(large.maxSteps > medium.maxSteps, `large (${large.maxSteps}) should exceed medium (${medium.maxSteps})`)
+  })
+
   it('should use "form" as subagent name when no prefixName', async () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
