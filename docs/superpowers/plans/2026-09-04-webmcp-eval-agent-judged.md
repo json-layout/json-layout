@@ -473,7 +473,7 @@ Generates `.mcp.json` and the isolated runner agent definitions from the case re
 - Create: `core/webmcp-eval/generate-config.js`
 - Create: `core/test/webmcp-eval-config.spec.js`
 - Modify: `core/package.json` (add `webmcp-eval:config` script)
-- Regenerate: `.mcp.json`, `.claude/agents/webmcp-eval-runner-*.md`
+- Regenerate: `.mcp.json`, `.claude/agents/page-form-runner-*.md`
 
 **Interfaces:**
 - Consumes: `cases` from Task 1
@@ -504,7 +504,7 @@ describe('webmcp eval config generation', () => {
     const servers = Object.keys(config.mcpJson.mcpServers)
     assert.equal(servers.length, cases.length)
     for (const evalCase of cases) {
-      const server = config.mcpJson.mcpServers[`webmcp-eval-${evalCase.name}`]
+      const server = config.mcpJson.mcpServers[`page-form-${evalCase.name}`]
       assert.ok(server, `missing server for ${evalCase.name}`)
       assert.deepEqual(server.args, ['core/webmcp-eval/server.js'])
       assert.equal(server.env.JL_WEBMCP_EVAL_CASE, evalCase.name)
@@ -515,7 +515,7 @@ describe('webmcp eval config generation', () => {
     assert.equal(config.agents.length, cases.length)
     for (const evalCase of cases) {
       assert.ok(
-        config.agents.some((a) => a.path === `.claude/agents/webmcp-eval-runner-${evalCase.name}.md`),
+        config.agents.some((a) => a.path === `.claude/agents/page-form-runner-${evalCase.name}.md`),
         `missing agent for ${evalCase.name}`
       )
     }
@@ -524,10 +524,10 @@ describe('webmcp eval config generation', () => {
   it('should grant a runner only its own case tools', () => {
     // Cross-case tools would let one runner see another form; filesystem tools would
     // let it read the case file. Both must be absent.
-    const agent = config.agents.find((a) => a.path.endsWith('webmcp-eval-runner-contact.md'))
+    const agent = config.agents.find((a) => a.path.endsWith('page-form-runner-contact.md'))
     assert.ok(agent)
     for (const tool of TOOL_NAMES) {
-      assert.ok(agent.content.includes(`mcp__webmcp-eval-contact__${tool}`), `missing ${tool}`)
+      assert.ok(agent.content.includes(`mcp__page-form-contact__${tool}`), `missing ${tool}`)
     }
     assert.ok(!agent.content.includes('webmcp-eval-charts'), 'must not reach another case')
   })
@@ -564,6 +564,12 @@ describe('webmcp eval config generation', () => {
   })
 })
 ```
+
+> **Superseded by fix round 1.** Review found the isolation tests below pass vacuously
+> on an empty `tools:` list, and check cross-case leakage for one agent against one
+> hardcoded case name. They were replaced with a single positive allow-list assertion
+> run for every agent, plus a test comparing the checked-in `.mcp.json` and agent files
+> against `buildConfig`. See the ledger and commit `a7a4f30`.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -696,10 +702,10 @@ Then run it:
 ```bash
 npm run webmcp-eval:config -w core
 cat .mcp.json
-cat .claude/agents/webmcp-eval-runner-contact.md
+cat .claude/agents/page-form-runner-contact.md
 ```
 
-Expected: three servers named `webmcp-eval-{contact,calendar,charts}`, and three agent files whose `tools:` lines contain only `mcp__webmcp-eval-<case>__*` entries.
+Expected: three servers named `page-form-{contact,calendar,charts}`, and three agent files whose `tools:` lines contain only `mcp__page-form-<case>__*` entries.
 
 - [ ] **Step 6: Commit**
 
@@ -936,7 +942,7 @@ by having one actually try and then judging the transcript.
 ## Before you start
 
 The MCP servers are declared in `.mcp.json` and load at session start. If you do not see
-`mcp__webmcp-eval-*` tools available, the session began before they were generated: run
+`mcp__page-form-*` tools available, the session began before they were generated: run
 `npm run webmcp-eval:config -w core`, then restart the session.
 
 Each case's server holds one form state for the life of the session, so **each case can
@@ -949,7 +955,7 @@ data. To re-run, start a fresh session.
    `goal`.
 
 2. Dispatch one runner per case, **in parallel, in a single message**. Use the agent type
-   `webmcp-eval-runner-<case>` and pass **only the goal string** as the prompt.
+   `page-form-runner-<case>` and pass **only the goal string** as the prompt.
 
    Do not add context. Do not mention json-layout, the eval, the schema, or what you know
    about the tools. The runner has no filesystem access by design; anything you tell it is
