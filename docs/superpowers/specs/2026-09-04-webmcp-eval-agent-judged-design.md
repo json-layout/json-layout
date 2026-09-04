@@ -1,0 +1,230 @@
+# Agent-Driven, LLM-Judged WebMCP Eval
+
+## Overview
+
+Replace the WebMCP eval harness's deterministic scoring with a real agent run judged
+by an LLM. The current harness poses a form-filling goal, compares the resulting data
+against a hardcoded `expected` blob, and checks tool-call and output-byte counts
+against fixed budgets. That design cannot answer the question the harness exists to
+ask — *did an agent find its way through this protocol?* — because nothing in it ever
+plays the agent.
+
+Two changes follow from that. Runs are performed by a subagent with **no filesystem
+access**, so it cannot read the expected data, the tool implementations, or the review
+report that motivated this work. Verdicts are produced by a second subagent that reads
+the transcript and decides whether the session was satisfactory, with the recorded
+measurements as evidence rather than as thresholds.
+
+### Why the current design fails
+
+A live run of the `dataset` case exposed three defects at once, none of which the
+deterministic suite could see:
+
+- The case is classified `medium` (26 `normalizedLayouts`), while its test is named
+  "should fill the large form field by field" and its README entry claims the schema
+  is too large for `getSchema`. Both are false.
+- Its schema returns whole at 1621 characters, against a 20 000 limit, so the
+  path-navigation branch is never exercised. **No case in the harness is `large`.**
+- It completed in 4 calls of an allowed 16 and 2906 bytes of an allowed 40 000. Budgets
+  that loose cannot detect a regression.
+
+The suite passed because it replays sequences written in the same sitting as the
+fixtures. It confirmed the sequences worked; it never asked whether the case was the
+case it claimed to be.
+
+## Requirements
+
+- Runs are performed by a subagent that cannot read the repository
+- The runner is given only a user-phrased goal, and is not told it is being evaluated
+- Verdicts come from an LLM judge, not from comparison against expected data
+- The judge produces friction points anchored to specific tool calls
+- Measurements (call count, output bytes, final data, validity) are recorded and passed
+  to the judge as evidence, and are not pass/fail gates
+- Case schemas are real, vendored, and pinned
+- CI keeps a deterministic guard over everything that does not need a model
+- Cases declare their complexity band, and CI asserts the declaration is true
+
+## Case Format
+
+`expected`, `expectedIsPartial` and `budget` are removed. A case carries the minimum
+needed to pose a task and to verify in CI that it is the case it claims to be.
+
+```js
+{
+  name: 'charts',
+  title: 'chart configuration',          // WebMCP dataTitle
+  schema: <loaded from schemas/app-charts.json>,
+  data: {},                              // initial form state
+  goal: 'Show average PM10 by city as a bar chart, from the air quality dataset.',
+  expectedComplexity: 'large'            // asserted in CI, never read at runtime
+}
+```
+
+`goal` is the only text the runner ever sees. It must read as a user request, carry no
+tool names, and describe an outcome rather than a procedure.
+
+### Vendored schemas
+
+Real schemas live in `core/webmcp-eval/cases/schemas/`, pinned so a run today is
+comparable to one months later.
+
+| case | source | band |
+|------|--------|------|
+| `charts` | app-charts | large |
+| `calendar` | app-calendar | medium |
+| `contact` | hand-written | small |
+
+**Vendor the source schema, not the built artefact.** `app-charts/public/config-schema.json`
+is 530 KB locally, but the review measured the source at 184 702 characters and the
+resolved form at 411 689 — and found the resolved schema produces a byte-identical
+state projection for 8× the compilation cost. Which of the two that file is must be
+confirmed before copying.
+
+Only `contact` stays hand-written, as a deliberate small-band control. The existing
+`team` and `dataset` cases are removed: both are synthetic, neither reaches the band it
+was written for, and the array editing `team` covered is present in the real schemas
+that replace it. If a first run shows the vendored schemas exercise no `editArray`
+path, a fourth case is added rather than `team` being restored — a case whose schema
+provokes the behaviour is worth more than one built to demonstrate it.
+
+Runs will encounter `getItems` lists whose URLs cannot resolve without a reachable
+data-fair. That is not a defect of the harness: it is the exact condition the review
+identified as the costliest failure, where the tool answers `No suggestions available`
+instead of naming the field it depends on. Observing how a runner reacts is a purpose
+of the eval, not an obstacle to it.
+
+## Runner Isolation
+
+One agent definition per case, so a runner is only ever exposed to one form:
+
+```
+.claude/agents/webmcp-eval-runner-charts.md
+---
+name: webmcp-eval-runner-charts
+tools: mcp__webmcp-eval-charts__getData, mcp__webmcp-eval-charts__setFieldValue, ...
+---
+You are helping a user fill in a form on the page they are viewing.
+```
+
+The isolation guarantee is the **absence** of `Read`, `Grep`, `Bash` and `WebFetch`.
+That holds regardless of how MCP tool names resolve in the `tools:` list, which is the
+one mechanism detail to verify before building on it. If MCP names cannot be enumerated
+there, the fallback is an agent definition that grants no filesystem tools at all and
+inherits MCP access — the guarantee is unchanged.
+
+Three properties make a run trustworthy:
+
+- the runner cannot read `cases/index.js`, `src/webmcp/`, or the review report
+- it is not told it is being evaluated, so it behaves as it would on a real page
+- the goal string is its only input
+
+### Generated configuration
+
+`core/webmcp-eval/generate-config.js` writes `.mcp.json` and the per-case runner agent
+definitions from `cases/index.js`. Generating both from one source prevents the drift
+that would silently break isolation — an agent definition naming a server that no
+longer exists yields a runner with no tools rather than a visible error.
+
+## Orchestration
+
+A `/webmcp-eval` skill drives a session:
+
+1. Dispatch one runner subagent per case, in parallel, each handed only its `goal`.
+2. Each runner drives its own case's MCP server. Per-case server processes are what
+   make parallel runs safe: one form state per process, no interference.
+3. On completion, dispatch one judge subagent per case with that case's evidence.
+4. Aggregate verdicts and friction into a report.
+
+**One run per case per session.** A server process holds a single form state, so a
+second run of the same case would start from the first run's data. Re-running requires
+a fresh session. This is a deliberate trade for the isolation that per-case processes
+provide.
+
+## Judge Contract
+
+A `webmcp-eval-judge` subagent receives, in its prompt: the goal, the case schema, the
+full transcript (each call's tool, arguments, response text and byte size), and the
+run metrics (call count, total output bytes, final data, validity flag).
+
+```json
+{
+  "verdict": "satisfactory | unsatisfactory",
+  "reasoning": "one paragraph on whether the session achieved the goal",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "No suggestions available",
+      "inferred": "concluded the field was free-text and invented a value",
+      "severity": "high | medium | low"
+    }
+  ]
+}
+```
+
+The friction list is the deliverable. A verdict alone says a run went badly; a friction
+point says which response misled the agent and what it apparently concluded, which is
+what turns a run into a change to a tool description.
+
+Unlike the runner, the judge is granted `Read`. It needs the tool implementation to
+explain *why* a response misled rather than only that it did. This admits a mild pull
+toward excusing the tools; specificity is judged the better trade, and the judge never
+sees the runner's isolation constraint because it is not the thing under test.
+
+Verdicts are written to `core/tmp/webmcp-eval-<case>.verdict.json`.
+
+## Reporting
+
+`score.js` becomes `report.js`. It aggregates verdicts and friction across every case
+with a transcript, prints the measurements as context rather than as judgements, and
+exits non-zero if any verdict is `unsatisfactory`. `EvalSession.score()` is removed;
+`EvalSession.report()` becomes a transcript dump.
+
+## What Stays Deterministic
+
+`core/test/webmcp-eval.spec.js` drops every `expected`-matching sequence and every
+budget assertion, and keeps what remains honest without a model:
+
+- every case's schema compiles
+- **each case lands in the complexity band it declares** — the check that catches a
+  mislabelled case, which is how the current `dataset` defect went unnoticed
+- `getSchema` behaves as the band implies: a `large` case must actually refuse to
+  return its whole schema, a `small` one must return it
+- tools register with the expected names, including the skill
+- the session records call costs, and reports an unknown tool as a failed call rather
+  than throwing
+
+These run free on every commit and need no model. The agent-driven eval is a separate,
+deliberate act.
+
+## Files
+
+| action | path |
+|--------|------|
+| add | `core/webmcp-eval/cases/schemas/*.json` |
+| add | `core/webmcp-eval/generate-config.js` |
+| add | `.claude/agents/webmcp-eval-runner-<case>.md`, `.claude/agents/webmcp-eval-judge.md` |
+| add | `.claude/skills/webmcp-eval/SKILL.md` |
+| rewrite | `core/webmcp-eval/cases/index.js`, `cases/types.ts` |
+| rewrite | `core/webmcp-eval/session.js` (drop scoring) |
+| rewrite | `core/webmcp-eval/score.js` → `report.js` |
+| rewrite | `core/test/webmcp-eval.spec.js` |
+| rewrite | `core/webmcp-eval/README.md` |
+| regenerate | `.mcp.json` |
+| update | `core/package.json` (`webmcp-eval:score` → `webmcp-eval:report`) |
+
+## Out of Scope
+
+- **A standalone Node runner driving an API tool-loop.** Would make the eval CI-able and
+  let models be pinned and compared, which the review's big-model/small-model question
+  eventually needs. Deferred: it adds an SDK dependency to a package with almost none,
+  and reimplements an agent loop already available. Nothing here blocks adding it later
+  against the same cases and judge prompt.
+- **`getItems` dependency chains.** The review found 45% of real option lists resolve
+  only after another field is written, and that no host-side patch can reproduce that.
+  Covering it needs mocked `getItems` URLs (`nock` is already a core devDependency).
+  The vendored real schemas contain such chains, so runs will encounter them; asserting
+  on them deterministically is separate work.
+- **Re-keying `getComplexity`.** The review found it classifies 25 of 30 real apps as
+  `large`, so `expectedComplexity` inherits a measure known to be weak. Cases still
+  assert against today's behaviour; changing the heuristic is a separate decision.
