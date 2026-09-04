@@ -56,9 +56,16 @@ needed to pose a task and to verify in CI that it is the case it claims to be.
   schema: <loaded from schemas/app-charts.json>,
   data: {},                              // initial form state
   goal: 'Show average PM10 by city as a bar chart, from the air quality dataset.',
-  expectedComplexity: 'large'            // asserted in CI, never read at runtime
+  expectedComplexity: 'large',           // asserted in CI, never read at runtime
+  expectedSchemaFits: false              // does getSchema return the whole schema?
 }
 ```
+
+`expectedSchemaFits` exists because complexity band and schema size are independent, and
+conflating them is what let the old `dataset` case claim a branch it never reached. A
+case can be `large` by node count while its schema still fits under `SCHEMA_MAX_LENGTH`
+and comes back whole. Only a case with `expectedSchemaFits: false` exercises the
+path-navigation branch.
 
 `goal` is the only text the runner ever sees. It must read as a user request, carry no
 tool names, and describe an outcome rather than a procedure.
@@ -68,17 +75,35 @@ tool names, and describe an outcome rather than a procedure.
 Real schemas live in `core/webmcp-eval/cases/schemas/`, pinned so a run today is
 comparable to one months later.
 
-| case | source | band |
-|------|--------|------|
-| `charts` | app-charts | large |
-| `calendar` | app-calendar | medium |
-| `contact` | hand-written | small |
+Measured by compiling each candidate with this branch:
 
-**Vendor the source schema, not the built artefact.** `app-charts/public/config-schema.json`
-is 530 KB locally, but the review measured the source at 184 702 characters and the
-resolved form at 411 689 — and found the resolved schema produces a byte-identical
-state projection for 8× the compilation cost. Which of the two that file is must be
-confirmed before copying.
+| case | source file | chars | nodes | band | `getSchema` |
+|------|-------------|-------|-------|------|-------------|
+| `charts` | `app-charts/src/config/schema.json` | 29 472 | 286 | large | **refuses**, path navigation |
+| `calendar` | `app-calendar/public/config-schema.json` | 5 941 | 58 | large | returns whole |
+| `contact` | hand-written | 368 | 5 | small | returns whole |
+
+**Vendor the source schema, not the published one.** `app-charts/public/config-schema.json`
+is not the source: its build script is `df-build-types && ncp src/config/.type/resolved-schema.json
+public/config-schema.json`, so the published file *is* the resolved schema. The true
+source is `src/config/schema.json`, and the difference is 29 472 characters against
+185 660 — 6× the weight, for what the review found to be a byte-identical state
+projection. `app-calendar` has no `src/config/schema.json`, so its published file is
+used.
+
+Two findings this measurement forced, both worth keeping:
+
+- **No `medium` band exists among the available real schemas** — they land at 5, 58 and
+  286 nodes. `expectedComplexity` records what is true rather than inventing a case to
+  fill a band, and the absence is itself evidence for the review's finding that the
+  heuristic no longer separates anything.
+- **`calendar` is `large` yet its schema fits.** Band and schema size are independent,
+  which is why `expectedSchemaFits` is a separate field and why only `charts` covers the
+  refusal path.
+
+`app-charts` also emits `unknown format "hexcolor" ignored` warnings on compile — the
+class of silent component degradation the review flagged, out of scope here but visible
+in every run against this case.
 
 Only `contact` stays hand-written, as a deliberate small-band control. The existing
 `team` and `dataset` cases are removed: both are synthetic, neither reaches the band it
@@ -188,8 +213,10 @@ budget assertion, and keeps what remains honest without a model:
 - every case's schema compiles
 - **each case lands in the complexity band it declares** — the check that catches a
   mislabelled case, which is how the current `dataset` defect went unnoticed
-- `getSchema` behaves as the band implies: a `large` case must actually refuse to
-  return its whole schema, a `small` one must return it
+- **`getSchema` matches each case's `expectedSchemaFits`** — a case declaring `false`
+  must actually refuse and offer sub-paths, one declaring `true` must return the whole
+  schema. Kept separate from the band assertion because `calendar` proves the two can
+  disagree
 - tools register with the expected names, including the skill
 - the session records call costs, and reports an unknown tool as a failed call rather
   than throwing
