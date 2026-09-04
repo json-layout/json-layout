@@ -3,20 +3,32 @@
     "webmcp-eval-contact": {
       "type": "stdio",
       "command": "node",
-      "args": ["core/webmcp-eval/server.js"],
-      "env": { "JL_WEBMCP_EVAL_CASE": "contact" }
+      "args": [
+        "core/webmcp-eval/server.js"
+      ],
+      "env": {
+        "JL_WEBMCP_EVAL_CASE": "contact"
+      }
     },
-    "webmcp-eval-team": {
+    "webmcp-eval-calendar": {
       "type": "stdio",
       "command": "node",
-      "args": ["core/webmcp-eval/server.js"],
-      "env": { "JL_WEBMCP_EVAL_CASE": "team" }
+      "args": [
+        "core/webmcp-eval/server.js"
+      ],
+      "env": {
+        "JL_WEBMCP_EVAL_CASE": "calendar"
+      }
     },
-    "webmcp-eval-dataset": {
+    "webmcp-eval-charts": {
       "type": "stdio",
       "command": "node",
-      "args": ["core/webmcp-eval/server.js"],
-      "env": { "JL_WEBMCP_EVAL_CASE": "dataset" }
+      "args": [
+        "core/webmcp-eval/server.js"
+      ],
+      "env": {
+        "JL_WEBMCP_EVAL_CASE": "charts"
+      }
     }
   }
 }
