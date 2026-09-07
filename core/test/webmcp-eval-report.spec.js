@@ -213,3 +213,28 @@ describe('webmcp eval run loading', () => {
     assert.ok(lines.join('\n').includes('report-spec-never-ran: not run'))
   })
 })
+
+describe('webmcp eval run provenance', () => {
+  it('should print the model that produced the run', () => {
+    const entry = { ...run('contact', 'satisfactory'), run: { case: 'contact', ok: true, model: 'claude-opus-5', costUsd: 0.42, denials: [] } }
+    const { lines, failed } = summarise([entry])
+    assert.equal(failed, false)
+    assert.ok(lines.some((l) => l.includes('claude-opus-5')), 'the model must appear')
+    assert.ok(lines.some((l) => l.includes('0.42')), 'the cost must appear')
+  })
+
+  it('should fail an invalid run even when a verdict exists', () => {
+    // A denied tool means the run measured a crippled agent. Judging that transcript
+    // would report a protocol failure that is really a harness failure.
+    const entry = { ...run('contact', 'satisfactory'), run: { case: 'contact', ok: false, model: null, costUsd: null, denials: [{}], error: 'denied' } }
+    const { lines, failed } = summarise([entry])
+    assert.equal(failed, true, 'a crippled run must not be judged into a pass')
+    assert.ok(lines.some((l) => l.includes('invalid run')))
+  })
+
+  it('should still judge a transcript that has no sidecar', () => {
+    // Transcripts predating this change carry no provenance; they must still report.
+    const { failed } = summarise([run('contact', 'satisfactory')])
+    assert.equal(failed, false)
+  })
+})

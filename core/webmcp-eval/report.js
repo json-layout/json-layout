@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 
 import { cases } from './cases/index.js'
 import { parseVerdict } from './verdict.js'
+import { sidecarPath } from './run-case.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -26,6 +27,8 @@ const here = dirname(fileURLToPath(import.meta.url))
  * @property {object|null} evidence - the recorded transcript, or null when the case never ran
  * @property {object|null} verdict - the judge's answer, or null when it is missing, malformed
  *   or written for a different case
+ * @property {object|null} [run] - provenance written by the launcher, absent for transcripts
+ *   recorded before it existed
  */
 
 /**
@@ -42,7 +45,7 @@ export function summarise (runs) {
     return { lines, failed: true }
   }
 
-  for (const { name, evidence, verdict } of runs) {
+  for (const { name, evidence, verdict, run } of runs) {
     lines.push('')
     if (!evidence) {
       // A missing transcript is a case that never executed — usually because its MCP
@@ -51,6 +54,16 @@ export function summarise (runs) {
       failed = true
       lines.push(`${name}: not run`)
       lines.push(`  no transcript at core/tmp/webmcp-eval-${name}.json — the case was never dispatched, or its MCP server was not loaded`)
+      continue
+    }
+
+    const runRecord = /** @type {any} */(run)
+    if (runRecord && !runRecord.ok) {
+      // The process ran but the agent was crippled — a denied tool, a non-zero exit.
+      // Failing here keeps it out of the judged results entirely.
+      failed = true
+      lines.push(`${name}: invalid run`)
+      lines.push(`  ${runRecord.error ?? 'the run did not complete cleanly'}`)
       continue
     }
 
@@ -71,6 +84,9 @@ export function summarise (runs) {
     // case actually runs again.
     lines.push(`  started ${ev.startedAt ?? 'unknown'}`)
     lines.push(`  ran ${metrics.toolCalls} calls, read ${metrics.outputBytes} bytes, form valid=${ev.valid}`)
+    if (runRecord?.model) {
+      lines.push(`  model ${runRecord.model}${runRecord.costUsd != null ? `, $${runRecord.costUsd.toFixed(3)}` : ''}`)
+    }
 
     const friction = /** @type {any} */(verdict)?.friction ?? []
     if (friction.length) {
@@ -94,17 +110,19 @@ export function loadRuns (names) {
   const runs = []
   for (const name of names) {
     const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${name}.json`)
+    const run = existsSync(sidecarPath(name)) ? JSON.parse(readFileSync(sidecarPath(name), 'utf8')) : null
     // A requested case with no transcript is reported, never skipped: it is a failure of
     // the run, not an absence of one.
     if (!existsSync(evidencePath)) {
-      runs.push({ name, evidence: null, verdict: null })
+      runs.push({ name, evidence: null, verdict: null, run })
       continue
     }
     const verdictPath = join(here, '..', 'tmp', `webmcp-eval-${name}.verdict.json`)
     runs.push({
       name,
       evidence: JSON.parse(readFileSync(evidencePath, 'utf8')),
-      verdict: loadVerdict(verdictPath, name)
+      verdict: loadVerdict(verdictPath, name),
+      run
     })
   }
   return runs
