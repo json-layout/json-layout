@@ -12,6 +12,11 @@ export type EvalCase = {
   schema: Record<string, unknown>
   /** Initial form data, usually empty. */
   data: Record<string, unknown>
+  /**
+   * Expression context the schema's URLs and conditions read (`context.xxx`). For the
+   * data-fair app cases this carries the owner filter a deployed app always has.
+   */
+  context?: Record<string, unknown>
   /** Band getComplexity must report. Asserted in CI, never read at runtime. */
   expectedComplexity: ComplexityBand
   /**

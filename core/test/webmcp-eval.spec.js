@@ -11,6 +11,19 @@ import { TOOL_NAMES } from '../webmcp-eval/run-case.js'
 import { EvalSession } from '../webmcp-eval/session.js'
 
 /**
+ * @param {import('../src/state/index.js').StateNode} node
+ * @param {string} fullKey
+ * @returns {import('../src/state/index.js').StateNode | undefined}
+ */
+function findNode (node, fullKey) {
+  if (node.fullKey === fullKey) return node
+  for (const child of node.children ?? []) {
+    const found = findNode(child, fullKey)
+    if (found) return found
+  }
+}
+
+/**
  * These assertions need no model. They cannot tell you whether a form is usable by an
  * agent — that is the judged eval's job — but they pin that each case is the case it
  * claims to be. The previous suite could not: it replayed sequences written alongside
@@ -56,6 +69,20 @@ describe('webmcp eval cases', () => {
     })
   }
 
+  it('should present the calendar pickers as item lists, not vendor keywords', () => {
+    // app-calendar is written for vjsf v2 (x-fromUrl and friends). Compiled raw, its
+    // pickers render as plain sections and getFieldSuggestions refuses them while
+    // getSchema still shows the vendor keywords — two tools contradicting each other,
+    // which the first judged run reported as high-severity friction.
+    const evalCase = getCase('calendar')
+    assert.ok(!JSON.stringify(evalCase.schema).includes('x-fromUrl'), 'vendor keywords must be translated before the agent sees the schema')
+    const session = new EvalSession(evalCase)
+    const datasetNode = findNode(session.layout.stateTree.root, '/$allOf-0/datasets/0')
+    assert.ok(datasetNode?.layout.getItems, 'the dataset picker must carry a getItems layout')
+    const labelNode = findNode(session.layout.stateTree.root, '/$allOf-1/labelField')
+    assert.ok(labelNode?.layout.getItems, 'the label picker must carry a getItems layout')
+  })
+
   it('should cover both getSchema branches across the case set', () => {
     // Without at least one oversized schema, nothing reaches the refusal path.
     assert.ok(cases.some((c) => c.expectedSchemaFits === false), 'need a case whose schema is refused')
@@ -64,6 +91,39 @@ describe('webmcp eval cases', () => {
 })
 
 describe('webmcp eval session', () => {
+  it('should resolve item lists against the data-fair base URL', async () => {
+    // Both vendored schemas fetch their pickers from relative data-fair API paths. Left
+    // unresolved they fail as a bare "fetch failed", which the first judged run showed
+    // an agent retrying four times with different queries.
+    /** @type {string[]} */
+    const fetched = []
+    const session = new EvalSession(getCase('charts'), {
+      dataFairURL: 'https://example.test/data-fair/',
+      fetch: async (/** @type {string} */ url) => { fetched.push(url); return { results: [{ href: 'https://example.test/data-fair/api/v1/datasets/aq', title: 'Air quality' }] } }
+    })
+    await session.call('getFieldSuggestions', { path: '/$allOf-0/datasets/0', query: 'air' })
+    assert.equal(session.calls[0].isError, false, session.calls[0].response)
+    assert.equal(fetched.length, 1)
+    assert.ok(fetched[0].startsWith('https://example.test/data-fair/api/v1/datasets?'), fetched[0])
+    assert.ok(fetched[0].includes('q=air'), fetched[0])
+    assert.ok(session.calls[0].response.includes('Air quality'), session.calls[0].response)
+  })
+
+  it('should pass the case context into the item URLs', async () => {
+    // A deployed app runs under one owner and its dataset queries carry that filter.
+    // Without it the public instance answers with its twelve newest matches, and the
+    // dataset a goal names is never among them.
+    /** @type {string[]} */
+    const fetched = []
+    const evalCase = { ...getCase('charts'), context: { datasetFilter: 'owner=organization:test' } }
+    const session = new EvalSession(evalCase, {
+      dataFairURL: 'https://example.test/data-fair/',
+      fetch: async (/** @type {string} */ url) => { fetched.push(url); return { results: [] } }
+    })
+    await session.call('getFieldSuggestions', { path: '/$allOf-0/datasets/0', query: 'air' })
+    assert.ok(decodeURIComponent(fetched[0]).includes('owner=organization:test'), fetched[0])
+  })
+
   it('should expose the same tools a page would register, including the skill', () => {
     // TOOL_NAMES is what run-case.js passes to every launched runner's --allowedTools,
     // listed by hand so the launcher needs no compiled form. Nothing else ties it to

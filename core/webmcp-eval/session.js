@@ -38,6 +38,22 @@ import { WebMCP } from '../src/webmcp/index.js'
  *   as context for the judge, not as a pass/fail threshold
  */
 
+/**
+ * Where the vendored data-fair app schemas fetch their pickers from. Both build relative
+ * `api/v1/...` URLs, exactly as the deployed apps do, so the harness supplies the base a
+ * page would get from its host — pointed at koumoul.com's public instance by default,
+ * because a judged run is only meaningful if those lists resolve.
+ */
+export const DEFAULT_DATA_FAIR_URL = 'https://koumoul.com/data-fair/'
+
+/**
+ * @typedef {object} EvalSessionOptions
+ * @property {string} [dataFairURL] - base for the schemas' relative API URLs; defaults to
+ *   `JL_WEBMCP_EVAL_DATA_FAIR` or the public koumoul.com instance
+ * @property {(url: string, options?: RequestInit) => Promise<any>} [fetch] - replaces the
+ *   network for tests
+ */
+
 export class EvalSession {
   /** @type {EvalCase} */
   _case
@@ -57,15 +73,23 @@ export class EvalSession {
 
   /**
    * @param {EvalCase} evalCase
+   * @param {EvalSessionOptions} [options]
    */
-  constructor (evalCase) {
+  constructor (evalCase, options = {}) {
     this._case = evalCase
     const compiled = compile(evalCase.schema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
+    /** @type {import('../src/state/index.js').StatefulLayoutOptions} */
+    const layoutOptions = {
+      validateOn: 'input',
+      fetchBaseURL: options.dataFairURL ?? process.env.JL_WEBMCP_EVAL_DATA_FAIR ?? DEFAULT_DATA_FAIR_URL,
+      context: evalCase.context ?? {}
+    }
+    if (options.fetch) layoutOptions.fetch = options.fetch
     this._layout = new StatefulLayout(
       compiled,
       mainTree,
-      { validateOn: 'input' },
+      layoutOptions,
       structuredClone(evalCase.data)
     )
     const webmcp = new WebMCP(this._layout, {
@@ -80,6 +104,9 @@ export class EvalSession {
 
   /** @returns {import('@mcp-b/webmcp-types').ToolDescriptor[]} */
   get tools () { return this._tools }
+
+  /** @returns {StatefulLayout} */
+  get layout () { return this._layout }
 
   /** @returns {unknown} */
   get data () { return this._layout.data }
