@@ -1,6 +1,6 @@
 ---
 name: webmcp-eval
-description: Run the WebMCP eval - dispatch an isolated runner subagent per case to fill a real form, then judge each transcript. Use when asked to evaluate the webmcp form tools, run the eval, or check whether an agent can drive json-layout forms, and after changing any webmcp tool, its description, or the fill-form skill text.
+description: Run the WebMCP eval - launch an isolated subprocess runner per case to fill a real form, then dispatch a judge subagent to verdict each transcript. Use when asked to evaluate the webmcp form tools, run the eval, or check whether an agent can drive json-layout forms, and after changing any webmcp tool, its description, or the fill-form skill text.
 ---
 
 # Running the WebMCP eval
