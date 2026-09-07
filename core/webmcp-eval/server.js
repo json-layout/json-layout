@@ -25,7 +25,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { getCase } from './cases/index.js'
-import { EvalSession } from './session.js'
+import { EvalSession, applyVariant, evidenceName } from './session.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const caseName = process.env.JL_WEBMCP_EVAL_CASE
@@ -37,10 +37,11 @@ if (!caseName) {
   // this, so failing loudly here costs nothing.
   throw new Error('JL_WEBMCP_EVAL_CASE must be set — it selects which case this server serves')
 }
-const evalCase = getCase(caseName)
+const variant = process.env.JL_WEBMCP_EVAL_VARIANT
+const evalCase = applyVariant(getCase(caseName), variant)
 const session = new EvalSession(evalCase)
 
-const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${caseName}.json`)
+const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${evidenceName(caseName, variant)}.json`)
 
 /** Write the run so far to the evidence file the judge agent reads. */
 function persist () {

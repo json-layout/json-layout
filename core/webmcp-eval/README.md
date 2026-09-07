@@ -94,10 +94,26 @@ procedure):
    session opened.
 
 2. Each runner has no built-in tools at all (`--tools ""`) and no other reachable MCP
-   server (`--strict-mcp-config`); `--allowedTools` names exactly the eight
-   `mcp__page-form__*` tools the case's server exposes — the same descriptors,
-   descriptions and skill text a browser page would expose. The prompt it receives is
-   only the case's goal — no mention of json-layout, the schema, or the tools available.
+   server (`--strict-mcp-config`); `--allowedTools` names exactly the `mcp__page-form__*`
+   tools the case's server registers — the same descriptors and descriptions a browser
+   page would expose.
+
+   Its prompt is the case's goal plus the form-filling guide, which is how production
+   delivers it: pages set `includeSubAgent`, whose tool hands a runner `{ prompt, tools }`
+   — the guide as prompt, not as something to go and fetch. The eval used to register a
+   `fillFormSkill` tool instead, and measured a configuration nobody ships: every
+   contaminated runner called it and no clean one ever did, because the tool only looked
+   load-bearing to agents carrying an "always invoke a skill first" instruction.
+
+   Nothing else reaches the runner — no mention of json-layout, the schema, or the case.
+
+3. **Variants.** `npm run webmcp-eval:run -w core -- <case> --no-schema` runs a case
+   without handing WebMCP the schema, which is what decides whether a `getSchema` tool
+   exists at all and makes the guide point at `describeState` instead. That is what
+   portals ships, because its compiled layout carries no schema. Running one case both
+   ways is how this harness answers whether shipping the schema would earn its bundle
+   size — a question it should measure rather than presume. Variant evidence lands beside
+   the control as `webmcp-eval-<case>--<variant>.json`, and the report prints both.
 
    **Isolation.** The run happens from a temporary directory outside this repository,
    with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from

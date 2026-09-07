@@ -17,6 +17,18 @@ export type EvalCase = {
    * data-fair app cases this carries the owner filter a deployed app always has.
    */
   context?: Record<string, unknown>
+  /**
+   * Options the schema must be compiled with, when its defaults are not what the page
+   * uses. The portals schema carries x-i18n-* keywords and a 39-branch discriminated
+   * union, and compiling it without xI18n leaves the state tree unable to settle.
+   */
+  compileOptions?: Record<string, unknown>
+  /**
+   * Whether the page hands WebMCP the source schema, which is what decides if a
+   * getSchema tool exists at all. Defaults to true. The portals page does not: its
+   * compiled layout ships without the schema, so its agent has no getSchema.
+   */
+  withSchema?: boolean
   /** Band getComplexity must report. Asserted in CI, never read at runtime. */
   expectedComplexity: ComplexityBand
   /**

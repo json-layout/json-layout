@@ -49,7 +49,7 @@ describe('webmcp eval runner launch arguments', () => {
 
   it('should grant exactly the page-form tools and no built-in tool', () => {
     // A positive allow-list check: an emptied TOOL_NAMES must fail here, not pass vacuously.
-    assert.ok(TOOL_NAMES.length >= 8, 'TOOL_NAMES must not be emptied out, or this check is vacuous')
+    assert.ok(TOOL_NAMES.length >= 7, 'TOOL_NAMES must not be emptied out, or this check is vacuous')
     const args = buildLaunchArgs(getCase('contact'), options)
     const allowed = optionValue(args, '--allowedTools').split(',')
     assert.deepEqual(allowed, TOOL_NAMES.map((t) => `mcp__${MCP_SERVER_NAME}__${t}`))

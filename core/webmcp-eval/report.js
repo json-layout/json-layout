@@ -11,11 +11,12 @@
  * Usage: npm run webmcp-eval:report -w core [case ...]
  */
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { cases } from './cases/index.js'
+import { evidenceName } from './session.js'
 import { parseVerdict } from './verdict.js'
 import { sidecarPath } from './run-case.js'
 
@@ -24,6 +25,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 /**
  * @typedef {object} EvalRun
  * @property {string} name - the case this run was requested for
+ * @property {string} [variant] - tool configuration it ran under, absent for the default
  * @property {object|null} evidence - the recorded transcript, or null when the case never ran
  * @property {object|null} verdict - the judge's answer, or null when it is missing, malformed
  *   or written for a different case
@@ -45,7 +47,8 @@ export function summarise (runs) {
     return { lines, failed: true }
   }
 
-  for (const { name, evidence, verdict, run } of runs) {
+  for (const { name, variant, evidence, verdict, run } of runs) {
+    const label = variant ? `${name} (${variant})` : name
     lines.push('')
     const runRecord = /** @type {any} */(run)
     if (!evidence) {
@@ -53,10 +56,10 @@ export function summarise (runs) {
       // have been dispatched, or it may have failed to launch or exit cleanly. Skipping it
       // here is how a suite passes while two thirds of it never ran.
       failed = true
-      lines.push(`${name}: not run`)
+      lines.push(`${label}: not run`)
       lines.push(runRecord?.error
         ? `  ${runRecord.error}`
-        : `  no transcript at core/tmp/webmcp-eval-${name}.json — the case was never dispatched`)
+        : `  no transcript at core/tmp/webmcp-eval-${evidenceName(name, variant)}.json — the case was never dispatched`)
       continue
     }
 
@@ -64,7 +67,7 @@ export function summarise (runs) {
       // The process ran but the agent was crippled — a denied tool, a non-zero exit.
       // Failing here keeps it out of the judged results entirely.
       failed = true
-      lines.push(`${name}: invalid run`)
+      lines.push(`${label}: invalid run`)
       lines.push(`  ${runRecord.error ?? 'the run did not complete cleanly'}`)
       continue
     }
@@ -73,11 +76,11 @@ export function summarise (runs) {
     const metrics = ev.metrics ?? {}
     if (!verdict) {
       failed = true
-      lines.push(`${name}: not judged`)
+      lines.push(`${label}: not judged`)
     } else {
       const v = /** @type {any} */(verdict)
       if (v.verdict !== 'satisfactory') failed = true
-      lines.push(`${name}: ${v.verdict.toUpperCase()}`)
+      lines.push(`${label}: ${v.verdict.toUpperCase()}`)
       lines.push(`  ${v.reasoning}`)
     }
     lines.push(`  goal: ${ev.goal}`)
@@ -104,6 +107,23 @@ export function summarise (runs) {
 }
 
 /**
+ * Every variant of a case that left evidence behind, the default first. A comparison run
+ * writes `webmcp-eval-<case>--<variant>.json` beside the control, so both get reported
+ * rather than one silently standing in for the other.
+ * @param {string} name
+ * @returns {(string|undefined)[]}
+ */
+function variantsOf (name) {
+  const dir = join(here, '..', 'tmp')
+  if (!existsSync(dir)) return [undefined]
+  const pattern = new RegExp(`^webmcp-eval-${name}--(.+)\\.json$`)
+  const found = readdirSync(dir)
+    .map((file) => pattern.exec(file)?.[1])
+    .filter((v) => !!v && !v.endsWith('.verdict') && !v.endsWith('.run'))
+  return [undefined, ...new Set(found)]
+}
+
+/**
  * @param {string[]} names
  * @returns {EvalRun[]}
  */
@@ -111,21 +131,26 @@ export function loadRuns (names) {
   /** @type {EvalRun[]} */
   const runs = []
   for (const name of names) {
-    const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${name}.json`)
-    const run = loadRun(name)
-    // A requested case with no transcript is reported, never skipped: it is a failure of
-    // the run, not an absence of one.
-    if (!existsSync(evidencePath)) {
-      runs.push({ name, evidence: null, verdict: null, run })
-      continue
+    for (const variant of variantsOf(name)) {
+      const label = evidenceName(name, variant)
+      const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${label}.json`)
+      const run = loadRun(label)
+      // A requested case with no transcript is reported, never skipped: it is a failure
+      // of the run, not an absence of one. Only the default is required to exist though
+      // — an ablation nobody ran is not a failure.
+      if (!existsSync(evidencePath)) {
+        if (!variant) runs.push({ name, variant, evidence: null, verdict: null, run })
+        continue
+      }
+      const verdictPath = join(here, '..', 'tmp', `webmcp-eval-${label}.verdict.json`)
+      runs.push({
+        name,
+        variant,
+        evidence: JSON.parse(readFileSync(evidencePath, 'utf8')),
+        verdict: loadVerdict(verdictPath, name),
+        run
+      })
     }
-    const verdictPath = join(here, '..', 'tmp', `webmcp-eval-${name}.verdict.json`)
-    runs.push({
-      name,
-      evidence: JSON.parse(readFileSync(evidencePath, 'utf8')),
-      verdict: loadVerdict(verdictPath, name),
-      run
-    })
   }
   return runs
 }

@@ -124,7 +124,7 @@ describe('webmcp eval session', () => {
     assert.ok(decodeURIComponent(fetched[0]).includes('owner=organization:test'), fetched[0])
   })
 
-  it('should expose the same tools a page would register, including the skill', () => {
+  it('should expose the same tools a page would register', () => {
     // TOOL_NAMES is what run-case.js passes to every launched runner's --allowedTools,
     // listed by hand so the launcher needs no compiled form. Nothing else ties it to
     // reality: a tool added or renamed under src/webmcp/ would leave every runner
@@ -133,7 +133,29 @@ describe('webmcp eval session', () => {
     const session = new EvalSession(getCase('contact'))
     const names = session.tools.map((t) => t.name).sort()
     assert.deepEqual(names, [...TOOL_NAMES].sort(), 'TOOL_NAMES must match the tools a session registers — update TOOL_NAMES in run-case.js')
-    assert.ok(names.includes('fillFormSkill'), 'the skill a real page exposes must be among them')
+  })
+
+  it('should deliver the guide as a prompt rather than as a tool', () => {
+    // Production pages enable includeSubAgent, which hands the guide to the runner as
+    // its prompt; none enables includeFillFormSkill. Clean runners never called that
+    // tool anyway — only ones contaminated by a "always invoke a skill first"
+    // instruction did, which is what made it look load-bearing.
+    const session = new EvalSession(getCase('contact'))
+    assert.ok(!session.toolNames.includes('fillFormSkill'), 'the guide must not be a tool')
+    assert.match(session.skill, /Form-Filling Guide/, 'the guide must be exposed for injection')
+    for (const tool of session.toolNames) {
+      assert.ok(session.skill.includes(tool), `the guide must mention ${tool}, or the runner is granted a tool it was never told about`)
+    }
+  })
+
+  it('should drop getSchema, and say so in the guide, without a schema', () => {
+    // What portals ships: the compiled layout carries no schema, so no getSchema tool
+    // exists and the guide points the agent at describeState instead. Running a case
+    // both ways is how the harness answers whether shipping the schema earns its cost.
+    const session = new EvalSession({ ...getCase('contact'), withSchema: false })
+    assert.ok(!session.toolNames.includes('getSchema'))
+    assert.ok(!session.skill.includes('getSchema'))
+    assert.match(session.skill, /describeState/)
   })
 
   it('should record the cost of every call', async () => {

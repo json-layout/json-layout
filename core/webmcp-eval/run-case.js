@@ -18,6 +18,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from './cases/index.js'
+import { EvalSession, applyVariant, evidenceName } from './session.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
@@ -44,7 +45,6 @@ export const DEFAULT_MODEL = 'opus'
  * derived from a live session, so the launcher needs no compiled form to run.
  */
 export const TOOL_NAMES = [
-  'fillFormSkill',
   'getData',
   'setData',
   'describeState',
@@ -72,6 +72,8 @@ anything you could not complete.`
  * @typedef {object} LaunchOptions
  * @property {string} [serverPath] - absolute path to the stdio server
  * @property {string} [model] - model alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
+ * @property {string} [skill] - the form-filling guide, appended to the runner's prompt
+ * @property {string[]} [toolNames] - the tools the session registers, which the variant decides
  */
 
 /**
@@ -97,12 +99,14 @@ export function buildLaunchArgs (evalCase, options = {}) {
     '--mcp-config', mcpConfig,
     // No built-in tool exists at all — stronger than omitting them from an allow-list.
     '--tools', '',
-    '--allowedTools', TOOL_NAMES.map((tool) => `mcp__${MCP_SERVER_NAME}__${tool}`).join(','),
+    '--allowedTools', (options.toolNames ?? TOOL_NAMES).map((tool) => `mcp__${MCP_SERVER_NAME}__${tool}`).join(','),
     // Drops the SessionStart hook and project settings. Combined with a working
     // directory outside this repository it also drops auto-memory, whose index names
     // this eval and would otherwise tell the runner what it is taking part in.
     '--setting-sources=',
-    '--append-system-prompt', RUNNER_PROMPT,
+    // The guide is injected, not fetched: production pages hand it to a runner as its
+    // prompt through the subagent tool, and a clean agent never calls a tool to get it.
+    '--append-system-prompt', options.skill ? `${RUNNER_PROMPT}\n\n${options.skill}` : RUNNER_PROMPT,
     '--model', options.model ?? process.env.JL_WEBMCP_EVAL_MODEL ?? DEFAULT_MODEL,
     // Nothing may block on a prompt nobody can answer; a denial is recorded instead.
     '--permission-prompts', 'none',
@@ -160,6 +164,8 @@ function defaultSpawn (command, args, opts) {
  * @property {typeof defaultSpawn} [spawn] - replaces the subprocess launcher; tests stub this
  * @property {string} [cwd] - defaults to a fresh directory outside this repository
  * @property {string} [model] - alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
+ * @property {string} [variant] - tool configuration to run under, see VARIANTS
+ * @property {any} [session] - prebuilt session, so a test need not compile a schema
  * @property {string} [sidecarDir] - where to write the run's sidecar; defaults to this
  *   package's own `tmp/`. Tests must pass a fresh `mkdtempSync` directory here, or a unit
  *   run corrupts the sidecar of a real, already-judged eval run.
@@ -172,10 +178,11 @@ function defaultSpawn (command, args, opts) {
  * @param {EvalCase} evalCase
  * @param {RunRecord} record
  * @param {string} sidecarDir
+ * @param {string} [variant]
  * @returns {RunRecord}
  */
-function finish (evalCase, record, sidecarDir) {
-  const path = sidecarPath(evalCase.name, sidecarDir)
+function finish (evalCase, record, sidecarDir, variant) {
+  const path = sidecarPath(evidenceName(evalCase.name, variant), sidecarDir)
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, JSON.stringify(record, null, 2))
   return record
@@ -187,13 +194,23 @@ function finish (evalCase, record, sidecarDir) {
  * @returns {Promise<RunRecord>}
  */
 export async function runCase (evalCase, options = {}) {
+  const variant = options.variant
+  const variantCase = applyVariant(evalCase, variant)
   const requestedModel = options.model ?? process.env.JL_WEBMCP_EVAL_MODEL ?? DEFAULT_MODEL
   // Outside the repository on purpose: auto-memory is keyed to the project directory,
   // and its index names this eval.
   const cwd = options.cwd ?? mkdtempSync(join(tmpdir(), 'webmcp-eval-'))
   const sidecarDir = options.sidecarDir ?? DEFAULT_SIDECAR_DIR
   const spawnFn = options.spawn ?? defaultSpawn
-  const args = buildLaunchArgs(evalCase, { model: requestedModel })
+  // Compiling here costs a second or two but is what lets the runner be handed the same
+  // guide and the same tool list the server will register — the pair a page's subagent
+  // tool returns. A mismatch would grant a tool the guide never mentions, or the reverse.
+  const session = options.session ?? new EvalSession(variantCase)
+  const args = buildLaunchArgs(variantCase, {
+    model: requestedModel,
+    skill: session.skill,
+    toolNames: session.toolNames
+  })
 
   /** @type {RunRecord} */
   const record = {
@@ -212,7 +229,11 @@ export async function runCase (evalCase, options = {}) {
   try {
     spawnResult = await spawnFn('claude', args, {
       cwd,
-      env: { ...process.env, JL_WEBMCP_EVAL_CASE: evalCase.name }
+      env: {
+        ...process.env,
+        JL_WEBMCP_EVAL_CASE: evalCase.name,
+        ...(variant ? { JL_WEBMCP_EVAL_VARIANT: variant } : {})
+      }
     })
   } catch (/** @type {any} */err) {
     // The process never launched at all, so there is no exit code and nothing to parse
@@ -221,7 +242,7 @@ export async function runCase (evalCase, options = {}) {
     record.error = err.code === 'ENOENT'
       ? 'could not launch "claude" — the Claude Code CLI must be on PATH and authenticated'
       : `failed to launch claude: ${err.message}`
-    return finish(evalCase, record, sidecarDir)
+    return finish(evalCase, record, sidecarDir, variant)
   }
 
   const { code, stdout, stderr } = spawnResult
@@ -272,14 +293,18 @@ export async function runCase (evalCase, options = {}) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const wanted = process.argv.slice(2)
+  const argv = process.argv.slice(2)
+  const variantFlag = argv.find((a) => a.startsWith('--'))
+  const variant = variantFlag === '--no-schema' ? 'no-schema' : undefined
+  if (variantFlag && !variant) throw new Error(`unknown flag "${variantFlag}", only --no-schema is supported`)
+  const wanted = argv.filter((a) => !a.startsWith('--'))
   const selected = wanted.length ? wanted.map(getCase) : cases
   // Each run is its own process with its own server and working directory, so nothing
   // is shared and the cases can go at once. allSettled rather than all: each case's
   // sidecar is already on disk by the time its promise resolves, so one case rejecting
   // outright (an mkdtempSync EACCES, say) must not discard the printed summary for
   // every other case that did complete.
-  const settled = await Promise.allSettled(selected.map((evalCase) => runCase(evalCase)))
+  const settled = await Promise.allSettled(selected.map((evalCase) => runCase(evalCase, { variant })))
   let allOk = true
   settled.forEach((outcome, i) => {
     if (outcome.status === 'fulfilled') {

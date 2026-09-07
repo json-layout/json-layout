@@ -13,6 +13,7 @@
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
+import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
@@ -47,6 +48,37 @@ import { WebMCP } from '../src/webmcp/index.js'
 export const DEFAULT_DATA_FAIR_URL = 'https://koumoul.com/data-fair/'
 
 /**
+ * Tool configurations a case can be run under. The default is what a page that hands
+ * WebMCP its schema exposes; `no-schema` is what portals actually ships, where the
+ * compiled layout carries no schema so no getSchema tool exists and the guide tells the
+ * agent to read describeState instead. Running one case both ways is how the harness
+ * answers whether shipping the schema earns its bundle size.
+ */
+export const VARIANTS = ['default', 'no-schema']
+
+/**
+ * @param {EvalCase} evalCase
+ * @param {string} [variant]
+ * @returns {EvalCase}
+ */
+export function applyVariant (evalCase, variant) {
+  if (!variant || variant === 'default') return evalCase
+  if (variant === 'no-schema') return { ...evalCase, withSchema: false }
+  throw new Error(`unknown variant "${variant}", available: ${VARIANTS.join(', ')}`)
+}
+
+/**
+ * Evidence basename. The default variant keeps the plain name so nothing downstream
+ * moves; other variants get a suffix so a comparison run never overwrites its control.
+ * @param {string} name
+ * @param {string} [variant]
+ * @returns {string}
+ */
+export function evidenceName (name, variant) {
+  return !variant || variant === 'default' ? name : `${name}--${variant}`
+}
+
+/**
  * @typedef {object} EvalSessionOptions
  * @property {string} [dataFairURL] - base for the schemas' relative API URLs; defaults to
  *   `JL_WEBMCP_EVAL_DATA_FAIR` or the public koumoul.com instance
@@ -61,6 +93,8 @@ export class EvalSession {
   _layout
   /** @type {import('@mcp-b/webmcp-types').ToolDescriptor[]} */
   _tools
+  /** @type {string} */
+  _skill = ''
   /** @type {RecordedCall[]} */
   calls = []
   /**
@@ -77,7 +111,7 @@ export class EvalSession {
    */
   constructor (evalCase, options = {}) {
     this._case = evalCase
-    const compiled = compile(evalCase.schema)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     /** @type {import('../src/state/index.js').StatefulLayoutOptions} */
     const layoutOptions = {
@@ -92,14 +126,18 @@ export class EvalSession {
       layoutOptions,
       structuredClone(evalCase.data)
     )
+    // No fillFormSkill tool: production pages enable includeSubAgent, which hands the
+    // guide to the runner as its prompt. Clean runners never called the tool anyway —
+    // only ones contaminated by a "always invoke a skill first" instruction did.
+    const withSchema = evalCase.withSchema !== false
     const webmcp = new WebMCP(this._layout, {
       dataTitle: evalCase.title,
-      schema: evalCase.schema,
-      // The skill is what an agent reads to learn the protocol, so an eval that hid it
-      // would be measuring a different (harder) task than the one real pages present.
-      includeFillFormSkill: true
+      ...(withSchema ? { schema: evalCase.schema } : {})
     })
     this._tools = webmcp.getTools()
+    // The same pair the subagent tool returns to a page: the guide, and the tools it
+    // describes. The launcher injects them; nothing here is a tool the runner can call.
+    this._skill = generateSkill(evalCase.title, '', withSchema, this._layout)
   }
 
   /** @returns {import('@mcp-b/webmcp-types').ToolDescriptor[]} */
@@ -107,6 +145,19 @@ export class EvalSession {
 
   /** @returns {StatefulLayout} */
   get layout () { return this._layout }
+
+  /**
+   * The form-filling guide. Production pages hand it to a runner as its prompt via the
+   * subagent tool, so the launcher injects it rather than exposing a tool to fetch it.
+   * @returns {string}
+   */
+  get skill () { return this._skill }
+
+  /**
+   * The tools the guide describes, in the order a page registers them.
+   * @returns {string[]}
+   */
+  get toolNames () { return this._tools.map((t) => t.name) }
 
   /** @returns {unknown} */
   get data () { return this._layout.data }
