@@ -175,14 +175,13 @@ function defaultSpawn (command, args, opts) {
  * Write the sidecar and return the record. The single exit point for `runCase`, so every
  * outcome — a launch failure, a bad exit code, unparsable output, or a real result — is
  * recorded the same way.
- * @param {EvalCase} evalCase
+ * @param {string} label
  * @param {RunRecord} record
  * @param {string} sidecarDir
- * @param {string} [variant]
  * @returns {RunRecord}
  */
-function finish (evalCase, record, sidecarDir, variant) {
-  const path = sidecarPath(evidenceName(evalCase.name, variant), sidecarDir)
+function finish (label, record, sidecarDir) {
+  const path = sidecarPath(label, sidecarDir)
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, JSON.stringify(record, null, 2))
   return record
@@ -196,6 +195,9 @@ function finish (evalCase, record, sidecarDir, variant) {
 export async function runCase (evalCase, options = {}) {
   const variant = options.variant
   const variantCase = applyVariant(evalCase, variant)
+  // Computed once and handed to every exit: a variant run that wrote its provenance
+  // under the plain name would overwrite the control it exists to be compared against.
+  const evidenceLabel = evidenceName(evalCase.name, variant)
   const requestedModel = options.model ?? process.env.JL_WEBMCP_EVAL_MODEL ?? DEFAULT_MODEL
   // Outside the repository on purpose: auto-memory is keyed to the project directory,
   // and its index names this eval.
@@ -242,14 +244,14 @@ export async function runCase (evalCase, options = {}) {
     record.error = err.code === 'ENOENT'
       ? 'could not launch "claude" — the Claude Code CLI must be on PATH and authenticated'
       : `failed to launch claude: ${err.message}`
-    return finish(evalCase, record, sidecarDir, variant)
+    return finish(evidenceLabel, record, sidecarDir)
   }
 
   const { code, stdout, stderr } = spawnResult
   record.exitCode = code
   if (code !== 0) {
     record.error = `claude exited ${code}: ${stderr.trim() || stdout.trim()}`
-    return finish(evalCase, record, sidecarDir)
+    return finish(evidenceLabel, record, sidecarDir)
   }
 
   /** @type {any} */
@@ -261,7 +263,7 @@ export async function runCase (evalCase, options = {}) {
     // exit code here (rather than falling into the launch-failure branch above) is the
     // point: this run did not fail to launch, it failed to report.
     record.error = `claude exited 0 but its stdout could not be parsed as JSON: ${err.message}`
-    return finish(evalCase, record, sidecarDir)
+    return finish(evidenceLabel, record, sidecarDir)
   }
 
   // modelUsage is keyed per model touched during the run, in the order each was first
@@ -289,7 +291,7 @@ export async function runCase (evalCase, options = {}) {
       : 'claude reported is_error without a message'
   }
 
-  return finish(evalCase, record, sidecarDir)
+  return finish(evidenceLabel, record, sidecarDir)
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

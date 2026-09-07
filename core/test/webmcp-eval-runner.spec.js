@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -230,6 +230,22 @@ describe('webmcp eval runner execution', () => {
     const record = await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(record.ok, false)
     assert.equal(record.denials.length, 1)
+  })
+
+  it('should write a variant run beside its control, never over it', async () => {
+    // The whole point of a variant is comparison, so its evidence must not stand in for
+    // the control's. Every exit path of runCase writes provenance, so this pins all of
+    // them: an early return that forgot the variant would overwrite the run it exists
+    // to be compared against, and the report would show one result twice.
+    const sidecarDir = tmpSidecarDir()
+    const spawn = async () => ({ code: 0, stdout: claudeOutput(), stderr: '' })
+    await runCase(getCase('contact'), { spawn, sidecarDir })
+    await runCase(getCase('contact'), { spawn, sidecarDir, variant: 'no-schema' })
+    const control = JSON.parse(readFileSync(sidecarPath('contact', sidecarDir), 'utf8'))
+    const ablation = JSON.parse(readFileSync(sidecarPath('contact--no-schema', sidecarDir), 'utf8'))
+    assert.equal(control.case, 'contact')
+    assert.equal(ablation.case, 'contact')
+    assert.ok(existsSync(sidecarPath('contact--no-schema', sidecarDir)), 'the variant needs its own sidecar')
   })
 
   it('should surface a non-zero exit rather than swallow it', async () => {
