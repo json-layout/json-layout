@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
 
 import { summarise, loadRuns } from '../webmcp-eval/report.js'
+import { sidecarPath } from '../webmcp-eval/run-case.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmpDir = join(here, '..', 'tmp')
@@ -211,6 +212,71 @@ describe('webmcp eval run loading', () => {
     const { failed, lines } = summarise(runs)
     assert.equal(failed, true)
     assert.ok(lines.join('\n').includes('report-spec-never-ran: not run'))
+  })
+
+  it('should still report a case whose sidecar is malformed JSON, and leave the rest of the batch unaffected', () => {
+    // The sidecar is written by a `claude` subprocess that can be killed mid-write or run
+    // out of disk. A truncated sidecar must not abort loading — or reporting — for every
+    // other requested case in the same batch.
+    const malformed = 'report-spec-malformed-sidecar'
+    const sibling = 'report-spec-sidecar-sibling'
+    const { evidencePath: malformedEvidencePath } = writeRunFiles(malformed, evidenceFor(malformed))
+    const { evidencePath: siblingEvidencePath, verdictPath: siblingVerdictPath } = writeRunFiles(sibling, evidenceFor(sibling), {
+      case: sibling,
+      verdict: 'satisfactory',
+      reasoning: 'went fine',
+      friction: []
+    })
+    mkdirSync(tmpDir, { recursive: true })
+    writeFileSync(sidecarPath(malformed), '{ not json')
+
+    try {
+      const runs = loadRuns([malformed, sibling])
+      assert.equal(runs.length, 2, 'the malformed sidecar must not abort loading the rest of the batch')
+      assert.equal(runs[0].run, null, 'a sidecar that fails to parse must be treated as absent, not thrown')
+
+      const { failed, lines } = summarise(runs)
+      const text = lines.join('\n')
+      assert.equal(failed, true)
+      assert.ok(text.includes(`${malformed}: not judged`), `case with the malformed sidecar did not report: ${text}`)
+      assert.ok(text.includes(`${sibling}: SATISFACTORY`), `sibling case in the same batch was affected: ${text}`)
+    } finally {
+      rmSync(malformedEvidencePath, { force: true })
+      rmSync(sidecarPath(malformed), { force: true })
+      rmSync(siblingEvidencePath, { force: true })
+      rmSync(siblingVerdictPath, { force: true })
+    }
+  })
+
+  it('should surface the sidecar error when the case never produced a transcript', () => {
+    // A launch failure never writes a transcript, so the case falls into the "not run"
+    // branch — but the sidecar sitting right there already names the real reason.
+    // Discarding it in favour of a canned guess would send someone debugging the wrong
+    // thing entirely.
+    const name = 'report-spec-launch-failure'
+    mkdirSync(tmpDir, { recursive: true })
+    writeFileSync(sidecarPath(name), JSON.stringify({
+      case: name,
+      ok: false,
+      model: null,
+      requestedModel: 'opus',
+      costUsd: null,
+      turns: null,
+      denials: [],
+      exitCode: -1,
+      error: 'could not launch "claude" — the Claude Code CLI must be on PATH and authenticated'
+    }))
+
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs[0].evidence, null, 'a launch failure never writes a transcript')
+
+      const { failed, lines } = summarise(runs)
+      assert.equal(failed, true)
+      assert.ok(lines.join('\n').includes('could not launch "claude"'), `sidecar error not surfaced: ${lines.join('\n')}`)
+    } finally {
+      rmSync(sidecarPath(name), { force: true })
+    }
   })
 })
 

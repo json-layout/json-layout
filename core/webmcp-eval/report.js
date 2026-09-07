@@ -47,17 +47,19 @@ export function summarise (runs) {
 
   for (const { name, evidence, verdict, run } of runs) {
     lines.push('')
+    const runRecord = /** @type {any} */(run)
     if (!evidence) {
-      // A missing transcript is a case that never executed — usually because its MCP
-      // server was not loaded in this session, or because the runner failed to dispatch.
-      // Skipping it here is how a suite passes while two thirds of it never ran.
+      // A missing transcript is a case whose subprocess never produced one — it may never
+      // have been dispatched, or it may have failed to launch or exit cleanly. Skipping it
+      // here is how a suite passes while two thirds of it never ran.
       failed = true
       lines.push(`${name}: not run`)
-      lines.push(`  no transcript at core/tmp/webmcp-eval-${name}.json — the case was never dispatched, or its MCP server was not loaded`)
+      lines.push(runRecord?.error
+        ? `  ${runRecord.error}`
+        : `  no transcript at core/tmp/webmcp-eval-${name}.json — the case was never dispatched`)
       continue
     }
 
-    const runRecord = /** @type {any} */(run)
     if (runRecord && !runRecord.ok) {
       // The process ran but the agent was crippled — a denied tool, a non-zero exit.
       // Failing here keeps it out of the judged results entirely.
@@ -110,7 +112,7 @@ export function loadRuns (names) {
   const runs = []
   for (const name of names) {
     const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${name}.json`)
-    const run = existsSync(sidecarPath(name)) ? JSON.parse(readFileSync(sidecarPath(name), 'utf8')) : null
+    const run = loadRun(name)
     // A requested case with no transcript is reported, never skipped: it is a failure of
     // the run, not an absence of one.
     if (!existsSync(evidencePath)) {
@@ -126,6 +128,25 @@ export function loadRuns (names) {
     })
   }
   return runs
+}
+
+/**
+ * Load the provenance sidecar for a case. A sidecar that fails to parse is treated as
+ * absent rather than thrown: it is written by a `claude` subprocess that can be killed
+ * mid-write, run out of disk, or otherwise leave a truncated file, and that must not
+ * abort the report for every other requested case — it should surface as a case with no
+ * provenance instead.
+ * @param {string} name
+ * @returns {object|null}
+ */
+function loadRun (name) {
+  const path = sidecarPath(name)
+  if (!existsSync(path)) return null
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    return null
+  }
 }
 
 /**
