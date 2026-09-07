@@ -44,9 +44,15 @@ run any number of times and always reflects the current `core/src` and case regi
    `opus`) so verdicts from different models are never compared silently; it is recorded
    in the sidecar and printed by the report.
 
-4. **Ignore what the run prints.** The transcript at `core/tmp/webmcp-eval-<case>.json`
-   is the evidence, and it is what the judge reads. A run that believes it succeeded is
+4. **Ignore the runner's own summary of its work.** The transcript at
+   `core/tmp/webmcp-eval-<case>.json` is the evidence, and it is what the judge reads —
+   not whatever the runner said in its final answer. A run that believes it succeeded is
    exactly the case worth judging.
+
+   What `npm run webmcp-eval:run` itself prints is different: a `<case>: FAILED — <error>`
+   line means the harness could not complete that run at all (a non-zero exit, a denied
+   tool call, unparsable output). Do not dispatch a judge for that case — read its sidecar,
+   `core/tmp/webmcp-eval-<case>.run.json`, instead. An invalid run must never be judged.
 
 5. **Dispatch a `webmcp-eval-judge` subagent per case.** The judge has `Read`, so give it
    paths, not pasted content — the `charts` schema alone is 29 KB:
@@ -74,18 +80,21 @@ run any number of times and always reflects the current `core/src` and case regi
 
 ## If something goes wrong
 
-**A case reports `invalid run`.** The subprocess exited non-zero, failed to launch,
-produced unparseable output, reported `is_error`, or had a tool call denied. Check the
-sidecar `core/tmp/webmcp-eval-<case>.run.json` for the recorded error. A denial means
-`TOOL_NAMES` in `run-case.js` and the tools a session actually registers have drifted
-apart — `core/test/webmcp-eval.spec.js` asserts they match, so run the suite. An invalid
-run must never be judged; treat its verdict, if one exists, as meaningless.
+**A case reports `invalid run`.** The subprocess exited non-zero, reported `is_error`, or
+had a tool call denied — each of these happens only after a transcript already exists.
+Check the sidecar `core/tmp/webmcp-eval-<case>.run.json` for the recorded error. A denial
+means `TOOL_NAMES` in `run-case.js` and the tools a session actually registers have
+drifted apart — `core/test/webmcp-eval.spec.js` asserts they match, so run the suite. An
+invalid run must never be judged; treat its verdict, if one exists, as meaningless.
 
 **`could not launch claude`.** The `claude` CLI must be on `PATH` and authenticated in
 the environment running the eval.
 
-**A case reports `not run`.** It never executed, or its subprocess produced no
-transcript at all. Do not read the cases that did run as the result of the suite.
+**A case reports `not run`.** The subprocess never produced a transcript at all — either
+it failed to launch (see above), or it exited cleanly but its stdout could not be parsed,
+so the launcher never even learned whether it succeeded. Check the sidecar
+`core/tmp/webmcp-eval-<case>.run.json` for the recorded error. Do not read the cases that
+did run as the result of the suite.
 
 **The report says `not judged`.** The transcript exists but its verdict is missing,
 malformed, or names a different case. Re-dispatch the judge for that case.

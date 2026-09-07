@@ -6,7 +6,7 @@ import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { buildLaunchArgs, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase, sidecarPath } from '../webmcp-eval/run-case.js'
+import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase, sidecarPath } from '../webmcp-eval/run-case.js'
 
 /**
  * A fresh directory per test, so a stubbed run never writes into this package's own
@@ -56,9 +56,16 @@ describe('webmcp eval runner launch arguments', () => {
     // --tools "" removes every built-in tool. The empty string is the whole point, so
     // assert it explicitly rather than just asserting the flag is present.
     assert.equal(optionValue(args, '--tools'), '')
+    // Checked against the whole argument vector, not just `allowed`: `allowed` is by
+    // construction a list of mcp__page-form__* strings, so a bare tool name could never
+    // be an element of it and this loop would pass whether or not the guarantee held.
+    // Scanning `args` also catches a forbidden tool leaking in through an added
+    // --add-dir or --permission-mode bypassPermissions, which nothing above would.
     for (const forbidden of ['Read', 'Grep', 'Bash', 'Write', 'Edit', 'WebFetch', 'WebSearch', 'Glob']) {
-      assert.ok(!allowed.includes(forbidden), `must not grant ${forbidden}`)
+      assert.ok(!args.includes(forbidden), `must not grant ${forbidden}`)
     }
+    assert.ok(!args.includes('--add-dir'), 'must not grant access to another directory')
+    assert.ok(!args.includes('--permission-mode'), 'must not switch to a mode that could bypass permission prompts')
   })
 
   it('should isolate the runner from this repository and from other MCP servers', () => {
@@ -105,6 +112,27 @@ describe('webmcp eval runner launch arguments', () => {
     const args = buildLaunchArgs(getCase('contact'), { ...options, model: 'sonnet' })
     assert.equal(optionValue(args, '--model'), 'sonnet')
     assert.equal(optionValue(args, '--output-format'), 'json')
+  })
+
+  it('should actually deliver the runner prompt via --append-system-prompt', () => {
+    // Deleting this argument pair — losing the whole "you are helping a user with a
+    // form on this page" framing that makes a run resemble a page visit — would leave
+    // every other test in this file green, because they only inspect RUNNER_PROMPT's
+    // content, never whether it is ever passed to claude.
+    const args = buildLaunchArgs(getCase('contact'), options)
+    assert.equal(optionValue(args, '--append-system-prompt'), RUNNER_PROMPT)
+  })
+
+  it('should default to DEFAULT_MODEL when nothing else pins the model', () => {
+    const previous = process.env.JL_WEBMCP_EVAL_MODEL
+    delete process.env.JL_WEBMCP_EVAL_MODEL
+    try {
+      const args = buildLaunchArgs(getCase('contact'), options)
+      assert.equal(optionValue(args, '--model'), DEFAULT_MODEL)
+    } finally {
+      if (previous === undefined) delete process.env.JL_WEBMCP_EVAL_MODEL
+      else process.env.JL_WEBMCP_EVAL_MODEL = previous
+    }
   })
 })
 
@@ -161,6 +189,40 @@ describe('webmcp eval runner execution', () => {
     assert.ok(record.ok)
   })
 
+  it('should prefer the modelUsage entry matching the requested model over the first-inserted one', async () => {
+    // modelUsage is keyed per model touched during the run, in whatever order each was
+    // first used — not necessarily the requested one. Object.values(...)[0] would read
+    // opus's entry here just because it happened to be inserted first, even though the
+    // run was requested and reported against sonnet.
+    const spawn = async () => ({
+      code: 0,
+      stdout: claudeOutput({
+        modelUsage: {
+          'claude-opus-5[1m]': { canonicalModel: 'claude-opus-5' },
+          'claude-sonnet-5[1m]': { canonicalModel: 'claude-sonnet-5' }
+        }
+      }),
+      stderr: ''
+    })
+    const record = await runCase(getCase('contact'), { spawn, model: 'sonnet', sidecarDir: tmpSidecarDir() })
+    assert.equal(record.requestedModel, 'sonnet')
+    assert.equal(record.model, 'claude-sonnet-5')
+  })
+
+  it('should fall back to the first modelUsage entry when none matches the requested model', async () => {
+    const spawn = async () => ({
+      code: 0,
+      stdout: claudeOutput({
+        modelUsage: {
+          'claude-haiku-5[1m]': { canonicalModel: 'claude-haiku-5' }
+        }
+      }),
+      stderr: ''
+    })
+    const record = await runCase(getCase('contact'), { spawn, model: 'opus', sidecarDir: tmpSidecarDir() })
+    assert.equal(record.model, 'claude-haiku-5')
+  })
+
   it('should fail a run whose tools were denied', async () => {
     // A denial means the allow-list and the tool set have drifted apart, so the run
     // measured a crippled agent. Judging it would be worse than not running it.
@@ -214,5 +276,20 @@ describe('webmcp eval runner execution', () => {
     assert.equal(written.model, record.model)
     assert.equal(written.ok, record.ok)
     assert.equal(written.ok, true)
+  })
+})
+
+describe('webmcp eval case selection', () => {
+  it('should reject an unknown case name before any subprocess starts', () => {
+    // The CLI resolves every requested name through getCase before calling runCase, so
+    // a typo fails synchronously and cheaply instead of spending a subprocess launch to
+    // discover it.
+    assert.throws(
+      () => getCase('does-not-exist'),
+      /unknown eval case "does-not-exist"/
+    )
+    for (const evalCase of cases) {
+      assert.throws(() => getCase('does-not-exist'), new RegExp(evalCase.name), 'error must name the available cases')
+    }
   })
 })

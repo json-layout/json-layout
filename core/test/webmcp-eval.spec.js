@@ -65,10 +65,11 @@ describe('webmcp eval cases', () => {
 
 describe('webmcp eval session', () => {
   it('should expose the same tools a page would register, including the skill', () => {
-    // TOOL_NAMES is what the generated runner agents grant, listed by hand so the
-    // generator needs no compiled form. Nothing else ties it to reality: a tool added or
-    // renamed under src/webmcp/ would leave every runner missing it, which reads in a
-    // transcript as protocol friction rather than as a broken setup. This is the tie.
+    // TOOL_NAMES is what run-case.js passes to every launched runner's --allowedTools,
+    // listed by hand so the launcher needs no compiled form. Nothing else ties it to
+    // reality: a tool added or renamed under src/webmcp/ would leave every runner
+    // missing it, which reads in a transcript as protocol friction rather than as a
+    // broken setup. This is the tie.
     const session = new EvalSession(getCase('contact'))
     const names = session.tools.map((t) => t.name).sort()
     assert.deepEqual(names, [...TOOL_NAMES].sort(), 'TOOL_NAMES must match the tools a session registers — update TOOL_NAMES in run-case.js')

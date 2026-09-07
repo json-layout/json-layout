@@ -131,11 +131,22 @@ export function loadRuns (names) {
 }
 
 /**
- * Load the provenance sidecar for a case. A sidecar that fails to parse is treated as
- * absent rather than thrown: it is written by a `claude` subprocess that can be killed
- * mid-write, run out of disk, or otherwise leave a truncated file, and that must not
- * abort the report for every other requested case — it should surface as a case with no
- * provenance instead.
+ * Load the provenance sidecar for a case.
+ *
+ * A missing file is genuinely absent — a transcript recorded before sidecars existed —
+ * and is treated as "no provenance, judge normally" by returning null.
+ *
+ * A file that exists but fails to parse is a different situation: it is written by a
+ * `claude` subprocess that can be killed mid-write or run out of disk, leaving a
+ * truncated file next to a possibly-truncated transcript. Reading that the same as
+ * "absent" would let a killed run's transcript be judged as if nothing had gone wrong.
+ * It must still not abort the report for every other requested case, so it is returned
+ * as a synthetic invalid record instead of thrown — `summarise` already reports any
+ * record with `ok: false` as an invalid run.
+ *
+ * A file that parses but names a different case is treated the same as absent, exactly
+ * like `loadVerdict` below: a sidecar written for another case, or copied to the wrong
+ * path, must not be read as this case's provenance.
  * @param {string} name
  * @returns {object|null}
  */
@@ -143,9 +154,11 @@ function loadRun (name) {
   const path = sidecarPath(name)
   if (!existsSync(path)) return null
   try {
-    return JSON.parse(readFileSync(path, 'utf8'))
-  } catch {
-    return null
+    const run = /** @type {any} */(JSON.parse(readFileSync(path, 'utf8')))
+    if (run.case !== name) return null
+    return run
+  } catch (/** @type {any} */err) {
+    return { ok: false, error: `sidecar unreadable: ${err.message}` }
   }
 }
 

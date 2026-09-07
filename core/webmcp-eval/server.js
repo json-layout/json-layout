@@ -12,7 +12,7 @@
  * SDK would pull a dependency tree into a package that deliberately has almost none,
  * for a surface this small.
  *
- * Usage (see .mcp.json):
+ * Usage (see run-case.js's buildLaunchArgs, which wires this up via --mcp-config):
  *   JL_WEBMCP_EVAL_CASE=contact node core/webmcp-eval/server.js
  *
  * On exit it writes the recorded run to core/tmp/webmcp-eval-<case>.json as evidence for
@@ -28,7 +28,15 @@ import { getCase } from './cases/index.js'
 import { EvalSession } from './session.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const caseName = process.env.JL_WEBMCP_EVAL_CASE || 'contact'
+const caseName = process.env.JL_WEBMCP_EVAL_CASE
+if (!caseName) {
+  // Case selection is inherited two processes deep (launcher → claude → this server
+  // child). A silent default would mean a regression in that inheritance makes every
+  // subprocess serve the same case and race on one transcript file, while the report
+  // points at "never dispatched" instead of at the real cause. Every real launch sets
+  // this, so failing loudly here costs nothing.
+  throw new Error('JL_WEBMCP_EVAL_CASE must be set — it selects which case this server serves')
+}
 const evalCase = getCase(caseName)
 const session = new EvalSession(evalCase)
 
@@ -78,8 +86,9 @@ async function handle (msg) {
       capabilities: { tools: {} },
       // Wire-visible, so it carries no evaluation language for the same reason the
       // server and tool names do not: a runner that reads "eval" here has been told
-      // what it must not be told.
-      serverInfo: { name: `page-form:${caseName}`, version: '1.0.0' }
+      // what it must not be told. Nor does it carry the case name — the runner must
+      // not be able to read case selection back out of anything it sees.
+      serverInfo: { name: 'page-form', version: '1.0.0' }
     })
     return
   }

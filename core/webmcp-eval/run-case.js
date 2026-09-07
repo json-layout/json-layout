@@ -243,7 +243,14 @@ export async function runCase (evalCase, options = {}) {
     return finish(evalCase, record, sidecarDir)
   }
 
-  const usage = Object.values(result.modelUsage ?? {})[0]
+  // modelUsage is keyed per model touched during the run, in the order each was first
+  // used — not necessarily the requested one, if the run ever fell back to a second
+  // model. Prefer the entry that actually matches what was requested, and only fall
+  // back to whichever came first when nothing matches.
+  const usageEntries = Object.entries(/** @type {Record<string, any>} */(result.modelUsage ?? {}))
+  const matchedUsage = usageEntries.find(([key, entry]) =>
+    key === requestedModel || entry?.canonicalModel === requestedModel || key.includes(requestedModel))
+  const usage = (matchedUsage ?? usageEntries[0])?.[1]
   record.model = /** @type {any} */(usage)?.canonicalModel ?? null
   record.costUsd = result.total_cost_usd ?? null
   record.turns = result.num_turns ?? null
@@ -268,14 +275,25 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const wanted = process.argv.slice(2)
   const selected = wanted.length ? wanted.map(getCase) : cases
   // Each run is its own process with its own server and working directory, so nothing
-  // is shared and the cases can go at once.
-  const records = await Promise.all(selected.map((evalCase) => runCase(evalCase)))
-  for (const record of records) {
-    const parts = [record.ok ? 'ran' : 'FAILED']
-    if (record.model) parts.push(record.model)
-    if (record.costUsd != null) parts.push(`$${record.costUsd.toFixed(3)}`)
-    if (record.error) parts.push(record.error)
-    console.log(`${record.case}: ${parts.join(' — ')}`)
-  }
-  process.exit(records.every((r) => r.ok) ? 0 : 1)
+  // is shared and the cases can go at once. allSettled rather than all: each case's
+  // sidecar is already on disk by the time its promise resolves, so one case rejecting
+  // outright (an mkdtempSync EACCES, say) must not discard the printed summary for
+  // every other case that did complete.
+  const settled = await Promise.allSettled(selected.map((evalCase) => runCase(evalCase)))
+  let allOk = true
+  settled.forEach((outcome, i) => {
+    if (outcome.status === 'fulfilled') {
+      const record = outcome.value
+      allOk = allOk && record.ok
+      const parts = [record.ok ? 'ran' : 'FAILED']
+      if (record.model) parts.push(record.model)
+      if (record.costUsd != null) parts.push(`$${record.costUsd.toFixed(3)}`)
+      if (record.error) parts.push(record.error)
+      console.log(`${record.case}: ${parts.join(' — ')}`)
+    } else {
+      allOk = false
+      console.log(`${selected[i].name}: FAILED — ${outcome.reason?.message ?? outcome.reason}`)
+    }
+  })
+  process.exit(allOk ? 0 : 1)
 }

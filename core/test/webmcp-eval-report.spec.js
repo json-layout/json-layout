@@ -182,6 +182,45 @@ describe('webmcp eval run loading', () => {
     }
   })
 
+  it('should reject a sidecar written for a different case, the same as a mismatched verdict', () => {
+    // A sidecar copied to the wrong path, or written for another case, must not be read
+    // as this case's provenance — the same guard loadVerdict already applies to
+    // verdicts, and for the same reason.
+    const name = 'report-spec-sidecar-wrong-case'
+    const { evidencePath, verdictPath } = writeRunFiles(name, evidenceFor(name), {
+      case: name,
+      verdict: 'satisfactory',
+      reasoning: 'went fine',
+      friction: []
+    })
+    mkdirSync(tmpDir, { recursive: true })
+    writeFileSync(sidecarPath(name), JSON.stringify({
+      case: 'some-other-case',
+      ok: false,
+      model: null,
+      requestedModel: 'opus',
+      costUsd: null,
+      turns: null,
+      denials: [],
+      exitCode: -1,
+      error: 'boom'
+    }))
+
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs[0].run, null, 'a sidecar naming another case must be treated as absent provenance')
+      // With no usable sidecar, the case falls back to being judged on its transcript
+      // and verdict alone, exactly as if no sidecar existed at all.
+      const { failed, lines } = summarise(runs)
+      assert.equal(failed, false)
+      assert.ok(lines.join('\n').includes(`${name}: SATISFACTORY`))
+    } finally {
+      rmSync(evidencePath, { force: true })
+      rmSync(verdictPath, { force: true })
+      rmSync(sidecarPath(name), { force: true })
+    }
+  })
+
   it('should accept a verdict that names the case it judges', () => {
     // The guard above must not reject every verdict: the matching case still passes.
     const name = 'report-spec-right-case'
@@ -233,18 +272,54 @@ describe('webmcp eval run loading', () => {
     try {
       const runs = loadRuns([malformed, sibling])
       assert.equal(runs.length, 2, 'the malformed sidecar must not abort loading the rest of the batch')
-      assert.equal(runs[0].run, null, 'a sidecar that fails to parse must be treated as absent, not thrown')
+      assert.equal(runs[0].run?.ok, false, 'a sidecar that fails to parse must be flagged invalid, not treated as absent')
 
       const { failed, lines } = summarise(runs)
       const text = lines.join('\n')
       assert.equal(failed, true)
-      assert.ok(text.includes(`${malformed}: not judged`), `case with the malformed sidecar did not report: ${text}`)
+      assert.ok(text.includes(`${malformed}: invalid run`), `case with the malformed sidecar did not report: ${text}`)
       assert.ok(text.includes(`${sibling}: SATISFACTORY`), `sibling case in the same batch was affected: ${text}`)
     } finally {
       rmSync(malformedEvidencePath, { force: true })
       rmSync(sidecarPath(malformed), { force: true })
       rmSync(siblingEvidencePath, { force: true })
       rmSync(siblingVerdictPath, { force: true })
+    }
+  })
+
+  it('should distinguish a genuinely absent sidecar from one that failed to parse', () => {
+    // A transcript predating sidecars has none at all and must still be judged normally
+    // (loadRun returns null). A transcript whose sidecar exists but is corrupt — a run
+    // killed mid-write — must not be read the same way: without this distinction a
+    // corrupt sidecar next to a transcript the judge called satisfactory would print
+    // SATISFACTORY with no hint anything went wrong.
+    const missing = 'report-spec-sidecar-missing'
+    const corrupt = 'report-spec-sidecar-corrupt'
+    const verdictFor = (/** @type {string} */ name) => ({ case: name, verdict: 'satisfactory', reasoning: 'went fine', friction: [] })
+    const { evidencePath: missingEvidencePath, verdictPath: missingVerdictPath } = writeRunFiles(missing, evidenceFor(missing), verdictFor(missing))
+    const { evidencePath: corruptEvidencePath, verdictPath: corruptVerdictPath } = writeRunFiles(corrupt, evidenceFor(corrupt), verdictFor(corrupt))
+    mkdirSync(tmpDir, { recursive: true })
+    writeFileSync(sidecarPath(corrupt), '{ not json')
+
+    try {
+      const runs = loadRuns([missing, corrupt])
+      const missingRun = /** @type {any} */(runs.find((r) => r.name === missing))
+      const corruptRun = /** @type {any} */(runs.find((r) => r.name === corrupt))
+      assert.equal(missingRun.run, null, 'a genuinely absent sidecar must stay null')
+      assert.equal(corruptRun.run.ok, false, 'a corrupt sidecar must be reported as invalid, not absent')
+
+      const { failed, lines } = summarise(runs)
+      const text = lines.join('\n')
+      assert.equal(failed, true)
+      assert.ok(text.includes(`${missing}: SATISFACTORY`), `missing-sidecar case must still be judged normally: ${text}`)
+      assert.ok(text.includes(`${corrupt}: invalid run`), `corrupt-sidecar case must not silently pass: ${text}`)
+      assert.ok(!text.includes(`${corrupt}: SATISFACTORY`), `corrupt sidecar must never let a satisfactory verdict through: ${text}`)
+    } finally {
+      rmSync(missingEvidencePath, { force: true })
+      rmSync(missingVerdictPath, { force: true })
+      rmSync(corruptEvidencePath, { force: true })
+      rmSync(sidecarPath(corrupt), { force: true })
+      rmSync(corruptVerdictPath, { force: true })
     }
   })
 
