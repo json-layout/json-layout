@@ -18,7 +18,7 @@ reaches.
 | case | source | chars | nodes | band | `getSchema` |
 |---|---|---|---|---|---|
 | `contact` | hand-written | 368 | 5 | small | returns whole |
-| `calendar` | app-calendar | 5941 | 58 | large | returns whole |
+| `calendar` | app-calendar, through the vjsf v2 compat layer | 6650 | 58 | large | returns whole |
 | `charts` | app-charts (source schema) | 29472 | 286 | large | **refuses**, path navigation |
 
 No `medium` band exists among the available real schemas. Band and schema size are also
@@ -42,6 +42,28 @@ src/config/.type/resolved-schema.json public/config-schema.json`), so it is the 
 schema — 185 660 characters against 29 472, for a byte-identical state projection.
 `app-calendar` has no `src/config/schema.json`, so its published file is the source.
 
+`app-calendar` is written for vjsf v2 (`x-fromUrl`, `x-itemKey`, `x-if`, ...), which a
+real page translates through vjsf's compatibility layer before json-layout sees it. The
+case applies the same layer, vendored as `cases/vjsf-compat-v2.js` from vjsf's
+`lib/src/compat/v2.js` and pinned for the same reason the schemas are. Compiled raw, the
+first judged run showed why this matters: the pickers rendered as plain sections,
+`getFieldSuggestions` refused them, and `getSchema` still showed the vendor keywords —
+two tools contradicting each other on the same path.
+
+### Where the pickers fetch from
+
+Both app schemas fetch their dataset and column pickers from relative `api/v1/...`
+paths, as the deployed apps do. `EvalSession` resolves them against koumoul.com's public
+data-fair instance by default, so those lists actually resolve during a judged run and
+the goals name datasets that exist there. Each app case also carries the expression
+`context` a deployed app has — the owner filter its dataset queries interpolate — because
+without it the public instance answers a picker with its twelve newest matches and the
+named dataset is never among them. Set `JL_WEBMCP_EVAL_DATA_FAIR` (a base URL
+ending in `/`) in the environment before running to point at another instance. Live data
+drifts, which is accepted: a judged run is already driven by a model, and the transcript
+carries its timestamp. The deterministic spec never calls `getItems`, so CI stays
+offline.
+
 Both are labelled in French while the goals are in English, as real pages of theirs are.
 The judge is told this so it does not score a translation step as protocol friction.
 
@@ -54,50 +76,54 @@ judged flow below — only that each case is the case it claims to be.
 
 ## Judged runs
 
-Real runs are driven by isolated coding-agent subagents, orchestrated through the
-`/webmcp-eval` skill (if that command does not resolve, follow
-`.claude/skills/webmcp-eval/SKILL.md` directly — it is the same procedure):
+Real runs are orchestrated through the `/webmcp-eval` skill (if that command does not
+resolve, follow `.claude/skills/webmcp-eval/SKILL.md` directly — it is the same
+procedure):
 
-1. `.mcp.json` registers one stdio MCP server per case, `page-form-<case>`, generated
-   from the case registry — the same tool descriptors, descriptions and skill text a
-   browser page would expose. Run `npm run webmcp-eval:config -w core` to (re)generate
-   `.mcp.json` and the per-case runner agent definitions after adding or changing a
-   case, then restart the session so the new servers load.
+1. `npm run webmcp-eval:run -w core [case ...]` spawns one headless `claude -p`
+   subprocess per case, concurrently. Each subprocess is passed a single inline MCP
+   server config via `--strict-mcp-config --mcp-config` — one server definition,
+   `page-form`, shared by every case — so there is no repository-level MCP server file
+   to generate or register, and no per-case setup step. Which case a subprocess serves is
+   chosen by the `JL_WEBMCP_EVAL_CASE` environment variable set on the `claude` process,
+   which its MCP server child inherits; the runner itself never sees a case identifier.
 
-   `.mcp.json` sits at the repository root because that is where Claude Code reads it,
-   so **every contributor session in this repository starts three extra stdio node
-   processes**, one per case. They are cheap (a compiled form each, idle until called)
-   and they must exist at session start: MCP servers connect once, when the session
-   opens, so a server generated mid-session is not available until the next one. That is
-   the trade for being able to dispatch a runner without any setup step.
+   A fresh OS process per run means clean form state and a freshly imported `core/src`
+   for every run, so a case can be re-run any number of times and a run always reflects
+   the current code and case registry — nothing is pinned to what was true when a
+   session opened.
 
-2. The skill dispatches one `page-form-runner-<case>` subagent per case, in parallel,
-   giving it only the case's goal — no mention of json-layout, the schema, or the tools
-   available. Those runners have no filesystem access, so what they see is close to what
-   a real page visit would give them.
+2. Each runner has no built-in tools at all (`--tools ""`) and no other reachable MCP
+   server (`--strict-mcp-config`); `--allowedTools` names exactly the eight
+   `mcp__page-form__*` tools the case's server exposes — the same descriptors,
+   descriptions and skill text a browser page would expose. The prompt it receives is
+   only the case's goal — no mention of json-layout, the schema, or the tools available.
 
-   **Residual leakage.** "Close to", not "identical to": Claude Code injects its own
-   preamble into every subagent, including an environment block naming the working
-   directory. A runner therefore knows it is inside the json-layout repository, and no
-   rename of a generated identifier can remove that inference. What the harness does
-   guarantee is that the runner can read nothing — not the case registry, not the tool
-   implementations, not another case — and that nothing generated here (server name, tool
-   names, agent name, description or prompt) tells it that it is being evaluated.
+   **Isolation.** The run happens from a temporary directory outside this repository,
+   with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from
+   inside the repository inherits ~5.7k tokens of context, including a SessionStart
+   hook and Claude Code's auto-memory index — and that index can itself name this eval,
+   telling the runner the one thing the isolation guarantee exists to prevent it from
+   learning. `--setting-sources=` alone does not remove auto-memory; the neutral
+   working directory does, because auto-memory is keyed to the project directory. What
+   remains is ~3.5k tokens of generic Claude Code boilerplate, left deliberately:
+   removing it would need `--system-prompt` to replace the whole system prompt, which
+   would make the runner unlike the agent a real page actually meets.
 
 3. Each server records every call it receives to `core/tmp/webmcp-eval-<case>.json` as
-   it goes — this is the evidence, not a score.
-4. Because a case's server holds one form's state for the life of the session, **each
-   case can be run at most once per session**. A second dispatch against the same case
-   would continue from the first run's data rather than starting clean. To re-run a
-   case, start a fresh session.
-5. A `webmcp-eval-judge` subagent reads the goal, the schema and the recorded transcript
+   it goes — this is the evidence, not a score. The launcher also writes a provenance
+   sidecar, `core/tmp/webmcp-eval-<case>.run.json`, recording the resolved model, cost,
+   turn count and any permission denials. The model is pinned by `JL_WEBMCP_EVAL_MODEL`
+   (default `opus`) rather than inheriting whatever model happened to launch the run, so
+   verdicts from different models are never compared silently.
+4. A `webmcp-eval-judge` subagent reads the goal, the schema and the recorded transcript
    for each case, and returns a verdict — `satisfactory` or `unsatisfactory` — with
    reasoning and a list of friction points, each anchored to the call number that caused
    it. The skill writes each verdict to
    `core/tmp/webmcp-eval-<case>.verdict.json`.
 
-Transcripts and verdicts land in `core/tmp/` (gitignored) and are overwritten per case,
-so re-running a case discards its previous run and verdict.
+Transcripts, sidecars and verdicts land in `core/tmp/` (gitignored) and are overwritten
+per case, so re-running a case discards its previous run, provenance and verdict.
 
 ## Reporting
 
@@ -112,14 +138,15 @@ reasoning, the goal, and the metrics (`toolCalls`, `outputBytes`, `valid`) as *c
 threshold: a run within any call count can still be judged unsatisfactory, and a run
 with a high call count on a genuinely large form can still be satisfactory.
 
-The report — and its exit code — fails whenever any run is `unsatisfactory`, unjudged,
-or missing:
+The report — and its exit code — fails whenever any run is `unsatisfactory`, invalid,
+unjudged, or missing:
 
 | line | means |
 |---|---|
 | `<case>: UNSATISFACTORY` | the judge read the transcript and found the session did not get through the protocol |
+| `<case>: invalid run` | the subprocess failed or a tool call was denied — the transcript is not judgeable |
 | `<case>: not judged` | a transcript exists but its verdict file is missing, malformed, or written for another case |
-| `<case>: not run` | no transcript at all — the case never dispatched, usually because its MCP server was not loaded |
+| `<case>: not run` | no transcript at all — the case's subprocess was never dispatched, or produced no transcript |
 
 A transcript nobody read is not evidence of anything, and a case that never ran is not a
 case that passed. Each line also prints `started <timestamp>`: evidence files persist

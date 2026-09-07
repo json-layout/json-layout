@@ -9,15 +9,9 @@ Measures whether an agent can find its way through the WebMCP form-filling proto
 having one actually try and then judging the transcript. Unit tests answer "does this
 tool return the right shape"; this answers "can a model use it".
 
-## Before you start
-
-**The MCP servers connect at session start.** If you do not see `mcp__page-form-*` tools
-in this session, they are not available and no amount of retrying will summon them: run
-`npm run webmcp-eval:config -w core`, then start a NEW session and come back.
-
-Each case's server holds one form state for the life of the session, so **each case runs
-once per session**. A second run would start from the first run's data. To re-run, start
-a fresh session.
+Each run is its own `claude -p` subprocess, launched from a directory outside this
+repository with its own MCP server child. There is no session-level setup: a case can be
+run any number of times and always reflects the current `core/src` and case registry.
 
 ## Steps
 
@@ -25,27 +19,34 @@ a fresh session.
    and `goal`. To run a subset, use only those cases throughout — the report takes case
    names as arguments.
 
-2. **Delete evidence from earlier sessions.**
+2. **Delete evidence from earlier runs.**
 
    ```bash
    rm -f core/tmp/webmcp-eval-*
    ```
 
-   These files persist and are only rewritten when a case actually runs. If a case fails
-   to dispatch this session, last session's transcript and verdict would be reported as
-   this session's result. Deleting first turns that into a visible `not run`.
+   This also clears the `.run.json` provenance sidecars. These files persist and are
+   only rewritten when a case actually runs. If a case fails to dispatch this time,
+   an earlier transcript and verdict would be reported as this run's result. Deleting
+   first turns that into a visible `not run`.
 
-3. **Dispatch one runner per case, in parallel, in a single message.** Agent type
-   `page-form-runner-<case>`; the prompt is **the goal string and nothing else**.
+3. **Run every case.**
 
-   Do not add context. Do not mention json-layout, the eval, the schema, or anything you
-   know about the tools. The runner has no filesystem access by design, so whatever you
-   put in that prompt is the entirety of what it knows, and every extra sentence makes the
-   run less like a real page visit and the result less worth having.
+   ```bash
+   npm run webmcp-eval:run -w core            # every case in the registry
+   npm run webmcp-eval:run -w core -- charts calendar   # only the cases named
+   ```
 
-4. **Ignore what the runner tells you.** Its summary is a claim; the transcript at
-   `core/tmp/webmcp-eval-<case>.json` is the evidence, and it is what the judge reads. A
-   runner that believes it succeeded is exactly the case worth judging.
+   Each case launches as its own `claude` subprocess, and the subprocesses run
+   concurrently. The case a subprocess serves is chosen by the `JL_WEBMCP_EVAL_CASE`
+   environment variable, which its MCP server child inherits — the runner itself never
+   sees a case identifier. The model is pinned by `JL_WEBMCP_EVAL_MODEL` (default
+   `opus`) so verdicts from different models are never compared silently; it is recorded
+   in the sidecar and printed by the report.
+
+4. **Ignore what the run prints.** The transcript at `core/tmp/webmcp-eval-<case>.json`
+   is the evidence, and it is what the judge reads. A run that believes it succeeded is
+   exactly the case worth judging.
 
 5. **Dispatch a `webmcp-eval-judge` subagent per case.** The judge has `Read`, so give it
    paths, not pasted content — the `charts` schema alone is 29 KB:
@@ -68,22 +69,23 @@ a fresh session.
    npm run webmcp-eval:report -w core -- charts  # one case
    ```
 
-   Relay the summary. Exit code is non-zero if any run was unsatisfactory, not judged, or
-   never ran.
+   Relay the summary. Exit code is non-zero if any run was unsatisfactory, invalid, not
+   judged, or never ran.
 
 ## If something goes wrong
 
-**A runner says it has no tools.** This is the known open risk: it is unverified that an
-agent definition's `tools:` frontmatter resolves MCP tool names. Check
-`.claude/agents/page-form-runner-<case>.md` lists `mcp__page-form-<case>__*` entries and
-that `.mcp.json` declares that server. If the frontmatter turns out not to accept MCP
-names, the fallback is an agent definition with no `tools:` line at all — it then inherits
-the session's tools, and the isolation guarantee still holds because the guarantee is the
-absence of `Read`/`Grep`/`Bash`, not the presence of a particular list. Say so in your
-report; this is a real finding about the harness.
+**A case reports `invalid run`.** The subprocess exited non-zero, failed to launch,
+produced unparseable output, reported `is_error`, or had a tool call denied. Check the
+sidecar `core/tmp/webmcp-eval-<case>.run.json` for the recorded error. A denial means
+`TOOL_NAMES` in `run-case.js` and the tools a session actually registers have drifted
+apart — `core/test/webmcp-eval.spec.js` asserts they match, so run the suite. An invalid
+run must never be judged; treat its verdict, if one exists, as meaningless.
 
-**A case reports `not run`.** It never executed — usually its server was not loaded. Do
-not read the cases that did run as the result of the suite.
+**`could not launch claude`.** The `claude` CLI must be on `PATH` and authenticated in
+the environment running the eval.
+
+**A case reports `not run`.** It never executed, or its subprocess produced no
+transcript at all. Do not read the cases that did run as the result of the suite.
 
 **The report says `not judged`.** The transcript exists but its verdict is missing,
 malformed, or names a different case. Re-dispatch the judge for that case.
@@ -94,9 +96,12 @@ The friction list is the point. A verdict says a run went badly; a friction poin
 which response misled the agent and what it concluded — that is what turns a run into a
 concrete change to a tool description or a tool's output.
 
-Treat an unresolvable `getItems` list as a finding, not an environment problem. Without a
-reachable data-fair those lists cannot resolve, and how the tools report that — and what
-the runner does next — is among the most valuable things this eval measures.
+The vendored app schemas fetch their pickers from koumoul.com's public data-fair, so an
+item list that does not resolve is a finding, not an environment problem, unless the
+network itself was down. How the tools report an empty or failed list — and what the
+runner does next — is among the most valuable things this eval measures. Set
+`JL_WEBMCP_EVAL_DATA_FAIR` (a base URL ending in `/`) in the environment before running
+to point at another instance.
 
 Compare the recorded call sequence against what `core/src/webmcp/tools/fill-form-skill.js`
 told the agent to do. A divergence there is usually a description that reads correctly to

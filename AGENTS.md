@@ -217,28 +217,29 @@ npm test -w core          # includes webmcp-eval*.spec.js
 ```
 
 These pin that each eval case is the case it claims to be (complexity band, whether
-`getSchema` refuses), that the runner agents are generated with no filesystem tools, and
-that a malformed judge verdict cannot read as a clean pass. They cannot tell you whether
-a form is usable.
+`getSchema` refuses), that a launched runner is isolated from this repository and granted
+exactly the `page-form` tools and no built-in tool, and that a malformed judge verdict
+cannot read as a clean pass. They cannot tell you whether a form is usable.
 
 ```bash
-# 2. The judged eval. Needs a model and a FRESH session.
+# 2. The judged eval. Needs a model.
 /webmcp-eval
 ```
 
-An isolated subagent — no `Read`, `Grep` or `Bash`, so it cannot read this repo — fills a
-real form from a plain-language goal, and a judge reads the transcript. See
-`core/webmcp-eval/README.md`.
+`npm run webmcp-eval:run -w core [case ...]` launches one headless `claude -p`
+subprocess per case, isolated from this repository and with no built-in tool — only the
+`page-form` MCP tools it is explicitly granted — so it fills a real form from a
+plain-language goal much as a real page visit would, and a judge reads the transcript.
+A fresh process per run means a case can be re-run any number of times and always
+reflects the current code. See `core/webmcp-eval/README.md`.
 
 If `/webmcp-eval` does not resolve, the procedure is a document, not a command: follow
 `.claude/skills/webmcp-eval/SKILL.md` directly. That file is the single source for how to
 run the eval; this section only says when you must.
 
-**The MCP servers connect at session start.** If `.mcp.json` changed, or you have just
-generated it, the tools do not exist in the current session: run
-`npm run webmcp-eval:config -w core` and start a new session. A case that never ran is
-reported as `not run` and fails the report — never read the cases that did run as the
-result of the suite.
+A case that never produces a transcript is reported as `not run`, and one whose
+subprocess failed or had a tool call denied is reported as `invalid run`; both fail the
+report — never read the cases that did run as the result of the suite.
 
 Changing a tool's *description* counts. The descriptions and the skill text are the
 protocol as far as a model is concerned, and they are exactly what unit tests cannot
