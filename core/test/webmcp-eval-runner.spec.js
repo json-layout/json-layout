@@ -1,8 +1,10 @@
 import { strict as assert } from 'node:assert'
+import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { buildLaunchArgs, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES } from '../webmcp-eval/run-case.js'
+import { buildLaunchArgs, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase } from '../webmcp-eval/run-case.js'
 
 const options = { serverPath: '/abs/path/core/webmcp-eval/server.js' }
 
@@ -92,5 +94,84 @@ describe('webmcp eval runner launch arguments', () => {
     const args = buildLaunchArgs(getCase('contact'), { ...options, model: 'sonnet' })
     assert.equal(optionValue(args, '--model'), 'sonnet')
     assert.equal(optionValue(args, '--output-format'), 'json')
+  })
+})
+
+/**
+ * @param {object} overrides
+ * @returns {string}
+ */
+function claudeOutput (overrides = {}) {
+  return JSON.stringify({
+    is_error: false,
+    num_turns: 4,
+    total_cost_usd: 0.12,
+    permission_denials: [],
+    modelUsage: { 'claude-opus-5[1m]': { canonicalModel: 'claude-opus-5' } },
+    result: 'done',
+    ...overrides
+  })
+}
+
+describe('webmcp eval runner execution', () => {
+  it('should select the case by environment, never by an argument', async () => {
+    /** @type {any} */
+    let seen
+    const spawn = async (/** @type {string} */ cmd, /** @type {string[]} */ args, /** @type {any} */ opts) => {
+      seen = { cmd, args, opts }
+      return { code: 0, stdout: claudeOutput(), stderr: '' }
+    }
+    await runCase(getCase('calendar'), { spawn })
+    assert.equal(seen.cmd, 'claude')
+    assert.equal(seen.opts.env.JL_WEBMCP_EVAL_CASE, 'calendar')
+  })
+
+  it('should run from a working directory outside this repository', async () => {
+    // Auto-memory is keyed to the project directory; running from inside the repo hands
+    // the runner an index naming this eval.
+    /** @type {any} */
+    let seen
+    const spawn = async (/** @type {string} */ _c, /** @type {string[]} */ _a, /** @type {any} */ opts) => {
+      seen = opts
+      return { code: 0, stdout: claudeOutput(), stderr: '' }
+    }
+    await runCase(getCase('contact'), { spawn })
+    const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+    assert.ok(!seen.cwd.startsWith(repoRoot), `cwd ${seen.cwd} must be outside ${repoRoot}`)
+  })
+
+  it('should record the resolved model rather than the requested alias', async () => {
+    const spawn = async () => ({ code: 0, stdout: claudeOutput(), stderr: '' })
+    const record = await runCase(getCase('contact'), { spawn, model: 'opus' })
+    assert.equal(record.requestedModel, 'opus')
+    assert.equal(record.model, 'claude-opus-5')
+    assert.equal(record.costUsd, 0.12)
+    assert.equal(record.turns, 4)
+    assert.ok(record.ok)
+  })
+
+  it('should fail a run whose tools were denied', async () => {
+    // A denial means the allow-list and the tool set have drifted apart, so the run
+    // measured a crippled agent. Judging it would be worse than not running it.
+    const spawn = async () => ({ code: 0, stdout: claudeOutput({ permission_denials: [{ tool_name: 'mcp__page-form__editArray' }] }), stderr: '' })
+    const record = await runCase(getCase('contact'), { spawn })
+    assert.equal(record.ok, false)
+    assert.equal(record.denials.length, 1)
+  })
+
+  it('should surface a non-zero exit rather than swallow it', async () => {
+    const spawn = async () => ({ code: 1, stdout: '', stderr: 'boom' })
+    const record = await runCase(getCase('contact'), { spawn })
+    assert.equal(record.ok, false)
+    assert.equal(record.exitCode, 1)
+    assert.match(record.error ?? '', /boom/)
+  })
+
+  it('should say plainly when the claude CLI is missing', async () => {
+    const spawn = async () => { const err = new Error('spawn claude ENOENT'); throw Object.assign(err, { code: 'ENOENT' }) }
+    const record = await runCase(getCase('contact'), { spawn })
+    assert.equal(record.ok, false)
+    assert.match(record.error ?? '', /claude/)
+    assert.match(record.error ?? '', /PATH/)
   })
 })

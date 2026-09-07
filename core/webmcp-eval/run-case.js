@@ -11,8 +11,13 @@
  * Usage: npm run webmcp-eval:run -w core [case ...]
  */
 
+import { spawn as nodeSpawn } from 'node:child_process'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { cases, getCase } from './cases/index.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
@@ -103,4 +108,124 @@ export function buildLaunchArgs (evalCase, options = {}) {
     '--permission-prompts', 'none',
     '--output-format', 'json'
   ]
+}
+
+/**
+ * @typedef {object} RunRecord
+ * @property {string} case - the case name that was run
+ * @property {boolean} ok - false when the run must not be judged
+ * @property {string|null} model - the model actually used, read back from the subprocess
+ * @property {string} requestedModel - the alias or id asked for
+ * @property {number|null} costUsd - total cost reported by the subprocess, in US dollars
+ * @property {number|null} turns - number of turns the subprocess took
+ * @property {unknown[]} denials - non-empty means the allow-list and tool set have drifted
+ * @property {number} exitCode - the subprocess exit code, or -1 when it never launched
+ * @property {string} [error] - present when the run failed or must not be judged
+ */
+
+/**
+ * @param {string} name
+ * @returns {string}
+ */
+export function sidecarPath (name) {
+  return join(here, '..', 'tmp', `webmcp-eval-${name}.run.json`)
+}
+
+/**
+ * Run `claude` and collect its output. Replaced in tests.
+ * @param {string} command
+ * @param {string[]} args
+ * @param {{ cwd: string, env: NodeJS.ProcessEnv }} opts
+ * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
+ */
+function defaultSpawn (command, args, opts) {
+  return new Promise((resolve, reject) => {
+    const child = nodeSpawn(command, args, { cwd: opts.cwd, env: opts.env })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (d) => { stdout += d })
+    child.stderr.on('data', (d) => { stderr += d })
+    child.on('error', reject)
+    child.on('close', (code) => resolve({ code: code ?? 0, stdout, stderr }))
+  })
+}
+
+/**
+ * @typedef {object} RunOptions
+ * @property {typeof defaultSpawn} [spawn] - replaces the subprocess launcher; tests stub this
+ * @property {string} [cwd] - defaults to a fresh directory outside this repository
+ * @property {string} [model] - alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
+ */
+
+/**
+ * @param {EvalCase} evalCase
+ * @param {RunOptions} [options]
+ * @returns {Promise<RunRecord>}
+ */
+export async function runCase (evalCase, options = {}) {
+  const requestedModel = options.model ?? process.env.JL_WEBMCP_EVAL_MODEL ?? DEFAULT_MODEL
+  // Outside the repository on purpose: auto-memory is keyed to the project directory,
+  // and its index names this eval.
+  const cwd = options.cwd ?? mkdtempSync(join(tmpdir(), 'webmcp-eval-'))
+  const spawnFn = options.spawn ?? defaultSpawn
+  const args = buildLaunchArgs(evalCase, { model: requestedModel })
+
+  /** @type {RunRecord} */
+  const record = {
+    case: evalCase.name,
+    ok: false,
+    model: null,
+    requestedModel,
+    costUsd: null,
+    turns: null,
+    denials: [],
+    exitCode: 0
+  }
+
+  try {
+    const { code, stdout, stderr } = await spawnFn('claude', args, {
+      cwd,
+      env: { ...process.env, JL_WEBMCP_EVAL_CASE: evalCase.name }
+    })
+    record.exitCode = code
+    if (code !== 0) {
+      record.error = `claude exited ${code}: ${stderr.trim() || stdout.trim()}`
+    } else {
+      const result = JSON.parse(stdout)
+      const usage = Object.values(result.modelUsage ?? {})[0]
+      record.model = /** @type {any} */(usage)?.canonicalModel ?? null
+      record.costUsd = result.total_cost_usd ?? null
+      record.turns = result.num_turns ?? null
+      record.denials = result.permission_denials ?? []
+      // A denied tool means the run measured a crippled agent, so it is not judgeable
+      // even though the process succeeded.
+      record.ok = !result.is_error && record.denials.length === 0
+      if (record.denials.length) record.error = `${record.denials.length} tool call(s) denied — the allow-list and the tool set have drifted apart`
+    }
+  } catch (/** @type {any} */err) {
+    record.exitCode = -1
+    record.error = err.code === 'ENOENT'
+      ? 'could not launch "claude" — the Claude Code CLI must be on PATH and authenticated'
+      : `failed to launch claude: ${err.message}`
+  }
+
+  mkdirSync(dirname(sidecarPath(evalCase.name)), { recursive: true })
+  writeFileSync(sidecarPath(evalCase.name), JSON.stringify(record, null, 2))
+  return record
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const wanted = process.argv.slice(2)
+  const selected = wanted.length ? wanted.map(getCase) : cases
+  // Each run is its own process with its own server and working directory, so nothing
+  // is shared and the cases can go at once.
+  const records = await Promise.all(selected.map((evalCase) => runCase(evalCase)))
+  for (const record of records) {
+    const parts = [record.ok ? 'ran' : 'FAILED']
+    if (record.model) parts.push(record.model)
+    if (record.costUsd != null) parts.push(`$${record.costUsd.toFixed(3)}`)
+    if (record.error) parts.push(record.error)
+    console.log(`${record.case}: ${parts.join(' — ')}`)
+  }
+  process.exit(records.every((r) => r.ok) ? 0 : 1)
 }
