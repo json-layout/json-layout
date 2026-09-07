@@ -174,4 +174,24 @@ describe('webmcp eval runner execution', () => {
     assert.match(record.error ?? '', /claude/)
     assert.match(record.error ?? '', /PATH/)
   })
+
+  it('should keep the real exit code when a clean exit prints unparsable stdout', async () => {
+    // claude launched and exited 0 here — only its output is bad. Overwriting exitCode
+    // and reporting a launch failure would actively lie about what happened.
+    const spawn = async () => ({ code: 0, stdout: 'not json', stderr: '' })
+    const record = await runCase(getCase('contact'), { spawn })
+    assert.equal(record.ok, false)
+    assert.equal(record.exitCode, 0)
+    assert.match(record.error ?? '', /pars/i)
+  })
+
+  it('should explain an agent-side failure that carries no denials', async () => {
+    // is_error with an empty denials list is a real, distinct scenario: something went
+    // wrong on the agent's side that has nothing to do with the allow-list.
+    const spawn = async () => ({ code: 0, stdout: claudeOutput({ is_error: true, permission_denials: [] }), stderr: '' })
+    const record = await runCase(getCase('contact'), { spawn })
+    assert.equal(record.ok, false)
+    assert.equal(record.denials.length, 0)
+    assert.ok(record.error && record.error.length > 0, 'error must not be empty')
+  })
 })

@@ -158,6 +158,20 @@ function defaultSpawn (command, args, opts) {
  */
 
 /**
+ * Write the sidecar and return the record. The single exit point for `runCase`, so every
+ * outcome — a launch failure, a bad exit code, unparsable output, or a real result — is
+ * recorded the same way.
+ * @param {EvalCase} evalCase
+ * @param {RunRecord} record
+ * @returns {RunRecord}
+ */
+function finish (evalCase, record) {
+  mkdirSync(dirname(sidecarPath(evalCase.name)), { recursive: true })
+  writeFileSync(sidecarPath(evalCase.name), JSON.stringify(record, null, 2))
+  return record
+}
+
+/**
  * @param {EvalCase} evalCase
  * @param {RunOptions} [options]
  * @returns {Promise<RunRecord>}
@@ -182,36 +196,61 @@ export async function runCase (evalCase, options = {}) {
     exitCode: 0
   }
 
+  /** @type {{ code: number, stdout: string, stderr: string }} */
+  let spawnResult
   try {
-    const { code, stdout, stderr } = await spawnFn('claude', args, {
+    spawnResult = await spawnFn('claude', args, {
       cwd,
       env: { ...process.env, JL_WEBMCP_EVAL_CASE: evalCase.name }
     })
-    record.exitCode = code
-    if (code !== 0) {
-      record.error = `claude exited ${code}: ${stderr.trim() || stdout.trim()}`
-    } else {
-      const result = JSON.parse(stdout)
-      const usage = Object.values(result.modelUsage ?? {})[0]
-      record.model = /** @type {any} */(usage)?.canonicalModel ?? null
-      record.costUsd = result.total_cost_usd ?? null
-      record.turns = result.num_turns ?? null
-      record.denials = result.permission_denials ?? []
-      // A denied tool means the run measured a crippled agent, so it is not judgeable
-      // even though the process succeeded.
-      record.ok = !result.is_error && record.denials.length === 0
-      if (record.denials.length) record.error = `${record.denials.length} tool call(s) denied — the allow-list and the tool set have drifted apart`
-    }
   } catch (/** @type {any} */err) {
+    // The process never launched at all, so there is no exit code and nothing to parse
+    // — distinct from every failure below, which happens after a real exit.
     record.exitCode = -1
     record.error = err.code === 'ENOENT'
       ? 'could not launch "claude" — the Claude Code CLI must be on PATH and authenticated'
       : `failed to launch claude: ${err.message}`
+    return finish(evalCase, record)
   }
 
-  mkdirSync(dirname(sidecarPath(evalCase.name)), { recursive: true })
-  writeFileSync(sidecarPath(evalCase.name), JSON.stringify(record, null, 2))
-  return record
+  const { code, stdout, stderr } = spawnResult
+  record.exitCode = code
+  if (code !== 0) {
+    record.error = `claude exited ${code}: ${stderr.trim() || stdout.trim()}`
+    return finish(evalCase, record)
+  }
+
+  /** @type {any} */
+  let result
+  try {
+    result = JSON.parse(stdout)
+  } catch (/** @type {any} */err) {
+    // claude launched and exited cleanly; only its output is unusable. Keeping the real
+    // exit code here (rather than falling into the launch-failure branch above) is the
+    // point: this run did not fail to launch, it failed to report.
+    record.error = `claude exited 0 but its stdout could not be parsed as JSON: ${err.message}`
+    return finish(evalCase, record)
+  }
+
+  const usage = Object.values(result.modelUsage ?? {})[0]
+  record.model = /** @type {any} */(usage)?.canonicalModel ?? null
+  record.costUsd = result.total_cost_usd ?? null
+  record.turns = result.num_turns ?? null
+  record.denials = result.permission_denials ?? []
+  // A denied tool means the run measured a crippled agent, so it is not judgeable
+  // even though the process succeeded.
+  record.ok = !result.is_error && record.denials.length === 0
+  if (record.denials.length) {
+    record.error = `${record.denials.length} tool call(s) denied — the allow-list and the tool set have drifted apart`
+  } else if (result.is_error) {
+    // is_error with no denials is an agent-side failure unrelated to tool permissions —
+    // still a reason the sidecar and the CLI must be able to name.
+    record.error = typeof result.result === 'string' && result.result.trim()
+      ? result.result
+      : 'claude reported is_error without a message'
+  }
+
+  return finish(evalCase, record)
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
