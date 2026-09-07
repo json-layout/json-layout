@@ -329,8 +329,17 @@ const getCompObject = (normalizedLayout, childDefinition, options, compiledLayou
     if (childDefinition?.if && !evalExpression(compiledLayout.expressions, childDefinition.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
       return noneComp
     }
-    if (normalizedLayout.if && !evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)) {
-      return noneComp
+    if (normalizedLayout.if) {
+      let visible
+      try {
+        visible = evalExpression(compiledLayout.expressions, normalizedLayout.if, data, options, display, normalizedLayout, compiledLayout.validates, rootData, parentContext)
+      } catch (err) {
+        // an "if" that cannot be evaluated (typically a rootData path through an empty
+        // array) hides the node, as an unresolvable getItems yields no items
+        console.warn(`json-layout: "if" expression threw, treating it as false: ${normalizedLayout.if.expr}`)
+        visible = false
+      }
+      if (!visible) return noneComp
     }
     return normalizedLayout
   }
