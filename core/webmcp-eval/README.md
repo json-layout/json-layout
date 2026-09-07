@@ -55,7 +55,8 @@ judged flow below — only that each case is the case it claims to be.
 ## Judged runs
 
 Real runs are driven by isolated coding-agent subagents, orchestrated through the
-`/webmcp-eval` skill:
+`/webmcp-eval` skill (if that command does not resolve, follow
+`.claude/skills/webmcp-eval/SKILL.md` directly — it is the same procedure):
 
 1. `.mcp.json` registers one stdio MCP server per case, `page-form-<case>`, generated
    from the case registry — the same tool descriptors, descriptions and skill text a

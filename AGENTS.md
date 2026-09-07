@@ -230,6 +230,10 @@ An isolated subagent — no `Read`, `Grep` or `Bash`, so it cannot read this rep
 real form from a plain-language goal, and a judge reads the transcript. See
 `core/webmcp-eval/README.md`.
 
+If `/webmcp-eval` does not resolve, the procedure is a document, not a command: follow
+`.claude/skills/webmcp-eval/SKILL.md` directly. That file is the single source for how to
+run the eval; this section only says when you must.
+
 **The MCP servers connect at session start.** If `.mcp.json` changed, or you have just
 generated it, the tools do not exist in the current session: run
 `npm run webmcp-eval:config -w core` and start a new session. A case that never ran is
