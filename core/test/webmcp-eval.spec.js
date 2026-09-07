@@ -7,7 +7,7 @@ import { getComplexity } from '../src/webmcp/index.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { TOOL_NAMES } from '../webmcp-eval/generate-config.js'
+import { TOOL_NAMES } from '../webmcp-eval/run-case.js'
 import { EvalSession } from '../webmcp-eval/session.js'
 
 /**
@@ -71,7 +71,7 @@ describe('webmcp eval session', () => {
     // transcript as protocol friction rather than as a broken setup. This is the tie.
     const session = new EvalSession(getCase('contact'))
     const names = session.tools.map((t) => t.name).sort()
-    assert.deepEqual(names, [...TOOL_NAMES].sort(), 'TOOL_NAMES must match the tools a session registers — re-run npm run webmcp-eval:config -w core after changing it')
+    assert.deepEqual(names, [...TOOL_NAMES].sort(), 'TOOL_NAMES must match the tools a session registers — update TOOL_NAMES in run-case.js')
     assert.ok(names.includes('fillFormSkill'), 'the skill a real page exposes must be among them')
   })
 
