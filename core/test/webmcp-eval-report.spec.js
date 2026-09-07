@@ -136,6 +136,33 @@ describe('webmcp eval run loading', () => {
     calls: []
   })
 
+  it('should report a variant beside its control, with its own provenance', () => {
+    // A variant's evidence is named <case>--<variant> but its sidecar records the case
+    // it ran, so a guard comparing the sidecar's case to the file's label discards the
+    // provenance of every variant run — the report then prints the ablation with no
+    // model and no cost, which is most of what an ablation is for.
+    const name = 'report-spec-variant'
+    const control = writeRunFiles(name, evidenceFor(name))
+    const ablation = writeRunFiles(`${name}--no-schema`, evidenceFor(name))
+    const controlSidecar = sidecarPath(name)
+    const ablationSidecar = sidecarPath(`${name}--no-schema`)
+    writeFileSync(controlSidecar, JSON.stringify({ case: name, ok: true, model: 'model-a', costUsd: 0.1, denials: [] }))
+    writeFileSync(ablationSidecar, JSON.stringify({ case: name, ok: true, model: 'model-b', costUsd: 0.2, denials: [] }))
+
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs.length, 2, 'the control and its variant must both be reported')
+      const variantRun = runs.find((r) => r.variant === 'no-schema')
+      assert.ok(variantRun, 'the variant must be discovered from its evidence file')
+      assert.equal(/** @type {any} */(variantRun.run)?.model, 'model-b', 'the variant keeps its own provenance')
+      const text = summarise(runs).lines.join('\n')
+      assert.ok(text.includes(`${name} (no-schema)`), 'the variant must be labelled')
+      assert.ok(text.includes('model-b'))
+    } finally {
+      for (const f of [control.evidencePath, ablation.evidencePath, controlSidecar, ablationSidecar]) rmSync(f, { force: true })
+    }
+  })
+
   it('should treat a verdict file that is valid JSON but not a valid verdict as unjudged, not throw', () => {
     // A raw JSON.parse would accept {} and produce a run with no friction and no
     // verdict field — the silent "no problems found" that parseVerdict exists to

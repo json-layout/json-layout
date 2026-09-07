@@ -134,7 +134,7 @@ export function loadRuns (names) {
     for (const variant of variantsOf(name)) {
       const label = evidenceName(name, variant)
       const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${label}.json`)
-      const run = loadRun(label)
+      const run = loadRun(label, name)
       // A requested case with no transcript is reported, never skipped: it is a failure
       // of the run, not an absence of one. Only the default is required to exist though
       // — an ablation nobody ran is not a failure.
@@ -172,15 +172,19 @@ export function loadRuns (names) {
  * A file that parses but names a different case is treated the same as absent, exactly
  * like `loadVerdict` below: a sidecar written for another case, or copied to the wrong
  * path, must not be read as this case's provenance.
- * @param {string} name
+ * @param {string} label - evidence basename, which carries the variant suffix
+ * @param {string} caseName - the case, which is what the sidecar records
  * @returns {object|null}
  */
-function loadRun (name) {
-  const path = sidecarPath(name)
+function loadRun (label, caseName) {
+  const path = sidecarPath(label)
   if (!existsSync(path)) return null
   try {
     const run = /** @type {any} */(JSON.parse(readFileSync(path, 'utf8')))
-    if (run.case !== name) return null
+    // Checked against the case, not the file's label: a variant's sidecar is named
+    // `<case>--<variant>` but records the case it ran, so comparing it to the label
+    // would discard the provenance of every variant run.
+    if (run.case !== caseName) return null
     return run
   } catch (/** @type {any} */err) {
     return { ok: false, error: `sidecar unreadable: ${err.message}` }
