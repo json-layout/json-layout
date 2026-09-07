@@ -1,0 +1,14 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "The agent reached a complete, valid result in four calls on a four-field form, and every value it wrote is traceable to information it actually held: name, birth year and email came from the goal, and the enum token `email` for `contactMethod` came from the enum list returned by getSchema on call 2 rather than being guessed at the token level. No path was guessed wrongly, no tool response was untrue or misleading, and no error recovery was needed. The protocol shape (getData to see the starting state, getSchema to learn the fields and their constraints, one batched setData, then a confirming getData) is close to the minimum this form required; the only slack is the final getData, which restated what setData had already reported. Given a form with one required-value list and no dependent fields, four round-trips is proportionate.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "setData",
+      "observed": "valid, no errors",
+      "inferred": "The confirmation is truthful but does not echo the stored/normalised data, so the agent could not tell from it whether `birthYear: 1815` had been coerced or `contactMethod` accepted verbatim; it spent call 4 on a getData that returned nothing it had not already been told. One redundant round-trip out of four.",
+      "severity": "low"
+    }
+  ]
+}

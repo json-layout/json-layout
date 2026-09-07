@@ -1,0 +1,49 @@
+{
+  "case": "charts",
+  "verdict": "satisfactory",
+  "reasoning": "The session reached a valid config that matches the goal on every axis: chart variant 1 (Histogramme/bar), config variant 2 (Grouper les lignes) with groupBy field nom_com, valueCalc switched to metric with field=valeur and metric=avg, title \"Pollution by commune\", legendPosition=right, and the correct Poitiers hourly-pollutant dataset applied by suggestionIndex rather than copied. Every value written was first read back from a tool response — nom_com and valeur from getFieldSuggestions on the dataset-derived selects, avg from the metric enum, the dataset object by index — so nothing was invented, and not a single call errored or guessed a wrong path across 21 calls, including three variant-selector switches into a five-level-deep path. The two protocol fixes are visibly doing work: setFieldValue on /$allOf-1/chart/$oneOf and on .../config/$oneOf returned the activated branch's fields, and the agent navigated from there with no intervening describeState. The cost is entirely concentrated in one place: five dataset searches burned ~29 KB of the 47 KB total. The app's getItems URL ends in sort=createdAt:-1, so the remote list is the newest loose matches rather than the best ones; an exact-title query (call 7) therefore failed to surface the exactly-titled dataset at all, and the tool output carries no total count, no relevance signal and no echo of q, so 'the dataset is not there' and 'you are looking at 12 of N sorted by date' are indistinguishable. On top of that each of the 12 rows spent 300 characters printing a truncated dataset schema that the tool description explicitly forbids copying, which is why one search costs 6 KB. The agent found the target on call 5, went looking for a better match, and then had to re-run the identical query as call 8 because the suggestions store keeps only the last result per path — had it not, suggestionIndex 9 would have silently applied 'Sectorisation des collèges' from call 7's list with no error. It navigated the protocol; the protocol made it pay about 17 KB for the privilege.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "getFieldSuggestions",
+      "observed": "12 suggestion(s) ... [0] Mobilité - Bornes escamotables ... [4] Propreté - Localisation des bornes textiles ... [9] Annuaire de l'éducation - Grand Poitiers — for query \"Poitiers polluants\"",
+      "inferred": "The agent read this as 'my query terms did not match' and started rephrasing, when in fact the getItems URL appends sort=createdAt:-1 so the list is the newest loose matches, not the closest ones. Nothing in the output (no total, no ranking note, no echo of q) let it tell the two apart.",
+      "severity": "medium"
+    },
+    {
+      "call": 3,
+      "tool": "getFieldSuggestions",
+      "observed": "— value truncated (3048 chars), use suggestionIndex=0: {\"title\":\"Mobilité - Bornes escamotables...\",\"owner\":{...},\"schema\":[{\"type\":\"string\",\"key\":\"geometry\",\"x-originalName\":\"g…",
+      "inferred": "Every one of the 12 rows carried 300 characters of raw dataset JSON that the tool description tells the agent never to copy, so the preview was unreadable and unusable; the title and index alone were what the agent acted on. This is what made a single dataset search cost 5.5-6.2 KB and the five searches ~29 KB, roughly 61% of the whole session's output budget.",
+      "severity": "high"
+    },
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "12 suggestion(s) ... [1] Calendrier des événements ... [2] SPORT1_calendrier_salles_associations ... [6] Salle Van Gogh — for query \"concentration horaire polluants\"",
+      "inferred": "A three-word query about pollutant concentrations returned room-booking calendars, directly contradicting the success of the previous two-word query. The agent concluded its phrasing was at fault and tried an even more literal one, rather than that the backend was date-sorting loose matches.",
+      "severity": "medium"
+    },
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "12 suggestion(s) ... none of them the target — for query \"Concentrations horaires de polluants dans l'air ambiant\", the dataset's own exact title",
+      "inferred": "Querying a dataset by its verbatim title returned a list that does not contain it. Read on its own this says 'no such dataset exists'; the agent only recovered because it had already seen the target at call 5. A fresh agent would reasonably have stopped or settled for '[DEPUBLIE] Episodes de pollution - Vienne'.",
+      "severity": "high"
+    },
+    {
+      "call": 8,
+      "tool": "getFieldSuggestions",
+      "observed": "byte-for-byte identical to call 5: same query \"pollution air\", same 10 suggestions, same 5467 output bytes",
+      "inferred": "The agent understood that suggestionIndex is bound to the last getFieldSuggestions on that path and that calls 6 and 7 had silently rebound index 9 to a different dataset, so it re-ran the winning query purely to restore the index. Correct behaviour, but the store's single-slot memory charged 5.5 KB for information already delivered, and gave no warning that the earlier index had been invalidated — applying the stale 9 would have set 'Sectorisation des collèges' with no error at all.",
+      "severity": "high"
+    },
+    {
+      "call": 4,
+      "tool": "getFieldSuggestions",
+      "observed": "4 suggestion(s) ... [0] Haut (top) [1] Bas (bottom) [2] Gauche (left) [3] Droite (right)",
+      "inferred": "legendPosition is a fixed four-const oneOf in the schema with no items source, but describeState reported it only as '(select, suggestions)' without the constants, so the agent spent a round-trip reading a closed list the form already held. Cheap here, and the agent then wrote \"right\" by value instead of by index, but it is a call that bought nothing the state could not have carried.",
+      "severity": "low"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "The agent reached a complete, valid fill in 5 calls on a 4-field form, and every value it wrote is traceable to either the goal text or a tool response — nothing was invented. Without getSchema, describeState alone was enough to orient: it named all four fields with their paths, types, labels, required flags, constraints (min=1800, max=2100, step=1 on birthYear) and, crucially, tagged /contactMethod as '(select, suggestions)', which is what led the agent to getFieldSuggestions rather than guessing an enum token. The suggestions response returned the exact wire values ('email'/'phone'/'post') alongside their labels, so the mapping from the goal's phrase 'prefers to be contacted by email' to the stored token was confirmed, not assumed. setData accepted the whole object in one shot and answered 'valid, no errors', and the closing getData confirmed the persisted state. No tool told the agent anything untrue, no path was guessed wrongly, and the round-trip count is within one or two of the theoretical minimum (describeState, getFieldSuggestions, setData). The no-schema variant cost this agent nothing on a form of this size.",
+  "friction": [
+    {
+      "call": 1,
+      "tool": "getData",
+      "observed": "{\"data\":{},\"valid\":false}",
+      "inferred": "The agent learned only that the form was empty and invalid, with no indication of which fields exist or why validity failed; it immediately superseded this with describeState, whose output contained everything this call returned plus the field inventory and the error reasons. The call cost a round-trip and bought no information the very next call did not supply. Not misleading — the agent recovered instantly — but it is a redundant opening probe that a bare 'valid: false' with no error list invites.",
+      "severity": "low"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent completed all three parts of the goal in 11 calls with nothing invented and nothing guessed: it read the state, searched the dataset autocomplete with the query 'Agenda-manifestations' and applied the match by suggestionIndex rather than copying a truncated href, listed the 27 column suggestions for /$allOf-1/labelField and picked [16] 'Nom de l'évenement (nomevenement)' — the column carrying the rdf-schema#label concept, which is the right reading of 'event name column' across the French/English gap — and set /$allOf-3/crowdSourcing to true. Crucially, the Edition section holding crowdSourcing is gated by x-if datasets.0.isRest and did not exist in the first describeState; the agent discovered it from the post-set describeState instead of guessing a path, and every path it used was one a tool had shown it. No tool response told it anything untrue and no error had to be recovered from. The friction that remains is bandwidth, not correctness: describeState (project.js:322) and setFieldValue (index.js:279) stringify the selected dataset object in full while getFieldSuggestions truncates it, so the same ~12kB schema was echoed four times and accounts for roughly two thirds of the 59kB the session spent on a form with three values to fill.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "\"/$allOf-0/datasets/0 (autocomplete) = {\\\"title\\\":\\\"Agenda-manifestations\\\",...}\\nno error here\\nform is valid\" (12604 bytes, the entire dataset object echoed back)",
+      "inferred": "The agent learned only that the set succeeded — at the cost of 12.6kB — and was not told that setting this value had just revealed a whole new 'Edition' section (x-if datasets.0.isRest), so it had to spend a full describeState to find out where crowd sourcing lived.",
+      "severity": "medium"
+    },
+    {
+      "call": 5,
+      "tool": "describeState",
+      "observed": "\"- /$allOf-0/datasets/0 (autocomplete, required, suggestions) label=\\\"Jeu de données\\\" value={...12kB of dataset schema...}\" (14630 bytes total for a 20-line tree)",
+      "inferred": "The structural answer the agent wanted — that /$allOf-3 'Edition' with crowdSourcing now exists — was buried under an untruncated value dump; the tree became hard enough to read that the agent immediately re-fetched subtrees one at a time.",
+      "severity": "medium"
+    },
+    {
+      "call": 6,
+      "tool": "describeState",
+      "observed": "path=\"/$allOf-1\" returning the Affichage subtree, byte-for-byte a subset of what call 5 had already returned",
+      "inferred": "The agent re-read information it already had, apparently to get a readable view of the section after call 5's output was dominated by the dataset value; the call bought no new information.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "setFieldValue",
+      "observed": "\"/$allOf-3/crowdSourcing (boolean) = true\\nno error here\\nform is valid\"",
+      "inferred": "The agent concluded it was done. In fact enabling crowdSourcing unlocked three newly visible nodes (contribsDataset under both datasets and Edition, plus deleteValidatedContribs and colorContrib, which silently took defaults). The recent fix makes a variant selector report the branch it activated, but an x-if toggled by a boolean reports nothing, so the agent could only have learned this by re-describing. Harmless here because the extra fields are optional and the goal did not ask for them.",
+      "severity": "low"
+    }
+  ]
+}
