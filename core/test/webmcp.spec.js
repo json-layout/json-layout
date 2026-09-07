@@ -1583,3 +1583,55 @@ describe('webmcp suggestions flag', () => {
     }
   })
 })
+
+describe('webmcp variant activation', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      title: { type: 'string', title: 'Title' },
+      shape: {
+        type: 'object',
+        oneOf: [
+          { title: 'Circle', properties: { kind: { const: 'circle' }, radius: { type: 'number', title: 'Radius' } } },
+          { title: 'Rect', properties: { kind: { const: 'rect' }, w: { type: 'number', title: 'Width' }, h: { type: 'number', title: 'Height' } } }
+        ]
+      }
+    }
+  }
+
+  const layoutOf = () => {
+    const compiled = compile(schema)
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+  }
+
+  it('should report the fields a variant activation revealed', () => {
+    // Switching a variant replaces a whole subtree, but setFieldValue used to answer with
+    // only the value it wrote. editArray already prints the fields of the item it
+    // activated, so an agent that added an array item was told where to write next while
+    // an agent that switched a variant had to spend a describeState to find out — at the
+    // most important moment of a discriminated union.
+    const layout = layoutOf()
+    const result = setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
+    const markdown = /** @type {any} */(result).activatedMarkdown
+    assert.ok(markdown, 'activating a variant must report the branch it activated')
+    assert.ok(markdown.includes('/shape/$oneOf/1/w'), 'the activated branch\'s paths must be usable directly')
+    assert.ok(markdown.includes('Width') && markdown.includes('Height'))
+  })
+
+  it('should not report activated fields for an ordinary write', () => {
+    // Only an activation reveals a subtree; a plain write must stay as terse as it is.
+    const layout = layoutOf()
+    const result = setFieldValue.execute(layout, { path: '/title', value: 'hello' })
+    assert.equal(/** @type {any} */(result).activatedMarkdown, undefined)
+  })
+
+  it('should put the activated fields in the tool text', async () => {
+    const layout = layoutOf()
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const tool = tools.find((t) => t.name === 'setFieldValue')
+    const res = await /** @type {any} */(tool).execute({ path: '/shape/$oneOf', value: 1 })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.match(text, /activated/i, 'the agent reads the text, not the structured content')
+    assert.ok(text.includes('/shape/$oneOf/1/w'))
+  })
+})

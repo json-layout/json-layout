@@ -2,7 +2,7 @@
  * @file setFieldValue tool
  */
 
-import { projectFieldResult, collectScopedErrors } from '../project.js'
+import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown } from '../project.js'
 import { resolveNode } from '../resolve.js'
 
 export const inputSchema = {
@@ -50,6 +50,10 @@ export const outputSchema = {
     otherErrors: {
       type: 'number',
       description: 'Number of errors in the rest of the form'
+    },
+    activatedMarkdown: {
+      type: 'string',
+      description: 'Present only when a variant selector was switched: the fields of the branch it activated, so they can be written without describing the state again'
     }
   }
 }
@@ -59,14 +63,14 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Set the value of a specific field of "${dataTitle}" by path. For fields with suggestions, call getFieldSuggestions first then pass "suggestionIndex" (do not copy back a truncated value). To switch a variant selector, set value to the desired variant index (shown in describeState). The returned errors are scoped to the modified field.`
+  return `Set the value of a specific field of "${dataTitle}" by path. For fields with suggestions, call getFieldSuggestions first then pass "suggestionIndex" (do not copy back a truncated value). To switch a variant selector, set value to the desired variant index (shown in describeState); the answer then lists the fields of the branch it activated. The returned errors are scoped to the modified field.`
 }
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value?: unknown, suggestionIndex?: number }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
- * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number }}
+ * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string }}
  */
 export function execute (statefulLayout, args, store) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
@@ -87,7 +91,9 @@ export function execute (statefulLayout, args, store) {
     throw new Error('value or suggestionIndex is required')
   }
 
+  let activating = false
   if (node.key === '$oneOf' && typeof value === 'number') {
+    activating = true
     statefulLayout.activateItem(node, value)
   } else {
     statefulLayout.input(node, value)
@@ -98,10 +104,16 @@ export function execute (statefulLayout, args, store) {
   const updatedNode = resolveNode(statefulLayout.stateTree.root, args.path)
   const { errors, otherErrors } = collectScopedErrors(statefulLayout, updatedNode || node)
 
+  // Switching a variant replaces a whole subtree, so answering with only the value that
+  // was written leaves the agent knowing a branch appeared but not what is in it. This
+  // mirrors what editArray already does for an item it activates.
+  const activated = activating ? (updatedNode || node).children?.[0] : undefined
+
   return {
     valid: statefulLayout.valid,
     field: projectFieldResult(updatedNode || node, statefulLayout),
     errors,
-    otherErrors
+    otherErrors,
+    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout) } : {})
   }
 }

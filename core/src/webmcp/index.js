@@ -276,7 +276,10 @@ export class WebMCP {
             // a getItems expression can depend on another field, so writing one may change the
             // options of a field whose suggestions were memorized under an unchanged path
             this._suggestionsStore.clear()
-            const fieldInfo = `${result.field.path} (${result.field.type}) = ${JSON.stringify(result.field.data)}`
+            let fieldInfo = `${result.field.path} (${result.field.type}) = ${JSON.stringify(result.field.data)}`
+            if (result.activatedMarkdown) {
+              fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
+            }
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }],
               structuredContent: result
