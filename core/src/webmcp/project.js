@@ -442,12 +442,13 @@ export function formatMutationResult (valid, errors, prefix, otherErrors) {
  * Project suggestions for the tools output: large values are truncated, the agent
  * refers to them by index instead of copying them around.
  * @param {Array<{value: unknown, title: string, key?: string}>} items
+ * @param {number} [baseIndex] - index of the first item, as the store assigned it
  * @returns {ProjectedSuggestion[]}
  */
-export function projectSuggestions (items) {
+export function projectSuggestions (items, baseIndex = 0) {
   return items.map((item, index) => {
     /** @type {ProjectedSuggestion} */
-    const out = { index, title: item.title }
+    const out = { index: baseIndex + index, title: item.title }
     if (item.key !== undefined && item.key !== item.title) out.key = item.key
     const json = JSON.stringify(item.value)
     if (json === undefined) return out

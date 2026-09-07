@@ -51,7 +51,7 @@ export function getDescription (dataTitle) {
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, query?: string }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store] - memorizes the full items so that setFieldValue can apply one by index
- * @returns {Promise<{items: Array<{value: unknown, title: string, key?: string}>}>}
+ * @returns {Promise<{items: Array<{value: unknown, title: string, key?: string}>, baseIndex: number}>}
  */
 export async function execute (statefulLayout, args, store) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
@@ -65,8 +65,7 @@ export async function execute (statefulLayout, args, store) {
     const items = (oneOfItems || [])
       .filter((item) => !item.header)
       .map((item) => ({ value: item.key, title: item.title }))
-    store?.set(args.path, items)
-    return { items }
+    return { items, baseIndex: store?.add(args.path, items) ?? 0 }
   }
 
   const rawItems = await statefulLayout.getItems(node, args.query)
@@ -85,7 +84,5 @@ export async function execute (statefulLayout, args, store) {
       return result
     })
 
-  store?.set(args.path, items)
-
-  return { items }
+  return { items, baseIndex: store?.add(args.path, items) ?? 0 }
 }

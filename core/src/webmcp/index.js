@@ -308,7 +308,7 @@ export class WebMCP {
               /** @type {{ path: string, query?: string }} */(args),
               this._suggestionsStore
             )
-            const suggestions = projectSuggestions(result.items)
+            const suggestions = projectSuggestions(result.items, result.baseIndex)
             return {
               content: [{ type: 'text', text: formatSuggestions(suggestions) }],
               structuredContent: { items: suggestions }

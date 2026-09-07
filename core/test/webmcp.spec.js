@@ -908,7 +908,7 @@ describe('webmcp suggestions truncation', () => {
   it('should raise clear errors on unknown path or out of bounds index', () => {
     const store = new SuggestionsStore()
     assert.throws(() => store.getValue('/unknown', 0), /no suggestion memorized/)
-    store.set('/dataset', [{ value: 'a', title: 'a' }])
+    store.add('/dataset', [{ value: 'a', title: 'a' }])
     assert.throws(() => store.getValue('/dataset', 3), /out of bounds/)
   })
 
@@ -916,7 +916,7 @@ describe('webmcp suggestions truncation', () => {
     const compiled = compile(simpleSchema)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
     const store = new SuggestionsStore()
-    store.set('/name', [{ value: 'a', title: 'a' }])
+    store.add('/name', [{ value: 'a', title: 'a' }])
     assert.throws(() => setFieldValue.execute(layout, { path: '/name', value: 'b', suggestionIndex: 0 }, store), /exclusive/)
   })
 })
@@ -1633,5 +1633,75 @@ describe('webmcp variant activation', () => {
     const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
     assert.match(text, /activated/i, 'the agent reads the text, not the structured content')
     assert.ok(text.includes('/shape/$oneOf/1/w'))
+  })
+})
+
+describe('webmcp suggestions store', () => {
+  it('should never let a later search change what an earlier index means', () => {
+    // The store kept one result per path, so searching the same field again silently
+    // rebound every index. An agent holding index 1 from the first search would apply
+    // the second search's item 1 — a different dataset, with no error at all. The eval's
+    // charts case hit exactly this and only escaped by re-running its winning query.
+    const store = new SuggestionsStore()
+    const first = store.add('/dataset', [{ value: { id: 'air' }, title: 'Air quality' }])
+    const second = store.add('/dataset', [{ value: { id: 'schools' }, title: 'Schools' }])
+
+    assert.equal(first, 0, 'the first search starts at 0')
+    assert.equal(second, 1, 'a later search continues where the previous one stopped')
+    assert.deepEqual(store.getValue('/dataset', 0), { id: 'air' }, 'the earlier index must still mean what the agent saw')
+    assert.deepEqual(store.getValue('/dataset', 1), { id: 'schools' })
+  })
+
+  it('should still reject an index that was never handed out', () => {
+    const store = new SuggestionsStore()
+    store.add('/dataset', [{ value: 1, title: 'one' }])
+    assert.throws(() => store.getValue('/dataset', 5), /out of bounds/)
+    assert.throws(() => store.getValue('/other', 0), /no suggestion memorized/)
+  })
+
+  it('should forget everything when cleared, so indices restart', () => {
+    // setFieldValue clears the store because a write can change another field's options.
+    const store = new SuggestionsStore()
+    store.add('/dataset', [{ value: 1, title: 'one' }])
+    store.clear()
+    assert.equal(store.add('/dataset', [{ value: 2, title: 'two' }]), 0)
+    assert.equal(store.getValue('/dataset', 0), 2)
+  })
+
+  it('should number projected suggestions from the base the store gave', () => {
+    // The printed index is what the agent passes back, so it has to be the absolute one.
+    const projected = projectSuggestions([{ value: 'b', title: 'B' }], 3)
+    assert.equal(projected[0].index, 3)
+  })
+})
+
+describe('webmcp suggestions store, through the tools', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      shape: {
+        type: 'object',
+        oneOf: [
+          { title: 'Circle', properties: { kind: { const: 'circle' } } },
+          { title: 'Rect', properties: { kind: { const: 'rect' } } }
+        ]
+      }
+    }
+  }
+
+  it('should keep indices absolute across repeated searches on one path', async () => {
+    // Two searches on the same field used to both start at 0, so the second silently
+    // took ownership of index 0. The agent has no way to know that happened.
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const tool = /** @type {any} */(tools.find((t) => t.name === 'getFieldSuggestions'))
+
+    const first = await tool.execute({ path: '/shape/$oneOf' })
+    const second = await tool.execute({ path: '/shape/$oneOf' })
+    const indicesOf = (/** @type {any} */ res) => res.structuredContent.items.map((/** @type {any} */ i) => i.index)
+
+    assert.deepEqual(indicesOf(first), [0, 1])
+    assert.deepEqual(indicesOf(second), [2, 3], 'a repeated search must not reuse indices it already handed out')
   })
 })
