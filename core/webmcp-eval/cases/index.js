@@ -82,9 +82,13 @@ const calendar = {
 }
 
 /**
- * Real app schema large enough that getSchema refuses it, so the agent has to navigate
- * by path. The only case that reaches that branch. The goal names a public koumoul.com
- * dataset whose columns carry a commune, a pollutant name and a measured value.
+ * Real app schema large enough that getSchema refuses it whole. Note this describes the
+ * schema, not the runs: no runner has yet called getSchema on it, because the guide
+ * tells large-form agents to prefer describeState. Whether that advice is right is one
+ * of the things the harness exists to find out, not something it presumes.
+ *
+ * The goal names a public koumoul.com dataset whose columns carry a commune, a pollutant
+ * name and a measured value.
  * @type {EvalCase}
  */
 const charts = {
@@ -98,8 +102,43 @@ const charts = {
   expectedSchemaFits: false
 }
 
+/**
+ * The page editor of data-fair/portals, and the only case that reproduces a shipped
+ * WebMCP configuration exactly: that page hands WebMCP no schema, so it has no getSchema
+ * tool and its guide points at describeState instead — `withSchema: false` reproduces
+ * that, and flipping it is how the harness measures whether shipping the schema would
+ * earn its bundle size.
+ *
+ * It is also the only case with an array the agent must build from empty, and the only
+ * one that recurses: a layout element contains elements, without bound. That makes it
+ * the only exercise of editArray, and of a 39-branch discriminated union.
+ *
+ * Vendored on 2026-09-07 from data-fair/portals @ 19f3a68c, by loading every
+ * `api/types/<name>/schema.{js,ts}` module, indexing them by $id, and inlining each external
+ * `$ref` into `$defs` — rewriting refs relative to the document each subtree came from,
+ * since a nested `#/$defs/color` belongs to its own schema and not to the root. Refresh
+ * by repeating that against a newer checkout.
+ *
+ * Compiled with xI18n: without it the schema's x-i18n-* keywords leave the state tree
+ * unable to settle and every editArray call fails with "too many iterations in
+ * updateState". The markdown component the page registers through a vjsf plugin is not
+ * registered here, so markdown fields fall back to a plain text field.
+ * @type {EvalCase}
+ */
+const portalPage = {
+  name: 'portal-page',
+  title: 'page configuration',
+  goal: 'Title the page "Nos données ouvertes", then add a two column section with a text block in each column: "Bienvenue" on the left and "Contactez-nous" on the right.',
+  schema: loadSchema('portal-page.json'),
+  data: {},
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  withSchema: false,
+  expectedComplexity: 'large',
+  expectedSchemaFits: false
+}
+
 /** @type {EvalCase[]} */
-export const cases = [contact, calendar, charts]
+export const cases = [contact, calendar, charts, portalPage]
 
 /**
  * @param {string} name
