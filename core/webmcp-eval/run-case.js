@@ -123,12 +123,17 @@ export function buildLaunchArgs (evalCase, options = {}) {
  * @property {string} [error] - present when the run failed or must not be judged
  */
 
+/** Where sidecars live in production; a run's own `report.js` reads this same default. */
+const DEFAULT_SIDECAR_DIR = join(here, '..', 'tmp')
+
 /**
  * @param {string} name
+ * @param {string} [dir] - defaults to the repository's own `tmp/`; tests pass a fresh
+ *   `mkdtempSync` directory so a unit run never touches a real recorded eval.
  * @returns {string}
  */
-export function sidecarPath (name) {
-  return join(here, '..', 'tmp', `webmcp-eval-${name}.run.json`)
+export function sidecarPath (name, dir = DEFAULT_SIDECAR_DIR) {
+  return join(dir, `webmcp-eval-${name}.run.json`)
 }
 
 /**
@@ -155,6 +160,9 @@ function defaultSpawn (command, args, opts) {
  * @property {typeof defaultSpawn} [spawn] - replaces the subprocess launcher; tests stub this
  * @property {string} [cwd] - defaults to a fresh directory outside this repository
  * @property {string} [model] - alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
+ * @property {string} [sidecarDir] - where to write the run's sidecar; defaults to this
+ *   package's own `tmp/`. Tests must pass a fresh `mkdtempSync` directory here, or a unit
+ *   run corrupts the sidecar of a real, already-judged eval run.
  */
 
 /**
@@ -163,11 +171,13 @@ function defaultSpawn (command, args, opts) {
  * recorded the same way.
  * @param {EvalCase} evalCase
  * @param {RunRecord} record
+ * @param {string} sidecarDir
  * @returns {RunRecord}
  */
-function finish (evalCase, record) {
-  mkdirSync(dirname(sidecarPath(evalCase.name)), { recursive: true })
-  writeFileSync(sidecarPath(evalCase.name), JSON.stringify(record, null, 2))
+function finish (evalCase, record, sidecarDir) {
+  const path = sidecarPath(evalCase.name, sidecarDir)
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, JSON.stringify(record, null, 2))
   return record
 }
 
@@ -181,6 +191,7 @@ export async function runCase (evalCase, options = {}) {
   // Outside the repository on purpose: auto-memory is keyed to the project directory,
   // and its index names this eval.
   const cwd = options.cwd ?? mkdtempSync(join(tmpdir(), 'webmcp-eval-'))
+  const sidecarDir = options.sidecarDir ?? DEFAULT_SIDECAR_DIR
   const spawnFn = options.spawn ?? defaultSpawn
   const args = buildLaunchArgs(evalCase, { model: requestedModel })
 
@@ -210,14 +221,14 @@ export async function runCase (evalCase, options = {}) {
     record.error = err.code === 'ENOENT'
       ? 'could not launch "claude" — the Claude Code CLI must be on PATH and authenticated'
       : `failed to launch claude: ${err.message}`
-    return finish(evalCase, record)
+    return finish(evalCase, record, sidecarDir)
   }
 
   const { code, stdout, stderr } = spawnResult
   record.exitCode = code
   if (code !== 0) {
     record.error = `claude exited ${code}: ${stderr.trim() || stdout.trim()}`
-    return finish(evalCase, record)
+    return finish(evalCase, record, sidecarDir)
   }
 
   /** @type {any} */
@@ -229,7 +240,7 @@ export async function runCase (evalCase, options = {}) {
     // exit code here (rather than falling into the launch-failure branch above) is the
     // point: this run did not fail to launch, it failed to report.
     record.error = `claude exited 0 but its stdout could not be parsed as JSON: ${err.message}`
-    return finish(evalCase, record)
+    return finish(evalCase, record, sidecarDir)
   }
 
   const usage = Object.values(result.modelUsage ?? {})[0]
@@ -250,7 +261,7 @@ export async function runCase (evalCase, options = {}) {
       : 'claude reported is_error without a message'
   }
 
-  return finish(evalCase, record)
+  return finish(evalCase, record, sidecarDir)
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

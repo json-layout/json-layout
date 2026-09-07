@@ -1,10 +1,21 @@
 import { strict as assert } from 'node:assert'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { buildLaunchArgs, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase } from '../webmcp-eval/run-case.js'
+import { buildLaunchArgs, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase, sidecarPath } from '../webmcp-eval/run-case.js'
+
+/**
+ * A fresh directory per test, so a stubbed run never writes into this package's own
+ * `tmp/` and cannot corrupt the sidecar of a real, already-judged eval run.
+ * @returns {string}
+ */
+function tmpSidecarDir () {
+  return mkdtempSync(join(tmpdir(), 'webmcp-eval-sidecar-'))
+}
 
 const options = { serverPath: '/abs/path/core/webmcp-eval/server.js' }
 
@@ -121,7 +132,7 @@ describe('webmcp eval runner execution', () => {
       seen = { cmd, args, opts }
       return { code: 0, stdout: claudeOutput(), stderr: '' }
     }
-    await runCase(getCase('calendar'), { spawn })
+    await runCase(getCase('calendar'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(seen.cmd, 'claude')
     assert.equal(seen.opts.env.JL_WEBMCP_EVAL_CASE, 'calendar')
   })
@@ -135,14 +146,14 @@ describe('webmcp eval runner execution', () => {
       seen = opts
       return { code: 0, stdout: claudeOutput(), stderr: '' }
     }
-    await runCase(getCase('contact'), { spawn })
+    await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
     assert.ok(!seen.cwd.startsWith(repoRoot), `cwd ${seen.cwd} must be outside ${repoRoot}`)
   })
 
   it('should record the resolved model rather than the requested alias', async () => {
     const spawn = async () => ({ code: 0, stdout: claudeOutput(), stderr: '' })
-    const record = await runCase(getCase('contact'), { spawn, model: 'opus' })
+    const record = await runCase(getCase('contact'), { spawn, model: 'opus', sidecarDir: tmpSidecarDir() })
     assert.equal(record.requestedModel, 'opus')
     assert.equal(record.model, 'claude-opus-5')
     assert.equal(record.costUsd, 0.12)
@@ -154,14 +165,14 @@ describe('webmcp eval runner execution', () => {
     // A denial means the allow-list and the tool set have drifted apart, so the run
     // measured a crippled agent. Judging it would be worse than not running it.
     const spawn = async () => ({ code: 0, stdout: claudeOutput({ permission_denials: [{ tool_name: 'mcp__page-form__editArray' }] }), stderr: '' })
-    const record = await runCase(getCase('contact'), { spawn })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(record.ok, false)
     assert.equal(record.denials.length, 1)
   })
 
   it('should surface a non-zero exit rather than swallow it', async () => {
     const spawn = async () => ({ code: 1, stdout: '', stderr: 'boom' })
-    const record = await runCase(getCase('contact'), { spawn })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(record.ok, false)
     assert.equal(record.exitCode, 1)
     assert.match(record.error ?? '', /boom/)
@@ -169,7 +180,7 @@ describe('webmcp eval runner execution', () => {
 
   it('should say plainly when the claude CLI is missing', async () => {
     const spawn = async () => { const err = new Error('spawn claude ENOENT'); throw Object.assign(err, { code: 'ENOENT' }) }
-    const record = await runCase(getCase('contact'), { spawn })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(record.ok, false)
     assert.match(record.error ?? '', /claude/)
     assert.match(record.error ?? '', /PATH/)
@@ -179,7 +190,7 @@ describe('webmcp eval runner execution', () => {
     // claude launched and exited 0 here — only its output is bad. Overwriting exitCode
     // and reporting a launch failure would actively lie about what happened.
     const spawn = async () => ({ code: 0, stdout: 'not json', stderr: '' })
-    const record = await runCase(getCase('contact'), { spawn })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(record.ok, false)
     assert.equal(record.exitCode, 0)
     assert.match(record.error ?? '', /pars/i)
@@ -189,9 +200,19 @@ describe('webmcp eval runner execution', () => {
     // is_error with an empty denials list is a real, distinct scenario: something went
     // wrong on the agent's side that has nothing to do with the allow-list.
     const spawn = async () => ({ code: 0, stdout: claudeOutput({ is_error: true, permission_denials: [] }), stderr: '' })
-    const record = await runCase(getCase('contact'), { spawn })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
     assert.equal(record.ok, false)
     assert.equal(record.denials.length, 0)
     assert.ok(record.error && record.error.length > 0, 'error must not be empty')
+  })
+
+  it('should write the sidecar to disk with the resolved model and ok flag', async () => {
+    const spawn = async () => ({ code: 0, stdout: claudeOutput(), stderr: '' })
+    const sidecarDir = tmpSidecarDir()
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir })
+    const written = JSON.parse(readFileSync(sidecarPath('contact', sidecarDir), 'utf8'))
+    assert.equal(written.model, record.model)
+    assert.equal(written.ok, record.ok)
+    assert.equal(written.ok, true)
   })
 })
