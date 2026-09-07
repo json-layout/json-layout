@@ -57,7 +57,7 @@ export function getDescription (dataTitle, complexity) {
  * @returns {{state: ReturnType<typeof projectStateTree>|ReturnType<typeof projectNode>, valid: boolean, errors: Array<{path: string, message: string}>}}
  */
 export function execute (statefulLayout, args) {
-  const errors = collectErrors(statefulLayout.stateTree.root)
+  const errors = collectErrors(statefulLayout)
 
   if (args.path) {
     const node = resolveNode(statefulLayout.stateTree.root, args.path)

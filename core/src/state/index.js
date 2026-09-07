@@ -172,6 +172,19 @@ export class StatefulLayout {
   _lastCreateStateTreeContext
 
   /**
+   * The raw validation errors of the last state update, each carrying the data pointer
+   * (instancePath) it applies to.
+   *
+   * A node only carries an error when it is hydrated, so an error below an unhydrated
+   * subtree — a list item shown in summary mode, say — has no node to attach to and
+   * collapses onto the nearest ancestor. These keep the precise location.
+   * @returns {import('ajv').ErrorObject[]}
+   */
+  get validationErrors () {
+    return this._lastCreateStateTreeContext?.allErrors ?? []
+  }
+
+  /**
    * @private
    * @type {string | null}
    */

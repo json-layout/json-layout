@@ -348,7 +348,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @returns {string}
  */
 export function projectStateTreeToMarkdown (stateTree, statefulLayout) {
-  const errors = collectErrors(stateTree.root)
+  const errors = collectErrors(statefulLayout)
   const validLine = stateTree.valid
     ? 'valid: true, no errors'
     : `valid: false, ${errors.length} error(s)`
@@ -463,13 +463,62 @@ export function formatSuggestions (suggestions) {
 }
 
 /**
- * @param {import('../state/types.js').StateNode} node
+ * The data pointer an ajv error applies to.
+ *
+ * ajv-errors wraps the original error, and a `required` error reports the parent's
+ * pointer with the missing key in its params — so the naive instancePath would be the
+ * object, not the field.
+ * @param {any} error
+ * @returns {string}
+ */
+function dataPointerOf (error) {
+  const original = error?.params?.errors?.[0] ?? error
+  if (original?.keyword === 'required' && original.params?.missingProperty) {
+    return `${original.instancePath}/${original.params.missingProperty}`
+  }
+  return original?.instancePath ?? ''
+}
+
+/**
+ * Errors of the whole form, each named by the location it actually applies to.
+ *
+ * A node only carries an error while it is hydrated. A list shows its items in summary
+ * mode, so nothing below an unedited item exists as a node, and every error under it
+ * collapses onto the list — one message, on a path that is not the faulty one. An agent
+ * told "/sections must be integer" knows it is wrong and not where, and retries blind.
+ *
+ * So a node error that is standing in for deeper errors nobody names is replaced by
+ * those errors, addressed by data pointer. Errors a hydrated node does name keep their
+ * form path, which is what the mutation tools expect.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {Array<{path: string, message: string}>}
  */
-export function collectErrors (node) {
+export function collectErrors (statefulLayout) {
+  /** @type {Array<{fullKey: string, dataPath: string, message: string}>} */
+  const nodeErrors = []
+  /** @param {import('../state/types.js').StateNode} node */
+  const recurse = (node) => {
+    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: node.error })
+    // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
+    // occurrences of an activated item do not carry the same errors, and deduplicating
+    // here silently drops them (verified: 2 errors became 0).
+    for (const child of node.children ?? []) recurse(child)
+  }
+  recurse(statefulLayout.stateTree.root)
+
+  const named = new Set(nodeErrors.map((e) => e.dataPath))
+  const unnamed = statefulLayout.validationErrors
+    .map((error) => ({ pointer: dataPointerOf(error), message: error.message ?? 'invalid' }))
+    .filter((error) => !named.has(error.pointer))
+
   /** @type {Array<{path: string, message: string}>} */
   const errors = []
-  collectErrorsRecurse(node, errors)
+  for (const nodeError of nodeErrors) {
+    const prefix = nodeError.dataPath === '' ? '/' : `${nodeError.dataPath}/`
+    const standsInForDeeperErrors = unnamed.some((e) => e.pointer.startsWith(prefix))
+    if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })
+  }
+  for (const error of unnamed) errors.push({ path: error.pointer, message: error.message })
   return errors
 }
 
@@ -496,20 +545,4 @@ export function collectScopedErrors (statefulLayout, node) {
     else otherErrors++
   }
   return { errors, otherErrors }
-}
-
-/**
- * @param {import('../state/types.js').StateNode} node
- * @param {Array<{path: string, message: string}>} errors
- */
-function collectErrorsRecurse (node, errors) {
-  if (node.error) {
-    errors.push({ path: node.fullKey, message: node.error })
-  }
-  // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
-  // occurrences of an activated item do not carry the same errors, and deduplicating
-  // here silently drops them (verified: 2 errors became 0).
-  for (const child of node.children ?? []) {
-    collectErrorsRecurse(child, errors)
-  }
 }

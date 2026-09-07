@@ -125,6 +125,6 @@ export function execute (statefulLayout, args) {
     valid: statefulLayout.valid,
     removed,
     unknownKeys,
-    errors: collectErrors(statefulLayout.stateTree.root)
+    errors: collectErrors(statefulLayout)
   }
 }

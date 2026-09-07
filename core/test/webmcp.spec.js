@@ -89,7 +89,7 @@ describe('webmcp project functions', () => {
 
     layout.validate()
 
-    const errors = collectErrors(layout.stateTree.root)
+    const errors = collectErrors(layout)
 
     assert.equal(errors.length, 1)
     assert.equal(errors[0].path, '/name')
@@ -994,7 +994,7 @@ describe('webmcp menu and dialog list edit modes', () => {
 
     it(`should still collect the item errors in "${mode}" mode`, () => {
       const layout = layoutWithActivatedItem(mode)
-      const errors = collectErrors(layout.stateTree.root)
+      const errors = collectErrors(layout)
       // both required properties of the item are missing
       assert.equal(errors.length, 2, 'deduplicating children must not drop errors')
       assert.equal(new Set(errors.map((e) => e.path)).size, 2)
@@ -1488,6 +1488,61 @@ describe('webmcp help in the markdown projection', () => {
     assert.ok(
       text.includes('redimensionnement automatique'),
       `expected the help text in the markdown, got:\n${text}`
+    )
+  })
+})
+
+describe('webmcp errors below an unhydrated list item', () => {
+  // A list renders its items in summary mode, so an item's children are only built once
+  // it is activated for edition. Errors below an unhydrated item then have no node to
+  // attach to and collapse onto the list itself — this is app-dashboards' shape.
+  const summaryListSchema = {
+    type: 'object',
+    allOf: [
+      { title: 'Source', properties: { datasets: { type: 'array', items: { type: 'string' } } } },
+      {
+        title: 'Sections',
+        properties: {
+          sections: {
+            type: 'array',
+            title: 'Sections',
+            layout: { itemTitle: "data.title || 'Section'" },
+            items: {
+              type: 'object',
+              layout: { switch: [{ if: '!summary', children: [{ children: ['title', 'rows'] }] }, { children: [] }] },
+              properties: {
+                title: { type: 'string' },
+                rows: { type: 'array', items: { type: 'object', properties: { height: { type: 'integer' } } } }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+
+  it('should name every faulty data path instead of collapsing them onto the list', () => {
+    // Reproduced from app-dashboards: two badly typed values at two depths produced ONE
+    // error, "must be integer", posed on the sections array — the title error lost and
+    // the reported path pointing at something that is not an integer at all. The agent
+    // knows it is wrong but not where, and retries blind.
+    const compiled = compile(summaryListSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+
+    const result = setData.execute(layout, { data: { sections: [{ title: 42, rows: [{ height: 'grand' }] }] } })
+    const paths = result.errors.map((e) => e.path)
+
+    assert.ok(
+      result.errors.some((e) => e.path.endsWith('/sections/0/title') && e.message === 'must be string'),
+      `the title error must survive and name its path, got ${JSON.stringify(result.errors)}`
+    )
+    assert.ok(
+      result.errors.some((e) => e.path.endsWith('/sections/0/rows/0/height') && e.message === 'must be integer'),
+      `the height error must name its path, got ${JSON.stringify(result.errors)}`
+    )
+    assert.ok(
+      !paths.includes('/$allOf-1/sections'),
+      'the misleading summary error on the array itself must not be reported'
     )
   })
 })
