@@ -112,3 +112,48 @@ describe('internationalization', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[1].messages.addItem, 'Add item to array 2')
   })
 })
+
+describe('x-i18n annotations when xI18n is off', () => {
+  // x-i18n-* keys are part of the vocabulary's own i18n feature; the option says whether
+  // to APPLY them, not whether they are legal. Left in place they hit the component
+  // schemas' unevaluatedProperties: false, normalization falls back to comp "none", and a
+  // one-of-select that is no longer a variant selector stops merging its branch into the
+  // parent — the data then never stabilises and updateState throws after 100 iterations.
+  const branch = (/** @type {string} */ title, /** @type {object} */ extra) => ({
+    title,
+    required: ['type'],
+    properties: { type: { const: title.toLowerCase() }, ...extra }
+  })
+  const schema = {
+    type: 'object',
+    properties: { elements: { type: 'array', items: { $ref: '#/$defs/element' } } },
+    $defs: {
+      element: {
+        type: 'object',
+        oneOfLayout: { label: 'Type', 'x-i18n-label': { fr: 'Type' } },
+        discriminator: { propertyName: 'type' },
+        oneOf: [branch('Text', { content: { type: 'string' } }), branch('Image', { url: { type: 'string' } })]
+      }
+    }
+  }
+  const data = { elements: [{ type: 'text', content: 'hi' }] }
+
+  it('should normalize a oneOfLayout carrying x-i18n keys with xI18n off', () => {
+    const compiled = compile(schema, { ajvOptions: { discriminator: true } })
+    assert.deepEqual(compiled.validationErrors, {}, 'an x-i18n key must not make a layout unnormalizable')
+    const oneOf = Object.entries(compiled.normalizedLayouts).find(([k]) => k.endsWith('/$defs/element/oneOf'))?.[1]
+    assert.equal(/** @type {any} */(oneOf).comp, 'one-of-select', 'the variant selector must survive')
+  })
+
+  it('should keep the data stable with xI18n off', () => {
+    const compiled = compile(schema, { ajvOptions: { discriminator: true } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, structuredClone(data))
+    assert.deepEqual(layout.data, data, 'the branch must merge into its parent, not be keyed under its index')
+  })
+
+  it('should still translate when xI18n is on', () => {
+    const compiled = compile(schema, { xI18n: true, locale: 'fr', ajvOptions: { discriminator: true } })
+    const oneOf = Object.entries(compiled.normalizedLayouts).find(([k]) => k.endsWith('/$defs/element/oneOf'))?.[1]
+    assert.equal(/** @type {any} */(oneOf).label, 'Type')
+  })
+})
