@@ -703,7 +703,11 @@ export class StatefulLayout {
         item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : (layout.getItems?.returnObjects ? rawItem : rawItem.value)
         item.key = layout.getItems?.itemKey ? this.evalNodeExpression(node, layout.getItems.itemKey, rawItem) : rawItem.key
         item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : rawItem.title
-        item.value = item.value ?? item.key
+        // A legitimate null — a { const: null } branch, normalized to
+        // { key: "null", value: null } — is a value, not an absence. `??` would swallow
+        // it and keep the key, so the tool hands the agent the string "null" and the
+        // schema then rejects the very suggestion it offered.
+        if (item.value === undefined) item.value = item.key
         item.key = item.key ?? item.value + ''
         item.title = item.title ?? item.key
       }

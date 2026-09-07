@@ -1337,3 +1337,157 @@ describe('webmcp scoped mutation errors', () => {
     assert.ok(result.otherErrors > 0, 'the errors of the filters should be counted apart')
   })
 })
+
+describe('webmcp setData merge semantics', () => {
+  const dashboardSchema = {
+    type: 'object',
+    properties: {
+      datasets: { type: 'array', title: 'Jeux de données', items: { type: 'string' } },
+      title: { type: 'string', title: 'Titre' },
+      showSources: { type: 'boolean', title: 'Afficher les sources' },
+      sections: {
+        type: 'array',
+        title: 'Sections',
+        items: {
+          type: 'object',
+          properties: { title: { type: 'string', title: 'Titre' } }
+        }
+      }
+    }
+  }
+
+  /** @param {object} [data] @returns {StatefulLayout} */
+  const dashboard = (data = {}) => {
+    const compiled = compile(dashboardSchema)
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, data)
+  }
+
+  it('should merge a partial write instead of destroying the rest of the data', () => {
+    // The costliest shape of this bug: a model that believes it is "updating the
+    // sections" wipes the dataset, the title and every setting, and is told the form
+    // is valid — after which data-fair's saveDraft happily persists the amputated draft.
+    const layout = dashboard({ datasets: ['air-quality'], title: 'Mon tableau', showSources: true })
+
+    setData.execute(layout, { data: { sections: [{ title: 'Démographie' }] } })
+
+    const data = /** @type {any} */(layout.data)
+    assert.deepEqual(data.datasets, ['air-quality'], 'datasets must survive a partial write')
+    assert.equal(data.title, 'Mon tableau', 'title must survive a partial write')
+    assert.equal(data.showSources, true, 'showSources must survive a partial write')
+    assert.deepEqual(data.sections, [{ title: 'Démographie' }], 'the written key must be applied')
+  })
+
+  it('should replace and name the dropped keys when merge is explicitly disabled', () => {
+    // Replacement stays available, but never silently: the response says what it removed.
+    const layout = dashboard({ datasets: ['air-quality'], title: 'Mon tableau', showSources: true })
+
+    const result = setData.execute(layout, { data: { title: 'Autre' }, merge: false })
+
+    assert.deepEqual(layout.data, { title: 'Autre' })
+    assert.deepEqual([...result.removed].sort(), ['datasets', 'showSources'])
+  })
+
+  it('should signal data keys that match no node in the form', () => {
+    // A typo on a root key is accepted by ajv (the schema does not close
+    // additionalProperties) and stored, so the real property is never written and
+    // nothing says so. json-layout knows no node carries that key.
+    const layout = dashboard({ title: 'Mon tableau' })
+
+    const result = setData.execute(layout, { data: { sectionz: [{ title: 'Démographie' }] } })
+
+    assert.deepEqual(result.unknownKeys, ['sectionz'])
+    assert.equal(result.valid, true, 'the form is still valid — which is why the warning is needed')
+  })
+
+  it('should not signal keys the form does carry', () => {
+    // Guards the warning against crying wolf: a correct write must report nothing.
+    const layout = dashboard({ title: 'Mon tableau' })
+
+    const result = setData.execute(layout, { data: { sections: [{ title: 'Démographie' }], showSources: true } })
+
+    assert.deepEqual(result.unknownKeys, [])
+  })
+
+  it('should surface dropped and unknown keys in the text, not only in structuredContent', async () => {
+    // Tool passers discard structuredContent and keep only the text, so anything the
+    // agent must act on has to be in the text. A warning it never reads is no warning.
+    const compiled = compile(dashboardSchema)
+    const layout = new StatefulLayout(
+      compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' },
+      { datasets: ['air-quality'], title: 'Mon tableau' }
+    )
+    const webmcp = new WebMCP(layout, { dataTitle: 'dashboard' })
+    const tool = /** @type {any} */(webmcp.getTools().find((t) => t.name === 'setData'))
+
+    const unknown = await tool.execute({ data: { sectionz: [{ title: 'Démographie' }] } })
+    assert.ok(unknown.content[0].text.includes('sectionz'), `expected the typo in the text, got: ${unknown.content[0].text}`)
+
+    const replaced = await tool.execute({ data: { title: 'Autre' }, merge: false })
+    assert.ok(replaced.content[0].text.includes('datasets'), `expected the dropped key in the text, got: ${replaced.content[0].text}`)
+  })
+})
+
+describe('webmcp null const in select items', () => {
+  const colorSchema = {
+    type: 'object',
+    properties: {
+      color: {
+        // type must admit null for json-layout to render this oneOf as a select;
+        // this is the shape app-dashboards uses for "Couleur du texte".
+        type: ['string', 'null'],
+        title: 'Couleur du texte',
+        oneOf: [
+          { const: null, title: 'Aucune (par défaut)' },
+          { const: 'primary', title: 'Primaire' }
+        ]
+      }
+    }
+  }
+
+  it('should apply a null-valued suggestion as null, not as the string "null"', async () => {
+    // The item is normalized to { key: "null", value: null }; `item.value ?? item.key`
+    // then treats the legitimate null as absent and keeps the key. The agent applies the
+    // suggestion the tool just handed it by index, and the write is rejected.
+    const compiled = compile(colorSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+    const store = new SuggestionsStore()
+
+    const { items } = await getFieldSuggestions.execute(layout, { path: '/color' }, store)
+    const index = items.findIndex((/** @type {any} */ i) => i.title === 'Aucune (par défaut)')
+    assert.ok(index >= 0, `expected the null branch among ${JSON.stringify(items)}`)
+    assert.equal(items[index].value, null, 'the suggestion must carry null, not the string "null"')
+
+    const result = setFieldValue.execute(layout, { path: '/color', suggestionIndex: index }, store)
+    assert.equal(/** @type {any} */(layout.data).color, null, 'applying it must write null')
+    assert.equal(result.valid, true, 'the value the tool offered must be accepted by the schema')
+  })
+})
+
+describe('webmcp help in the markdown projection', () => {
+  it('should emit help text, since the markdown is the only channel an agent reads', async () => {
+    // projectNode puts `help` in structuredContent, which tool passers discard. The
+    // guidance most worth having is exactly what a model cannot guess — that a negative
+    // height means automatic sizing — and it was being dropped in transit.
+    const schema = {
+      type: 'object',
+      properties: {
+        height: {
+          type: 'integer',
+          title: 'Hauteur (px)',
+          description: 'Mettez une valeur négative pour un redimensionnement automatique'
+        }
+      }
+    }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { height: 400 })
+    const webmcp = new WebMCP(layout, { dataTitle: 'dashboard' })
+    const tool = /** @type {any} */(webmcp.getTools().find((t) => t.name === 'describeState'))
+
+    const result = await tool.execute({})
+    const text = result.content[0].text
+    assert.ok(
+      text.includes('redimensionnement automatique'),
+      `expected the help text in the markdown, got:\n${text}`
+    )
+  })
+})

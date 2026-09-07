@@ -221,12 +221,23 @@ export class WebMCP {
             args.data = parseIfJsonString(args.data)
             const result = setData.execute(
               this._statefulLayout,
-              /** @type {{ data: unknown }} */(args)
+              /** @type {{ data: unknown, merge?: boolean }} */(args)
             )
             // the whole data was replaced, what a memorized path designates may have changed
             this._suggestionsStore.clear()
+            // Warnings go in the TEXT: tool passers keep the text and discard
+            // structuredContent, and both of these describe damage the form reports as
+            // valid — so nothing else in the response would reveal them.
+            const warnings = []
+            if (result.removed.length) {
+              warnings.push(`removed ${result.removed.length} key(s) not present in the data you passed: ${result.removed.join(', ')} — pass merge=true to keep them`)
+            }
+            if (result.unknownKeys.length) {
+              warnings.push(`${result.unknownKeys.length} key(s) match no field of this form and were ignored by it: ${result.unknownKeys.join(', ')} — check for a typo with describeState`)
+            }
+            const text = [formatMutationResult(result.valid, result.errors), ...warnings].join('\n')
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors) }],
+              content: [{ type: 'text', text }],
               structuredContent: result
             }
           } catch (err) {

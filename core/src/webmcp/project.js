@@ -303,6 +303,11 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     line += ` value=${JSON.stringify(node.data)}`
   }
 
+  // Help is the guidance a model cannot infer — that a negative height means automatic
+  // sizing, say. projectNode carries it in structuredContent, which tool passers discard,
+  // so it has to be in the text or it does not reach the agent at all.
+  if (typeof node.layout.help === 'string' && node.layout.help) line += ` help="${node.layout.help}"`
+
   if (error) line += ` — ${error}`
 
   const lines = [line]
