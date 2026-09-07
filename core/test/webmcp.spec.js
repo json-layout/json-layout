@@ -14,7 +14,7 @@ import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { projectStateTree, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { projectStateTree, projectStateTreeToMarkdown, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
@@ -1513,5 +1513,73 @@ describe('webmcp errors below an unhydrated list item', () => {
       !paths.includes('/$allOf-1/sections'),
       'the misleading summary error on the array itself must not be reported'
     )
+  })
+})
+
+describe('webmcp suggestions flag', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      plainList: { type: 'array', title: 'Plain list', items: { type: 'string' } },
+      pickedList: {
+        type: 'array',
+        title: 'Picked list',
+        items: { type: 'string' },
+        layout: { getItems: { expr: '["a","b"]', pure: true } }
+      },
+      picker: { type: 'string', title: 'Picker', layout: { getItems: { expr: '["x","y"]', pure: true } } }
+    }
+  }
+
+  const layoutOf = () => {
+    const compiled = compile(schema)
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+  }
+
+  /**
+   * @param {StatefulLayout} layout
+   * @param {string} key
+   * @returns {any}
+   */
+  const nodeFor = (layout, key) => (layout.stateTree.root.children ?? []).find((c) => c.key === key)
+
+  it('should only flag suggestions on nodes that actually have an items source', () => {
+    // The flag used to come from the component kind alone, so a plain array of strings —
+    // which renders as a combobox and has no getItems — announced suggestions. The
+    // fill-form guide tells agents they MUST call getFieldSuggestions when they see the
+    // flag, so they obeyed and got "node /plainList is missing items or getItems
+    // parameters". The state layer never made that promise: it gates fetching on
+    // layout.items || layout.getItems.
+    const layout = layoutOf()
+    const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
+    const lineFor = (/** @type {string} */ key) =>
+      markdown.split('\n').find((/** @type {string} */ l) => l.includes(`/${key} `)) ?? ''
+
+    assert.ok(!lineFor('plainList').includes('suggestions'), 'a node with no items source must not promise suggestions')
+    assert.ok(lineFor('pickedList').includes('suggestions'), 'a list with getItems still has suggestions')
+    assert.ok(lineFor('picker').includes('suggestions'), 'a select with getItems still has suggestions')
+
+    // the structured projection is a second, independent surface with the same promise
+    const layout2 = layoutOf()
+    assert.ok(!projectNode(nodeFor(layout2, 'plainList'), layout2).getSuggestions)
+    assert.ok(projectNode(nodeFor(layout2, 'pickedList'), layout2).getSuggestions)
+    assert.ok(projectNode(nodeFor(layout2, 'picker'), layout2).getSuggestions)
+  })
+
+  it('should keep the flag and getFieldSuggestions in agreement', async () => {
+    // Whatever the projection promises, the tool must deliver — in either direction.
+    const layout = layoutOf()
+    const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
+    for (const key of ['plainList', 'pickedList', 'picker']) {
+      const line = markdown.split('\n').find((/** @type {string} */ l) => l.includes(`/${key} `)) ?? ''
+      const promised = line.includes('suggestions')
+      let delivered = true
+      try {
+        await getFieldSuggestions.execute(layout, { path: `/${key}` }, new SuggestionsStore())
+      } catch {
+        delivered = false
+      }
+      assert.equal(promised, delivered, `/${key}: describeState says ${promised}, getFieldSuggestions says ${delivered}`)
+    }
   })
 })

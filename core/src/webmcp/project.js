@@ -127,6 +127,25 @@ function isValuePickedFromItems (node, statefulLayout) {
 }
 
 /**
+ * Whether this node can actually answer getFieldSuggestions.
+ *
+ * isItemsLayout only says the component KIND is items-based; it is true of a plain array
+ * of strings, which renders as a combobox and has no source of items at all. The state
+ * layer asks a stricter question — state-node.js gates prefetching on
+ * `layout.items || layout.getItems`, and index.js throws "missing items or getItems
+ * parameters" when neither produces any — so announcing the flag on kind alone promises
+ * the agent something the tool cannot deliver. The fill-form guide tells agents they MUST
+ * call getFieldSuggestions whenever they see the flag, so they obey and hit that error.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {boolean}
+ */
+function hasSuggestions (node, statefulLayout) {
+  if (!isItemsLayout(node.layout, statefulLayout.compiledLayout.components)) return false
+  return !!(node.layout.items ?? node.layout.getItems)
+}
+
+/**
  * @param {import('../state/types.js').StateNode} node
  * @param {Record<string, string>} [errorsByPath]
  * @returns {string|undefined}
@@ -181,7 +200,7 @@ export function projectNode (node, statefulLayout, errorsByPath = indexErrorsByP
   if (node.skeleton.required) out.required = true
   if (isReadOnly(node, statefulLayout)) out.readOnly = true
   if (node.modified) out.modified = true
-  if (isItemsLayout(node.layout, statefulLayout.compiledLayout.components)) out.getSuggestions = true
+  if (hasSuggestions(node, statefulLayout)) out.getSuggestions = true
 
   const keys = getConstraintKeys(node.layout.comp)
   if (keys) {
@@ -283,7 +302,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     if (selected) meta.push(`selected=${selected.key}`)
   }
 
-  if (isItemsLayout(node.layout, statefulLayout.compiledLayout.components)) meta.push('suggestions')
+  if (hasSuggestions(node, statefulLayout)) meta.push('suggestions')
 
   // array item count
   if (node.layout.comp === 'list' && Array.isArray(node.data)) {
