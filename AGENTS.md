@@ -192,6 +192,54 @@ describe('feature X', () => {
 })
 ```
 
+## WebMCP Tools and the Eval Harness
+
+`core/src/webmcp/` exposes the form to an LLM agent as MCP tools. Its correctness is not
+only "does the function return the right shape" but "can an agent find its way through
+the protocol" — and the second does not show up in unit tests.
+
+**If you touch any of these, the eval applies to your change:**
+
+- `core/src/webmcp/**` — any tool, its description, its response text, or the projection
+- `core/src/webmcp/tools/fill-form-skill.js` — the text that teaches agents the protocol
+- `core/src/state/index.js` select-item handling (`prepareSelectItem`, `getItems`) — what
+  a suggestion is worth, and whether the value offered is the value accepted
+- error projection in `core/src/webmcp/project.js` — an agent that cannot locate its
+  mistake retries blind
+- `getComplexity` in `core/src/webmcp/index.js` — it drives the skill's advice and the
+  declared sub-agent step budget
+
+Two layers, and you need both:
+
+```bash
+# 1. Deterministic guards. No model, runs in the normal gate.
+npm test -w core          # includes webmcp-eval*.spec.js
+```
+
+These pin that each eval case is the case it claims to be (complexity band, whether
+`getSchema` refuses), that the runner agents are generated with no filesystem tools, and
+that a malformed judge verdict cannot read as a clean pass. They cannot tell you whether
+a form is usable.
+
+```bash
+# 2. The judged eval. Needs a model and a FRESH session.
+/webmcp-eval
+```
+
+An isolated subagent — no `Read`, `Grep` or `Bash`, so it cannot read this repo — fills a
+real form from a plain-language goal, and a judge reads the transcript. See
+`core/webmcp-eval/README.md`.
+
+**The MCP servers connect at session start.** If `.mcp.json` changed, or you have just
+generated it, the tools do not exist in the current session: run
+`npm run webmcp-eval:config -w core` and start a new session. A case that never ran is
+reported as `not run` and fails the report — never read the cases that did run as the
+result of the suite.
+
+Changing a tool's *description* counts. The descriptions and the skill text are the
+protocol as far as a model is concerned, and they are exactly what unit tests cannot
+judge.
+
 ## Commit Conventions
 
 - **Conventional Commits** enforced by commitlint (`feat:`, `fix:`, `chore:`, etc.)
