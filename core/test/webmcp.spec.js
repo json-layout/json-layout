@@ -2191,7 +2191,9 @@ describe('webmcp getData answers about the path it was given', () => {
     const section = await getData(tools, { path: '/$allOf-0' })
     assert.ok(!section.includes('"data"'), `it must not answer with the document: ${section}`)
     assert.match(section, /layout section, it holds no data of its own/)
-    assert.match(section, /Pass the path of a field/)
+    // naming them is what makes the refusal a redirect: calendar's agent gave up after
+    // being refused, charts had to guess its next path
+    assert.match(section, /Read one of its fields instead: \/\$allOf-0\/extra\./)
     // and the real fields underneath it still answer
     assert.match(await getData(tools, { path: '/$allOf-0/extra' }), /"data":"x"/)
     assert.match(whole, /"name":"Ada"/)
@@ -2218,5 +2220,29 @@ describe('webmcp setData says what it stored', () => {
     const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
     assert.match(text, /stored 2 key\(s\): name, age/)
     assert.ok(!text.includes('"Ada"'), 'the values themselves stay out of the echo')
+  })
+})
+
+describe('webmcp refusing a layout path names where to go', () => {
+  it('should count the rest rather than list a hundred fields', async () => {
+    const properties = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`f${i}`, { type: 'string' }]))
+    const compiled = compile({ type: 'object', allOf: [{ properties }] })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute({ path: '/$allOf-0' })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.match(text, /and \d+ more/)
+    assert.ok(text.length < 700, `a refusal must stay short: ${text.length} chars`)
+  })
+
+  it('should look past a nested section to the fields that do hold data', async () => {
+    // a section can contain only more sections; the paths worth naming are the ones whose
+    // value is their own
+    const compiled = compile({ type: 'object', allOf: [{ allOf: [{ properties: { deep: { type: 'string' } } }] }] })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute({ path: '/$allOf-0' })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.match(text, /\/deep/)
   })
 })
