@@ -9,9 +9,15 @@ import { projectDeclaredFields } from './schema.js'
 
 /**
  * Suggestion values can be arbitrarily large objects (a whole dataset definition for example),
- * they are truncated in the tools output and retrieved by index with setFieldValue.
+ * they are kept out of the tools output and retrieved by index with setFieldValue.
  */
-export const SUGGESTION_VALUE_MAX_LENGTH = 300
+/**
+ * Longest value inlined in a suggestion listing. Only scalars are ever inlined: a picker
+ * shows a person titles, not the objects behind them, and an agent picks a row the same
+ * way, by index. Printing a slice of each object cost 61-77% of every suggestion response
+ * measured, for bytes the tool's own description tells the agent never to copy.
+ */
+export const SUGGESTION_VALUE_MAX_LENGTH = 100
 
 const constraintKeys = {
   'number-field': ['min', 'max', 'step', 'precision'],
@@ -435,12 +441,12 @@ export function formatMutationResult (valid, errors, prefix, otherErrors) {
 }
 
 /**
- * @typedef {{index: number, title: string, key?: string, value?: unknown, truncated?: boolean, valueLength?: number}} ProjectedSuggestion
+ * @typedef {{index: number, title: string, key?: string, value?: unknown, valueOmitted?: boolean, valueLength?: number}} ProjectedSuggestion
  */
 
 /**
- * Project suggestions for the tools output: large values are truncated, the agent
- * refers to them by index instead of copying them around.
+ * Project suggestions for the tools output: anything but a short scalar is identified by
+ * its title and key alone, and referred to by index instead of copied around.
  * @param {Array<{value: unknown, title: string, key?: string}>} items
  * @param {number} [baseIndex] - index of the first item, as the store assigned it
  * @returns {ProjectedSuggestion[]}
@@ -452,11 +458,14 @@ export function projectSuggestions (items, baseIndex = 0) {
     if (item.key !== undefined && item.key !== item.title) out.key = item.key
     const json = JSON.stringify(item.value)
     if (json === undefined) return out
-    if (json.length <= SUGGESTION_VALUE_MAX_LENGTH) {
+    // Short scalars stay: agents batch those straight into setData rather than spending a
+    // round-trip applying an index. Anything else is identified by its title and key, and
+    // applied by index — the value itself never has to reach the agent.
+    const isScalar = item.value === null || ['string', 'number', 'boolean'].includes(typeof item.value)
+    if (isScalar && json.length <= SUGGESTION_VALUE_MAX_LENGTH) {
       out.value = item.value
     } else {
-      out.value = json.slice(0, SUGGESTION_VALUE_MAX_LENGTH) + '…'
-      out.truncated = true
+      out.valueOmitted = true
       out.valueLength = json.length
     }
     return out
@@ -473,8 +482,8 @@ export function formatSuggestions (suggestions) {
   const lines = [`${suggestions.length} suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):`]
   for (const suggestion of suggestions) {
     const title = suggestion.key ? `${suggestion.title} (${suggestion.key})` : suggestion.title
-    if (suggestion.truncated) {
-      lines.push(`- [${suggestion.index}] ${title} — value truncated (${suggestion.valueLength} chars), use suggestionIndex=${suggestion.index}: ${suggestion.value}`)
+    if (suggestion.valueOmitted) {
+      lines.push(`- [${suggestion.index}] ${title} — apply with suggestionIndex=${suggestion.index}`)
     } else {
       lines.push(`- [${suggestion.index}] ${title} — value=${JSON.stringify(suggestion.value)}`)
     }

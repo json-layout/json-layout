@@ -833,20 +833,31 @@ describe('webmcp suggestions truncation', () => {
     }
   }
 
-  it('should truncate large suggestion values and keep short ones', () => {
+  it('should omit a large suggestion value entirely and keep short scalars', () => {
+    // A picker shows a person titles, not the objects behind them, and an agent picks a
+    // row the same way — by index. Printing a 300-character slice of each object cost
+    // 61-77% of every suggestion response in the eval, for bytes the tool's own
+    // description tells the agent never to copy. Short scalars stay: agents demonstrably
+    // batch those straight into setData rather than spending a round-trip on an index.
     const suggestions = projectSuggestions([
       { value: 'short', title: 'Short' },
       { value: bigDataset, title: 'Big', key: 'my-dataset' }
     ])
     assert.equal(suggestions[0].index, 0)
     assert.equal(suggestions[0].value, 'short')
-    assert.equal(suggestions[0].truncated, undefined)
+    assert.equal(suggestions[0].valueOmitted, undefined)
 
     assert.equal(suggestions[1].index, 1)
-    assert.equal(suggestions[1].truncated, true)
-    assert.ok(typeof suggestions[1].value === 'string')
-    assert.ok(/** @type {string} */(suggestions[1].value).length <= SUGGESTION_VALUE_MAX_LENGTH + 1)
+    assert.equal(suggestions[1].valueOmitted, true)
+    assert.equal(suggestions[1].value, undefined, 'no slice of the object may be printed')
     assert.ok(/** @type {number} */(suggestions[1].valueLength) > SUGGESTION_VALUE_MAX_LENGTH)
+  })
+
+  it('should omit a scalar that is too long to be worth inlining', () => {
+    const long = 'x'.repeat(SUGGESTION_VALUE_MAX_LENGTH + 10)
+    const [suggestion] = projectSuggestions([{ value: long, title: 'Long' }])
+    assert.equal(suggestion.value, undefined)
+    assert.equal(suggestion.valueOmitted, true)
   })
 
   it('should memorize suggestions per path and apply one by index', async () => {
@@ -862,8 +873,8 @@ describe('webmcp suggestions truncation', () => {
     assert.equal(result.items.length, 2)
     const memorized = store.get('/dataset')?.[0].value
     assert.ok(JSON.stringify(memorized).length > SUGGESTION_VALUE_MAX_LENGTH, 'the memorized value is a large object')
-    // the output of the tool is truncated but the memory keeps the full value
-    assert.equal(projectSuggestions(result.items)[0].truncated, true)
+    // the output omits the value but the memory keeps it in full
+    assert.equal(projectSuggestions(result.items)[0].valueOmitted, true)
 
     // the full original value is written, not the truncated projection
     /** @type {unknown} */
@@ -889,8 +900,9 @@ describe('webmcp suggestions truncation', () => {
     assert.ok(!toolResult.isError)
     const text = toolResult.content[0].text
     assert.ok(text.includes('suggestionIndex'), 'should explain how to apply a suggestion')
-    assert.ok(text.length < 3 * (SUGGESTION_VALUE_MAX_LENGTH + 200), `output should stay small, got ${text.length}`)
-    assert.equal(toolResult.structuredContent.items[0].truncated, true)
+    assert.ok(text.length < 3 * 200, `output should stay small, got ${text.length}`)
+    assert.ok(!text.includes('"schema"'), 'no fragment of the object value may reach the agent')
+    assert.equal(toolResult.structuredContent.items[0].valueOmitted, true)
 
     // and the memorized value can then be applied through the tool
     const setTool = webmcp.getTools().find((t) => t.name === 'setFieldValue')

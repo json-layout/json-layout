@@ -28,8 +28,8 @@ export const outputSchema = {
         type: 'object',
         properties: {
           index: { type: 'number', description: 'Pass it as "suggestionIndex" to setFieldValue to apply this suggestion' },
-          value: { description: 'The value to use, truncated when too large (see "truncated")' },
-          truncated: { type: 'boolean' },
+          value: { description: 'The value to use, present only when it is a short scalar (see "valueOmitted")' },
+          valueOmitted: { type: 'boolean', description: 'The value is an object or too long to inline: apply it with suggestionIndex' },
           valueLength: { type: 'number' },
           title: { type: 'string' },
           key: { type: 'string' }
@@ -44,7 +44,7 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Get available options for a select/autocomplete/combobox field of form "${dataTitle}". Supports query-based filtering. Each option is returned with an "index"; large option values are truncated, do not copy them: call setFieldValue with the field path and "suggestionIndex" set to the index of the chosen option, the full original value is applied.`
+  return `Get available options for a select/autocomplete/combobox field of form "${dataTitle}". Supports query-based filtering. Each option is returned with an "index" and a title; an option whose value is not a short scalar is listed by title alone, exactly as a user sees it. To choose one, call setFieldValue with the field path and "suggestionIndex" set to its index, and the full original value is applied.`
 }
 
 /**

@@ -64,7 +64,7 @@ Prefer using ${prefixName}describeState and iterating with ${prefixName}setField
   }
 
   skill += `
-If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values. Each returned suggestion has an "index" and its value may be truncated: do not copy back a truncated value, call ${prefixName}setFieldValue with the same path and "suggestionIndex" set to the index of the chosen suggestion. Short values can also be passed directly to ${prefixName}setFieldValue or included in ${prefixName}setData.
+If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values. Each returned suggestion has an "index" and a title. A suggestion whose value is not a short scalar is listed by title alone: choose it by calling ${prefixName}setFieldValue with the same path and "suggestionIndex" set to its index, and the full value is applied. Values that are shown are short enough to pass directly to ${prefixName}setFieldValue or to include in ${prefixName}setData.
 
 To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.
 
