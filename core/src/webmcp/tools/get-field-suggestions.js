@@ -49,7 +49,7 @@ export function getDescription (dataTitle) {
   // a fourth in the guide — 1114 bytes of the 5941 the model is sent, and four copies that
   // had to agree. The trigger moved in from the guide so that the whole contract sits in
   // the description of the tool it belongs to.
-  return `Get the accepted values of a select/autocomplete/combobox field of "${dataTitle}", optionally filtered by a query. Each option comes back with an index and a title; one whose value is not a short scalar is listed by title alone, exactly as a user sees it. To choose one, call setFieldValue with the same path and "suggestionIndex" set to its index, and the full original value is applied.`
+  return `Get the accepted values of a field of "${dataTitle}" that describeState marked "suggestions", optionally filtered by a query. A field whose values describeState already stated on its line as values=[...] needs no call — write one of them. Each option comes back with an index and a title; one whose value is not a short scalar is listed by title alone, exactly as a user sees it. To choose one, call setFieldValue with the same path and "suggestionIndex" set to its index, and the full original value is applied.`
 }
 
 /**

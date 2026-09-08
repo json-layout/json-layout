@@ -159,8 +159,8 @@ export function formatVisibilityDiff (diff) {
 export function abbreviateValue (value) {
   const json = JSON.stringify(value)
   if (json === undefined || json.length <= DISPLAYED_VALUE_MAX_LENGTH) return json
-  if (Array.isArray(value)) return `<array of ${value.length} items, ${json.length} chars — describeState its path to read it>`
-  if (value !== null && typeof value === 'object') return `<object, ${json.length} chars — describeState its path to read it>`
+  if (Array.isArray(value)) return `<array of ${value.length} items, ${json.length} chars — call getData with this path to read it>`
+  if (value !== null && typeof value === 'object') return `<object, ${json.length} chars — call getData with this path to read it>`
   return `<${typeof value}, ${json.length} chars>`
 }
 

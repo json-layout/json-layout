@@ -13,7 +13,7 @@ import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { helpToText, HELP_MAX_LENGTH, projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
@@ -2119,5 +2119,60 @@ describe('webmcp validation constraints in the state', () => {
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
     const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/free ')) ?? ''
     assert.equal(line.trim(), '- /free (text) label="Free" value=undefined', `got: ${line}`)
+  })
+})
+
+describe('webmcp instructions that contradicted each other', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      pick: { type: 'string', oneOf: [{ const: 'a', title: 'A' }, { const: 'b', title: 'B' }] },
+      remote: { type: 'string', layout: { getItems: { url: 'http://example.com/x?q={q}' } } },
+      // an object picked from a remote list, the data-fair dataset shape: a leaf whose
+      // value is far too large to inline
+      blob: { type: 'object', layout: { getItems: { url: 'http://example.com/blobs?q={q}' } } }
+    }
+  }
+  const webmcpOf = (/** @type {any} */ data = {}) => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
+    return new WebMCP(layout, { dataTitle: 'doc' })
+  }
+
+  it('should not invite a lookup the guide forbids', () => {
+    // Three rewordings of the guide moved nothing, because the guide was never the voice
+    // contradicting it: getFieldSuggestions' description read unconditionally, and a stated
+    // enum IS a select, so the description asked for exactly the call the guide refused.
+    const tool = webmcpOf().getTools().find((t) => t.name === 'getFieldSuggestions')
+    assert.ok(tool)
+    assert.match(tool.description, /marked "suggestions"/, 'the description says which fields it is for')
+    assert.match(tool.description, /needs no call/, 'and which it is not for')
+  })
+
+  it('should point an abbreviated value at a tool that can actually return it', async () => {
+    // The pointer used to name describeState, which abbreviates the same value again — so
+    // following it landed back on the sentence that sent you. getData returns data whole by
+    // contract, and takes a path.
+    const webmcp = webmcpOf({ blob: { id: 'b1', payload: 'x'.repeat(DISPLAYED_VALUE_MAX_LENGTH + 50) } })
+    const tools = webmcp.getTools()
+    const described = (await /** @type {any} */(tools.find((t) => t.name === 'describeState')).execute({}))
+      .content.map((/** @type {any} */ p) => p.text).join('')
+    const line = described.split('\n').find((/** @type {string} */ l) => l.includes('/blob ')) ?? ''
+    assert.match(line, /call getData with this path to read it/, `got: ${line}`)
+
+    // and the route it names has to work
+    const followed = (await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute({ path: '/blob' }))
+      .content.map((/** @type {any} */ p) => p.text).join('')
+    assert.ok(followed.includes('xxxx'), 'following the pointer must return the value, not the pointer again')
+    assert.ok(!followed.includes('call getData with this path'), `got: ${followed.slice(0, 120)}`)
+  })
+
+  it('should tell the agent what a variant selector is', () => {
+    // portal-page is entirely a recursive discriminated union, and the guide described
+    // neither the "variant N: label" lines nor writing the index back.
+    const skill = fillFormSkill.generateSkill('doc', '')
+    assert.match(skill, /variant-selector/)
+    assert.match(skill, /variant N: label/)
+    assert.match(skill, /setting the field to that number/)
   })
 })
