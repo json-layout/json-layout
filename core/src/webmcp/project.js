@@ -32,6 +32,33 @@ export const DISPLAYED_VALUE_MAX_LENGTH = 1000
 export const REVEALED_PATHS_MAX = 10
 
 /**
+ * Longest rendered list of options inlined into a state line instead of being flagged as
+ * something to go and fetch. A closed enum is already in hand — the state layer resolves it
+ * into itemsCacheKey without a request — so flagging it sent the agent on a round trip for
+ * a list nobody had to look up: charts spent two of sixteen calls reading four-const enums,
+ * and sortBy, sortOrder, color and strValue would each have cost another.
+ */
+export const INLINE_ITEMS_MAX_LENGTH = 200
+
+/**
+ * The options of a node when they are already resolved, and short enough to say out loud.
+ *
+ * itemsCacheKey is what the state layer fetched or evaluated for this node: an array once
+ * the options are known locally, the resolved URL string for a remote picker. So an array
+ * is exactly the case where getFieldSuggestions would tell the agent something the form
+ * could already have said.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {string | undefined} the rendered list, or undefined to keep flagging it
+ */
+function inlineItems (node) {
+  const items = /** @type {any} */(node).itemsCacheKey
+  if (!Array.isArray(items) || items.length === 0) return undefined
+  const values = items.map((item) => (item && typeof item === 'object' && 'value' in item) ? item.value : item)
+  const rendered = JSON.stringify(values)
+  return rendered.length <= INLINE_ITEMS_MAX_LENGTH ? rendered : undefined
+}
+
+/**
  * Longest help inlined on a node the agent did not ask about. Help is written for someone
  * looking at a form, where it sits behind a "?" icon and is read on demand; inlined into
  * every state read it is pushed instead, and portal-page spends 782 characters of SEO
@@ -428,7 +455,13 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     if (selected) meta.push(`selected=${selected.key}`)
   }
 
-  if (hasSuggestions(node, statefulLayout)) meta.push('suggestions')
+  if (hasSuggestions(node, statefulLayout)) {
+    // a closed list is stated, not advertised: the guide tells the agent it must fetch
+    // whatever is flagged, so flagging what is already known is what bought the round trip
+    const inlined = inlineItems(node)
+    if (inlined) meta.push(`values=${inlined}`)
+    else meta.push('suggestions')
+  }
 
   // array item count
   if (node.layout.comp === 'list' && Array.isArray(node.data)) {

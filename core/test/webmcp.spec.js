@@ -1568,9 +1568,11 @@ describe('webmcp suggestions flag', () => {
     const lineFor = (/** @type {string} */ key) =>
       markdown.split('\n').find((/** @type {string} */ l) => l.includes(`/${key} `)) ?? ''
 
-    assert.ok(!lineFor('plainList').includes('suggestions'), 'a node with no items source must not promise suggestions')
-    assert.ok(lineFor('pickedList').includes('suggestions'), 'a list with getItems still has suggestions')
-    assert.ok(lineFor('picker').includes('suggestions'), 'a select with getItems still has suggestions')
+    assert.ok(!/suggestions|values=/.test(lineFor('plainList')), 'a node with no items source must neither promise suggestions nor state options')
+    // both of these resolve their options locally, so the line states them outright rather
+    // than sending the agent to fetch what the form already holds
+    assert.ok(lineFor('pickedList').includes('values=["a","b"]'), `got: ${lineFor('pickedList')}`)
+    assert.ok(lineFor('picker').includes('values=["x","y"]'), `got: ${lineFor('picker')}`)
 
     // the structured projection is a second, independent surface with the same promise
     const layout2 = layoutOf()
@@ -1580,20 +1582,18 @@ describe('webmcp suggestions flag', () => {
   })
 
   it('should keep the flag and getFieldSuggestions in agreement', async () => {
-    // Whatever the projection promises, the tool must deliver — in either direction.
+    // Whatever the projection promises, the tool must deliver. Not a biconditional any
+    // more: a node whose options are stated outright still answers getFieldSuggestions, it
+    // simply gives the agent no reason to ask.
     const layout = layoutOf()
     const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
     for (const key of ['plainList', 'pickedList', 'picker']) {
       const line = markdown.split('\n').find((/** @type {string} */ l) => l.includes(`/${key} `)) ?? ''
-      const promised = line.includes('suggestions')
-      let delivered = true
-      try {
-        await getFieldSuggestions.execute(layout, { path: `/${key}` }, new SuggestionsStore())
-      } catch {
-        delivered = false
-      }
-      assert.equal(promised, delivered, `/${key}: describeState says ${promised}, getFieldSuggestions says ${delivered}`)
+      if (!line.includes('suggestions')) continue
+      await getFieldSuggestions.execute(layout, { path: `/${key}` }, new SuggestionsStore())
     }
+    // and the node with no items source must still be the one that cannot deliver
+    await assert.rejects(() => getFieldSuggestions.execute(layout, { path: '/plainList' }, new SuggestionsStore()))
   })
 })
 
@@ -2217,5 +2217,39 @@ describe('webmcp suggestions invalidated by a write', () => {
     await run(tools, 'setData', { data: { kind: 'a' } })
     const applied = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
     assert.match(applied, /were dropped by a write/, `got: ${applied}`)
+  })
+})
+
+describe('webmcp closed lists stated instead of flagged', () => {
+  it('should state a resolved list and not send the agent to fetch it', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: { metric: { type: 'string', oneOf: [{ const: 'avg', title: 'Moyenne' }, { const: 'sum', title: 'Somme' }] } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/metric ')) ?? ''
+    assert.match(line, /values=\["avg","sum"\]/)
+    assert.ok(!line.includes('suggestions'), `the guide makes "suggestions" an order to fetch: ${line}`)
+  })
+
+  it('should still flag a list only a request can answer', () => {
+    // itemsCacheKey is the URL here, not the options: the form does not know them
+    const compiled = compile({
+      type: 'object',
+      properties: { dataset: { type: 'string', layout: { getItems: { url: 'http://example.com/datasets?q={q}' } } } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/dataset ')) ?? ''
+    assert.match(line, /suggestions/)
+    assert.ok(!line.includes('values='), `a remote picker cannot be stated: ${line}`)
+  })
+
+  it('should not inline a list too long to say out loud', () => {
+    const many = Array.from({ length: 60 }, (_, i) => `option-number-${i}`)
+    const compiled = compile({ type: 'object', properties: { big: { type: 'string', enum: many } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/big ')) ?? ''
+    assert.match(line, /suggestions/)
+    assert.ok(!line.includes('values='), `beyond INLINE_ITEMS_MAX_LENGTH it goes back to being fetched: ${line.length} chars`)
   })
 })
