@@ -64,7 +64,7 @@ Every write already reports whether the form is valid and lists what is wrong, s
   }
 
   skill += `
-When ${prefixName}describeState flags a field as "suggestions", you must call ${prefixName}getFieldSuggestions for its accepted values rather than guess one; its description says how to apply one. A field whose line already carries values=[...] is a closed list the form has just given you: write one of those values with ${prefixName}setFieldValue, there is nothing left to look up.
+Never invent a value for a field that has a fixed set of accepted ones. ${prefixName}describeState tells you which case you are in: it either states them on the field's line as values=[...], and you write one of those directly, or it marks the field "suggestions", and the list exists only behind a request — then call ${prefixName}getFieldSuggestions, whose description says how to apply what it returns.
 
 To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.
 

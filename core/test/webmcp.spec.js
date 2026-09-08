@@ -2131,14 +2131,15 @@ describe('webmcp instruction redundancy', () => {
     // the split that keeps this from being a loss: the guide carries the trigger, where a
     // prescription is followed, and points at the description for the mechanics
     const skill = fillFormSkill.generateSkill('doc', '', true, webmcpOf()._statefulLayout)
-    assert.match(skill, /must call getFieldSuggestions/, 'the trigger stays in the guide')
-    assert.ok(!/suggestionIndex/.test(skill), `the guide must not restate the mechanics: ${skill}`)
-    // and the other half of the same rule. Inlining a closed list removed the flag but not
-    // the habit: the ablation still fetched an enum describeState had just spelled out, and
-    // charts fetched legendPosition while writing metric straight from its values. Nothing
-    // told the agent a stated list needs no lookup, and in this protocol only what is said
-    // prescriptively gets followed.
-    assert.match(skill, /values=\[\.\.\.\] is a closed list/, 'the guide must say when NOT to fetch')
+    assert.match(skill, /call getFieldSuggestions/, 'the trigger stays in the guide')
+    // One rule with two branches rather than an imperative and an exception. "You must call
+    // getFieldSuggestions" read as unconditional, and the sentence that followed it looked
+    // like a contradiction rather than the other half; both branches now hang off the same
+    // goal, which is never inventing a value.
+    assert.match(skill, /Never invent a value/, 'the rule is about the goal, not about a tool')
+    assert.match(skill, /states them on the field's line as values=/, 'the branch that needs no call')
+    assert.match(skill, /only behind a request/, 'the branch that does')
+    assert.ok(!/suggestionIndex/.test(skill), `still no mechanics in the guide: ${skill}`)
   })
 
   it('should describe a node path the same way in every tool', () => {
