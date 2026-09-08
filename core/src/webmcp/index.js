@@ -13,7 +13,7 @@ import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue } from './project.js'
+import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff } from './project.js'
 import { SuggestionsStore } from './suggestions-store.js'
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
@@ -226,7 +226,8 @@ export class WebMCP {
             if (result.unknownKeys.length) {
               warnings.push(`${result.unknownKeys.length} key(s) match no field of this form and were ignored by it: ${result.unknownKeys.join(', ')} — check for a typo with describeState`)
             }
-            const text = [formatMutationResult(result.valid, result.errors), ...warnings].join('\n')
+            const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
+            const text = [formatMutationResult(result.valid, result.errors), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
             return {
               content: [{ type: 'text', text }],
               structuredContent: result
@@ -282,6 +283,7 @@ export class WebMCP {
             // options of a field whose suggestions were memorized under an unchanged path
             this._suggestionsStore.clear()
             let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
+            if (result.visibility) fieldInfo += formatVisibilityDiff(result.visibility)
             if (result.activatedMarkdown) {
               fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
             }

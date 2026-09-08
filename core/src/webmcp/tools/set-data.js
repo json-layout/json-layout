@@ -2,7 +2,7 @@
  * @file setData tool
  */
 
-import { collectErrors } from '../project.js'
+import { collectErrors, visibilitySnapshot, diffVisibility } from '../project.js'
 
 export const inputSchema = {
   type: 'object',
@@ -85,7 +85,7 @@ function isPlainObject (value) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ data: unknown, merge?: boolean }} args
- * @returns {{ valid: boolean, removed: string[], unknownKeys: string[], errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, removed: string[], unknownKeys: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args) {
   const current = statefulLayout.data
@@ -110,6 +110,9 @@ export function execute (statefulLayout, args) {
     }
   }
 
+  // Same reason as setFieldValue: a written key can turn a condition true and unhide a
+  // section that nothing else in the answer would mention.
+  const visibleBefore = visibilitySnapshot(statefulLayout.stateTree.root)
   statefulLayout.data = next
 
   // Computed after applying the data so the tree reflects it: a key that activates a
@@ -121,10 +124,13 @@ export function execute (statefulLayout, args) {
     ? Object.keys(/** @type {Record<string, unknown>} */(args.data)).filter((key) => !knownKeys.has(key))
     : []
 
+  const visibility = diffVisibility(visibleBefore, visibilitySnapshot(statefulLayout.stateTree.root))
+
   return {
     valid: statefulLayout.valid,
     removed,
     unknownKeys,
+    ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
     errors: collectErrors(statefulLayout)
   }
 }

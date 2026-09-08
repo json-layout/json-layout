@@ -2,7 +2,7 @@
  * @file setFieldValue tool
  */
 
-import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown } from '../project.js'
+import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility } from '../project.js'
 import { resolveNode } from '../resolve.js'
 
 export const inputSchema = {
@@ -70,7 +70,7 @@ export function getDescription (dataTitle) {
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value?: unknown, suggestionIndex?: number }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
- * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string }}
+ * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
  */
 export function execute (statefulLayout, args, store) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
@@ -91,6 +91,11 @@ export function execute (statefulLayout, args, store) {
     throw new Error('value or suggestionIndex is required')
   }
 
+  // A write can turn a condition true and unhide a whole section. Nothing else in the
+  // answer would say so: the node written reports itself, and the form goes on being
+  // valid, so an agent is left believing it is finished.
+  const visibleBefore = visibilitySnapshot(statefulLayout.stateTree.root)
+
   let activating = false
   if (node.key === '$oneOf' && typeof value === 'number') {
     activating = true
@@ -108,12 +113,14 @@ export function execute (statefulLayout, args, store) {
   // was written leaves the agent knowing a branch appeared but not what is in it. This
   // mirrors what editArray already does for an item it activates.
   const activated = activating ? (updatedNode || node).children?.[0] : undefined
+  const visibility = diffVisibility(visibleBefore, visibilitySnapshot(statefulLayout.stateTree.root))
 
   return {
     valid: statefulLayout.valid,
     field: projectFieldResult(updatedNode || node, statefulLayout),
     errors,
     otherErrors,
+    ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
     ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout) } : {})
   }
 }

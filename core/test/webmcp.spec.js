@@ -1811,3 +1811,69 @@ describe('webmcp getData by path', () => {
     assert.match(res.content[0].text, /node not found at path/)
   })
 })
+
+describe('webmcp reveals caused by a write', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      enabled: { type: 'boolean', title: 'Enable contributions' },
+      contribColor: { type: 'string', title: 'Colour', default: '#7AA95C', layout: { if: 'parent.data.enabled' } },
+      contribDataset: { type: 'string', title: 'Contributions dataset', layout: { if: 'parent.data.enabled' } },
+      always: { type: 'string', title: 'Always here' }
+    }
+  }
+  const toolsFor = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    return new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+  }
+  const run = async (/** @type {string} */ name, /** @type {object} */ args) => {
+    const res = await /** @type {any} */(toolsFor().find((t) => t.name === name)).execute(args)
+    return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+  }
+
+  it('should say which fields a write made available', async () => {
+    // Turning a flag on can unhide a whole section. The response used to report only the
+    // flag, so calendar's agent set crowdSourcing, was told "form is valid", and stopped
+    // — while the contributions dataset it had just made reachable sat unmentioned.
+    const text = await run('setFieldValue', { path: '/enabled', value: true })
+    assert.match(text, /became available/i, `got: ${text}`)
+    assert.ok(text.includes('/contribColor') && text.includes('/contribDataset'))
+  })
+
+  it('should say nothing extra when a write reveals nothing', async () => {
+    const text = await run('setFieldValue', { path: '/always', value: 'x' })
+    assert.ok(!/became available/i.test(text), `got: ${text}`)
+  })
+
+  it('should report reveals from setData too', async () => {
+    const text = await run('setData', { data: { enabled: true } })
+    assert.match(text, /became available/i, `got: ${text}`)
+    assert.ok(text.includes('/contribColor'))
+  })
+
+  it('should not double-report an activated variant as newly available', async () => {
+    // Switching a variant already lists the activated branch's fields; those nodes are
+    // new keys rather than nodes that changed visibility, so they must not be counted
+    // again as reveals or every variant switch would print its subtree twice.
+    const oneOf = {
+      type: 'object',
+      properties: {
+        shape: {
+          type: 'object',
+          oneOf: [
+            { title: 'Circle', properties: { kind: { const: 'circle' }, radius: { type: 'number' } } },
+            { title: 'Rect', properties: { kind: { const: 'rect' }, w: { type: 'number' }, h: { type: 'number' } } }
+          ]
+        }
+      }
+    }
+    const compiled = compile(oneOf)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'setFieldValue')).execute({ path: '/shape/$oneOf', value: 1 })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.match(text, /activated variant/i, 'the activated branch is still reported')
+    assert.ok(!/became available/i.test(text), `a variant switch must not also report reveals: ${text}`)
+  })
+})

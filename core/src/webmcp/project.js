@@ -28,6 +28,67 @@ export const SUGGESTION_VALUE_MAX_LENGTH = 100
  */
 export const DISPLAYED_VALUE_MAX_LENGTH = 1000
 
+/** Most revealed or hidden paths named before the list is summarised instead. */
+export const REVEALED_PATHS_MAX = 10
+
+/**
+ * Which nodes are currently rendered, by path. A node hidden by an `if` condition stays
+ * in the tree as comp "none", so what a write changes is visibility rather than the set
+ * of paths — comparing paths alone would report nothing.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {Map<string, string>} [into]
+ * @returns {Map<string, string>}
+ */
+export function visibilitySnapshot (node, into = new Map()) {
+  if (node.fullKey !== undefined) into.set(node.fullKey, node.layout?.comp)
+  for (const child of node.children ?? []) visibilitySnapshot(child, into)
+  return into
+}
+
+/**
+ * What a write turned visible or invisible.
+ *
+ * Only paths present in both snapshots count. Activating a variant replaces one branch
+ * with another, so its nodes are new paths rather than nodes that changed visibility —
+ * setFieldValue already lists the activated branch, and counting them here would print
+ * the same subtree twice.
+ * @param {Map<string, string>} before
+ * @param {Map<string, string>} after
+ * @returns {{ revealed: string[], hidden: string[] }}
+ */
+export function diffVisibility (before, after) {
+  /** @type {string[]} */
+  const revealed = []
+  /** @type {string[]} */
+  const hidden = []
+  for (const [path, comp] of after) {
+    if (!before.has(path)) continue
+    const was = before.get(path)
+    if (was === 'none' && comp !== 'none') revealed.push(path)
+    else if (was !== 'none' && comp === 'none') hidden.push(path)
+  }
+  return { revealed, hidden }
+}
+
+/**
+ * @param {{ revealed: string[], hidden: string[] }} diff
+ * @returns {string}
+ */
+export function formatVisibilityDiff (diff) {
+  /**
+   * @param {string[]} paths
+   * @param {string} what
+   * @returns {string}
+   */
+  const line = (paths, what) => {
+    if (!paths.length) return ''
+    const shown = paths.slice(0, REVEALED_PATHS_MAX).join(', ')
+    const rest = paths.length > REVEALED_PATHS_MAX ? `, and ${paths.length - REVEALED_PATHS_MAX} more` : ''
+    return `\n${paths.length} field(s) ${what}: ${shown}${rest}`
+  }
+  return line(diff.revealed, 'became available') + line(diff.hidden, 'are no longer available')
+}
+
 /**
  * Render a value for the agent: in full when it is small enough to be worth reading,
  * otherwise named with its kind and size so the agent knows what is there without paying
