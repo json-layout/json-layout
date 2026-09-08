@@ -1,0 +1,14 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "Four calls, no dead ends, and every value in the final document is traceable to something the goal stated or a tool returned. Without getSchema the agent followed the guide's no-schema advice and opened with describeState, which returned the whole tree with paths, types, labels, required flags and the numeric bounds on /birthYear — enough to build the document in one shot. The one thing describeState did not give was the closed list behind /contactMethod: it flagged the field as 'select, suggestions', which correctly signposted getFieldSuggestions, and that single call returned the three enum values so the agent set the literal 'email' rather than guessing at the encoding of the goal's phrase 'contacted by email'. It then wrote everything with one setData, which answered 'valid, no errors'. The closing getData bought nothing the setData response had not already asserted, but it is one call and the small-form guide never tells the agent it is unnecessary. No response was untrue, no path was guessed, nothing was invented, and the round-trip count (4) is close to the floor for a form whose only hidden information is one enum.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "getData",
+      "observed": "{\"data\":{\"name\":\"Ada Lovelace\",\"birthYear\":1815,\"email\":\"ada@analytical.org\",\"contactMethod\":\"email\"},\"valid\":true}",
+      "inferred": "The agent read the document back to confirm a write whose own response had already said 'valid, no errors'; the call added no information. The guide's line that writes already report validity so you rarely need to read back is emitted only in the large-complexity branch of fill-form-skill.js, so a small-form agent never sees it.",
+      "severity": "low"
+    }
+  ]
+}

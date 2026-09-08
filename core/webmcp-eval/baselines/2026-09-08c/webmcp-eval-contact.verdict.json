@@ -1,0 +1,14 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "The agent followed the protocol the guide prescribes for a small form exactly: one getSchema to read the whole 4-property schema, one setData writing all four values, and a confirming getData. Every value it wrote was derivable from the goal and nothing was invented — 'Ada Lovelace', 1815 (inside the declared 1800-2100 bounds), 'ada@analytical.org' for the format:email field, and 'email' matched a member of the contactMethod enum that getSchema had just disclosed, so the closed list was read once from the schema rather than probed with getFieldSuggestions. No path was guessed, no tool returned an error, and no response said something untrue or misleading. Three round-trips against a theoretical minimum of two on a form with four fields and one enum; the only surplus call is the closing getData, which is defensible verification rather than repeated work, since setData's reply confirmed validity without echoing what had actually been stored. Final document is complete and valid.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "setData",
+      "observed": "\"valid, no errors\"",
+      "inferred": "The write succeeded and the form validates, but the response says nothing about which values were applied, whether the integer was coerced, or whether any property was dropped. The agent apparently concluded it needed to read the document back, and spent call 3 on getData to see the state its own write had produced. Harmless here at 115 bytes, but it is a round-trip caused by the terseness of the acknowledgement rather than by anything the form required; note the guide's 'every write already reports whether the form is valid ... so you rarely need to read the document back' reassurance is emitted only on the large-complexity branch of core/src/webmcp/tools/fill-form-skill.js, so this small-form agent was never told it could stop.",
+      "severity": "low"
+    }
+  ]
+}
