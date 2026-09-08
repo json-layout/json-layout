@@ -55,8 +55,13 @@ const contact = {
  * What a deployed data-fair app puts in its expression context: it runs under one owner
  * and its dataset pickers query `api/v1/datasets?...&${context.datasetFilter}`. Both
  * goals name public datasets of Grand Poitiers on koumoul.com, so both cases run under
- * that owner. Without the filter the public instance answers a picker with its twelve
- * newest matches, and the named dataset is never among them.
+ * that owner. Without the filter the picker answers out of the whole public instance and
+ * the named dataset is lost among thousands.
+ *
+ * The charts schema's picker URL also carried `&sort=createdAt:-1`, which overrode the
+ * relevance ordering `q` exists to produce: a query made of a dataset's own exact title
+ * returned twelve unrelated datasets and none of them it, which the judge rated a
+ * high-severity dead end. Dropped here to match the fix being made in the app itself.
  */
 const grandPoitiersContext = { datasetFilter: 'owner=organization:p6Qg1z-aq' }
 

@@ -350,7 +350,7 @@
             "getItems": {
               "url": {
                 "type": "js-tpl",
-                "expr": "api/v1/datasets?status=finalized&q={q}&select=id,title,schema&${context.datasetFilter}&sort=createdAt:-1",
+                "expr": "api/v1/datasets?status=finalized&q={q}&select=id,title,schema&${context.datasetFilter}",
                 "pure": true
               },
               "itemKey": "data[\"href\"]",
