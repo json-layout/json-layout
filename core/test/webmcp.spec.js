@@ -13,7 +13,7 @@ import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
@@ -2244,5 +2244,66 @@ describe('webmcp refusing a layout path names where to go', () => {
     const res = await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute({ path: '/$allOf-0' })
     const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
     assert.match(text, /\/deep/)
+  })
+})
+
+describe('webmcp a list that cannot be fetched yet', () => {
+  // The headline of the 2026-09-02 review, and the only item nobody but json-layout can
+  // fix: 45% of the option lists across thirty real applications resolve only after some
+  // other field is written. Until now all three outcomes — prerequisite unset, query
+  // matched nothing, no list at all — arrived as the same four words.
+  const schema = {
+    type: 'object',
+    properties: {
+      source: { type: 'string', title: 'Source' },
+      derived: {
+        type: 'string',
+        title: 'Derived',
+        // eslint-disable-next-line no-template-curly-in-string -- a js-tpl expression, not a JS template
+        layout: { getItems: { url: { type: 'js-tpl', expr: '${rootData.source.href}/columns', pure: false } } }
+      }
+    }
+  }
+  const toolsOf = (/** @type {any} */ data = {}) => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
+    return new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+  }
+  /**
+   * @param {any[]} tools
+   * @param {string} name
+   * @param {any} args
+   * @returns {Promise<string>}
+   */
+  const run = async (tools, name, args) => {
+    const res = await /** @type {any} */(tools.find((t) => t.name === name)).execute(args)
+    return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+  }
+
+  it('should say a list is waiting on another field before the agent asks', async () => {
+    // the half that matters: the call is never made, rather than explained afterwards
+    const line = (await run(toolsOf(), 'describeState', {})).split('\n').find((l) => l.includes('/derived ')) ?? ''
+    assert.match(line, /suggestions once another field is set/, `got: ${line}`)
+  })
+
+  it('should name what it is waiting on when asked anyway', async () => {
+    const answer = await run(toolsOf(), 'getFieldSuggestions', { path: '/derived' })
+    assert.match(answer, /No options yet/)
+    assert.match(answer, /rootData\.source\.href/, 'it must name the expression, so the agent knows where to go')
+    assert.ok(!answer.includes('No suggestions available'), 'the old catch-all must be gone')
+  })
+
+  it('should stop saying it once the field it needs is set', async () => {
+    const tools = toolsOf({ source: { href: 'http://example.com/d1' } })
+    const line = (await run(tools, 'describeState', {})).split('\n').find((l) => l.includes('/derived ')) ?? ''
+    assert.match(line, /suggestions/)
+    assert.ok(!line.includes('once another field is set'), `got: ${line}`)
+  })
+
+  it('should distinguish an empty result from an unbuildable request', () => {
+    // no blockedOn: the list exists, the query just found nothing
+    assert.match(formatSuggestions([]), /No option matched/)
+    // eslint-disable-next-line no-template-curly-in-string -- the expression as an agent sees it
+    assert.match(formatSuggestions([], '${rootData.source.href}/columns'), /No options yet/)
   })
 })

@@ -281,6 +281,34 @@ function isValuePickedFromItems (node, statefulLayout) {
 }
 
 /**
+ * Whether this field's options cannot be fetched yet because the request that would
+ * produce them cannot be built.
+ *
+ * The state layer resolves a remote list's URL up front and stores it as `itemsCacheKey`;
+ * when the expression THROWS — because it reads a field nobody has filled in — the key is
+ * null. That is a different situation from "your query matched nothing" and from "this
+ * field has no list", and all three used to arrive as the same four words. The review that
+ * prompted this put 45% of the option lists across thirty real applications in this state
+ * until some other field is written first, so it is the common case, not an edge.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {boolean}
+ */
+export function suggestionsBlocked (node) {
+  return node.itemsCacheKey === null
+}
+
+/**
+ * The expression a blocked list is waiting on, so the answer can say what to go and set.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {string|undefined}
+ */
+export function suggestionsSource (node) {
+  const getItems = /** @type {any} */(node.layout).getItems
+  const expr = getItems?.url?.expr ?? getItems?.expr
+  return typeof expr === 'string' ? expr : undefined
+}
+
+/**
  * Whether this node can actually answer getFieldSuggestions.
  *
  * isItemsLayout only says the component KIND is items-based; it is true of a plain array
@@ -373,6 +401,9 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     // whatever is flagged, so flagging what is already known is what bought the round trip
     const inlined = inlineItems(node)
     if (inlined) meta.push(`values=${inlined}`)
+    // and a list that cannot be fetched yet says so here, before the agent spends a call
+    // finding out — the answer it would get names no cause it could act on
+    else if (suggestionsBlocked(node)) meta.push('suggestions once another field is set')
     else meta.push('suggestions')
   }
 
@@ -554,10 +585,14 @@ export function projectSuggestions (items, baseIndex = 0) {
 /**
  * Format field suggestions as markdown for LLM-readable output.
  * @param {ProjectedSuggestion[]} suggestions
+ * @param {string} [blockedOn] - the expression the list is waiting on, when it has one
  * @returns {string}
  */
-export function formatSuggestions (suggestions) {
-  if (suggestions.length === 0) return 'No suggestions available'
+export function formatSuggestions (suggestions, blockedOn) {
+  if (suggestions.length === 0) {
+    if (blockedOn) return `No options yet: this field's list comes from \`${blockedOn}\`, and that cannot be resolved until the data it reads is set. Fill that field first, then ask again.`
+    return 'No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.'
+  }
   const lines = [`${suggestions.length} suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):`]
   for (const suggestion of suggestions) {
     const title = suggestion.key ? `${suggestion.title} (${suggestion.key})` : suggestion.title

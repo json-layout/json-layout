@@ -12,7 +12,7 @@ import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff } from './project.js'
+import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource } from './project.js'
 import { resolveNode } from './resolve.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
@@ -292,8 +292,13 @@ export class WebMCP {
               this._suggestionsStore
             )
             const suggestions = projectSuggestions(result.items, result.baseIndex)
+            // An empty answer has two causes the agent must tell apart: a query that
+            // matched nothing, and a list whose request could not be built because another
+            // field is still empty. Only the second is a reason to go somewhere else.
+            const node = resolveNode(this._statefulLayout.stateTree.root, /** @type {any} */(args).path)
+            const blockedOn = node && suggestionsBlocked(node) ? suggestionsSource(node) : undefined
             return {
-              content: [{ type: 'text', text: formatSuggestions(suggestions) }]
+              content: [{ type: 'text', text: formatSuggestions(suggestions, blockedOn) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
