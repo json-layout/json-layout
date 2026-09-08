@@ -14,7 +14,7 @@ import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { helpToText, HELP_MAX_LENGTH, projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
@@ -2046,5 +2046,60 @@ describe('webmcp repeated variant lists', () => {
     const markdown = projectNodeToMarkdown(layout.stateTree.root, layout)
     assert.ok((markdown.match(/- variant 0: Text/g)?.length ?? 0) >= 1)
     assert.ok(!/the same list already given/.test(markdown))
+  })
+})
+
+describe('webmcp help text', () => {
+  it('should read help as text rather than as markup', () => {
+    // help is authored as HTML for a browser; an agent reads text, and `&#39;` is harder to
+    // read than the apostrophe it stands for
+    assert.equal(
+      helpToText('<h3>Titre</h3>\n<ul>\n<li><strong>Court :</strong> 150 caractères.  </li>\n</ul>\n<p>l&#39;auteur &amp; vous</p>'),
+      "Titre - Court : 150 caractères. l'auteur & vous"
+    )
+    // the newlines between block tags used to land inside a state-tree line
+    assert.ok(!helpToText('<p>a</p>\n<p>b</p>').includes('\n'))
+  })
+
+  const longHelp = 'Conseils pour la description. '.repeat(30)
+  const shortHelp = 'Une hauteur négative signifie un dimensionnement automatique.'
+  const schema = {
+    type: 'object',
+    properties: {
+      description: { type: 'string', description: longHelp },
+      height: { type: 'number', description: shortHelp }
+    }
+  }
+  const toolsOf = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    return new WebMCP(layout, { dataTitle: 'page' }).getTools()
+  }
+  /**
+   * @param {any[]} tools
+   * @param {any} args
+   * @returns {Promise<string>}
+   */
+  const read = async (tools, args) => {
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'describeState')).execute(args)
+    return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+  }
+
+  it('should name long help instead of printing it in a full read', async () => {
+    assert.ok(longHelp.length > HELP_MAX_LENGTH, 'precondition')
+    const full = await read(toolsOf(), {})
+    assert.match(full, /help=<\d+ chars — describeState \/description to read it>/)
+    assert.ok(!full.includes('Conseils pour la description. Conseils'), 'the prose itself must not be there')
+  })
+
+  it('should keep short help inline, it is what changes what an agent writes', async () => {
+    const full = await read(toolsOf(), {})
+    assert.ok(full.includes(`help="${shortHelp}"`), `got: ${full}`)
+  })
+
+  it('should give long help in full to whoever asks for that node', async () => {
+    // the escape hatch the named line points at
+    const one = await read(toolsOf(), { path: '/description' })
+    assert.ok(one.includes(longHelp.trim()), `got: ${one}`)
   })
 })

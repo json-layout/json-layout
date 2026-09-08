@@ -32,6 +32,39 @@ export const DISPLAYED_VALUE_MAX_LENGTH = 1000
 export const REVEALED_PATHS_MAX = 10
 
 /**
+ * Longest help inlined on a node the agent did not ask about. Help is written for someone
+ * looking at a form, where it sits behind a "?" icon and is read on demand; inlined into
+ * every state read it is pushed instead, and portal-page spends 782 characters of SEO
+ * advice on a field no agent in the eval has ever filled. Past this length it is named and
+ * left to be fetched, the same bargain oversized values get. Short help stays inline
+ * whatever the node — it is the kind that changes what an agent writes, such as a negative
+ * height meaning automatic sizing.
+ */
+export const HELP_MAX_LENGTH = 300
+
+/** the few named entities that show up in form help, plus the numeric forms */
+const NAMED_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+
+/**
+ * Help is authored as HTML for a browser. An agent reads text, so the markup is pure cost —
+ * `&#39;` is not merely wasted, it is harder to read than the apostrophe it stands for —
+ * and the newlines between block tags break the one-line-per-node markdown the state tree
+ * is made of.
+ * @param {string} html
+ * @returns {string}
+ */
+export function helpToText (html) {
+  return html
+    .replace(/<li\b[^>]*>/gi, ' - ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&([a-z]+);/gi, (m, name) => /** @type {any} */(NAMED_ENTITIES)[name.toLowerCase()] ?? m)
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * Which nodes are currently rendered, by path. A node hidden by an `if` condition stays
  * in the tree as comp "none", so what a write changes is visibility rather than the set
  * of paths — comparing paths alone would report nothing.
@@ -417,8 +450,13 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 
   // Help is the guidance a model cannot infer — that a negative height means automatic
   // sizing, say. projectNode carries it in structuredContent, which tool passers discard,
-  // so it has to be in the text or it does not reach the agent at all.
-  if (typeof node.layout.help === 'string' && node.layout.help) line += ` help="${node.layout.help}"`
+  // so it has to be in the text or it does not reach the agent at all. Long help is named
+  // rather than printed unless this node is the one that was asked about.
+  if (typeof node.layout.help === 'string' && node.layout.help) {
+    const help = helpToText(node.layout.help)
+    if (help.length <= HELP_MAX_LENGTH || depth === 0) line += ` help="${help}"`
+    else if (help) line += ` help=<${help.length} chars — describeState ${path} to read it>`
+  }
 
   if (error) line += ` — ${error}`
 
