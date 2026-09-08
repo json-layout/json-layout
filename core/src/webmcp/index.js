@@ -175,7 +175,7 @@ export class WebMCP {
     tools.push(
       {
         name: this._toolName('getData'),
-        description: `Get current "${dataTitle}" data and validity status. Call this first to see what data already exists.`,
+        description: getData.getDescription(dataTitle),
         inputSchema: getData.inputSchema,
         outputSchema: getData.outputSchema,
         execute: async (args) => {

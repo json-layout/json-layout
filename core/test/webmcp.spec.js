@@ -1877,3 +1877,37 @@ describe('webmcp reveals caused by a write', () => {
     assert.ok(!/became available/i.test(text), `a variant switch must not also report reveals: ${text}`)
   })
 })
+
+describe('webmcp tool descriptions', () => {
+  const schema = { type: 'object', properties: { a: { type: 'string' } } }
+  const registered = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    return new WebMCP(layout, { dataTitle: 'doc', schema }).getTools()
+  }
+
+  it('should describe every tool from its own module', () => {
+    // getData was the one exception: index.js registered it with an inline description
+    // while get-data.js exported another that nothing called. Editing the module's had no
+    // effect on what the agent read, and the live one said "Call this first to see what
+    // data already exists" — a prescription that outlived three rounds of work on the
+    // guide, because the guide was never where it lived.
+    // Only the tools whose description depends on nothing but the title; setData and
+    // describeState also take the complexity band, so they are not comparable here.
+    const modules = { getData, setFieldValue, getFieldSuggestions, editArray, getSchema }
+    let checked = 0
+    for (const tool of registered()) {
+      const mod = /** @type {any} */(modules)[tool.name]
+      if (!mod) continue
+      assert.equal(tool.description, mod.getDescription('doc'), `${tool.name} must be described by its own module`)
+      checked++
+    }
+    assert.equal(checked, Object.keys(modules).length, 'every one of them must have been registered and checked')
+  })
+
+  it('should not tell the agent to call getData first', () => {
+    const tool = registered().find((t) => t.name === 'getData')
+    assert.ok(tool)
+    assert.ok(!/call this first/i.test(tool.description), `got: ${tool.description}`)
+  })
+})
