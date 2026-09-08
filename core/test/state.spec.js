@@ -365,6 +365,43 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(arrNode2.children?.[0].data, 'test')
     })
 
+    it('should only mark a tuple entry required while minItems covers it', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          loose: { type: 'array', items: [{ type: 'string' }, { type: 'string' }] },
+          strict: { type: 'array', minItems: 1, items: [{ type: 'string' }, { type: 'string' }] }
+        }
+      })
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      const [loose, strict] = (root.children ?? []).map(c => compiledLayout.skeletonNodes[c])
+      // an array with no minItems validates while empty, so neither entry is required.
+      // Reporting every tuple entry as required had webmcp tell an agent a field was
+      // required and undefined in the same response that said the form was valid, and it
+      // spent three calls hunting for a value nothing was asking for.
+      assert.deepEqual(loose.children?.map(c => compiledLayout.skeletonNodes[c].required), [false, false])
+      assert.deepEqual(strict.children?.map(c => compiledLayout.skeletonNodes[c].required), [true, false])
+    })
+
+    it('should materialize a tuple entry that is not required', async () => {
+      // requiredness is not what makes a tuple slot exist: json-layout renders every entry
+      // whatever minItems says, and data-fair pickers read rootData.datasets[0].href off
+      // an untouched form. Materialization is the `alwaysPresent` half of the pair.
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          datasets: { type: 'array', items: [{ type: 'object', properties: { href: { type: 'string' } } }] }
+        }
+      })
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      const entry = compiledLayout.skeletonNodes[compiledLayout.skeletonNodes[root.children?.[0] ?? ''].children?.[0] ?? '']
+      assert.equal(entry.required, false)
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+      assert.deepEqual(statefulLayout.data, { datasets: [{}] })
+    })
+
     it('should use children info for ordering', async () => {
       const compiledLayout = await compile({
         type: 'object',

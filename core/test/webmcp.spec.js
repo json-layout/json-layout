@@ -1911,3 +1911,57 @@ describe('webmcp tool descriptions', () => {
     assert.ok(!/call this first/i.test(tool.description), `got: ${tool.description}`)
   })
 })
+
+describe('webmcp tuple entry requiredness', () => {
+  // The calendar eval case ended with the agent told that /$allOf-0/datasets/1 was
+  // "required" and undefined by the same response that said the form was valid, and it
+  // spent three of twelve calls looking for a value the goal never mentioned. Every tuple
+  // entry was flagged required, whatever minItems said.
+  const schema = {
+    type: 'object',
+    properties: {
+      datasets: {
+        type: 'array',
+        minItems: 1,
+        items: [
+          { title: 'Main dataset', type: 'object', properties: { href: { type: 'string' } } },
+          { title: 'Contributions dataset', type: 'object', properties: { href: { type: 'string' } } }
+        ]
+      }
+    }
+  }
+  const layoutOf = () => {
+    const compiled = compile(schema)
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, validateOn: 'input' }, {})
+  }
+
+  it('should not report an optional tuple entry as required', () => {
+    const layout = layoutOf()
+    const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
+    const lineFor = (/** @type {string} */ path) =>
+      markdown.split('\n').find((/** @type {string} */ l) => l.includes(`${path} `)) ?? ''
+
+    assert.ok(lineFor('/datasets/0').includes('required'), `minItems covers entry 0: ${lineFor('/datasets/0')}`)
+    assert.ok(!lineFor('/datasets/1').includes('required'), `minItems stops before entry 1: ${lineFor('/datasets/1')}`)
+  })
+
+  it('should not claim any entry of a minItems-less tuple is required', () => {
+    // the calendar shape, where the entries are leaves and the line carries a value: no
+    // minItems at all, so the array validates empty and neither entry is owed anything.
+    // This is the response the agent read as a contradiction — required and undefined,
+    // under "form is valid".
+    const compiled = compile({
+      type: 'object',
+      properties: { datasets: { type: 'array', items: [{ type: 'string' }, { type: 'string' }] } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, validateOn: 'input' }, {})
+    assert.equal(layout.stateTree.valid, true, 'nothing in this schema is unsatisfied')
+    const lines = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n')
+      .filter((/** @type {string} */ l) => l.includes('/datasets/'))
+    assert.equal(lines.length, 2, `both entries must be rendered: ${lines.join(' | ')}`)
+    for (const line of lines) {
+      assert.ok(line.includes('value=undefined'), `precondition, the entry is empty: ${line}`)
+      assert.ok(!line.includes('required'), `required and empty while valid: ${line}`)
+    }
+  })
+})
