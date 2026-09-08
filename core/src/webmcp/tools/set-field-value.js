@@ -70,9 +70,11 @@ export function getDescription (dataTitle) {
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value?: unknown, suggestionIndex?: number }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
+ * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the activated branch
+ * may nest the same union again; the memo keeps the response from printing it twice
  * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
  */
-export function execute (statefulLayout, args, store) {
+export function execute (statefulLayout, args, store, variantsMemo) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
     throw new Error(`node not found at path: ${args.path}`)
@@ -121,6 +123,6 @@ export function execute (statefulLayout, args, store) {
     errors,
     otherErrors,
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
-    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout) } : {})
+    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, variantsMemo) } : {})
   }
 }

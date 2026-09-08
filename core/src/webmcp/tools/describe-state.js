@@ -4,6 +4,7 @@
 
 import { projectStateTree, projectNode, collectErrors, collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
 import { resolveNode } from '../resolve.js'
+import { VariantsMemo } from '../variants-memo.js'
 
 export const inputSchema = {
   type: 'object',
@@ -81,20 +82,29 @@ export function execute (statefulLayout, args) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path?: string }} args
+ * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - updated, not consulted:
+ * a read is what the agent asked to see, so every union under it is listed in full, and the
+ * memo is what later writes use to avoid repeating those lists
  * @returns {string}
  */
-export function toMarkdown (statefulLayout, args) {
+export function toMarkdown (statefulLayout, args, variantsMemo) {
+  const listed = new VariantsMemo()
+
   if (args.path) {
     const node = resolveNode(statefulLayout.stateTree.root, args.path)
     if (!node) {
       throw new Error(`node not found at path: ${args.path}`)
     }
     const { errors, otherErrors } = collectScopedErrors(statefulLayout, node)
-    return formatMutationResult(statefulLayout.valid, errors,
-      projectNodeToMarkdown(node, statefulLayout),
+    const markdown = formatMutationResult(statefulLayout.valid, errors,
+      projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed),
       otherErrors
     )
+    variantsMemo?.merge(listed)
+    return markdown
   }
 
-  return projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout)
+  const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed)
+  variantsMemo?.merge(listed)
+  return markdown
 }

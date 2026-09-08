@@ -15,6 +15,7 @@ import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
 import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff } from './project.js'
 import { SuggestionsStore } from './suggestions-store.js'
+import { VariantsMemo } from './variants-memo.js'
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -117,6 +118,14 @@ export class WebMCP {
    * @type {SuggestionsStore}
    */
   _suggestionsStore = new SuggestionsStore()
+
+  /**
+   * Variant lists already sent to the agent. Never cleared on a write: a schema's branches
+   * are a constant, so unlike memorized suggestions nothing about the data can invalidate
+   * them.
+   * @type {VariantsMemo}
+   */
+  _variantsMemo = new VariantsMemo()
 
   /**
    * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -249,7 +258,7 @@ export class WebMCP {
         execute: async (args) => {
           try {
             const result = describeState.execute(this._statefulLayout, args || {})
-            const text = describeState.toMarkdown(this._statefulLayout, args || {})
+            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo)
             return {
               content: [{ type: 'text', text }],
               structuredContent: result
@@ -277,7 +286,8 @@ export class WebMCP {
             const result = setFieldValue.execute(
               this._statefulLayout,
               /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
-              this._suggestionsStore
+              this._suggestionsStore,
+              this._variantsMemo
             )
             // a getItems expression can depend on another field, so writing one may change the
             // options of a field whose suggestions were memorized under an unchanged path
@@ -344,7 +354,8 @@ export class WebMCP {
             }
             const result = editArray.execute(
               this._statefulLayout,
-              /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args)
+              /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args),
+              this._variantsMemo
             )
             // adding or removing an item shifts the paths of the items after it, so the
             // suggestions memorized for those paths now designate another item

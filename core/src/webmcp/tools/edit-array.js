@@ -67,9 +67,12 @@ export function getDescription (dataTitle) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} args
+ * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
+ * recursive schema carries the same union as the item that contains it; the memo keeps the
+ * response from printing it again
  * @returns {{ valid: boolean, itemCount: number, index: number, item?: import('../project.js').ProjectedNode, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }}
  */
-export function execute (statefulLayout, args) {
+export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
     throw new Error(`node not found at path: ${args.path}`)
@@ -138,7 +141,7 @@ export function execute (statefulLayout, args) {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
       result.item = projectNode(itemNode, statefulLayout)
-      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout)
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo)
     }
   }
 

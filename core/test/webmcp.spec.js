@@ -14,7 +14,7 @@ import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { projectStateTree, projectStateTreeToMarkdown, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
@@ -1963,5 +1963,86 @@ describe('webmcp tuple entry requiredness', () => {
       assert.ok(line.includes('value=undefined'), `precondition, the entry is empty: ${line}`)
       assert.ok(!line.includes('required'), `required and empty while valid: ${line}`)
     }
+  })
+})
+
+describe('webmcp repeated variant lists', () => {
+  // A discriminated union is a constant: portal-page reaches the same 39-branch element
+  // union at every level of its recursion, and the projection printed all of them each
+  // time — three emissions in a ten-call run, 4.45 KB of 10.8 KB, read once and used once.
+  const schema = {
+    type: 'object',
+    properties: { elements: { type: 'array', items: { $ref: '#/$defs/element' } } },
+    $defs: {
+      element: {
+        type: 'object',
+        oneOf: [
+          { title: 'Text', properties: { type: { const: 'text' }, content: { type: 'string' } } },
+          { title: 'Group', properties: { type: { const: 'group' }, children: { type: 'array', items: { $ref: '#/$defs/element' } } } }
+        ]
+      }
+    }
+  }
+  const toolsOf = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    return new WebMCP(layout, { dataTitle: 'page' }).getTools()
+  }
+  /**
+   * @param {any[]} tools
+   * @param {string} name
+   * @param {any} args
+   * @returns {Promise<string>}
+   */
+  const run = async (tools, name, args) => {
+    const res = await /** @type {any} */(tools.find((t) => t.name === name)).execute(args)
+    return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+  }
+
+  it('should list a union once and point back to it afterwards', async () => {
+    const tools = toolsOf()
+    const first = await run(tools, 'editArray', { path: '/elements', action: 'add' })
+    assert.match(first, /- variant 0: Text/, 'the first sighting must list the branches')
+
+    await run(tools, 'setFieldValue', { path: '/elements/0/$oneOf', value: 1 })
+    const nested = await run(tools, 'editArray', { path: '/elements/0/$oneOf/1/children', action: 'add' })
+
+    assert.ok(!/- variant 0: Text/.test(nested), `the same union must not be listed again: ${nested}`)
+    assert.match(nested, /2 variants, the same list already given for \/elements\/0\/\$oneOf/)
+    // the branch that is actually being edited is still spelled out
+    assert.match(nested, /\/elements\/0\/\$oneOf\/1\/children\/0\/\$oneOf\/0\/content \(text\)/)
+  })
+
+  it('should let describeState list a union it had already given', async () => {
+    // the escape hatch the elided line names: a read is what the agent asked to see, so it
+    // is answered in full whatever was sent before
+    const tools = toolsOf()
+    await run(tools, 'editArray', { path: '/elements', action: 'add' })
+    await run(tools, 'setFieldValue', { path: '/elements/0/$oneOf', value: 1 })
+    await run(tools, 'editArray', { path: '/elements/0/$oneOf/1/children', action: 'add' })
+
+    const read = await run(tools, 'describeState', { path: '/elements/0/$oneOf/1/children/0/$oneOf' })
+    assert.match(read, /- variant 0: Text/)
+    assert.match(read, /- variant 1: Group/)
+  })
+
+  it('should list a union once within a single full read', async () => {
+    const tools = toolsOf()
+    await run(tools, 'editArray', { path: '/elements', action: 'add' })
+    await run(tools, 'editArray', { path: '/elements', action: 'add', index: 1 })
+
+    const read = await run(tools, 'describeState', {})
+    assert.equal(read.match(/- variant 0: Text/g)?.length, 1, `listed once, not per item: ${read}`)
+    assert.equal(read.match(/the same list already given/g)?.length, 1)
+  })
+
+  it('should keep listing every union when no memo is passed', () => {
+    // projectNodeToMarkdown is exported and used outside the tools; without a memo it must
+    // behave exactly as it did before
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, { elements: [{ type: 'group', children: [{ type: 'text' }] }] })
+    const markdown = projectNodeToMarkdown(layout.stateTree.root, layout)
+    assert.ok((markdown.match(/- variant 0: Text/g)?.length ?? 0) >= 1)
+    assert.ok(!/the same list already given/.test(markdown))
   })
 })
