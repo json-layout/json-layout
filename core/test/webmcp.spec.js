@@ -2133,6 +2133,12 @@ describe('webmcp instruction redundancy', () => {
     const skill = fillFormSkill.generateSkill('doc', '', true, webmcpOf()._statefulLayout)
     assert.match(skill, /must call getFieldSuggestions/, 'the trigger stays in the guide')
     assert.ok(!/suggestionIndex/.test(skill), `the guide must not restate the mechanics: ${skill}`)
+    // and the other half of the same rule. Inlining a closed list removed the flag but not
+    // the habit: the ablation still fetched an enum describeState had just spelled out, and
+    // charts fetched legendPosition while writing metric straight from its values. Nothing
+    // told the agent a stated list needs no lookup, and in this protocol only what is said
+    // prescriptively gets followed.
+    assert.match(skill, /values=\[\.\.\.\] is a closed list/, 'the guide must say when NOT to fetch')
   })
 
   it('should describe a node path the same way in every tool', () => {
