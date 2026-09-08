@@ -35,7 +35,7 @@ export function generateSkill (dataTitle, prefixName, hasSchema, statefulLayout)
 
 This guide teaches you how to use tools to fill the data of a form in the user's page.
 
-Always start by getting the current data using ${prefixName}getData.
+Always start by reading the form with ${prefixName}describeState: it lists every field with its path, its current value and anything invalid. A value too large to inline is shown as its type and size, with the path to read it if you need it.
 `
 
   if (complexity === 'small') {
@@ -56,7 +56,7 @@ Then use ${prefixName}describeState and iterate with ${prefixName}setFieldValue.
     skill += `
 Given the large complexity of this form you should avoid reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}.
 Prefer using ${prefixName}describeState and iterating with ${prefixName}setFieldValue.
-The whole document runs to tens of kilobytes on a form this size, so pass a path to ${prefixName}getData or ${prefixName}describeState when you only need one part of it. Every write already reports whether the form is valid and lists what is wrong.
+Every write already reports whether the form is valid and lists what is wrong, so you rarely need to read the document back; ${prefixName}describeState and ${prefixName}getData both take a path when you want to look at one part of it.
 `
     if (hasSchema) {
       skill += `The full schema will not even be returned by ${prefixName}getSchema if it is too large, call it with a "path" parameter (a node path returned by ${prefixName}describeState) to read only the sub-schema of this node.
@@ -68,6 +68,8 @@ The whole document runs to tens of kilobytes on a form this size, so pass a path
 If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values. Each returned suggestion has an "index" and a title. A suggestion whose value is not a short scalar is listed by title alone: choose it by calling ${prefixName}setFieldValue with the same path and "suggestionIndex" set to its index, and the full value is applied. Values that are shown are short enough to pass directly to ${prefixName}setFieldValue or to include in ${prefixName}setData.
 
 To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.
+
+${prefixName}getData returns the data document itself, whole or one part of it by path, for when you need the values rather than a description of them.
 
 The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are only counted.
 `
