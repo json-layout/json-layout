@@ -80,4 +80,5 @@ export interface SkeletonNode {
   discriminator?: string
   required?: boolean
   nullable?: boolean
+  constraints?: Record<string, unknown> // validation keywords a form filler has to respect, kept because the raw schema does not survive serialization
 }

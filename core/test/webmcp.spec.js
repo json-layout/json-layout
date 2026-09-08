@@ -2260,3 +2260,35 @@ describe('webmcp closed lists stated instead of flagged', () => {
     assert.ok(!line.includes('values='), `beyond INLINE_ITEMS_MAX_LENGTH it goes back to being fetched: ${line.length} chars`)
   })
 })
+
+describe('webmcp validation constraints in the state', () => {
+  it('should state what ajv will enforce, with or without a schema tool', () => {
+    // The no-schema deployment is the one production ships: a build-time compiled layout
+    // has no raw schema, so getSchema cannot exist there. Anything only getSchema could say
+    // was information the shipped configuration never had.
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        mail: { type: 'string', format: 'email', title: 'Email' },
+        code: { type: 'string', pattern: '^[A-Z]{3}$', maxLength: 3, title: 'Code' },
+        tags: { type: 'array', items: { type: 'string' }, maxItems: 5, uniqueItems: true, title: 'Tags' }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const lines = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n')
+    const lineFor = (/** @type {string} */ p) => lines.find((l) => l.includes(`${p} `)) ?? ''
+
+    assert.match(lineFor('/mail'), /format=email/)
+    assert.match(lineFor('/code'), /pattern=\^\[A-Z\]\{3\}\$/)
+    assert.match(lineFor('/code'), /maxLength=3/)
+    assert.match(lineFor('/tags'), /maxItems=5/)
+    assert.match(lineFor('/tags'), /uniqueItems=true/)
+  })
+
+  it('should say nothing extra about a field that constrains nothing', () => {
+    const compiled = compile({ type: 'object', properties: { free: { type: 'string', title: 'Free' } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/free ')) ?? ''
+    assert.equal(line.trim(), '- /free (text) label="Free" value=undefined', `got: ${line}`)
+  })
+})

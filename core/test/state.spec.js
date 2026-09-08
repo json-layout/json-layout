@@ -365,6 +365,30 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(arrNode2.children?.[0].data, 'test')
     })
 
+    it('should carry validation constraints the raw schema would otherwise keep', async () => {
+      // serialize() emits the skeleton, the layouts and the validators — not the schema. So
+      // a precompiled layout could not tell a form filler that a field is an email, matches
+      // a pattern, or that an array holds at most five items, while ajv went on enforcing
+      // every one of them. This test runs in build-time mode too, which is the mode that
+      // could not know.
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          mail: { type: 'string', format: 'email' },
+          code: { type: 'string', pattern: '^[A-Z]{3}$', minLength: 3, maxLength: 3 },
+          tags: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5, uniqueItems: true },
+          plain: { type: 'string' }
+        }
+      })
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      const byKey = Object.fromEntries((root.children ?? []).map(c => [compiledLayout.skeletonNodes[c].key, compiledLayout.skeletonNodes[c]]))
+      assert.deepEqual(byKey.mail.constraints, { format: 'email' })
+      assert.deepEqual(byKey.code.constraints, { pattern: '^[A-Z]{3}$', minLength: 3, maxLength: 3 })
+      assert.deepEqual(byKey.tags.constraints, { minItems: 1, maxItems: 5, uniqueItems: true })
+      assert.equal(byKey.plain.constraints, undefined, 'nothing is carried for a node that constrains nothing')
+    })
+
     it('should only mark a tuple entry required while minItems covers it', async () => {
       const compiledLayout = await compile({
         type: 'object',

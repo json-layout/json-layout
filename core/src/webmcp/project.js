@@ -440,13 +440,17 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
   if (error) meta.push('error')
   if (node.modified) meta.push('modified')
 
-  // constraints
+  // constraints, from the layout for what the component renders and from the skeleton for
+  // what ajv enforces but nothing else would say — a precompiled layout has no raw schema
   const keys = getConstraintKeys(node.layout.comp)
   if (keys) {
     for (const k of keys) {
       const v = layout[k]
       if (v !== undefined && v !== null) meta.push(`${k}=${v}`)
     }
+  }
+  for (const [k, v] of Object.entries(node.skeleton.constraints ?? {})) {
+    meta.push(`${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`)
   }
 
   // variants

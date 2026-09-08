@@ -5,6 +5,30 @@ import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
 /**
+ * Validation keywords that change what a value has to look like, as opposed to how it is
+ * rendered. A build-time compiled layout does not carry the raw schema — `serialize` emits
+ * the skeleton, the layouts and the validators, and nothing else — so a form filler working
+ * against a precompiled layout could not learn that a field is an email, or matches a
+ * pattern, or that an array holds at most five items. Ajv still enforces every one of them,
+ * which made the omission worse than useless: the rule was invisible until it was violated.
+ * Numbers are left out because min/max/step already reach the layout.
+ */
+const CONSTRAINT_KEYWORDS = ['format', 'pattern', 'minLength', 'maxLength', 'minItems', 'maxItems', 'uniqueItems']
+
+/**
+ * @param {any} schema
+ * @returns {Record<string, unknown> | undefined}
+ */
+function collectConstraints (schema) {
+  /** @type {Record<string, unknown>} */
+  const constraints = {}
+  for (const keyword of CONSTRAINT_KEYWORDS) {
+    if (schema?.[keyword] !== undefined) constraints[keyword] = schema[keyword]
+  }
+  return Object.keys(constraints).length ? constraints : undefined
+}
+
+/**
  * @param {any} rawSchema
  * @param {string} sourceSchemaId
  * @param {import('./index.js').CompileOptions} options
@@ -205,6 +229,9 @@ export function makeSkeletonNode (
     nullable,
     required: required && !nullable
   }
+
+  const constraints = collectConstraints(schema)
+  if (constraints) node.constraints = constraints
 
   if (condition) {
     if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')
