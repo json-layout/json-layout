@@ -8,23 +8,28 @@ a response along the way. That is what this harness measures.
 ## What a case is
 
 `cases/index.js` holds a schema, a title and a goal phrased the way a user would phrase
-it. **There is no expected data.** A run is judged by reading its transcript — what the
-agent asked, what each tool told it back, and what it did next — not by comparing the
-final data to a blob written by whoever wrote the case. The declared complexity band and
-`expectedSchemaFits` are assertions about the case itself, checked deterministically in
-`core/test/webmcp-eval.spec.js` so a case cannot drift into claiming a branch it never
-reaches.
+it, and for the editing cases a document to start from. **There is no expected data.** A run
+is judged by reading its transcript — what the agent asked, what each tool told it back, and
+what it did next — not by comparing the final data to a blob written by whoever wrote the
+case.
 
-| case | source | chars | nodes | band | `getSchema` |
-|---|---|---|---|---|---|
-| `contact` | hand-written | 368 | 5 | small | returns whole |
-| `calendar` | app-calendar, through the vjsf v2 compat layer | 6650 | 58 | large | returns whole |
-| `charts` | app-charts (source schema) | 29472 | 286 | large | **refuses**, path navigation |
+| case | source | schema chars | layout nodes | starts from |
+|---|---|---|---|---|
+| `contact` | hand-written | 368 | 5 | empty |
+| `calendar` | app-calendar, through the vjsf v2 compat layer | 12244 | 58 | empty |
+| `charts` | app-charts (source schema) | 57330 | 286 | empty |
+| `portal-page` | portals page editor | 285874 | 814 | empty |
+| `charts-edit` | app-charts | 57330 | 286 | a configured chart |
+| `portal-page-edit` | portals page editor | 285874 | 814 | a page of three elements |
 
-No `medium` band exists among the available real schemas. Band and schema size are also
-independent of each other: `calendar` is `large` yet its schema still fits in a single
-`getSchema` response, so `charts` is the only case that exercises the refusal path and
-forces the agent to navigate by path instead.
+The four build cases measure construction; the two edit cases measure the other half, which
+is what a configuration editor mostly does. Both start from a document **an agent produced
+through these tools** and we kept — a starting document written by hand is a guess about what
+the form accepts, and one that is subtly invalid measures the harness rather than the
+protocol. They are also the only cases that reach `editArray`'s `remove`.
+
+The model is pinned by `JL_WEBMCP_EVAL_MODEL` (`opus`, `sonnet`, `haiku`; default `opus`) and
+recorded per run, so runs are comparable across time and across tiers.
 
 ### Where the vendored schemas came from
 
@@ -46,9 +51,9 @@ schema — 185 660 characters against 29 472, for a byte-identical state project
 real page translates through vjsf's compatibility layer before json-layout sees it. The
 case applies the same layer, vendored as `cases/vjsf-compat-v2.js` from vjsf's
 `lib/src/compat/v2.js` and pinned for the same reason the schemas are. Compiled raw, the
-first judged run showed why this matters: the pickers rendered as plain sections,
-`getFieldSuggestions` refused them, and `getSchema` still showed the vendor keywords —
-two tools contradicting each other on the same path.
+first judged run showed why this matters: the pickers rendered as plain sections and
+`getFieldSuggestions` refused them, while the schema still showed the vendor keywords —
+two surfaces contradicting each other on the same path.
 
 ### Where the pickers fetch from
 
@@ -69,10 +74,11 @@ The judge is told this so it does not score a translation step as protocol frict
 
 ## Deterministic runs (CI)
 
-`core/test/webmcp-eval.spec.js` compiles every case and pins its declared band and
-`getSchema` behaviour. No model is involved, so it is reproducible and runs with
-`npm test`. It cannot tell you whether an agent can actually use the tools — that is the
-judged flow below — only that each case is the case it claims to be.
+`core/test/webmcp-eval.spec.js` compiles every case, checks the vendored pickers still
+resolve as item lists, and keeps the case set spanning both ends of the size range. No model
+is involved, so it is reproducible and runs with `npm test`. It cannot tell you whether an
+agent can actually use the tools — that is the judged flow below — only that each case is the
+case it claims to be.
 
 ## Judged runs
 
@@ -107,13 +113,15 @@ procedure):
 
    Nothing else reaches the runner — no mention of json-layout, the schema, or the case.
 
-3. **Variants.** `npm run webmcp-eval:run -w core -- <case> --no-schema` runs a case
-   without handing WebMCP the schema, which is what decides whether a `getSchema` tool
-   exists at all and makes the guide point at `describeState` instead. That is what
-   portals ships, because its compiled layout carries no schema. Running one case both
-   ways is how this harness answers whether shipping the schema would earn its bundle
-   size — a question it should measure rather than presume. Variant evidence lands beside
-   the control as `webmcp-eval-<case>--<variant>.json`, and the report prints both.
+3. **Models.** `JL_WEBMCP_EVAL_MODEL=opus|sonnet|haiku` pins the runner's model, which is
+   recorded per run and printed by the report. Running the suite on more than one tier is
+   how this harness answers whether the protocol leans on a large model or carries the work
+   itself — a question it should measure rather than presume.
+
+4. **Variants.** The machinery for running a case under a second tool configuration is
+   still in `session.js` (`VARIANTS`, `applyVariant`, `evidenceName`), but there is nothing
+   to vary since `getSchema` was removed: every page now gets the same six tools. Variant
+   evidence would land beside the control as `webmcp-eval-<case>--<variant>.json`.
 
    **Isolation.** The run happens from a temporary directory outside this repository,
    with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from
