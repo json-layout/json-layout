@@ -2,7 +2,7 @@
  * @file describeState tool
  */
 
-import { projectStateTree, projectNode, collectErrors, collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
+import { collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
 import { resolveNode } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 
@@ -16,62 +16,12 @@ export const inputSchema = {
   }
 }
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    state: {
-      type: 'object',
-      description: 'Projected state tree or single node'
-    },
-    valid: {
-      type: 'boolean'
-    },
-    errors: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          path: { type: 'string' },
-          message: { type: 'string' }
-        }
-      }
-    }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}
  */
 export function getDescription (dataTitle) {
   return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form.`
-}
-
-/**
- * @param {import('../../state/index.js').StatefulLayout} statefulLayout
- * @param {{ path?: string }} args
- * @returns {{state: ReturnType<typeof projectStateTree>|ReturnType<typeof projectNode>, valid: boolean, errors: Array<{path: string, message: string}>}}
- */
-export function execute (statefulLayout, args) {
-  const errors = collectErrors(statefulLayout)
-
-  if (args.path) {
-    const node = resolveNode(statefulLayout.stateTree.root, args.path)
-    if (!node) {
-      throw new Error(`node not found at path: ${args.path}`)
-    }
-    return {
-      state: projectNode(node, statefulLayout),
-      valid: statefulLayout.valid,
-      errors
-    }
-  }
-
-  return {
-    state: projectStateTree(statefulLayout.stateTree, statefulLayout),
-    valid: statefulLayout.valid,
-    errors
-  }
 }
 
 /**

@@ -54,6 +54,9 @@ function inlineItems (node) {
   const items = /** @type {any} */(node).itemsCacheKey
   if (!Array.isArray(items) || items.length === 0) return undefined
   const values = items.map((item) => (item && typeof item === 'object' && 'value' in item) ? item.value : item)
+  // only a short scalar can be written straight back; an object value has to be applied by
+  // suggestionIndex, so stating it would cost bytes and still leave the agent a lookup
+  if (!values.every((v) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) return undefined
   const rendered = JSON.stringify(values)
   return rendered.length <= INLINE_ITEMS_MAX_LENGTH ? rendered : undefined
 }
@@ -306,88 +309,6 @@ function nodeError (node, errorsByPath) {
 }
 
 /**
- * @typedef {{
- *   path: string,
- *   type: string,
- *   data: unknown,
- *   title?: string,
- *   label?: string,
- *   help?: string,
- *   error?: string,
- *   required?: boolean,
- *   readOnly?: boolean,
- *   modified?: boolean,
- *   constraints?: Record<string, unknown>,
- *   variants?: Array<{index: number, title: string}>,
- *   selectedVariant?: number,
- *   children?: Array<ProjectedNode>,
- *   declaredFields?: Array<import('./schema.js').DeclaredField>,
- *   getSuggestions?: boolean
- * }} ProjectedNode
- */
-
-/**
- * @param {import('../state/types.js').StateNode} node
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {Record<string, string>} [errorsByPath] - computed on the root node when not given
- * @returns {ProjectedNode}
- */
-export function projectNode (node, statefulLayout, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)) {
-  /** @type {ProjectedNode} */
-  const out = {
-    path: node.fullKey,
-    type: compToType[node.layout.comp] || node.layout.comp,
-    data: node.data
-  }
-
-  const layout = /** @type {Record<string, unknown>} */(node.layout)
-  if (typeof layout.title === 'string') out.title = layout.title
-  if (typeof layout.label === 'string') out.label = layout.label
-  if (node.layout.help) out.help = node.layout.help
-
-  const error = nodeError(node, errorsByPath)
-  if (error) out.error = error
-
-  if (node.skeleton.required) out.required = true
-  if (isReadOnly(node, statefulLayout)) out.readOnly = true
-  if (node.modified) out.modified = true
-  if (hasSuggestions(node, statefulLayout)) out.getSuggestions = true
-
-  const keys = getConstraintKeys(node.layout.comp)
-  if (keys) {
-    /** @type {Record<string, unknown>} */
-    const constraints = {}
-    for (const k of keys) {
-      const v = layout[k]
-      if (v !== undefined && v !== null) constraints[k] = v
-    }
-    if (Object.keys(constraints).length > 0) out.constraints = constraints
-  }
-
-  if (node.layout.comp === 'one-of-select' && Array.isArray(layout.oneOfItems)) {
-    out.variants = layout.oneOfItems
-      .filter((item) => !item.header)
-      .map((item) => ({ index: item.key, title: item.title }))
-    // find selected variant
-    const selected = layout.oneOfItems.find((item) => item.selected)
-    if (selected) out.selectedVariant = selected.key
-  }
-
-  const children = visibleChildren(node)
-  if (children.length > 0) {
-    out.children = children.map(child => projectNode(child, statefulLayout, errorsByPath))
-  } else if (node.skeleton.children?.length && !isValuePickedFromItems(node, statefulLayout)) {
-    // the state tree did not hydrate the children of this node (a collapsed list item for example),
-    // the agent still needs to know which fields it can fill. A node fed by getItems is skipped:
-    // its properties are not separate nodes, it is filled as a whole from getFieldSuggestions.
-    const declaredFields = projectDeclaredFields(node, statefulLayout)
-    if (declaredFields.length > 0) out.declaredFields = declaredFields
-  }
-
-  return out
-}
-
-/**
  * Project a single field result for slim mutation responses
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -403,18 +324,6 @@ export function projectFieldResult (node, statefulLayout) {
   const error = nodeError(node, indexErrorsByPath(statefulLayout.stateTree.root))
   if (error) out.error = error
   return out
-}
-
-/**
- * @param {import('../state/types.js').StateTree} stateTree
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {{ root: ProjectedNode, valid: boolean }}
- */
-export function projectStateTree (stateTree, statefulLayout) {
-  return {
-    root: projectNode(stateTree.root, statefulLayout),
-    valid: stateTree.valid
-  }
 }
 
 /**
@@ -486,9 +395,8 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
   }
 
   // Help is the guidance a model cannot infer — that a negative height means automatic
-  // sizing, say. projectNode carries it in structuredContent, which tool passers discard,
-  // so it has to be in the text or it does not reach the agent at all. Long help is named
-  // rather than printed unless this node is the one that was asked about.
+  // sizing, say. Long help is named rather than printed unless this node is the one that
+  // was asked about.
   if (typeof node.layout.help === 'string' && node.layout.help) {
     const help = helpToText(node.layout.help)
     if (help.length <= HELP_MAX_LENGTH || depth === 0) line += ` help="${help}"`

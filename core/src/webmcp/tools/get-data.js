@@ -14,14 +14,6 @@ export const inputSchema = {
   }
 }
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    data: {},
-    valid: { type: 'boolean' }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}

@@ -2,7 +2,7 @@
  * @file editArray tool
  */
 
-import { collectScopedErrors, projectNode, projectNodeToMarkdown } from '../project.js'
+import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
 import { resolveNode } from '../resolve.js'
 
 export const inputSchema = {
@@ -28,34 +28,6 @@ export const inputSchema = {
   required: ['path', 'action']
 }
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    valid: { type: 'boolean' },
-    itemCount: { type: 'number' },
-    index: { type: 'number', description: 'Index of the added or removed item' },
-    item: {
-      type: 'object',
-      description: 'The added item and its editable children'
-    },
-    errors: {
-      type: 'array',
-      description: 'Errors of the array and its items only',
-      items: {
-        type: 'object',
-        properties: {
-          path: { type: 'string' },
-          message: { type: 'string' }
-        }
-      }
-    },
-    otherErrors: {
-      type: 'number',
-      description: 'Number of errors in the rest of the form'
-    }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}
@@ -70,7 +42,7 @@ export function getDescription (dataTitle) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, item?: import('../project.js').ProjectedNode, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
@@ -128,7 +100,7 @@ export function execute (statefulLayout, args, variantsMemo) {
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
   const { errors, otherErrors } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, item?: import('../project.js').ProjectedNode, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }} */
+  /** @type {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
@@ -140,7 +112,6 @@ export function execute (statefulLayout, args, variantsMemo) {
   if (args.action === 'add') {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
-      result.item = projectNode(itemNode, statefulLayout)
       result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo)
     }
   }

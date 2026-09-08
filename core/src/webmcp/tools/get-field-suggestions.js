@@ -19,26 +19,6 @@ export const inputSchema = {
   required: ['path']
 }
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    items: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          index: { type: 'number', description: 'Pass it as "suggestionIndex" to setFieldValue to apply this suggestion' },
-          value: { description: 'The value to use, present only when it is a short scalar (see "valueOmitted")' },
-          valueOmitted: { type: 'boolean', description: 'The value is an object or too long to inline: apply it with suggestionIndex' },
-          valueLength: { type: 'number' },
-          title: { type: 'string' },
-          key: { type: 'string' }
-        }
-      }
-    }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}

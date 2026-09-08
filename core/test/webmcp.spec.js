@@ -13,10 +13,19 @@ import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
+
+/**
+ * The text of a tool result. Since the structured path was removed this is the whole
+ * response, and it is exactly what the agent receives — asserting on anything else was how
+ * five pieces of projection work came to be tested but never delivered.
+ * @param {any} result
+ * @returns {string}
+ */
+const textOf = (result) => result.content.map((/** @type {any} */ p) => p.text ?? '').join('')
 
 const simpleSchema = {
   type: 'object',
@@ -44,26 +53,20 @@ const arraySchema = {
 }
 
 describe('webmcp project functions', () => {
-  it('should project state tree with new shape', () => {
+  it('should project the state tree as the lines an agent reads', () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
 
-    const projected = projectStateTree(layout.stateTree, layout)
+    const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
+    const lines = markdown.split('\n')
 
-    assert.equal(projected.valid, true)
-    assert.equal(projected.root.path, '')
-    assert.equal(projected.root.type, 'section')
-    assert.ok(!('key' in projected.root), 'key should not be in projected node')
-    assert.ok(!('comp' in projected.root), 'comp should not be in projected node')
-    assert.equal(/** @type {any[]} */(projected.root.children).length, 3)
-
-    const children = /** @type {any[]} */(projected.root.children)
-    const nameNode = children.find((c) => c.path === '/name')
-    assert.ok(nameNode)
-    assert.equal(nameNode.type, 'text')
-    assert.equal(nameNode.data, 'Alice')
-    assert.equal(nameNode.required, true)
+    assert.match(markdown, /^valid: true, no errors/)
+    assert.equal(lines.filter((l) => /^ *- \/\w/.test(l)).length, 3, 'one line per field')
+    assert.match(lines.find((l) => l.includes('/name ')) ?? '', /- \/name \(text, required\).*value="Alice"/)
+    // internal bookkeeping stays internal
+    assert.ok(!markdown.includes('comp'), 'the component name is a rendering detail')
+    assert.ok(!markdown.includes('childError'), 'childError is an internal roll-up')
   })
 
   it('should project field result (slim)', () => {
@@ -101,22 +104,18 @@ describe('webmcp project functions', () => {
     const savedData = { name: 'Alice' }
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Bob' }, savedData)
 
-    const projected = projectStateTree(layout.stateTree, layout)
-    const nameNode = /** @type {any[]} */(projected.root.children).find((c) => c.path === '/name')
-    assert.equal(nameNode.modified, true)
-
-    const ageNode = /** @type {any[]} */(projected.root.children).find((c) => c.path === '/age')
-    assert.equal(ageNode.modified, undefined)
+    const lines = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n')
+    assert.match(lines.find((l) => l.includes('/name ')) ?? '', /modified/)
+    assert.ok(!/modified/.test(lines.find((l) => l.includes('/age ')) ?? ''))
   })
 
-  it('should not include childError in projected nodes', () => {
+  it('should not report childError, which is an internal roll-up', () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, {})
     layout.validate()
 
-    const projected = projectStateTree(layout.stateTree, layout)
-    assert.ok(!('childError' in projected.root), 'childError should not be in projected node')
+    assert.ok(!projectStateTreeToMarkdown(layout.stateTree, layout).includes('childError'))
   })
 })
 
@@ -149,12 +148,11 @@ describe('webmcp tool functions', () => {
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
 
-    const result = describeState.execute(layout, {})
+    const markdown = describeState.toMarkdown(layout, {})
 
-    assert.equal(result.valid, true)
-    const state = /** @type {any} */(result.state)
-    assert.equal(state.root.path, '')
-    assert.equal(result.errors.length, 0)
+    assert.match(markdown, /^valid: true, no errors/)
+    assert.match(markdown, /- \/ \(section/, 'the root is described')
+    assert.ok(!markdown.includes('Errors:'))
   })
 
   it('should describeState by path', () => {
@@ -162,12 +160,10 @@ describe('webmcp tool functions', () => {
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
 
-    const result = describeState.execute(layout, { path: '/name' })
+    const markdown = describeState.toMarkdown(layout, { path: '/name' })
 
-    assert.equal(result.valid, true)
-    const state = /** @type {any} */(result.state)
-    assert.equal(state.path, '/name')
-    assert.equal(state.data, 'Alice')
+    assert.match(markdown, /- \/name \(text, required\).*value="Alice"/)
+    assert.match(markdown, /form is valid/)
   })
 
   it('should setFieldValue return slim response', () => {
@@ -407,9 +403,7 @@ describe('webmcp WebMCP class', () => {
     assert.ok(text.includes('valid: true'), 'should contain validity status')
     assert.ok(text.includes('/name'), 'should contain field paths')
     assert.ok(text.includes('text'), 'should contain field types')
-    // structuredContent has the JSON data
-    assert.ok(result.structuredContent)
-    assert.equal(result.structuredContent.valid, true)
+    assert.match(textOf(result), /^valid: true, no errors/)
   })
 
   it('should execute setFieldValue tool with concise text and structuredContent', async () => {
@@ -431,10 +425,7 @@ describe('webmcp WebMCP class', () => {
     const text = result.content[0].text
     assert.ok(text.includes('/name'), 'should mention field path')
     assert.ok(text.includes('Bob'), 'should mention field value')
-    // structuredContent has full JSON
-    assert.ok(result.structuredContent)
-    assert.equal(result.structuredContent.field.path, '/name')
-    assert.equal(result.structuredContent.field.data, 'Bob')
+    assert.match(textOf(result), /\/name \(text\) = "Bob"/)
   })
 
   it('should execute fillFormSkill tool when opted in', async () => {
@@ -492,9 +483,7 @@ describe('webmcp WebMCP class', () => {
     const text = result.content[0].text
     assert.ok(text.includes('added item'), 'should describe action')
     assert.ok(text.includes('2 total'), 'should include item count')
-    // structuredContent has full JSON
-    assert.ok(result.structuredContent)
-    assert.equal(result.structuredContent.itemCount, 2)
+    assert.match(textOf(result), /2 total/)
   })
 
   it('should accept data as JSON string in setData', async () => {
@@ -511,8 +500,7 @@ describe('webmcp WebMCP class', () => {
     const result = await /** @type {any} */(setDataTool).execute({ data: '{"name": "Charlie", "age": 30}' })
 
     assert.ok(!result.isError)
-    assert.ok(result.structuredContent)
-    assert.equal(result.structuredContent.valid, true)
+    assert.match(textOf(result), /valid|no error/i)
     const data = /** @type {any} */(layout.data)
     assert.equal(data.name, 'Charlie')
     assert.equal(data.age, 30)
@@ -532,7 +520,7 @@ describe('webmcp WebMCP class', () => {
     // string value should stay as string (not parsed as JSON)
     const result = await /** @type {any} */(setFieldTool).execute({ path: '/name', value: 'Bob' })
     assert.ok(!result.isError)
-    assert.equal(result.structuredContent.field.data, 'Bob')
+    assert.match(textOf(result), /= "Bob"/)
   })
 
   it('should accept value as JSON string in editArray', async () => {
@@ -553,12 +541,12 @@ describe('webmcp WebMCP class', () => {
     })
 
     assert.ok(!result.isError)
-    assert.equal(result.structuredContent.itemCount, 1)
+    assert.match(textOf(result), /1 total/)
     const data = /** @type {any} */(layout.data)
     assert.equal(data.items[0].name, 'fromJsonString')
   })
 
-  it('should return structuredContent from getData', async () => {
+  it('should return the document as the text of getData', async () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
     const layout = new StatefulLayout(compiled, mainTree, { validateOn: 'input' }, { name: 'Alice' })
@@ -571,9 +559,9 @@ describe('webmcp WebMCP class', () => {
 
     const result = await /** @type {any} */(getDataTool).execute({})
 
-    assert.ok(result.structuredContent)
-    assert.equal(result.structuredContent.data.name, 'Alice')
-    assert.equal(result.structuredContent.valid, true)
+    const parsed = JSON.parse(textOf(result))
+    assert.equal(parsed.data.name, 'Alice')
+    assert.equal(parsed.valid, true)
   })
 
   it('should include subagent tool when includeSubAgent is true', async () => {
@@ -591,7 +579,7 @@ describe('webmcp WebMCP class', () => {
     const result = await /** @type {any} */(subagentTool).execute({ task: 'fill the form' })
     assert.ok(!result.isError)
 
-    const structured = result.structuredContent
+    const structured = JSON.parse(textOf(result))
     assert.ok(structured.prompt.includes('Form-Filling Guide'))
     assert.ok(Array.isArray(structured.tools))
     assert.ok(structured.tools.includes('myform_getData'))
@@ -732,7 +720,7 @@ describe('webmcp suggestions truncation', () => {
     assert.ok(text.includes('suggestionIndex'), 'should explain how to apply a suggestion')
     assert.ok(text.length < 3 * 200, `output should stay small, got ${text.length}`)
     assert.ok(!text.includes('"schema"'), 'no fragment of the object value may reach the agent')
-    assert.equal(toolResult.structuredContent.items[0].valueOmitted, true)
+    assert.match(textOf(toolResult), /apply with suggestionIndex/)
 
     // and the memorized value can then be applied through the tool
     const setTool = webmcp.getTools().find((t) => t.name === 'setFieldValue')
@@ -798,9 +786,10 @@ describe('webmcp menu and dialog list edit modes', () => {
     it(`should project the activated item once in "${mode}" mode`, () => {
       const layout = layoutWithActivatedItem(mode)
       const list = resolveNode(layout.stateTree.root, '/filters')
-      const projected = projectNode(/** @type {any} */(list), layout)
-      const paths = /** @type {any[]} */(projected.children ?? []).map((c) => c.path)
-      assert.deepEqual(paths, ['/filters/0'], 'the duplicated occurrence must not be projected twice')
+      const lines = projectNodeToMarkdown(/** @type {any} */(list), layout).split('\n')
+      const items = lines.filter((l) => /- \/filters\/\d+ \(/.test(l))
+      assert.equal(items.length, 1, 'the duplicated occurrence must not be projected twice')
+      assert.match(items[0], /\/filters\/0 \(/)
     })
 
     it(`should still collect the item errors in "${mode}" mode`, () => {
@@ -888,9 +877,9 @@ describe('webmcp declared fields of a value picked from getItems', () => {
       { context: { datasets: [{ id: 'a', title: 'A' }] } }, {})
     const node = resolveNode(layout.stateTree.root, '/dataset')
     assert.ok(node)
-    const projected = projectNode(/** @type {any} */(node), layout)
-    assert.equal(projected.getSuggestions, true, 'the field is filled from getFieldSuggestions')
-    assert.equal(projected.declaredFields, undefined, 'its properties are not nodes of the form')
+    const line = projectNodeToMarkdown(/** @type {any} */(node), layout)
+    assert.match(line, /suggestions/, 'the field is filled from getFieldSuggestions')
+    assert.ok(!line.includes('declared'), 'its properties are not nodes of the form')
     // the paths that used to be advertised do not resolve
     assert.throws(() => setFieldValue.execute(layout, { path: '/dataset/id', value: 'x' }), /node not found/)
   })
@@ -1070,19 +1059,17 @@ describe('webmcp array item edition', () => {
     const result = editArray.execute(layout, { path: '/filters', action: 'add' })
     assert.equal(result.itemCount, 1)
     assert.equal(result.index, 0)
-    assert.ok(result.item, 'the added item should be described')
-    const children = /** @type {any[]} */(result.item?.children)
-    assert.ok(Array.isArray(children), 'the added item should expose its children')
-    assert.deepEqual(children.map((c) => c.path), ['/filters/0/type', '/filters/0/field'])
-    assert.equal(result.item?.readOnly, undefined, 'an editable list item should not be flagged readOnly')
+    assert.ok(result.itemMarkdown, 'the added item should be described')
+    assert.match(/** @type {string} */(result.itemMarkdown), /\/filters\/0\/type/)
+    assert.match(/** @type {string} */(result.itemMarkdown), /\/filters\/0\/field/)
+    assert.ok(!/readOnly/.test(/** @type {string} */(result.itemMarkdown)), 'an editable list item should not be flagged readOnly')
 
     // and describeState can now navigate to the children
-    const childState = describeState.execute(layout, { path: '/filters/0/type' })
-    assert.equal(/** @type {any} */(childState.state).path, '/filters/0/type')
-
-    const itemState = describeState.execute(layout, { path: '/filters/0' })
-    assert.equal(/** @type {any} */(itemState.state).readOnly, undefined)
-    assert.equal(/** @type {any} */(itemState.state).children.length, 2)
+    assert.match(describeState.toMarkdown(layout, { path: '/filters/0/type' }), /- \/filters\/0\/type \(/)
+    const itemState = describeState.toMarkdown(layout, { path: '/filters/0' })
+    assert.ok(!/readOnly/.test(itemState))
+    // field lines only: the scoped errors are listed by path too
+    assert.equal(itemState.split('\n').filter((l) => /^ *- \/filters\/0\/\w+ \(/.test(l)).length, 2)
 
     // the children are editable
     setFieldValue.execute(layout, { path: '/filters/0/type', value: 'in' })
@@ -1111,9 +1098,9 @@ describe('webmcp array item edition', () => {
     assert.ok(listNode)
     // simulate a node whose children were not hydrated
     const fakeNode = { ...listNode, children: undefined, skeleton: { ...listNode.skeleton, children: compiled.skeletonNodes[compiled.skeletonTrees[compiled.mainTree].root].children } }
-    const projected = projectNode(/** @type {any} */(fakeNode), layout)
-    assert.ok(projected.declaredFields, 'declared fields should be projected')
-    assert.ok(/** @type {any[]} */(projected.declaredFields).find((f) => f.key === 'name' && f.required))
+    const markdown = projectNodeToMarkdown(/** @type {any} */(fakeNode), layout)
+    assert.match(markdown, /declared/, 'declared fields should be projected')
+    assert.match(markdown, /\/name \([^)]*declared, required\)/)
   })
 })
 
@@ -1378,13 +1365,6 @@ describe('webmcp suggestions flag', () => {
     return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
   }
 
-  /**
-   * @param {StatefulLayout} layout
-   * @param {string} key
-   * @returns {any}
-   */
-  const nodeFor = (layout, key) => (layout.stateTree.root.children ?? []).find((c) => c.key === key)
-
   it('should only flag suggestions on nodes that actually have an items source', () => {
     // The flag used to come from the component kind alone, so a plain array of strings —
     // which renders as a combobox and has no getItems — announced suggestions. The
@@ -1402,12 +1382,6 @@ describe('webmcp suggestions flag', () => {
     // than sending the agent to fetch what the form already holds
     assert.ok(lineFor('pickedList').includes('values=["a","b"]'), `got: ${lineFor('pickedList')}`)
     assert.ok(lineFor('picker').includes('values=["x","y"]'), `got: ${lineFor('picker')}`)
-
-    // the structured projection is a second, independent surface with the same promise
-    const layout2 = layoutOf()
-    assert.ok(!projectNode(nodeFor(layout2, 'plainList'), layout2).getSuggestions)
-    assert.ok(projectNode(nodeFor(layout2, 'pickedList'), layout2).getSuggestions)
-    assert.ok(projectNode(nodeFor(layout2, 'picker'), layout2).getSuggestions)
   })
 
   it('should keep the flag and getFieldSuggestions in agreement', async () => {
@@ -1541,7 +1515,7 @@ describe('webmcp suggestions store, through the tools', () => {
 
     const first = await tool.execute({ path: '/shape/$oneOf' })
     const second = await tool.execute({ path: '/shape/$oneOf' })
-    const indicesOf = (/** @type {any} */ res) => res.structuredContent.items.map((/** @type {any} */ i) => i.index)
+    const indicesOf = (/** @type {any} */ res) => [...textOf(res).matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]))
 
     assert.deepEqual(indicesOf(first), [0, 1])
     assert.deepEqual(indicesOf(second), [2, 3], 'a repeated search must not reuse indices it already handed out')
@@ -1594,7 +1568,7 @@ describe('webmcp large value rendering', () => {
     // index that no longer means what it meant. Volume is a question of when to call
     // getData on a large form, which the guide answers; the tool does not get to lie.
     assert.deepEqual(JSON.parse(text).data, { title: 'Nos données', datasets: [big] })
-    assert.deepEqual(res.structuredContent.data, { title: 'Nos données', datasets: [big] })
+    assert.deepEqual(JSON.parse(textOf(res)).data, { title: 'Nos données', datasets: [big] })
     assert.ok(text.includes('col0'), 'the whole value must be present')
   })
 })
@@ -1620,18 +1594,17 @@ describe('webmcp getData by path', () => {
 
   it('should still return the whole data with no path', async () => {
     const res = await call(toolsFor(), {})
-    assert.deepEqual(res.structuredContent.data, data)
+    assert.deepEqual(JSON.parse(textOf(res)).data, data)
   })
 
   it('should return only the subtree asked for, faithfully', async () => {
     // The point is to remove the reason to pull the whole document, not to shrink what is
     // returned: everything here is real data, so it can still be forwarded to an API.
     const res = await call(toolsFor(), { path: '/title' })
-    assert.equal(res.structuredContent.data, 'Nos données')
+    assert.equal(JSON.parse(textOf(res)).data, 'Nos données')
     const sub = await call(toolsFor(), { path: '/datasets/0' })
-    assert.deepEqual(sub.structuredContent.data, dataset, 'a subtree is returned in full, never abbreviated')
-    const text = sub.content.map((/** @type {any} */ p) => p.text ?? '').join('')
-    assert.ok(text.includes('col0'))
+    assert.deepEqual(JSON.parse(textOf(sub)).data, dataset, 'a subtree is returned in full, never abbreviated')
+    assert.ok(textOf(sub).includes('col0'))
   })
 
   it('should report an unknown path rather than answer with nothing', async () => {

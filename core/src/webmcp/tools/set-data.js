@@ -18,33 +18,6 @@ export const inputSchema = {
   required: ['data']
 }
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    valid: { type: 'boolean' },
-    removed: {
-      type: 'array',
-      description: 'Root keys that were dropped because merge was disabled',
-      items: { type: 'string' }
-    },
-    unknownKeys: {
-      type: 'array',
-      description: 'Keys of the written data that match no field of the form, usually a typo',
-      items: { type: 'string' }
-    },
-    errors: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          path: { type: 'string' },
-          message: { type: 'string' }
-        }
-      }
-    }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}

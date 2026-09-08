@@ -137,7 +137,6 @@ export class WebMCP {
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
-        outputSchema: { type: 'string' },
         execute: async (args) => {
           try {
             return {
@@ -159,7 +158,6 @@ export class WebMCP {
         name: this._toolName('getData'),
         description: getData.getDescription(dataTitle),
         inputSchema: getData.inputSchema,
-        outputSchema: getData.outputSchema,
         execute: async (args) => {
           try {
             const result = getData.execute(this._statefulLayout, args || {})
@@ -169,8 +167,7 @@ export class WebMCP {
             // large form is a question of when to call this at all, which the guide
             // answers — not a licence for the tool to answer with something else.
             return {
-              content: [{ type: 'text', text: JSON.stringify(result) }],
-              structuredContent: result
+              content: [{ type: 'text', text: JSON.stringify(result) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -185,7 +182,6 @@ export class WebMCP {
         name: this._toolName('setData'),
         description: setData.getDescription(dataTitle),
         inputSchema: setData.inputSchema,
-        outputSchema: setData.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.data) {
@@ -211,8 +207,7 @@ export class WebMCP {
             const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
             const text = [formatMutationResult(result.valid, result.errors), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
             return {
-              content: [{ type: 'text', text }],
-              structuredContent: result
+              content: [{ type: 'text', text }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -227,14 +222,11 @@ export class WebMCP {
         name: this._toolName('describeState'),
         description: describeState.getDescription(dataTitle),
         inputSchema: describeState.inputSchema,
-        outputSchema: describeState.outputSchema,
         execute: async (args) => {
           try {
-            const result = describeState.execute(this._statefulLayout, args || {})
             const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo)
             return {
-              content: [{ type: 'text', text }],
-              structuredContent: result
+              content: [{ type: 'text', text }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -249,7 +241,6 @@ export class WebMCP {
         name: this._toolName('setFieldValue'),
         description: setFieldValue.getDescription(dataTitle),
         inputSchema: setFieldValue.inputSchema,
-        outputSchema: setFieldValue.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.path) {
@@ -277,8 +268,7 @@ export class WebMCP {
               fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
             }
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }],
-              structuredContent: result
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -293,7 +283,6 @@ export class WebMCP {
         name: this._toolName('getFieldSuggestions'),
         description: getFieldSuggestions.getDescription(dataTitle),
         inputSchema: getFieldSuggestions.inputSchema,
-        outputSchema: getFieldSuggestions.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.path) {
@@ -306,8 +295,7 @@ export class WebMCP {
             )
             const suggestions = projectSuggestions(result.items, result.baseIndex)
             return {
-              content: [{ type: 'text', text: formatSuggestions(suggestions) }],
-              structuredContent: { items: suggestions }
+              content: [{ type: 'text', text: formatSuggestions(suggestions) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -322,7 +310,6 @@ export class WebMCP {
         name: this._toolName('editArray'),
         description: editArray.getDescription(dataTitle),
         inputSchema: editArray.inputSchema,
-        outputSchema: editArray.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.path || !args?.action) {
@@ -346,8 +333,7 @@ export class WebMCP {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }],
-              structuredContent: result
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -376,8 +362,7 @@ export class WebMCP {
         execute: async () => {
           const config = { prompt, tools: toolNames }
           return {
-            content: [{ type: 'text', text: JSON.stringify(config) }],
-            structuredContent: config
+            content: [{ type: 'text', text: JSON.stringify(config) }]
           }
         }
       })

@@ -23,41 +23,6 @@ export const inputSchema = {
   required: ['path']
 }
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    valid: { type: 'boolean' },
-    field: {
-      type: 'object',
-      properties: {
-        path: { type: 'string' },
-        type: { type: 'string' },
-        data: {},
-        error: { type: 'string' }
-      }
-    },
-    errors: {
-      type: 'array',
-      description: 'Errors of this field and its children only',
-      items: {
-        type: 'object',
-        properties: {
-          path: { type: 'string' },
-          message: { type: 'string' }
-        }
-      }
-    },
-    otherErrors: {
-      type: 'number',
-      description: 'Number of errors in the rest of the form'
-    },
-    activatedMarkdown: {
-      type: 'string',
-      description: 'Present only when a variant selector was switched: the fields of the branch it activated, so they can be written without describing the state again'
-    }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}

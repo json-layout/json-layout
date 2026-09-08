@@ -2,13 +2,6 @@
  * @file fillFormSkill tool
  */
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    content: { type: 'string' }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}
