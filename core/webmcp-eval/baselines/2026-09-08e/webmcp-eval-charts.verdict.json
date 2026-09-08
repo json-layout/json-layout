@@ -1,0 +1,28 @@
+{
+  "case": "charts",
+  "verdict": "satisfactory",
+  "reasoning": "The goal is fully met and the form ends valid: chart variant 1 gives type=bar, config variant 2 with groupBy.field=nom_com and valueCalc {type:metric, metric:avg, field:valeur} is exactly 'average measured value per commune', title='Pollution by commune', legendPosition='right', on the Poitiers hourly-pollutant dataset. Every value is traceable and nothing was invented: the dataset from suggestionIndex=0 on a queried autocomplete, nom_com and valeur from getFieldSuggestions listings, 'avg' from the inline values=[\"avg\",\"min\",\"max\",\"sum\"] on the metric line, 'right' from the inline values on legendPosition, and only the literal title from the goal. Of the three getFieldSuggestions calls NONE duplicated a list already shown as values=[...]: all three targeted fields marked '(..., suggestions)' with no inline enum, and the agent notably did not spend calls on metric, sortBy, sortOrder or legendPosition, whose closed lists it read straight off the field lines. 14 calls against a floor of roughly 13, one describeState, no re-describes, no wrong-path guesses; the variants-memo dedup note in call 3 was resolved from memory rather than re-fetched. 72% of the 16566 bytes sit in four responses: the closing getData (4757, 29%), the config-variant expansion (2707), the opening describeState (2575) and the dataset suggestion list (2448); the eight setFieldValue confirmations cost 966 bytes in total.",
+  "friction": [
+    {
+      "call": 14,
+      "tool": "getData",
+      "observed": "args {\"path\": \"/$allOf-1\"} returned the entire root document — qsFilter, datasets, title and legendPosition all live under $allOf-0/$allOf-2 — including the 4213-char dataset schema, 4757 bytes",
+      "inferred": "The agent asked for one section and had no signal that it got the whole document instead. $allOf-N nodes are layout-only wrappers whose node.data IS the parent's data, and get-data.js returns node.data unqualified, so a path describeState presents as a real addressable section resolves to the root object. Verified independently: getData with path /$allOf-1 and with no path return byte-identical payloads. The tool's description promises 'pass path to read one part of it rather than the entire document'.",
+      "severity": "medium"
+    },
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-0/datasets/0 (autocomplete) = <object, 4213 chars - call getData with this path to read it>",
+      "inferred": "The suppression is right, but the appended invitation points at a blob containing nothing the agent needed — the dataset's columns arrive as clean field suggestions instead. The agent resisted it here, then reached for getData at the end and got the blob anyway.",
+      "severity": "low"
+    },
+    {
+      "call": 8,
+      "tool": "setFieldValue",
+      "observed": "no error here / form has 3 other error(s) elsewhere, one call after call 7 reported only 2",
+      "inferred": "The count grew from 2 to 3 while the agent was fixing errors, because a single missing field is counted at parent and child levels. Nothing was derailed, but an unlisted count that rises after a successful write invites a describeState confirming nothing is wrong.",
+      "severity": "low"
+    }
+  ]
+}

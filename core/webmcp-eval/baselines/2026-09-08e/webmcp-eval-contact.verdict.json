@@ -1,0 +1,14 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "The goal is fully met and the session is near-minimal in shape. Call 1 (describeState) returned everything the form required in one 553-byte answer: the four paths, their types and constraints (birthYear number min=1800 max=2100, email format=email), the two required fields, and crucially the closed list values=[\"email\",\"phone\",\"post\"] for contactMethod — so the agent never needed getFieldSuggestions or getSchema, and never had to guess an enum token. Call 2 (setData) wrote all four values in one shot and came back 'valid, no errors'. Every stored value is traceable: name, birthYear and email come verbatim from the goal, and contactMethod='email' is the goal's phrase mapped onto an enum member that describeState had already shown, not invented. Final data is valid with no extra or missing keys. The only questionable call is the closing getData: setData's response had already asserted validity and, by reporting no unknownKeys and no removed keys, had already confirmed that all four keys were ones the form carries; getData added only the echo of values the agent itself had just supplied. It is a re-read rather than verification — one wasted round trip out of three, cheap here (115 bytes) but a habit that would be expensive on the larger cases. Two calls would have been the right shape; three is a small, understandable overshoot and nothing in the protocol misled the agent.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "setData",
+      "observed": "valid, no errors",
+      "inferred": "The agent learned the form is now valid but was told nothing about what was actually stored — no echo of the written values, no confirmation that birthYear was accepted as a number or that contactMethod matched the enum. It concluded a separate read was needed and spent call 3 on getData, which returned only the values it had itself just passed in.",
+      "severity": "low"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "case": "portal-page",
+  "verdict": "satisfactory",
+  "reasoning": "The goal is fully met and the document is valid: title 'Nos donnees ouvertes', one elements[0] of type two-columns, children[0] a text block with 'Bienvenue' and children2[0] with 'Contactez-nous'. Eight load-bearing calls plus one redundant getData. The guide's new variant-selector paragraph was followed exactly as written: the agent read 'variant 12: Deux colonnes' from the list and set the $oneOf path to the integer 12, and the response answered with the fields of the activated branch, so no extra read was needed to discover disposition/children/children2. The variants memo now visibly does its job: the 39-branch union is printed once at call 3 (~1.2 KB) and at calls 5 and 6 is replaced by a ~150-byte pointer. The agent never needed to re-request it, because both editArray responses also showed the default-activated 'Texte' branch with its content field — the branch it wanted — so the pointer cost nothing and saved ~2.4 KB. Byte breakdown: describeState 1591 (21%), the three editArray responses plus the variant switch 5130 (69%, of which ~1.2 KB is the one union list and ~600 bytes is inline help on fields the goal never touched — the one genuinely long help, 631 chars, was correctly elided to a pointer), the three value writes 293 (4%), the closing getData 386 (5%). No tool response asserted anything untrue and no path was guessed wrongly.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "children (array, required, 0 items) title=\"Contenu\" and children2 title=\"Deuxieme contenu\", while the sibling align section is labelled \"Colonne 1\"/\"Colonne 2\"",
+      "inferred": "The agent concluded children is the left column and children2 the right, which is correct, but the response never says so; the mapping rests on ordering and on carrying Colonne 1/Colonne 2 across from the align subsection. A goal phrased in left/right terms had to be resolved by inference rather than by anything the tool stated.",
+      "severity": "low"
+    },
+    {
+      "call": 9,
+      "tool": "getData",
+      "observed": "the whole document, 386 bytes",
+      "inferred": "Read back to confirm writes whose own responses had each already ended 'no error here / form is valid', against the guide's line that writes report validity so you rarely need to read anything back.",
+      "severity": "low"
+    }
+  ]
+}
