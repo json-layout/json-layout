@@ -43,24 +43,6 @@ export function abbreviateValue (value) {
   return `<${typeof value}, ${json.length} chars>`
 }
 
-/**
- * Abbreviate the oversized objects nested in a data document while keeping its shape.
- * The root is never collapsed and arrays are always walked, so item counts and every
- * small value survive — those are what an agent reads getData to verify.
- * @param {unknown} value
- * @param {number} [depth]
- * @returns {unknown}
- */
-export function abbreviateData (value, depth = 0) {
-  if (value === null || typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map((item) => abbreviateData(item, depth + 1))
-  const json = JSON.stringify(value)
-  if (depth > 0 && json !== undefined && json.length > DISPLAYED_VALUE_MAX_LENGTH) {
-    return `<object, ${json.length} chars — describeState its path to read it>`
-  }
-  return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, abbreviateData(v, depth + 1)]))
-}
-
 const constraintKeys = {
   'number-field': ['min', 'max', 'step', 'precision'],
   slider: ['min', 'max', 'step'],

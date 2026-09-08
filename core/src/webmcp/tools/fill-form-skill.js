@@ -56,6 +56,7 @@ Then use ${prefixName}describeState and iterate with ${prefixName}setFieldValue.
     skill += `
 Given the large complexity of this form you should avoid reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}.
 Prefer using ${prefixName}describeState and iterating with ${prefixName}setFieldValue.
+For the same reason avoid re-reading the whole document with ${prefixName}getData to check your work: every write already tells you whether the form is valid and what is wrong, and ${prefixName}describeState takes a path when you want to look at one part. Call ${prefixName}getData when you actually need the data itself.
 `
     if (hasSchema) {
       skill += `The full schema will not even be returned by ${prefixName}getSchema if it is too large, call it with a "path" parameter (a node path returned by ${prefixName}describeState) to read only the sub-schema of this node.

@@ -13,7 +13,7 @@ import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, abbreviateData } from './project.js'
+import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue } from './project.js'
 import { SuggestionsStore } from './suggestions-store.js'
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
@@ -181,12 +181,14 @@ export class WebMCP {
         execute: async (args) => {
           try {
             const result = getData.execute(this._statefulLayout, args || {})
-            // Oversized nested objects are named rather than printed; the shape and every
-            // small value survive, which is what an agent reads getData to verify.
-            const shown = { ...result, data: abbreviateData(result.data) }
+            // Returned whole, always. This tool's answer IS the data: an agent may hand it
+            // to an API, and a document with named placeholders where its values should be
+            // would be forwarded as those strings with nothing looking wrong. Volume on a
+            // large form is a question of when to call this at all, which the guide
+            // answers — not a licence for the tool to answer with something else.
             return {
-              content: [{ type: 'text', text: JSON.stringify(shown) }],
-              structuredContent: shown
+              content: [{ type: 'text', text: JSON.stringify(result) }],
+              structuredContent: result
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)

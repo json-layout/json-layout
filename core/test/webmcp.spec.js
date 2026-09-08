@@ -1745,7 +1745,7 @@ describe('webmcp large value rendering', () => {
     assert.match(text, /<object, \d+ chars/)
   })
 
-  it('should abbreviate nested objects in getData but keep the shape', async () => {
+  it('should return the data whole from getData, never abbreviated', async () => {
     const schema = {
       type: 'object',
       properties: {
@@ -1758,9 +1758,13 @@ describe('webmcp large value rendering', () => {
     const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
     const res = await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute({})
     const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
-    assert.ok(text.includes('Nos données'), 'small values must survive — this is what the agent verifies')
-    assert.ok(text.includes('datasets'), 'the shape must survive')
-    assert.ok(!text.includes('col0'), 'the oversized nested object must not be printed')
-    assert.match(text, /<object, \d+ chars/)
+    // This tool's answer IS the data. An agent may forward it to an API, so a document
+    // carrying a placeholder where a value should be would be sent as that placeholder
+    // with nothing looking wrong — the same silent-wrong-value class as a suggestion
+    // index that no longer means what it meant. Volume is a question of when to call
+    // getData on a large form, which the guide answers; the tool does not get to lie.
+    assert.deepEqual(JSON.parse(text).data, { title: 'Nos données', datasets: [big] })
+    assert.deepEqual(res.structuredContent.data, { title: 'Nos données', datasets: [big] })
+    assert.ok(text.includes('col0'), 'the whole value must be present')
   })
 })
