@@ -50,8 +50,7 @@ export const TOOL_NAMES = [
   'describeState',
   'setFieldValue',
   'getFieldSuggestions',
-  'editArray',
-  'getSchema'
+  'editArray'
 ]
 
 /**

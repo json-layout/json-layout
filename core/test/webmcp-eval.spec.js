@@ -2,9 +2,6 @@ import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
 import { compile } from '../src/compile/index.js'
-import { StatefulLayout } from '../src/state/index.js'
-import { getComplexity } from '../src/webmcp/index.js'
-import * as getSchema from '../src/webmcp/tools/get-schema.js'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
 import { TOOL_NAMES } from '../webmcp-eval/run-case.js'
@@ -37,33 +34,10 @@ describe('webmcp eval cases', () => {
       assert.ok(compiled.skeletonTrees[compiled.mainTree], 'should produce a main tree')
     })
 
-    it(`should place ${evalCase.name} in its declared complexity band`, () => {
-      // The check the old dataset case slipped past: it was labelled large and was medium.
-      const compiled = compile(evalCase.schema)
-      const mainTree = compiled.skeletonTrees[compiled.mainTree]
-      const layout = new StatefulLayout(compiled, mainTree, {}, evalCase.data)
-      assert.equal(getComplexity(layout), evalCase.expectedComplexity)
-    })
-
-    it(`should match the declared getSchema behaviour for ${evalCase.name}`, () => {
-      // Band and schema size are independent — calendar is large yet its schema fits —
-      // so only a case declaring expectedSchemaFits false exercises path navigation.
-      const compiled = compile(evalCase.schema)
-      const mainTree = compiled.skeletonTrees[compiled.mainTree]
-      const layout = new StatefulLayout(compiled, mainTree, {}, evalCase.data)
-      const result = getSchema.execute(layout, evalCase.schema, {})
-      assert.equal(!result.tooLarge, evalCase.expectedSchemaFits)
-      // Refusing is only half of the contract: a case that declares the refusal branch
-      // must also hand the agent somewhere to go, or the branch is a dead end.
-      if (!evalCase.expectedSchemaFits) {
-        assert.ok((result.paths ?? []).length > 0, 'a refused schema must offer sub-paths to navigate by')
-      }
-    })
-
     it(`should state a usable goal for ${evalCase.name}`, () => {
       // The goal is the runner's only input, so it must read as a user request.
       assert.ok(evalCase.goal.length > 20, 'goal should be a sentence')
-      for (const toolName of ['setFieldValue', 'getSchema', 'describeState', 'editArray', 'setData']) {
+      for (const toolName of ['setFieldValue', 'describeState', 'editArray', 'setData']) {
         assert.ok(!evalCase.goal.includes(toolName), `goal must not name the ${toolName} tool`)
       }
     })
@@ -83,10 +57,14 @@ describe('webmcp eval cases', () => {
     assert.ok(labelNode?.layout.getItems, 'the label picker must carry a getItems layout')
   })
 
-  it('should cover both getSchema branches across the case set', () => {
-    // Without at least one oversized schema, nothing reaches the refusal path.
-    assert.ok(cases.some((c) => c.expectedSchemaFits === false), 'need a case whose schema is refused')
-    assert.ok(cases.some((c) => c.expectedSchemaFits === true), 'need a case whose schema is returned whole')
+  it('should keep a case whose form is far past what one read can cover', () => {
+    // The suite has to include something no agent could take in at once, or every finding
+    // comes from forms small enough to hold in mind. Counting normalized layouts is not a
+    // protocol concept any more — nothing branches on it — but it is still the plainest
+    // measure of that.
+    const sizes = cases.map((c) => Object.keys(compile(c.schema).normalizedLayouts).length)
+    assert.ok(Math.max(...sizes) > 200, `the largest case is only ${Math.max(...sizes)} layouts`)
+    assert.ok(Math.min(...sizes) < 15, 'and one small enough to answer in a couple of calls')
   })
 })
 

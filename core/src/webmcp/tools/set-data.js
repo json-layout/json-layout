@@ -47,14 +47,10 @@ export const outputSchema = {
 
 /**
  * @param {string} dataTitle
- * @param {"small"|"medium"|"large"} [complexity]
  * @returns {string}
  */
-export function getDescription (dataTitle, complexity) {
-  if (complexity === 'large') {
-    return `Set all "${dataTitle}" data at once. For complex forms, prefer setFieldValue for incremental changes.`
-  }
-  return `Set all "${dataTitle}" data at once. Best for simple forms. Check errors in the response, use describeState if you need the full form structure.`
+export function getDescription (dataTitle) {
+  return `Set all "${dataTitle}" data at once, for when you already know every value. Prefer setFieldValue to change one field. Check the errors in the response.`
 }
 
 /**

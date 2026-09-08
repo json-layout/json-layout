@@ -48,13 +48,12 @@ import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
 export const DEFAULT_DATA_FAIR_URL = 'https://koumoul.com/data-fair/'
 
 /**
- * Tool configurations a case can be run under. The default is what a page that hands
- * WebMCP its schema exposes; `no-schema` is what portals actually ships, where the
- * compiled layout carries no schema so no getSchema tool exists and the guide tells the
- * agent to read describeState instead. Running one case both ways is how the harness
- * answers whether shipping the schema earns its bundle size.
+ * Tool configurations a case can be run under. There is one, since every page now gets the
+ * same tools: `no-schema` was retired with getSchema itself, once describeState carried the
+ * validation constraints that only the raw schema used to hold. The machinery is kept
+ * because the next ablation — running with and without the guide, say — plugs into it.
  */
-export const VARIANTS = ['default', 'no-schema']
+export const VARIANTS = ['default']
 
 /**
  * @param {EvalCase} evalCase
@@ -63,7 +62,9 @@ export const VARIANTS = ['default', 'no-schema']
  */
 export function applyVariant (evalCase, variant) {
   if (!variant || variant === 'default') return evalCase
-  if (variant === 'no-schema') return { ...evalCase, withSchema: false }
+  // The 'no-schema' variant was retired with getSchema: there is no longer a second tool
+  // configuration to compare against. The machinery stays because the next ablation — the
+  // guide, say — plugs straight into it.
   throw new Error(`unknown variant "${variant}", available: ${VARIANTS.join(', ')}`)
 }
 
@@ -129,15 +130,11 @@ export class EvalSession {
     // No fillFormSkill tool: production pages enable includeSubAgent, which hands the
     // guide to the runner as its prompt. Clean runners never called the tool anyway —
     // only ones contaminated by a "always invoke a skill first" instruction did.
-    const withSchema = evalCase.withSchema !== false
-    const webmcp = new WebMCP(this._layout, {
-      dataTitle: evalCase.title,
-      ...(withSchema ? { schema: evalCase.schema } : {})
-    })
+    const webmcp = new WebMCP(this._layout, { dataTitle: evalCase.title })
     this._tools = webmcp.getTools()
     // The same pair the subagent tool returns to a page: the guide, and the tools it
     // describes. The launcher injects them; nothing here is a tool the runner can call.
-    this._skill = generateSkill(evalCase.title, '', withSchema, this._layout)
+    this._skill = generateSkill(evalCase.title, '')
   }
 
   /** @returns {import('@mcp-b/webmcp-types').ToolDescriptor[]} */

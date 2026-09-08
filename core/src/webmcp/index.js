@@ -11,7 +11,6 @@ import * as setData from './tools/set-data.js'
 import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
-import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
 import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff } from './project.js'
 import { resolveNode } from './resolve.js'
@@ -46,21 +45,9 @@ function parseIfJsonString (value) {
  * @typedef {object} WebMCPOptions
  * @property {string} [prefixName] - Prefix for all tool names
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
- * @property {object} [schema] - The original JSON schema
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
  * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
  */
-
-/**
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {"small"|"medium"|"large"}
- */
-export function getComplexity (statefulLayout) {
-  const nbNormalizedLayouts = Object.keys(statefulLayout.compiledLayout.normalizedLayouts).length
-  if (nbNormalizedLayouts > 50) return 'large'
-  if (nbNormalizedLayouts > 15) return 'medium'
-  return 'small'
-}
 
 /**
  * WebMCP class that provides MCP tool descriptors for a StatefulLayout instance
@@ -83,18 +70,6 @@ export class WebMCP {
    * @type {string}
    */
   _dataTitle
-
-  /**
-   * @readonly
-   * @type {"small"|"medium"|"large"}
-   */
-  _complexity
-
-  /**
-   * @readonly
-   * @type {object | null}
-   */
-  _schema = null
 
   /**
    * @readonly
@@ -136,10 +111,8 @@ export class WebMCP {
     this._statefulLayout = statefulLayout
     this._prefixName = options.prefixName || ''
     this._dataTitle = options.dataTitle || 'form'
-    this._schema = options.schema || null
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
-    this._complexity = getComplexity(statefulLayout)
   }
 
   /**
@@ -155,13 +128,12 @@ export class WebMCP {
    */
   getTools () {
     const dataTitle = this._dataTitle
-    const complexity = this._complexity
 
     /** @type {ToolDescriptor[]} */
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, !!this._schema, this._statefulLayout)
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName)
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
@@ -211,7 +183,7 @@ export class WebMCP {
       },
       {
         name: this._toolName('setData'),
-        description: setData.getDescription(dataTitle, complexity),
+        description: setData.getDescription(dataTitle),
         inputSchema: setData.inputSchema,
         outputSchema: setData.outputSchema,
         execute: async (args) => {
@@ -253,7 +225,7 @@ export class WebMCP {
       },
       {
         name: this._toolName('describeState'),
-        description: describeState.getDescription(dataTitle, complexity),
+        description: describeState.getDescription(dataTitle),
         inputSchema: describeState.inputSchema,
         outputSchema: describeState.outputSchema,
         execute: async (args) => {
@@ -388,33 +360,9 @@ export class WebMCP {
       }
     )
 
-    if (this._schema) {
-      tools.push({
-        name: this._toolName('getSchema'),
-        description: getSchema.getDescription(dataTitle),
-        inputSchema: getSchema.inputSchema,
-        outputSchema: getSchema.outputSchema,
-        execute: async (args) => {
-          try {
-            const result = getSchema.execute(this._statefulLayout, this._schema, /** @type {{ path?: string }} */(args || {}))
-            return {
-              content: [{ type: 'text', text: getSchema.toText(result) }],
-              structuredContent: result.schema && !result.path ? result.schema : result
-            }
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err)
-            return {
-              content: [{ type: 'text', text: `Error: ${message}` }],
-              isError: true
-            }
-          }
-        }
-      })
-    }
-
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, !!this._schema, this._statefulLayout)
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName)
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,

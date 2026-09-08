@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert'
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
 import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase, sidecarPath } from '../webmcp-eval/run-case.js'
+import { applyVariant, evidenceName } from '../webmcp-eval/session.js'
 
 /**
  * A fresh directory per test, so a stubbed run never writes into this package's own
@@ -49,7 +50,7 @@ describe('webmcp eval runner launch arguments', () => {
 
   it('should grant exactly the page-form tools and no built-in tool', () => {
     // A positive allow-list check: an emptied TOOL_NAMES must fail here, not pass vacuously.
-    assert.ok(TOOL_NAMES.length >= 7, 'TOOL_NAMES must not be emptied out, or this check is vacuous')
+    assert.ok(TOOL_NAMES.length >= 6, 'TOOL_NAMES must not be emptied out, or this check is vacuous')
     const args = buildLaunchArgs(getCase('contact'), options)
     const allowed = optionValue(args, '--allowedTools').split(',')
     assert.deepEqual(allowed, TOOL_NAMES.map((t) => `mcp__${MCP_SERVER_NAME}__${t}`))
@@ -232,20 +233,15 @@ describe('webmcp eval runner execution', () => {
     assert.equal(record.denials.length, 1)
   })
 
-  it('should write a variant run beside its control, never over it', async () => {
-    // The whole point of a variant is comparison, so its evidence must not stand in for
-    // the control's. Every exit path of runCase writes provenance, so this pins all of
-    // them: an early return that forgot the variant would overwrite the run it exists
-    // to be compared against, and the report would show one result twice.
-    const sidecarDir = tmpSidecarDir()
-    const spawn = async () => ({ code: 0, stdout: claudeOutput(), stderr: '' })
-    await runCase(getCase('contact'), { spawn, sidecarDir })
-    await runCase(getCase('contact'), { spawn, sidecarDir, variant: 'no-schema' })
-    const control = JSON.parse(readFileSync(sidecarPath('contact', sidecarDir), 'utf8'))
-    const ablation = JSON.parse(readFileSync(sidecarPath('contact--no-schema', sidecarDir), 'utf8'))
-    assert.equal(control.case, 'contact')
-    assert.equal(ablation.case, 'contact')
-    assert.ok(existsSync(sidecarPath('contact--no-schema', sidecarDir)), 'the variant needs its own sidecar')
+  it('should name a variant run so it cannot stand in for its control', () => {
+    // There is no second variant to run since getSchema went, so this can no longer be
+    // exercised end to end. What it guarded is still worth pinning: a variant's evidence
+    // must not overwrite the run it exists to be compared against, and an unknown variant
+    // must be refused rather than silently treated as the control.
+    assert.equal(evidenceName('contact'), 'contact')
+    assert.equal(evidenceName('contact', 'default'), 'contact')
+    assert.equal(evidenceName('contact', 'guideless'), 'contact--guideless')
+    assert.throws(() => applyVariant(getCase('contact'), 'no-schema'), /unknown variant/)
   })
 
   it('should surface a non-zero exit rather than swallow it', async () => {

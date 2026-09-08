@@ -46,9 +46,7 @@ const contact = {
       contactMethod: { type: 'string', title: 'Preferred contact method', enum: ['email', 'phone', 'post'] }
     }
   },
-  data: {},
-  expectedComplexity: 'small',
-  expectedSchemaFits: true
+  data: {}
 }
 
 /**
@@ -81,9 +79,7 @@ const calendar = {
   goal: 'Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.',
   schema: v2compat(loadSchema('app-calendar.json'), undefined, 'fr'),
   data: {},
-  context: grandPoitiersContext,
-  expectedComplexity: 'large',
-  expectedSchemaFits: true
+  context: grandPoitiersContext
 }
 
 /**
@@ -102,21 +98,15 @@ const charts = {
   goal: 'Make a bar chart of the average measured value per commune from the dataset of hourly air pollutant concentrations in Poitiers, title it "Pollution by commune" and put the legend on the right.',
   schema: loadSchema('app-charts.json'),
   data: {},
-  context: grandPoitiersContext,
-  expectedComplexity: 'large',
-  expectedSchemaFits: false
+  context: grandPoitiersContext
 }
 
 /**
- * The page editor of data-fair/portals, and the only case that reproduces a shipped
- * WebMCP configuration exactly: that page hands WebMCP no schema, so it has no getSchema
- * tool and its guide points at describeState instead — `withSchema: false` reproduces
- * that, and flipping it is how the harness measures whether shipping the schema would
- * earn its bundle size.
+ * The page editor of data-fair/portals: the only case with an array the agent must build
+ * from empty, and the only one that recurses — a layout element contains elements, without
+ * bound. That makes it the only exercise of editArray, and of a 39-branch discriminated
+ * union.
  *
- * It is also the only case with an array the agent must build from empty, and the only
- * one that recurses: a layout element contains elements, without bound. That makes it
- * the only exercise of editArray, and of a 39-branch discriminated union.
  *
  * Vendored on 2026-09-07 from data-fair/portals @ 19f3a68c, by loading every
  * `api/types/<name>/schema.{js,ts}` module, indexing them by $id, and inlining each external
@@ -136,10 +126,7 @@ const portalPage = {
   goal: 'Title the page "Nos données ouvertes", then add a two column section with a text block in each column: "Bienvenue" on the left and "Contactez-nous" on the right.',
   schema: loadSchema('portal-page.json'),
   data: {},
-  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
-  withSchema: false,
-  expectedComplexity: 'large',
-  expectedSchemaFits: false
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
 }
 
 /** @type {EvalCase[]} */

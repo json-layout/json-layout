@@ -11,7 +11,6 @@ import * as setData from '../src/webmcp/tools/set-data.js'
 import * as getData from '../src/webmcp/tools/get-data.js'
 import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.js'
 import * as editArray from '../src/webmcp/tools/edit-array.js'
-import * as getSchema from '../src/webmcp/tools/get-schema.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
 import { helpToText, HELP_MAX_LENGTH, projectStateTree, projectStateTreeToMarkdown, projectNode, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
@@ -498,40 +497,6 @@ describe('webmcp WebMCP class', () => {
     assert.equal(result.structuredContent.itemCount, 2)
   })
 
-  it('should include getSchema when schema provided', () => {
-    const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const webmcp = new WebMCP(layout, { schema: simpleSchema })
-    const tools = webmcp.getTools()
-
-    const schemaTool = tools.find((t) => t.name === 'getSchema')
-    assert.ok(schemaTool)
-  })
-
-  it('should return getSchema in MCP format with structuredContent', async () => {
-    const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const webmcp = new WebMCP(layout, { schema: simpleSchema })
-    const tools = webmcp.getTools()
-
-    const schemaTool = tools.find((t) => t.name === 'getSchema')
-    assert.ok(schemaTool)
-
-    const result = await /** @type {any} */(schemaTool).execute({})
-    assert.ok(result.content)
-    assert.equal(result.content[0].type, 'text')
-    const parsed = JSON.parse(result.content[0].text)
-    assert.equal(parsed.type, 'object')
-    assert.ok(parsed.properties.name)
-    // structuredContent
-    assert.ok(result.structuredContent)
-    assert.equal(result.structuredContent.type, 'object')
-  })
-
   it('should accept data as JSON string in setData', async () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
@@ -670,142 +635,6 @@ const arrayOfObjectsSchema = {
     }
   }
 }
-
-/**
- * @param {number} nbProperties
- * @returns {object}
- */
-function makeLargeSchema (nbProperties) {
-  /** @type {Record<string, object>} */
-  const properties = {
-    section1: { type: 'object', title: 'Section 1', properties: {} },
-    name: { type: 'string' }
-  }
-  /** @type {Record<string, object>} */
-  const subProperties = /** @type {any} */(properties.section1).properties
-  for (let i = 0; i < nbProperties; i++) {
-    subProperties[`prop${i}`] = {
-      type: 'string',
-      title: `A property with a fairly long title to inflate the schema size ${i}`,
-      description: 'A description that is also quite long so that the serialized schema goes over the limit of the getSchema tool.'
-    }
-  }
-  return { type: 'object', properties }
-}
-
-describe('webmcp getSchema tool', () => {
-  it('should return the full schema when it is small enough', async () => {
-    const compiled = compile(simpleSchema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
-    const result = getSchema.execute(layout, simpleSchema, {})
-    assert.deepEqual(result.schema, simpleSchema)
-    assert.ok(!result.tooLarge)
-  })
-
-  it('should not return a schema larger than the limit and explain how to get sub-schemas', async () => {
-    const largeSchema = makeLargeSchema(200)
-    assert.ok(JSON.stringify(largeSchema).length > getSchema.SCHEMA_MAX_LENGTH)
-    const compiled = compile(largeSchema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
-
-    const webmcp = new WebMCP(layout, { schema: largeSchema })
-    const schemaTool = webmcp.getTools().find((t) => t.name === 'getSchema')
-    assert.ok(schemaTool)
-    const toolResult = await /** @type {any} */(schemaTool).execute({})
-
-    assert.ok(!toolResult.isError)
-    const text = toolResult.content[0].text
-    assert.ok(text.length < getSchema.SCHEMA_MAX_LENGTH, 'text output should stay small')
-    assert.ok(text.includes('too large'), 'should explain the problem')
-    assert.ok(text.includes('path'), 'should point to the path parameter')
-    assert.ok(text.includes('/section1'), 'should list top level paths')
-    assert.equal(toolResult.structuredContent.tooLarge, true)
-    assert.equal(toolResult.structuredContent.schema, undefined)
-    assert.ok(toolResult.structuredContent.paths.find((/** @type {any} */p) => p.path === '/name'))
-  })
-
-  it('should return the sub-schema of a node when path is provided', async () => {
-    const compiled = compile(arrayOfObjectsSchema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: [{}] })
-
-    const result = getSchema.execute(layout, arrayOfObjectsSchema, { path: '/filters/0' })
-    assert.equal(result.path, '/filters/0')
-    assert.deepEqual(result.schema, arrayOfObjectsSchema.$defs.filter)
-
-    const typeResult = getSchema.execute(layout, arrayOfObjectsSchema, { path: '/filters/0/type' })
-    assert.deepEqual(typeResult.schema, { type: 'string', enum: ['in', 'out'] })
-  })
-
-  it('should return the sub-schema by path through the tool with a large schema', async () => {
-    const largeSchema = makeLargeSchema(200)
-    const compiled = compile(largeSchema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
-    const webmcp = new WebMCP(layout, { schema: largeSchema })
-    const schemaTool = webmcp.getTools().find((t) => t.name === 'getSchema')
-    assert.ok(schemaTool)
-
-    const toolResult = await /** @type {any} */(schemaTool).execute({ path: '/section1/prop3' })
-    assert.ok(!toolResult.isError)
-    const parsed = JSON.parse(toolResult.content[0].text)
-    assert.equal(parsed.type, 'string')
-    assert.ok(parsed.title.includes('3'))
-  })
-
-  it('should resolve a sub-schema whose property key contains json pointer escape sequences', () => {
-    // skeleton pointers are built by concatenation, without RFC 6901 escaping,
-    // so their segments must be resolved raw: unescaping '~0' here would look for 'a~b'
-    const schema = {
-      type: 'object',
-      properties: { 'a~0b': { type: 'string', title: 'Tilde prop' } }
-    }
-    const compiled = compile(schema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
-    const result = getSchema.execute(layout, schema, { path: '/a~0b' })
-    assert.deepEqual(result.schema, schema.properties['a~0b'])
-  })
-
-  it('should fall back on the declared fields when no sub-schema can be resolved', async () => {
-    const compiled = compile(arrayOfObjectsSchema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: [{}] })
-    // no original schema and a compiled layout serialized without its schema
-    const result = getSchema.execute(layout, null, { path: '/filters/0' })
-    assert.ok(result.schema || result.fields, 'should return something usable')
-  })
-
-  it('should list the item fields when an array sub-schema is too large', () => {
-    /** @type {any} */
-    const bigItem = { type: 'object', properties: {} }
-    for (let i = 0; i < 130; i++) {
-      bigItem.properties[`prop${i}`] = {
-        type: 'string',
-        title: `A fairly long title to inflate the schema ${i}`,
-        description: 'A long description so that the serialized sub-schema goes over the getSchema limit.'
-      }
-    }
-    const schema = { type: 'object', properties: { filters: { type: 'array', layout: { comp: 'list' }, items: bigItem } } }
-    const compiled = compile(schema)
-
-    // an array keeps its item skeleton in childrenTrees, not in children
-    const withItem = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { filters: [{}] })
-    const result = getSchema.execute(withItem, schema, { path: '/filters' })
-    assert.equal(result.tooLarge, true)
-    assert.ok(result.fields && result.fields.length > 0, 'the fields promised by the message must be listed')
-    assert.ok(result.fields?.find((f) => f.path === '/filters/0/prop0'))
-    assert.ok(resolveNode(withItem.stateTree.root, '/filters/0/prop0'), 'the listed paths should resolve')
-
-    // with no item yet those paths cannot be reached, the message must say so
-    const empty = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { filters: [] })
-    const emptyResult = getSchema.execute(empty, schema, { path: '/filters' })
-    assert.ok(emptyResult.fields && emptyResult.fields.length > 0)
-    assert.ok(/** @type {string} */(emptyResult.message).includes('editArray'),
-      `the agent should be told to add an item first, got: ${emptyResult.message}`)
-  })
-
-  it('should have a description mentioning the path parameter', () => {
-    assert.ok(getSchema.getDescription('config').includes('path'))
-    assert.ok(getSchema.inputSchema.properties.path)
-  })
-})
 
 describe('webmcp suggestions truncation', () => {
   const bigDataset = {
@@ -1894,7 +1723,7 @@ describe('webmcp tool descriptions', () => {
     // guide, because the guide was never where it lived.
     // Only the tools whose description depends on nothing but the title; setData and
     // describeState also take the complexity band, so they are not comparable here.
-    const modules = { getData, setFieldValue, getFieldSuggestions, editArray, getSchema }
+    const modules = { getData, setFieldValue, getFieldSuggestions, editArray }
     let checked = 0
     for (const tool of registered()) {
       const mod = /** @type {any} */(modules)[tool.name]

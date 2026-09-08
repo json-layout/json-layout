@@ -41,15 +41,10 @@ export const outputSchema = {
 
 /**
  * @param {string} dataTitle
- * @param {"small"|"medium"|"large"} [complexity]
  * @returns {string}
  */
-export function getDescription (dataTitle, complexity) {
-  let desc = `Describe the "${dataTitle}" form structure, field types, constraints, and current errors.`
-  if (complexity === 'large') {
-    desc += ' Use the "path" parameter to focus on a subtree — avoid calling without a path on large forms.'
-  }
-  return desc
+export function getDescription (dataTitle) {
+  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form.`
 }
 
 /**
