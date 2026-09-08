@@ -2009,6 +2009,8 @@ describe('webmcp repeated variant lists', () => {
 
     assert.ok(!/- variant 0: Text/.test(nested), `the same union must not be listed again: ${nested}`)
     assert.match(nested, /2 variants, the same list already given for \/elements\/0\/\$oneOf/)
+    // "this path" was ambiguous between the path just named and the node being described
+    assert.match(nested, /call describeState on \/elements\/0\/\$oneOf\/1\/children\/0\/\$oneOf to see them again/)
     // the branch that is actually being edited is still spelled out
     assert.match(nested, /\/elements\/0\/\$oneOf\/1\/children\/0\/\$oneOf\/0\/content \(text\)/)
   })

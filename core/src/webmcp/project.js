@@ -436,7 +436,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
       // so name where it was given rather than repeat it
-      lines.push(`${indent}  - ${variants.length} variants, the same list already given for ${listedAt} — call describeState on this path to see them again`)
+      lines.push(`${indent}  - ${variants.length} variants, the same list already given for ${listedAt} — call describeState on ${path} to see them again`)
     }
   }
 
