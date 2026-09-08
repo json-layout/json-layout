@@ -1,0 +1,35 @@
+{
+  "case": "portal-page",
+  "verdict": "satisfactory",
+  "reasoning": "The agent completed the goal exactly and the final document is valid: title 'Nos donnees ouvertes', one element of type 'two-columns', one text child with content 'Bienvenue' in children and one with 'Contactez-nous' in children2. It navigated the hardest part of this suite — a 39-branch discriminated union reached through editArray and one level of recursion — without a single error or wrong path: it read the variant list once, set /$comp-2/elements/0/$oneOf to index 12 on the first try, then added an item to each of the two nested arrays and wrote straight into the pre-activated 'Texte' branch. No value was invented (the one inference not certified by any tool response, children = left column / children2 = right, is corroborated by the sibling align/left labelled 'Colonne 1' and children2's title 'Deuxieme contenu', and it matches the app). Ten calls against a floor of eight, with one call buying nothing. The known finding is real and measurable: the 39-variant list is ~1.48 KB per emission and was emitted three times (calls 4, 6, 7) for ~4.45 KB, i.e. 41% of the run's 10797 output bytes; the agent used it only at call 4, so the two repeats (~2.97 KB, ~27.5% of the run) bought no information at all — it never set the variant selector on either child, going directly to .../$oneOf/1/content. Costly, not misleading: nothing the agent read told it something untrue, so the protocol held.",
+  "friction": [
+    {
+      "call": 6,
+      "tool": "editArray",
+      "observed": "added item at index 0, 1 total. Fields of the new item (activated for edition): variant 0: Titre ... variant 38: Vignette d'actualite ... /$oneOf/1/content (text) label=\"Contenu\"",
+      "inferred": "The agent ignored the 39-variant list (~1.48 KB) entirely and wrote to the already-activated 'Texte' branch; the union was re-emitted because editArray projects the whole new item subtree unconditionally (core/src/webmcp/tools/edit-array.js line 141, core/src/webmcp/project.js lines 426-431). Pure output cost, ~14% of the run's bytes.",
+      "severity": "medium"
+    },
+    {
+      "call": 7,
+      "tool": "editArray",
+      "observed": "added item at index 0, 1 total ... the identical 39-variant list again for /$comp-2/elements/0/$oneOf/12/children2/0/$oneOf",
+      "inferred": "Third emission of the same closed list the agent had already read and used once. Again unused: the next two calls set content directly. Together with call 6 this is ~2.97 KB, ~27.5% of the whole run's output, spent on a list the form knew was constant.",
+      "severity": "medium"
+    },
+    {
+      "call": 4,
+      "tool": "editArray",
+      "observed": "- /$comp-2/elements/0/$oneOf (variant-selector) label=\"Type d'element\" [39 variants listed] ... - /$comp-2/elements/0/$oneOf/1 (section, required) title=\"Texte\"",
+      "inferred": "The selector line carries no selected= marker (project.js lines 391-394 only emit it when a oneOfItem is flagged selected), yet the subtree of variant 1 is rendered underneath. The agent had to infer from the rendered branch alone whether 'Texte' was already chosen or merely displayed as a default — it inferred correctly and relied on that at calls 6/7 to skip setting the variant, but the response did not state it.",
+      "severity": "low"
+    },
+    {
+      "call": 3,
+      "tool": "describeState",
+      "observed": "- /$comp-2/elements (array, required, 0 items) title=\"\" value=[] / no error here / form is valid",
+      "inferred": "Zero new information: a verbatim repeat of the last line of call 1's output. The round trip appears prompted by editArray's own description ('Use describeState to see current array contents'), which invites a lookup the agent had already done; it also had to work from an array whose title is the empty string.",
+      "severity": "low"
+    }
+  ]
+}
