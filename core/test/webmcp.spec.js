@@ -2147,3 +2147,75 @@ describe('webmcp instruction redundancy', () => {
     }
   })
 })
+
+describe('webmcp suggestions invalidated by a write', () => {
+  // charts hit this twice: getFieldSuggestions, one unrelated write, apply the index —
+  // and the store had thrown everything away. The first time the agent recovered in one
+  // call by copying the literal; the second it took three, re-fetching at the very end of
+  // the run. Clearing everything was correct but far broader than the hazard.
+  const schema = {
+    type: 'object',
+    properties: {
+      kind: { type: 'string' },
+      dependent: { type: 'string', layout: { getItems: { expr: 'rootData.kind === "a" ? ["a1","a2"] : ["b1","b2"]', pure: false } } },
+      fixed: { type: 'string', oneOf: [{ const: 'x', title: 'X' }, { const: 'y', title: 'Y' }] },
+      other: { type: 'string' }
+    }
+  }
+  const toolsOf = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, { kind: 'a' })
+    return new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+  }
+  /**
+   * @param {any[]} tools
+   * @param {string} name
+   * @param {any} args
+   * @returns {Promise<string>}
+   */
+  const run = async (tools, name, args) => {
+    const res = await /** @type {any} */(tools.find((t) => t.name === name)).execute(args)
+    return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+  }
+
+  it('should keep a suggestion a write could not have changed', async () => {
+    const tools = toolsOf()
+    await run(tools, 'getFieldSuggestions', { path: '/fixed' })
+    await run(tools, 'setFieldValue', { path: '/other', value: 'anything' })
+    const applied = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
+    assert.match(applied, /\/fixed \(select\) = "x"/, `a static enum cannot be changed by writing another field: ${applied}`)
+  })
+
+  it('should drop a suggestion whose options the write did change', async () => {
+    const tools = toolsOf()
+    await run(tools, 'getFieldSuggestions', { path: '/dependent' })
+    await run(tools, 'setFieldValue', { path: '/kind', value: 'b' })
+    const applied = await run(tools, 'setFieldValue', { path: '/dependent', suggestionIndex: 0 })
+    assert.match(applied, /were dropped by a write/, `the list really is stale here: ${applied}`)
+  })
+
+  it('should not tell an agent to fetch suggestions it had already fetched', async () => {
+    // the message is the other half: "call getFieldSuggestions on this path first" reads
+    // as "you never asked", and the eval shows an agent that reads it stops trusting
+    // suggestionIndex for the rest of the run
+    const tools = toolsOf()
+    await run(tools, 'getFieldSuggestions', { path: '/dependent' })
+    await run(tools, 'setFieldValue', { path: '/kind', value: 'b' })
+    const stale = await run(tools, 'setFieldValue', { path: '/dependent', suggestionIndex: 0 })
+    assert.ok(!/on this path first/.test(stale), `it did ask, one call ago: ${stale}`)
+    assert.match(stale, /again/)
+
+    const never = await run(toolsOf(), 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
+    assert.match(never, /no suggestion memorized.*on this path first/, `never fetched still says so: ${never}`)
+  })
+
+  it('should still drop everything when paths themselves may have moved', async () => {
+    // setData replaces the document and editArray shifts item indices: those invalidate
+    // what a path DESIGNATES, which no cache key can detect
+    const tools = toolsOf()
+    await run(tools, 'getFieldSuggestions', { path: '/fixed' })
+    await run(tools, 'setData', { data: { kind: 'a' } })
+    const applied = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
+    assert.match(applied, /were dropped by a write/, `got: ${applied}`)
+  })
+})

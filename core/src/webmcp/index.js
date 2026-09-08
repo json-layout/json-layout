@@ -14,6 +14,7 @@ import * as editArray from './tools/edit-array.js'
 import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
 import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff } from './project.js'
+import { resolveNode } from './resolve.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
 
@@ -289,9 +290,15 @@ export class WebMCP {
               this._suggestionsStore,
               this._variantsMemo
             )
-            // a getItems expression can depend on another field, so writing one may change the
-            // options of a field whose suggestions were memorized under an unchanged path
-            this._suggestionsStore.clear()
+            // A getItems expression can depend on another field, so this write may have
+            // changed the options of a field memorized under an unchanged path — but only
+            // of a field whose list actually depends on it. Comparing each memorized path's
+            // itemsCacheKey against the node's current one is how the state layer itself
+            // decides whether to re-fetch.
+            this._suggestionsStore.retainFresh((path, cacheKey) => {
+              const node = resolveNode(this._statefulLayout.stateTree.root, path)
+              return !!node && node.itemsCacheKey === cacheKey
+            })
             let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
             if (result.visibility) fieldInfo += formatVisibilityDiff(result.visibility)
             if (result.activatedMarkdown) {

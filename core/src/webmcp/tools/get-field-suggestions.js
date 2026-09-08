@@ -70,7 +70,7 @@ export async function execute (statefulLayout, args, store) {
     const items = (oneOfItems || [])
       .filter((item) => !item.header)
       .map((item) => ({ value: item.key, title: item.title }))
-    return { items, baseIndex: store?.add(args.path, items) ?? 0 }
+    return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
   }
 
   const rawItems = await statefulLayout.getItems(node, args.query)
@@ -89,5 +89,5 @@ export async function execute (statefulLayout, args, store) {
       return result
     })
 
-  return { items, baseIndex: store?.add(args.path, items) ?? 0 }
+  return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
 }
