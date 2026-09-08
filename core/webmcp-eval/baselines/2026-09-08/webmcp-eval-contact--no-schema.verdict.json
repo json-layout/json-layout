@@ -1,0 +1,21 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "The agent reached a complete, valid, and faithful result in five calls on a four-field form, and every value it wrote came from the goal or from a tool response rather than from invention. Without a getSchema tool it oriented itself with describeState, whose output was accurate and sufficient: it named all four paths, marked /name and /email required-and-erroring, gave the English labels the French-free goal needed to map onto, exposed the numeric constraints on /birthYear (min=1800, max=2100, step=1, precision=0 — a faithful rendering of the integer/minimum/maximum schema), and flagged /contactMethod as a select with suggestions. That flag is what made the one genuinely information-buying follow-up call obvious: getFieldSuggestions on /contactMethod returned the closed list email/phone/post, so the agent's choice of \"email\" for \"prefers to be contacted by email\" was read off the form rather than guessed at. It then wrote the whole object in a single setData, which answered \"valid, no errors\". No path was guessed wrongly, no response was true-but-misleading, no error had to be recovered from, and the round-trip count is essentially what the protocol requires: one orientation, one enum read, one write. The only slack is two low-value reads bracketing the run.",
+  "friction": [
+    {
+      "call": 1,
+      "tool": "getData",
+      "observed": "{\"data\":{},\"valid\":false}",
+      "inferred": "The agent learned the form was empty and invalid but nothing about why or what fields exist, so it had to call describeState next regardless; the call bought no information that call 2 did not supply.",
+      "severity": "low"
+    },
+    {
+      "call": 5,
+      "tool": "getData",
+      "observed": "{\"data\":{\"name\":\"Ada Lovelace\",\"birthYear\":1815,\"email\":\"ada@analytical.org\",\"contactMethod\":\"email\"},\"valid\":true}",
+      "inferred": "Confirmation of a state that setData had already reported as \"valid, no errors\" on call 4; the agent apparently did not treat setData's own validity verdict as authoritative, repeating work already done.",
+      "severity": "low"
+    }
+  ]
+}

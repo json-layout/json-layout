@@ -1,0 +1,28 @@
+{
+  "case": "portal-page",
+  "verdict": "satisfactory",
+  "reasoning": "The session reached exactly the goal state in 10 calls with a valid form: title set, one two-columns element, a text element with \"Bienvenue\" in `children` and one with \"Contactez-nous\" in `children2`. Every path the agent used was handed to it by a prior response — no path was guessed, no error was hit, and no value was invented (the `uuid`, `type`, `disposition`, `gutter`, `centered` and `mb` fields in the final data all came from schema defaults applied by the protocol, not from the agent). The protocol carried its weight in the two places this case exists to test: `editArray` add auto-activated the new item and returned its fields, so the agent could fill the recursive text blocks without a further `describeState`; and the variant-selector contract (`setFieldValue` on `/$oneOf` with the integer index, answer lists the activated branch) worked first try on a 39-branch union at depth 5. The cost is byte cost, not confusion: the same 39-variant enumeration was re-emitted verbatim on all three `editArray` adds, roughly 3.7 KB of the run's 10.8 KB, and calls 6 and 8 delivered zero information the agent did not already hold from call 4. One small gap in the description: nothing in any response says which of `children`/`children2` is the left column; the agent had to infer it from ordering and from the neighbouring `align/left` label \"Colonne 1\". It inferred correctly, but the mapping was not stated.",
+  "friction": [
+    {
+      "call": 6,
+      "tool": "editArray",
+      "observed": "\"added item at index 0, 1 total\\nFields of the new item (activated for edition):\\n- /$comp-2/elements/0/$oneOf/12/children/0/$oneOf (variant-selector) label=\\\"Type d'élément\\\"\\n    - variant 0: Titre\\n    - variant 1: Texte\\n ... - variant 38: Vignette d'actualité\"",
+      "inferred": "The agent learned nothing new: the identical 39-variant list had already been returned in full at call 4, and it did not use it here (it wrote straight into the auto-activated variant 1 branch). `editArray.execute` unconditionally calls `projectNodeToMarkdown` on the new item, and `projectNodeToMarkdown` unconditionally expands `layout.oneOfItems` for any `one-of-select`, with no memory of what an earlier call already emitted for the same `$defs/element` union.",
+      "severity": "medium"
+    },
+    {
+      "call": 8,
+      "tool": "editArray",
+      "observed": "\"added item at index 0, 1 total\\nFields of the new item (activated for edition):\\n- /$comp-2/elements/0/$oneOf/12/children2/0/$oneOf (variant-selector) label=\\\"Type d'élément\\\"\\n    - variant 0: Titre\\n ... - variant 38: Vignette d'actualité\"",
+      "inferred": "Third verbatim emission of the same union in a 10-call run; 2219 bytes for the ~120 bytes of new information the agent actually consumed (the path of the activated `Texte` branch and its `content` field). Same unconditional projection as call 6.",
+      "severity": "medium"
+    },
+    {
+      "call": 5,
+      "tool": "setFieldValue",
+      "observed": "\"- /$comp-2/elements/0/$oneOf/12/children (array, required, 0 items) title=\\\"Contenu\\\" value=[]\\n  - /$comp-2/elements/0/$oneOf/12/children2 (array, required, 0 items) title=\\\"Deuxième contenu\\\" value=[]\"",
+      "inferred": "The agent concluded `children` is the left column and `children2` the right, and acted on it without checking. That is what the schema means, but no response said so: the titles are \"Contenu\"/\"Deuxième contenu\", and the only left/right vocabulary in the branch is on the sibling `align/left` (\"Colonne 1\") and `align/right` (\"Colonne 2\"). The mapping was inferable from ordering and that adjacency, so the agent recovered, but a goal phrased in terms of left and right had to be resolved against a description that only expressed first and second.",
+      "severity": "low"
+    }
+  ]
+}

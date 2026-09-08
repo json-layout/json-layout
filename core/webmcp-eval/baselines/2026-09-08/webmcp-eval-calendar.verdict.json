@@ -1,0 +1,42 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The session reached the goal cleanly and every value it wrote is traceable to something a tool told it. describeState (call 2) named the required dataset field and the still-hidden shape of the form; a title-scoped getFieldSuggestions found \"Agenda-manifestations\" as an exact match and it was applied by index (calls 3-4), never by copying an href it could not have known. The re-read of full state (call 5) is what revealed the \"Edition\" section that only exists once datasets.0.isRest is true, and that is where the agent found /$allOf-3/crowdSourcing — a genuinely earned discovery, not a guess. labelField was set to nomevenement whose suggestion title \"Nom de l'évenement\" matches \"event name column\" directly, so the leaner suggestion listing (title + key, apply by index) cost nothing: both object-valued fields were applied in one call each, and no round-trip was spent recovering a value the listing had omitted. No path was guessed wrongly, no tool response was untrue, no value was invented. What drags the run is volume, not correctness: two calls (4 and 5) carry 27 KB of the run's 34 KB because setFieldValue echoes the whole applied dataset object and describeState inlines the same object again untruncated, and four of the twelve calls (6, 9, 11, 12) are narrow re-reads of lines already printed verbatim in call 5. Three fields written in twelve calls is roughly double what the form required, and the extra call over the previous run is attributable to those verification re-reads rather than to the leaner suggestion listing.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-0/datasets/0 (autocomplete) = {\"title\":\"Agenda-manifestations\",\"isRest\":true,...} — 12,604 bytes echoing the full dataset object including its 40-column schema, x-labels, enums and userPermissions",
+      "inferred": "The agent had applied the suggestion by index precisely so the object would not have to reach it; the write echo handed it back anyway. getFieldSuggestions was made lean (project.js formatSuggestions omits non-scalar values) but index.js:279 still stringifies result.field.data in full, so the saving was undone on the very next call.",
+      "severity": "medium"
+    },
+    {
+      "call": 5,
+      "tool": "describeState",
+      "observed": "14,630 bytes; the datasets/0 line repeats the entire dataset object a second time (project.js:328 prints value=JSON.stringify(node.data) for leaf nodes with no cap), with the four fields the agent actually needed buried after it",
+      "inferred": "This call did real work — it is where the newly revealed \"Edition\" section appeared — but the agent apparently did not treat its content as usable afterwards: calls 6, 9, 11 and 12 each re-read a single path whose line was already present verbatim in this response.",
+      "severity": "medium"
+    },
+    {
+      "call": 6,
+      "tool": "describeState",
+      "observed": "- /$allOf-1/labelField (select, suggestions) label=\"Champ de libellé\" value=undefined help=... — character-for-character a line already returned by call 5",
+      "inferred": "The agent re-established that labelField existed and was unset before asking for its suggestions; it bought no information. The same pattern repeats at call 9 for /$allOf-3, which call 5 had already listed with all four children.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-3/crowdSourcing (boolean) = true\\nno error here\\nform is valid",
+      "inferred": "Turning this on activated three x-if branches — deleteValidatedContribs and colorContrib took their defaults (both appear in the final data) and contribsDataset, \"Jeu de données des contributions externes\", became reachable. The scoped response mentioned none of them; setFieldValue announces the fields of an activated variant but not fields revealed by an x-if. The agent spent call 11 re-reading the same boolean leaf, still saw nothing new, and ended believing crowd sourcing was fully configured.",
+      "severity": "medium"
+    },
+    {
+      "call": 12,
+      "tool": "describeState",
+      "observed": "- /$allOf-2/descriptionField (select, suggestions) label=\"Champ de description\" value=undefined help=... — again identical to a line in call 5",
+      "inferred": "A last look at a field the goal never asked about, returning what the agent already held; the run ended on a call that changed nothing and told it nothing.",
+      "severity": "low"
+    }
+  ]
+}
