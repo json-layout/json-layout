@@ -1,0 +1,21 @@
+{
+  "case": "charts",
+  "verdict": "satisfactory",
+  "reasoning": "The goal was met and met honestly: the final document is a bar chart (variant 1 'Histogramme', which the tool echoed back as {\"type\":\"bar\"} so the agent could confirm its French-labelled guess), grouped on nom_com with valueCalc metric avg on the 'valeur' column, titled 'Pollution by commune', legendPosition 'right', and the dataset is the Poitiers hourly-pollutant one applied by suggestionIndex rather than by a hand-typed id. Every non-obvious value is traceable to a tool response — nom_com and valeur from getFieldSuggestions (calls 7 and 10), 'avg' from the metric option list (call 11), 'right' from the legendPosition list (call 3) — so nothing was invented, and no path was guessed wrongly. 17 calls for a form with a 7-way chart union, a nested 3-way config union and two further nested unions is proportional; describeState was called once, at the start, and never repeated. Two things cost without buying. First, call 9: the agent read suggestions for the groupBy field (call 7), switched the valueCalc variant (call 8), then applied suggestionIndex=0 to the groupBy field and was told no suggestion was memorized — because index.js:294 makes every setFieldValue clear the WHOLE store, not just paths whose getItems could depend on the written field. The comment's justification does not hold for this write: flipping the valueCalc union cannot change groupBy's column list, so the rule is broader than the hazard it guards. The agent did nothing unreasonable — nothing in any tool description says the memory survives only until the next write — and it recovered in one step by copying the short scalar the listing had shown, then defensively re-ordered the rest of the run into read-all-then-write-literals. The bounded cost here (one errored round trip, 150 bytes) hides an unbounded one: had the invalidated path been /$allOf-0/datasets/0, whose value is a 4213-char object shown by title alone, there would have been no literal to copy and the remote-backed search would have had to be repeated. Second, the closing whole-document getData is 4757 of 16101 bytes, ~30% of the session, almost all of it the dataset schema blob the protocol had deliberately refused to inline at call 4.",
+  "friction": [
+    {
+      "call": 9,
+      "tool": "setFieldValue",
+      "observed": "Error: no suggestion memorized for path \"/$allOf-1/chart/$oneOf/1/config/$oneOf/2/groupBy/$oneOf/0/field\", call getFieldSuggestions on this path first",
+      "inferred": "Reads as 'you never asked for suggestions on this path', when the agent had asked two calls earlier (call 7) and the real cause is that the unrelated write at call 8 cleared the entire suggestions store. The agent could not diagnose it as staleness, so it abandoned suggestionIndex for the rest of the run and wrote literals; recoverable only because the value happened to be a short scalar the listing had printed.",
+      "severity": "medium"
+    },
+    {
+      "call": 17,
+      "tool": "getData",
+      "observed": "whole document, 4757 bytes, ~30% of the session",
+      "inferred": "The agent read the whole document to verify a state the previous write had already reported valid; the bulk is the 4213-char dataset schema that call 4 had explicitly declined to inline. No path argument was passed, and the medium-complexity guidance does not carry the 'you rarely need to read the document back' advice the large-form guidance does.",
+      "severity": "low"
+    }
+  ]
+}

@@ -192,6 +192,59 @@ describe('feature X', () => {
 })
 ```
 
+## WebMCP Tools and the Eval Harness
+
+`core/src/webmcp/` exposes the form to an LLM agent as MCP tools. Its correctness is not
+only "does the function return the right shape" but "can an agent find its way through
+the protocol" — and the second does not show up in unit tests.
+
+**If you touch any of these, the eval applies to your change:**
+
+- `core/src/webmcp/**` — any tool, its description, its response text, or the projection
+- `core/src/webmcp/tools/fill-form-skill.js` — the text that teaches agents the protocol
+- `core/src/state/index.js` select-item handling (`prepareSelectItem`, `getItems`) — what
+  a suggestion is worth, and whether the value offered is the value accepted
+- error projection in `core/src/webmcp/project.js` — an agent that cannot locate its
+  mistake retries blind
+- `getComplexity` in `core/src/webmcp/index.js` — it drives the skill's advice and the
+  declared sub-agent step budget
+
+Two layers, and you need both:
+
+```bash
+# 1. Deterministic guards. No model, runs in the normal gate.
+npm test -w core          # includes webmcp-eval*.spec.js
+```
+
+These pin that each eval case is the case it claims to be (complexity band, whether
+`getSchema` refuses), that a launched runner is isolated from this repository and granted
+exactly the `page-form` tools and no built-in tool, and that a malformed judge verdict
+cannot read as a clean pass. They cannot tell you whether a form is usable.
+
+```bash
+# 2. The judged eval. Needs a model.
+/webmcp-eval
+```
+
+`npm run webmcp-eval:run -w core [case ...]` launches one headless `claude -p`
+subprocess per case, isolated from this repository and with no built-in tool — only the
+`page-form` MCP tools it is explicitly granted — so it fills a real form from a
+plain-language goal much as a real page visit would, and a judge reads the transcript.
+A fresh process per run means a case can be re-run any number of times and always
+reflects the current code. See `core/webmcp-eval/README.md`.
+
+If `/webmcp-eval` does not resolve, the procedure is a document, not a command: follow
+`.claude/skills/webmcp-eval/SKILL.md` directly. That file is the single source for how to
+run the eval; this section only says when you must.
+
+A case that never produces a transcript is reported as `not run`, and one whose
+subprocess failed or had a tool call denied is reported as `invalid run`; both fail the
+report — never read the cases that did run as the result of the suite.
+
+Changing a tool's *description* counts. The descriptions and the skill text are the
+protocol as far as a model is concerned, and they are exactly what unit tests cannot
+judge.
+
 ## Commit Conventions
 
 - **Conventional Commits** enforced by commitlint (`feat:`, `fix:`, `chore:`, etc.)

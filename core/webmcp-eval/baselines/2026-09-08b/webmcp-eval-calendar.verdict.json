@@ -1,0 +1,35 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "All three parts of the goal were achieved with values the agent could justify: the dataset was picked by suggestionIndex from a query on its exact name, labelField was set from the fetched column list to 'Nom de l'evenement' (nomevenement) — the correct English-to-French mapping, unambiguous from the returned titles — and crowdSourcing was set to true; the form ends valid and nothing was invented. The write-side 'became available' reporting earned its keep at call 3: /$allOf-3 was absent from the opening describeState, and the one-line report is the only reason the agent knew where crowdSourcing lived, which it read and set in two further calls. Where the session frays is the tail. The same mechanism at call 7 named four newly-unhidden paths with no labels, two of which turn out to carry the identical title 'Jeu de donnees des contributions externes' at two different data locations; the agent spent calls 8 and 10 just identifying them. Call 10 then told it that /$allOf-0/datasets/1 is 'required' and undefined while the same response said 'no error here / form is valid' — confirmed independently: core/src/compile/skeleton-node.js line 552 passes required=true unconditionally for every tuple entry of an array items list, and core/src/webmcp/project.js:376 prints that skeleton flag, so the tag is a compile artifact with no validation behind it. That contradiction is what sent the agent hunting for a contributions dataset the goal never named, through a 'No suggestions available' (emitted by the same formatSuggestions branch whether the remote query matched nothing, the field has no items source, or its x-fromUrl prerequisite is unresolved) and into a final suggestion list it never applied. Declining to apply one was the right restraint — none of the five was a contributions dataset — but five of twelve calls, including a 13KB whole-document getData that re-delivered an object the tools had already told it not to read, went into a question the protocol created rather than the form.",
+  "friction": [
+    {
+      "call": 10,
+      "tool": "describeState",
+      "observed": "- /$allOf-0/datasets/1 (autocomplete, required, suggestions) label=\"Jeu de donnees des contributions externes\" value=undefined / no error here / form is valid",
+      "inferred": "The agent read an empty required field and went looking for a value for it (calls 11 and 12), despite the same response saying the form was valid; the 'required' tag comes from skeleton-node.js marking every tuple item required and has no validation consequence, so there was nothing to satisfy and no way to tell that from the response.",
+      "severity": "high"
+    },
+    {
+      "call": 11,
+      "tool": "getFieldSuggestions",
+      "observed": "No suggestions available",
+      "inferred": "Read as possibly 'this field offers no options at all'; it actually meant the remote picker returned nothing for q=contrib. The same string is produced when a field has no items source and when its x-fromUrl prerequisite is unresolved, and the query is not echoed. The agent recovered only by guessing to retry with a broader term.",
+      "severity": "medium"
+    },
+    {
+      "call": 7,
+      "tool": "setFieldValue",
+      "observed": "4 field(s) became available: /$allOf-0/datasets/1, /$allOf-3/contribsDataset, /$allOf-3/deleteValidatedContribs, /$allOf-3/colorContrib",
+      "inferred": "Bare paths with no label or type meant the agent had to spend describeState on them to learn what they were (calls 8 and 10), and once it did, two of them bore the identical label at different data locations with nothing to say which one to fill or whether filling one covered the other.",
+      "severity": "medium"
+    },
+    {
+      "call": 9,
+      "tool": "getData",
+      "observed": "13202 bytes: the whole document, including the 12486-char dataset object that call 3 had explicitly summarised as '<object, 12486 chars - describeState its path to read it>'",
+      "inferred": "Bought no information — every value in it had already been reported by calls 3, 6 and 7 — and accounted for 62% of the session's total output bytes.",
+      "severity": "low"
+    }
+  ]
+}

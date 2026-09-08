@@ -1,0 +1,35 @@
+{
+  "case": "charts",
+  "verdict": "satisfactory",
+  "reasoning": "The session reached the goal on essentially the minimum path: 17 calls for a form that needed 9 writes (dataset, chart variant, config variant, groupBy field, valueCalc variant, valueCalc field, metric, title, legend position), plus one describeState, four suggestion reads and two getData. Every value written was grounded in something a tool had returned — the dataset came from suggestionIndex=0 of a single search, 'nom_com' and 'valeur' from the column suggestion lists, 'avg' from the metric list, 'right' from the legend list, and the chart type from the variant titles in describeState ('Histogramme' at index 1). Nothing was invented and no path was guessed wrongly; the agent never needed getSchema, which the case expects to refuse this schema. The dataset search is the claimed improvement and it holds: one getFieldSuggestions with query 'Poitiers polluants' put the target dataset at index 0 and the agent applied it by index without ever seeing or having to reconstruct the object value, replacing the five searches of the previous run. Remaining friction is byte-level, not protocol-level: the suggestion list was carefully abbreviated and then the very act of applying one echoed the whole 4.3 KB dataset object back, and the closing getData printed it again, so roughly 44% of the session's output is the same blob twice. The error accounting also wobbled (2 errors listed, then '3 other errors elsewhere', then valid, for what was one missing field) and one mutation announced 'form is valid' while the chart was still a count-of-rows default rather than the requested average — both true, neither derailed this run.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-0/datasets/0 (autocomplete) = {\"schema\":[{\"key\":\"gml_id\",...}],\"id\":\"concentrations-horaires-...\",\"title\":\"...\",\"href\":\"...\"} — 4344 bytes",
+      "inferred": "The agent learned the dataset's full column list, but at 21% of the session's total bytes; the same value had just been deliberately abbreviated by getFieldSuggestions ('apply with suggestionIndex=0'), so the echo undoes that saving. projectFieldResult in core/src/webmcp/project.js stringifies node.data with no length guard, unlike formatSuggestions which omits non-scalar values.",
+      "severity": "low"
+    },
+    {
+      "call": 9,
+      "tool": "setFieldValue",
+      "observed": "\"no error here\\nform is valid\" after switching /$allOf-1/chart/$oneOf/1/config/$oneOf to variant 2",
+      "inferred": "Schema validity was reached while valueCalc still held its default 'Nombre de lignes' (count), i.e. a chart counting rows rather than averaging the measured value. The message reads as completion at a point where the goal was half met; this agent ignored it and continued to valueCalc, but nothing in the response distinguished 'valid' from 'done'.",
+      "severity": "low"
+    },
+    {
+      "call": 12,
+      "tool": "setFieldValue",
+      "observed": "\"form has 3 other error(s) elsewhere, use describeState to list them\"",
+      "inferred": "The previous call had listed exactly 2 errors, both describing the same missing valueCalc field (the $oneOf node and its child). The count then rose to 3 after a successful write, which suggests ancestor nodes are counted alongside the leaf. The agent did not spend a describeState to reconcile it — it worked from the explicit list of call 11 — but the number carried no usable information.",
+      "severity": "low"
+    },
+    {
+      "call": 17,
+      "tool": "getData",
+      "observed": "full data object including the 4.5 KB datasets[0].schema column array again",
+      "inferred": "A legitimate final verification, but it re-emitted the dataset blob already returned in full at call 4, making the two together the dominant cost of a session that otherwise spent about 6 KB.",
+      "severity": "low"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The session met the goal in 8 calls and 9749 bytes with no wrong turns and nothing invented. It read the tree once, queried the dataset picker with the goal's own string, applied suggestionIndex=0, followed the '1 field(s) became available: /$allOf-3' reveal with a targeted describeState of just that section (556 bytes) to find crowdSourcing, listed the 27 columns and picked index 16 'Nom de l'evenement (nomevenement)' for labelField, and set crowdSourcing=true. Every written value came from a suggestion index or the goal text; the defaults left in the data are the form's own. It correctly ordered the dataset before the two fields whose x-fromUrl depends on datasets.0.href, so it never hit the 'no suggestions' trap. It also correctly declined to fill the contributions dataset revealed by crowdSourcing: the schema does not require it and any value there would have been fabricated. The value abbreviation now demonstrably works: the 12486-char dataset object was named rather than printed in both the write echo and the final tree, saving roughly 25 KB, and the agent did not take up the 'call getData with this path' invitation — so no getData call was needed and none was made. Bytes: 3575 (37%) into the two remote suggestion lists, genuine lookups; 3045 (31%) into the final full-tree describeState that re-confirmed what call 7 had stated; 1758 into the opening read; ~880 (9%) into the labelField object printed in full twice, because DISPLAYED_VALUE_MAX_LENGTH is 1000 and that object is ~400 chars, though it too was applied by index and can never be typed back.",
+  "friction": [
+    {
+      "call": 1,
+      "tool": "describeState",
+      "observed": "- /$allOf-1/labelField (select, suggestions) value=undefined, listed as suggestion-bearing while /$allOf-0/datasets/0 is empty and its x-fromUrl '{datasets.0.href}/schema' cannot resolve",
+      "inferred": "The agent had to infer that labelField, descriptionField and additionalFields only become answerable after the dataset is chosen; the line states no dependency. It happened to fill the dataset first, so the trap did not fire — a getFieldSuggestions here would have returned no suggestions, whose real cause is the unset dataset.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-1/labelField (select) = the whole 442-byte column object, reprinted verbatim in the call 8 tree",
+      "inferred": "The agent learned nothing it did not have from suggestion [16]'s title. The object falls under DISPLAYED_VALUE_MAX_LENGTH=1000 so it escapes the naming applied to its sibling dataset, costing ~880 bytes (9% of the run) for content that, like the dataset, can only ever be applied by index.",
+      "severity": "low"
+    },
+    {
+      "call": 8,
+      "tool": "describeState",
+      "observed": "the entire tree, 3045 bytes, after call 7 had returned 'form is valid' plus the visibility diff",
+      "inferred": "Taken as final verification. The single largest response of the run, 31% of all bytes, for one bit of confirmation; there is no cheaper validity-only projection, so prudence costs a full tree dump.",
+      "severity": "low"
+    },
+    {
+      "call": 7,
+      "tool": "setFieldValue",
+      "observed": "4 field(s) became available, two of them the same $ref surfaced twice with the identical label",
+      "inferred": "The agent set neither, so this cost nothing here, but had the goal named a contributions dataset there was no signal about which path to write.",
+      "severity": "low"
+    }
+  ]
+}

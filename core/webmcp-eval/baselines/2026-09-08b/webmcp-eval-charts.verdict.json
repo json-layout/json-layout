@@ -1,0 +1,28 @@
+{
+  "case": "charts",
+  "verdict": "satisfactory",
+  "reasoning": "The session achieved the goal completely and cleanly: the form ends valid with a bar chart (chart.type='bar' via the 'Histogramme' variant), grouped by nom_com, aggregating avg of valeur, titled 'Pollution by commune', legendPosition='right', on the correct Poitiers air-pollutant dataset. Every value the agent wrote was sourced from a tool response or from the goal text itself — the dataset was applied by suggestionIndex from a filtered search, the group-by and metric columns came from getFieldSuggestions lists that only resolve after the dataset href is set (the agent got the ordering right first try), and the variant indices came from the describeState listing. Nothing was invented, no path was guessed wrongly, and no error had to be recovered from. The path through this deeply nested oneOf tree (chart variant -> config variant -> groupBy variant -> valueCalc variant, ~5 levels of $oneOf) was found in 16 calls with essentially no wasted work; setFieldValue's habit of listing the fields of the branch it just activated is what made that possible, letting the agent descend without re-calling describeState even once. The only friction is trim: two round-trips spent reading four-option enums the schema already fixes statically, and a closing path-less getData that bought nothing and re-inlined the 4.2 KB dataset blob the write path had deliberately elided.",
+  "friction": [
+    {
+      "call": 10,
+      "tool": "getFieldSuggestions",
+      "observed": "4 suggestion(s), apply one with setFieldValue and its suggestionIndex - [0] Moyenne (avg) value=\"avg\" ... [3] Somme (sum)",
+      "inferred": "The agent had to spend a round-trip to learn a closed four-const enum (schema line 759, oneOf avg/min/max/sum) that the form already knew statically. describeState had shown only 'metric (select, required, suggestions) value=\"sum\"' — project.js:396 tags every select as 'suggestions' without distinguishing a static enum from a remote getItems list and never inlines the options, so the agent could not tell the list was already in hand.",
+      "severity": "medium"
+    },
+    {
+      "call": 14,
+      "tool": "getFieldSuggestions",
+      "observed": "4 suggestion(s) - [0] Haut (top) - [1] Bas (bottom) - [2] Gauche (left) - [3] Droite (right)",
+      "inferred": "Same cause, second instance: legendPosition is a fixed four-const enum (schema lines 297-319) with no remote lookup, yet describeState surfaced it as '(select, suggestions) value=\"top\"' with no options, so the agent paid an extra round-trip to read a list the form held from the start. Two of sixteen calls in this run went to this pattern, and sortBy/sortOrder/color/strValue would each have cost another.",
+      "severity": "medium"
+    },
+    {
+      "call": 16,
+      "tool": "getData",
+      "observed": "whole document including 25 column definitions, outputBytes 4757",
+      "inferred": "The agent read the document back to confirm, although call 15 had already answered 'no error here / form is valid'. The call added no information and re-printed in full the 4213-char dataset object that call 3's setFieldValue had pointedly named by size rather than inlined; the path-less getData undoes that protection and this single call is ~30% of the run's 15934 output bytes.",
+      "severity": "low"
+    }
+  ]
+}

@@ -88,3 +88,31 @@ describe('Impure expressions', () => {
     assert.equal(statefulLayout.stateTree.root.children[1].children[0].layout.comp, 'text-field')
   })
 })
+
+describe('Throwing if expressions', () => {
+  it('should hide the node and warn instead of failing the whole layout', async () => {
+    // A compat-generated "rootData.datasets[0].isRest" throws while the array is still
+    // empty. Killing the layout for that is out of proportion: getItems expressions
+    // already degrade to "no items", so an "if" that cannot be evaluated is hidden.
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        datasets: { type: 'array', items: { type: 'object', properties: { isRest: { type: 'boolean' } } } },
+        edition: { type: 'string', layout: { if: { expr: 'rootData.datasets[0].isRest', pure: false } } }
+      }
+    })
+    /** @type {string[]} */
+    const warnings = []
+    const originalWarn = console.warn
+    console.warn = (/** @type {any[]} */ ...args) => { warnings.push(args.map(String).join(' ')) }
+    try {
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { debounceInputMs: 0 }, {})
+      assert.equal(statefulLayout.stateTree.root.children?.[1].layout.comp, 'none')
+      statefulLayout.input(statefulLayout.stateTree.root.children[0], [{ isRest: true }])
+      assert.equal(statefulLayout.stateTree.root.children?.[1].layout.comp, 'text-field')
+    } finally {
+      console.warn = originalWarn
+    }
+    assert.ok(warnings.some((w) => w.includes('"if"') && w.includes('rootData.datasets[0].isRest')), `expected a warning naming the if expression, got: ${JSON.stringify(warnings)}`)
+  })
+})

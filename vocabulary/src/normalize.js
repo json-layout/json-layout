@@ -822,7 +822,16 @@ export function normalizeLayoutFragment (key, schemaFragment, schemaPath, option
       errors.push(err.message)
       if (err.cause && Array.isArray(err.cause)) errors.push(...err.cause)
       errors.push('failed to normalize layout, use default component')
-      const layout = normalizeValidLayoutFragment(key, { ...schemaFragment, layout: {} }, type, nullable, schemaPath, options, schemaChild)
+      // Clear the keyword that was actually read, not always `layout`: a oneOf child
+      // takes its keyword from `oneOfLayout` and a patternProperties child from
+      // `patternPropertiesLayout`, so clearing `layout` left the bad value in place, the
+      // retry failed the same way, and the node fell through to comp "none". For a oneOf
+      // that is not cosmetic — a variant selector that becomes "none" stops merging its
+      // branch into the parent, and the data silently stops matching the state tree.
+      const layoutKeyword = schemaChild === 'oneOf'
+        ? 'oneOfLayout'
+        : schemaChild === 'patternProperties' ? 'patternPropertiesLayout' : 'layout'
+      const layout = normalizeValidLayoutFragment(key, { ...schemaFragment, [layoutKeyword]: {} }, type, nullable, schemaPath, options, schemaChild)
       return { layout, errors }
     } catch (/** @type {any} */err) {
       errors.push(err.message)

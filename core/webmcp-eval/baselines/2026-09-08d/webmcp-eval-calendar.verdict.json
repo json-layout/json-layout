@@ -1,0 +1,35 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "All three parts of the goal were achieved from tool-supplied information, with nothing invented: the dataset was chosen from a queried suggestion list where '[0] Agenda-manifestations' matched exactly, the label field was picked from the 27-item schema list as '[16] Nom de l'evenement (nomevenement)', and crowdSourcing was set true, revealing the contribution fields. The final document is valid. The agent correctly declined to invent a contributions dataset the goal never named, and it navigated the conditional /$allOf-3 section by following the 'became available' notice rather than guessing a path — no path was guessed wrongly in the whole run. getSchema's absence cost nothing: describeState inlined the closed lists as values=[...] for formDensity, formVariant and strValue, gave French labels and help for every dynamic field, and the agent never reached for schema-level information. The single-path guide was adequate for a form of this size. Where the run is loose is the tail: the required work was about seven calls, and calls 8-10 are read-back the guide itself says is rarely needed. Of the 8358 bytes, 5333 (64%) go to the three genuinely large reads — the root tree, the 11 datasets and the 27 columns — which is the form's real cost.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "setFieldValue",
+      "observed": "4 field(s) became available: /$allOf-0/datasets/1, /$allOf-3/contribsDataset, /$allOf-3/deleteValidatedContribs, /$allOf-3/colorContrib",
+      "inferred": "The reveal names paths but not their type, label, default or requiredness, so the agent could not tell whether crowd sourcing was now complete. It answered with a full describeState of /$allOf-3 (call 8), which reprinted the four fields it had already read at call 4 to learn three new lines — a section re-read forced by an under-specified reveal line.",
+      "severity": "medium"
+    },
+    {
+      "call": 9,
+      "tool": "describeState",
+      "observed": "- /$allOf-0/datasets/1 (autocomplete, suggestions) label=\"Jeu de donnees des contributions externes\" value=undefined",
+      "inferred": "This label is byte-identical to /$allOf-3/contribsDataset seen at call 8, and nothing in either response says whether they are the same setting surfaced twice or two different ones. The agent spent a round trip discovering the duplicate and still had no way to tell which the app reads; it left both empty. Safe, but the ambiguity was unresolvable from tool output.",
+      "severity": "medium"
+    },
+    {
+      "call": 3,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-0/datasets/0 (autocomplete) = <object, 12486 chars - describeState its path to read it>",
+      "inferred": "The pointer is circular for a leaf: abbreviateValue has no depth===0 exemption (unlike help, which does), so describeState on that path returns the same sentence — verified. The agent did not loop, but at call 10 it reached for getData rather than describeState to read a value back, consistent with not trusting the stated route.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "getData",
+      "observed": "404 bytes verifying a value setFieldValue had echoed in full at call 6",
+      "inferred": "Pure verification, plus a validity flag already stated by every write since call 3. One round trip that bought no information.",
+      "severity": "low"
+    }
+  ]
+}

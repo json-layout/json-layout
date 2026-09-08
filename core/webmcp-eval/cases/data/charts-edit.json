@@ -1,0 +1,313 @@
+{
+  "qsFilter": "",
+  "chart": {
+    "type": "bar",
+    "categorizable": "true",
+    "yAxisStartsZero": true,
+    "config": {
+      "type": "aggsBased",
+      "groupBy": {
+        "type": "value",
+        "interval": "",
+        "field": "nom_com"
+      },
+      "size": 10,
+      "valueCalc": {
+        "type": "metric",
+        "metric": "avg",
+        "dynamicMetric": false,
+        "field": "valeur"
+      },
+      "missingLabel": "",
+      "sortBy": "label",
+      "sortOrder": "asc",
+      "dynamicSort": false,
+      "color": {
+        "type": "theme",
+        "strValue": "primary"
+      }
+    }
+  },
+  "disableTooltip": false,
+  "labelsMaxWidth": 30,
+  "divider": 1,
+  "legendPosition": "right",
+  "datasets": [
+    {
+      "schema": [
+        {
+          "key": "gml_id",
+          "x-originalName": "gml_id",
+          "type": "string",
+          "x-cardinality": 4681,
+          "description": ""
+        },
+        {
+          "key": "nom_dept",
+          "x-originalName": "nom_dept",
+          "type": "string",
+          "x-cardinality": 1,
+          "description": "",
+          "enum": [
+            "VIENNE"
+          ]
+        },
+        {
+          "key": "nom_com",
+          "x-originalName": "nom_com",
+          "type": "string",
+          "x-cardinality": 1,
+          "description": "",
+          "enum": [
+            "Poitiers"
+          ]
+        },
+        {
+          "key": "insee_com",
+          "x-originalName": "insee_com",
+          "type": "string",
+          "x-cardinality": 1,
+          "description": "",
+          "x-refersTo": "http://rdf.insee.fr/def/geo#codeCommune",
+          "x-concept": {
+            "id": "codeCommune",
+            "title": "Code commune",
+            "primary": true
+          },
+          "enum": [
+            "86194"
+          ]
+        },
+        {
+          "key": "nom_station",
+          "x-originalName": "nom_station",
+          "type": "string",
+          "x-cardinality": 3,
+          "description": "",
+          "enum": [
+            "Poitiers - centre",
+            "Poitiers - Couronneries",
+            "Poitiers - Le Nain"
+          ]
+        },
+        {
+          "key": "code_station",
+          "x-originalName": "code_station",
+          "type": "string",
+          "x-cardinality": 3,
+          "description": "",
+          "enum": [
+            "FR09404",
+            "FR09015",
+            "FR09403"
+          ]
+        },
+        {
+          "key": "typologie",
+          "x-originalName": "typologie",
+          "type": "string",
+          "x-cardinality": 1,
+          "description": "",
+          "enum": [
+            "Urbaine"
+          ]
+        },
+        {
+          "key": "influence",
+          "x-originalName": "influence",
+          "type": "string",
+          "x-cardinality": 2,
+          "description": "",
+          "enum": [
+            "Fond",
+            "Trafic"
+          ]
+        },
+        {
+          "key": "nom_poll",
+          "x-originalName": "nom_poll",
+          "type": "string",
+          "x-cardinality": 6,
+          "description": "",
+          "enum": [
+            "Dioxyde d'azote",
+            "Oxydes d'azote",
+            "Particules PM10",
+            "Ozone",
+            "Monoxyde de carbone",
+            "Particules fines PM2,5"
+          ]
+        },
+        {
+          "key": "id_poll_ue",
+          "x-originalName": "id_poll_ue",
+          "type": "integer",
+          "x-cardinality": 6,
+          "description": "",
+          "enum": [
+            5,
+            8,
+            9,
+            7,
+            10,
+            6001
+          ]
+        },
+        {
+          "key": "valeur",
+          "x-originalName": "valeur",
+          "type": "integer",
+          "x-cardinality": 150,
+          "description": ""
+        },
+        {
+          "key": "unite",
+          "x-originalName": "unite",
+          "type": "string",
+          "x-cardinality": 2,
+          "description": "",
+          "enum": [
+            "ug.m-3",
+            "mg.m-3"
+          ]
+        },
+        {
+          "key": "metrique",
+          "x-originalName": "metrique",
+          "type": "string",
+          "x-cardinality": 1,
+          "description": "",
+          "enum": [
+            "moyenne journaliere"
+          ]
+        },
+        {
+          "key": "date_debut",
+          "x-originalName": "date_debut",
+          "type": "string",
+          "format": "date",
+          "x-cardinality": 364,
+          "description": ""
+        },
+        {
+          "key": "date_fin",
+          "x-originalName": "date_fin",
+          "type": "string",
+          "format": "date",
+          "x-cardinality": 363,
+          "description": ""
+        },
+        {
+          "key": "statut_valid",
+          "x-originalName": "statut_valid",
+          "type": "boolean",
+          "x-cardinality": 2,
+          "description": "",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "key": "x_wgs84",
+          "x-originalName": "x_wgs84",
+          "type": "number",
+          "x-cardinality": 3,
+          "description": "",
+          "enum": [
+            0.345555990934372,
+            0.358583003282547,
+            0.340400010347367
+          ]
+        },
+        {
+          "key": "y_wgs84",
+          "x-originalName": "y_wgs84",
+          "type": "number",
+          "x-cardinality": 3,
+          "description": "",
+          "enum": [
+            46.5839004516601,
+            46.5868988037109,
+            46.5909004211425
+          ]
+        },
+        {
+          "key": "x_reglementaire",
+          "x-originalName": "x_reglementaire",
+          "type": "number",
+          "x-cardinality": 3,
+          "description": "",
+          "enum": [
+            496782.855285348,
+            497790.932537566,
+            496414.455556695
+          ]
+        },
+        {
+          "key": "y_reglementaire",
+          "x-originalName": "y_reglementaire",
+          "type": "number",
+          "x-cardinality": 3,
+          "description": "",
+          "enum": [
+            6612733.73391975,
+            6613033.09264063,
+            6613523.9735215
+          ]
+        },
+        {
+          "key": "geo_point",
+          "x-originalName": "geo_point",
+          "type": "string",
+          "x-cardinality": 3,
+          "description": "",
+          "x-refersTo": "http://www.w3.org/2003/01/geo/wgs84_pos#lat_long",
+          "x-concept": {
+            "id": "latLon",
+            "title": "Latitude / Longitude",
+            "primary": true
+          },
+          "enum": [
+            "46.5839004516601, 0.345555990934372",
+            "46.5868988037109, 0.358583003282547",
+            "46.5909004211425, 0.340400010347367"
+          ]
+        },
+        {
+          "x-calculated": true,
+          "key": "_geopoint",
+          "type": "string",
+          "title": "Coordonnée géographique",
+          "description": "Centroïde au format \"lat,lon\""
+        },
+        {
+          "x-calculated": true,
+          "key": "_id",
+          "type": "string",
+          "format": "uri-reference",
+          "title": "Identifiant",
+          "description": "Identifiant unique parmi toutes les lignes du jeu de données"
+        },
+        {
+          "x-calculated": true,
+          "key": "_i",
+          "type": "integer",
+          "title": "Numéro de ligne",
+          "description": "Indice de la ligne dans le fichier d'origine"
+        },
+        {
+          "x-calculated": true,
+          "key": "_rand",
+          "type": "integer",
+          "title": "Nombre aléatoire",
+          "description": "Un nombre aléatoire associé à la ligne qui permet d'obtenir un tri aléatoire par exemple"
+        }
+      ],
+      "id": "concentrations-horaires-de-polluants-dans-lair-ambiant-issues-du-reseau-permanen",
+      "title": "Concentrations horaires de polluants dans l'air ambiant issues du réseau permanent de mesures automatiques - Poitiers",
+      "href": "https://koumoul.com/data-fair/api/v1/datasets/concentrations-horaires-de-polluants-dans-lair-ambiant-issues-du-reseau-permanen"
+    }
+  ],
+  "title": "Pollution by commune"
+}

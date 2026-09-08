@@ -374,3 +374,38 @@ describe('normalize schema fragment function', () => {
     )
   })
 })
+
+describe('fallback when a layout keyword is invalid', () => {
+  const oneOfFragment = { type: 'object', oneOf: [{ title: 'Text' }, { title: 'Image' }] }
+
+  it('should fall back to a default one-of-select, never to none', () => {
+    // The retry after a failed normalization used to clear `layout`, but a oneOf child
+    // reads its keyword from `oneOfLayout`, so the retry re-read the same bad value and
+    // the node ended up comp "none". A oneOf that is no longer a variant selector stops
+    // merging its branch into the parent: the state layer keys the branch under its index
+    // instead, the data never matches the tree, and updateState throws after 100
+    // iterations complaining that the data is unstable — nowhere near the real cause.
+    const { layout, errors } = normalize(
+      '$oneOf',
+      { ...oneOfFragment, oneOfLayout: { label: 'Type', notAThing: true } },
+      '/$defs/element',
+      options,
+      'oneOf'
+    )
+    assert.equal(layout.comp, 'one-of-select', 'an invalid oneOfLayout must not cost the node its nature')
+    assert.ok(errors.length, 'the invalid keyword must still be reported')
+  })
+
+  it('should keep the valid parts of a working oneOfLayout', () => {
+    const { layout, errors } = normalize(
+      '$oneOf',
+      { ...oneOfFragment, oneOfLayout: { label: 'Type' } },
+      '/$defs/element',
+      options,
+      'oneOf'
+    )
+    assert.equal(layout.comp, 'one-of-select')
+    assert.equal(/** @type {any} */(layout).label, 'Type')
+    assert.deepEqual(errors, [])
+  })
+})

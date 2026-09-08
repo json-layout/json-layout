@@ -1,0 +1,21 @@
+{
+  "case": "contact",
+  "verdict": "satisfactory",
+  "reasoning": "The session reached the goal cleanly and nothing in it was invented or wrong: describeState (call 1) returned the whole four-field form in 553 bytes with every constraint the goal needed — required flags on /name and /email, min/max on /birthYear, format=email, and the closed list stated inline as /contactMethod (select, values=[\"email\",\"phone\",\"post\"]). So the specific thing the removed getSchema used to supply for this case, the contactMethod enum, did arrive on describeState's line exactly as the new design intends; no information was lost with the schema tool, and no call was made to work around its absence. The agent guessed no paths, hit no errors, and every value it wrote is traceable to the goal text or to a list the form stated. Where the run is weak is economy, not correctness: the minimum here was two calls, and the agent spent five. It already had the values in hand when it issued setData in call 2, yet omitted contactMethod from that write, then spent calls 3 and 4 fetching and applying a list it had been told, and closed with a getData that call 4 had already answered. The increase from the getSchema-era three calls comes from the suggestions detour, not from anything the single-path guide failed to say. The guide fit the form: nothing in the transcript shows the agent doing anything sized for a large form.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "getFieldSuggestions",
+      "observed": "3 suggestion(s) - [0] email - [1] phone - [2] post",
+      "inferred": "The agent concluded a select field's accepted values must be fetched before use, even though call 1 had stated them verbatim as values=[\"email\",\"phone\",\"post\"]. The call returned zero new information and forced a second write for a value that belonged in call 2's setData. The invitation is in the TOOL'S OWN DESCRIPTION, which reads unconditionally — 'Get the accepted values of a select/autocomplete/combobox field' with no carve-out for fields describeState has already inlined — and so contradicts the guide's 'you write one of those directly'.",
+      "severity": "medium"
+    },
+    {
+      "call": 5,
+      "tool": "getData",
+      "observed": "the whole document, 115 bytes, after call 4 said 'form is valid'",
+      "inferred": "A closing verification read of a document the agent had just written. Nothing in getData's description marks it as unnecessary after a clean write, so it looks free. Cheap here, but it is the third of three calls that bought no information on a form whose entire state fits in one describeState response.",
+      "severity": "low"
+    }
+  ]
+}

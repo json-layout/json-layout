@@ -37,7 +37,9 @@ export function compile (_schema, partialOptions = {}) {
   const schema = /** @type {import('ajv').SchemaObject} */(clone(_schema))
   schema.$id = schema.$id ?? '_jl'
   const getJSONRef = resolveLocaleRefs(schema, options.ajv, options.locale, options.defaultLocale)
-  if (options.xI18n) resolveXI18n(schema, options.locale, options.defaultLocale)
+  // always called: when xI18n is off this strips the annotations rather than applying
+  // them, so a schema carrying them stays valid instead of failing to normalize
+  resolveXI18n(schema, options.locale, options.defaultLocale, options.xI18n)
 
   /** @type {string[]} */
   const validatePointers = []

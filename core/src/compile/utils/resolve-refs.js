@@ -1,5 +1,7 @@
 import { clone } from '@json-layout/vocabulary'
 
+import { resolvePointerFragment } from '../../utils/json-pointer.js'
+
 /**
  * @param {Record<string, import('ajv').SchemaObject>} schemas
  * @param {import('ajv/dist/2019.js').default} ajv
@@ -12,14 +14,9 @@ const prepareGetJSONRef = (schemas, ajv) => {
     schemas[schemaId] = schemas[schemaId] ?? (ajv.getSchema(schemaId)?.schema)
     if (!schemas[schemaId]) throw new Error(`reference not found ${schemaId}`)
     if (!pointer) return [schemas[schemaId], schemaId, fullRef]
-    const pointerParts = pointer.split('/').filter(p => !!p)
-    const { value: fragment } = pointerParts.reduce((a, pointerPart) => {
-      a.path.push(pointerPart)
-      if (!(pointerPart in a.value)) throw new Error(`reference not found ${schemaId}#${a.path.join('/')}`)
-      a.value = a.value[pointerPart]
-      return a
-    }, { path: /** @type {string[]} */([]), value: schemas[schemaId] })
-    return [fragment, schemaId, fullRef]
+    const resolved = resolvePointerFragment(schemas[schemaId], pointer)
+    if (!resolved.found) throw new Error(`reference not found ${schemaId}#${resolved.path.join('/')}`)
+    return [resolved.value, schemaId, fullRef]
   }
 }
 

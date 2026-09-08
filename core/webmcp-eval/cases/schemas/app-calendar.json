@@ -1,0 +1,339 @@
+{
+  "type": "object",
+  "required": ["datasets"],
+  "allOf": [
+    {
+      "title": "Source de données",
+      "properties": {
+        "datasets": {
+          "type": "array",
+          "items": [
+            {
+              "title": "Jeu de données",
+              "description": "Ce jeu doit contenir au moins un champ avec le concept de date",
+              "type": "object",
+              "x-fromUrl": "api/v1/datasets?status=finalized&q={q}&select=title,isRest,schema,timePeriod,attachmentsAsImage,userPermissions&{context.datasetFilter}&short-concept=date,startDate,endDate&size=100",
+              "x-itemsProp": "results",
+              "x-itemTitle": "title",
+              "x-itemKey": "href",
+              "additionalProperties": false,
+              "properties": {
+                "href": { "type": "string" },
+                "title": { "type": "string" },
+                "isRest": { "type": "boolean" },
+                "schema": { "type": "array" },
+                "timePeriod": { "type": "object" },
+                "attachmentsAsImage": { "type": "boolean" },
+                "userPermissions": { "type": "array" }
+              }
+            },
+            {
+              "$ref": "#/definitions/contribsDataset"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Affichage",
+      "description": "Gérer l'affichage du calendrier",
+      "properties": {
+        "labelField": {
+          "type": "object",
+          "title": "Champ de libellé",
+          "description": "Choisissez le champ représentant le libellé d'un événement.",
+          "x-fromUrl": "{datasets.0.href}/schema?calculated=false",
+          "x-itemTitle": "label",
+          "x-itemKey": "key"
+        },
+        "color": {
+          "type": "object",
+          "title": "Réglage des couleurs",
+          "required": ["type"],
+          "oneOf": [
+            {
+              "title": "Calendrier multicolore",
+              "additionalProperties": false,
+              "required": ["field"],
+              "properties": {
+                "type": {
+                  "const": "multicolor"
+                },
+                "field": {
+                  "type": "string",
+                  "title": "Champ de catégorie",
+                  "description": "Choisissez le champ permettant de distinguer les catégories d'événements suivant des couleurs distinctes.",
+                  "x-fromUrl": "{datasets.0.href}/schema?calculated=false",
+                  "x-itemTitle": "category",
+                  "x-itemKey": "key"
+                },
+                "colors": {
+                  "type": "object",
+                  "title": "Couleurs",
+                  "oneOf": [
+                    {
+                      "title": "Palette précalculée",
+                      "required": ["type", "name"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "palette"
+                        },
+                        "name": {
+                          "title": "Palette",
+                          "type": "string",
+                          "oneOf": [
+                            {
+                              "const": "Accent",
+                              "title": "Accent"
+                            },
+                            {
+                              "const": "Dark2",
+                              "title": "Foncé"
+                            },
+                            {
+                              "const": "Paired",
+                              "title": "Paires"
+                            },
+                            {
+                              "const": "Set1",
+                              "title": "Ensemble 1"
+                            },
+                            {
+                              "const": "Set2",
+                              "title": "Ensemble 2"
+                            },
+                            {
+                              "const": "Set3",
+                              "title": "Ensemble 3"
+                            },
+                            {
+                              "const": "Pastel1",
+                              "title": "Pastel 1"
+                            },
+                            {
+                              "const": "Pastel2",
+                              "title": "Pastel 2"
+                            }
+                          ],
+                          "default": "Accent"
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "title": "Décallage",
+                          "default": 0
+                        }
+                      }
+                    },
+                    {
+                      "title": "Palette personnalisée",
+                      "required": ["type", "categories"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "manual"
+                        },
+                        "categories": {
+                          "title": "Couleurs",
+                          "type": "array",
+                          "x-fromUrl": "{datasets.0.href}/values_agg?field={parent.parent.parent.value.field}&size=0&agg_size=15",
+                          "x-display": "list",
+                          "x-itemTitle": "value",
+                          "x-itemKey": "value",
+                          "x-itemsProp": "aggs",
+                          "items": {
+                            "type": "object",
+                            "required": ["value"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "x-display": "hidden"
+                              },
+                              "color": {
+                                "type": "string",
+                                "title": "Couleur",
+                                "format": "hexcolor",
+                                "default": "#828282",
+                                "x-display": "color-picker"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "default": {
+                    "type": "palette",
+                    "name": "Accent",
+                    "offset": 0
+                  }
+                }
+              }
+            },
+            {
+              "title": "Calendrier monochrome",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "monochrome"
+                },
+                "colors": {
+                  "type": "object",
+                  "title": "Couleur",
+                  "required": ["type"],
+                  "oneOf": [
+                    {
+                      "title": "Thème",
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "theme"
+                        },
+                        "strValue": {
+                          "title": "Couleur",
+                          "type": "string",
+                          "oneOf": [
+                            {
+                              "const": "primary",
+                              "title": "Primaire"
+                            },
+                            {
+                              "const": "secondary",
+                              "title": "Secondaire"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "title": "Personnalisée",
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "custom"
+                        },
+                        "hexValue": {
+                          "type": "string",
+                          "title": "Couleur",
+                          "format": "hexcolor",
+                          "default": "#828282",
+                          "x-display": "color-picker"
+                        }
+                      }
+                    }
+                  ],
+                  "default": {
+                    "type": "theme",
+                    "strValue": "primary"
+                  }
+                }
+              }
+            }
+          ],
+          "default": {
+            "type": "monochrome"
+          }
+        }
+      }
+    },
+    {
+      "title": "Détails d'un événement",
+      "description": "Gérer le contenu de l'affichage lors du clic sur un événement",
+      "properties": {
+        "descriptionField": {
+          "type": "object",
+          "title": "Champ de description",
+          "description": "Choisissez le champ permettant de fournir une description de l'événement, interprète le html et le markdown.",
+          "x-fromUrl": "{datasets.0.href}/schema?calculated=false",
+          "x-itemTitle": "description",
+          "x-itemKey": "key"
+        },
+        "additionalFields": {
+          "title": "Champs supplémentaires à afficher.",
+          "type": "array",
+          "x-fromUrl": "{datasets.0.href}/schema?calculated=false",
+          "x-itemTitle": "label",
+          "x-itemKey": "key",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "title": "Edition",
+      "x-if": "datasets.0.isRest",
+      "properties": {
+        "formDensity": {
+          "title": "Densité du formulaire",
+          "type": "string",
+          "oneOf": [
+            { "const": "default", "title": "Normale" },
+            { "const": "compact", "title": "Compacte" },
+            { "const": "comfortable", "title": "Aérée" }
+          ],
+          "default": "default"
+        },
+        "formVariant": {
+          "title": "Style du formulaire",
+          "type": "string",
+          "oneOf": [
+            { "const": "outlined", "title": "Bordure" },
+            { "const": "underlined", "title": "Souligné" },
+            { "const": "filled", "title": "Rempli" },
+            { "const": "solo", "title": "Solo" },
+            { "const": "solo-inverted", "title": "Solo inversé" },
+            { "const": "solo-filled", "title": "Solo rempli" }
+          ],
+          "default": "underlined"
+        },
+        "showHelpMessages": {
+          "type": "boolean",
+          "title": "Afficher les descriptions des champs en bulles d'aide",
+          "default": false
+        },
+        "crowdSourcing": {
+          "type": "boolean",
+          "title": "Activer le crowd sourcing"
+        },
+        "contribsDataset": {
+          "$ref": "#/definitions/contribsDataset"
+        },
+        "deleteValidatedContribs": {
+          "title": "Supprimer les contributions après validation",
+          "type": "boolean",
+          "default": false,
+          "x-if": "parent.value.crowdSourcing"
+        },
+        "colorContrib": {
+          "x-if": "parent.value.crowdSourcing",
+          "type": "string",
+          "title": "Couleur",
+          "format": "hexcolor",
+          "default": "#7AA95C",
+          "x-display": "color-picker"
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "contribsDataset": {
+      "title": "Jeu de données des contributions externes",
+      "x-if": "crowdSourcing",
+      "type": "object",
+      "x-fromUrl": "api/v1/datasets?rest=true&q={q}&select=title,schema,timePeriod,userPermissions&{context.datasetFilter}&short-concept=startDate,endDate&size=100",
+      "x-itemsProp": "results",
+      "x-itemTitle": "title",
+      "x-itemKey": "href",
+      "additionalProperties": false,
+      "properties": {
+        "href": { "type": "string" },
+        "title": { "type": "string" },
+        "schema": { "type": "array" },
+        "timePeriod": { "type": "object" },
+        "userPermissions": { "type": "array" }
+      }
+    }
+  }
+}

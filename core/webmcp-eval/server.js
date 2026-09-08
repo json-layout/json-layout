@@ -1,0 +1,155 @@
+#!/usr/bin/env node
+/**
+ * @file Stdio MCP server exposing one eval case's form tools.
+ *
+ * This is what lets a coding agent drive a json-layout form for real instead of a test
+ * replaying a sequence someone already knew was correct. The agent sees exactly what a
+ * browser page would expose — same descriptors, same descriptions, same skill text —
+ * so a run that goes badly is evidence about the protocol, not about the harness.
+ *
+ * Speaks JSON-RPC 2.0 over newline-delimited stdin/stdout, implementing only the three
+ * methods a tool-using client needs (initialize, tools/list, tools/call). The official
+ * SDK would pull a dependency tree into a package that deliberately has almost none,
+ * for a surface this small.
+ *
+ * Usage (see run-case.js's buildLaunchArgs, which wires this up via --mcp-config):
+ *   JL_WEBMCP_EVAL_CASE=contact node core/webmcp-eval/server.js
+ *
+ * On exit it writes the recorded run to core/tmp/webmcp-eval-<case>.json as evidence for
+ * the webmcp-eval-judge agent to read.
+ */
+
+import { createInterface } from 'node:readline'
+import { writeFileSync, mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { getCase } from './cases/index.js'
+import { EvalSession, applyVariant, evidenceName } from './session.js'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const caseName = process.env.JL_WEBMCP_EVAL_CASE
+if (!caseName) {
+  // Case selection is inherited two processes deep (launcher → claude → this server
+  // child). A silent default would mean a regression in that inheritance makes every
+  // subprocess serve the same case and race on one transcript file, while the report
+  // points at "never dispatched" instead of at the real cause. Every real launch sets
+  // this, so failing loudly here costs nothing.
+  throw new Error('JL_WEBMCP_EVAL_CASE must be set — it selects which case this server serves')
+}
+const variant = process.env.JL_WEBMCP_EVAL_VARIANT
+const evalCase = applyVariant(getCase(caseName), variant)
+const session = new EvalSession(evalCase)
+
+const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${evidenceName(caseName, variant)}.json`)
+
+/** Write the run so far to the evidence file the judge agent reads. */
+function persist () {
+  try {
+    mkdirSync(dirname(transcriptPath), { recursive: true })
+    writeFileSync(transcriptPath, JSON.stringify(session.evidence(), null, 2))
+  } catch (/** @type {any} */err) {
+    // Never let a bookkeeping failure take down the session mid-run; the agent's work
+    // is the valuable part and stderr is out-of-band for an MCP client.
+    process.stderr.write(`failed to write transcript: ${err.message}\n`)
+  }
+}
+
+/**
+ * @param {unknown} id
+ * @param {unknown} result
+ */
+function respond (id, result) {
+  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n')
+}
+
+/**
+ * @param {unknown} id
+ * @param {number} code
+ * @param {string} message
+ */
+function respondError (id, code, message) {
+  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n')
+}
+
+/**
+ * @param {any} msg
+ */
+async function handle (msg) {
+  const { id, method, params } = msg
+
+  if (method === 'initialize') {
+    respond(id, {
+      // Echo the client's protocol version when it sends one: this server has no
+      // version-specific behaviour, and refusing an unknown version would only break
+      // clients over a field none of the three implemented methods depend on.
+      protocolVersion: params?.protocolVersion ?? '2024-11-05',
+      capabilities: { tools: {} },
+      // Wire-visible, so it carries no evaluation language for the same reason the
+      // server and tool names do not: a runner that reads "eval" here has been told
+      // what it must not be told. Nor does it carry the case name — the runner must
+      // not be able to read case selection back out of anything it sees.
+      serverInfo: { name: 'page-form', version: '1.0.0' }
+    })
+    return
+  }
+
+  // Notifications carry no id and must not be answered.
+  if (method === 'notifications/initialized' || id === undefined) return
+
+  if (method === 'tools/list') {
+    respond(id, {
+      tools: session.tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema ?? { type: 'object', properties: {} }
+      }))
+    })
+    return
+  }
+
+  if (method === 'tools/call') {
+    const name = params?.name
+    const args = params?.arguments ?? {}
+    try {
+      const result = await session.call(name, args)
+      persist()
+      respond(id, {
+        content: result?.content ?? [],
+        ...(result?.structuredContent ? { structuredContent: result.structuredContent } : {}),
+        isError: !!result?.isError
+      })
+    } catch (/** @type {any} */err) {
+      // Surface a thrown tool as an MCP tool error rather than a transport error: the
+      // agent can then react to it, and the error is still recorded for the judge.
+      persist()
+      respond(id, { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true })
+    }
+    return
+  }
+
+  respondError(id, -32601, `method not found: ${method}`)
+}
+
+// The form is stateful, so requests are handled strictly in arrival order. Without
+// this chain two pipelined writes could resolve out of order and land on the form in
+// the wrong sequence — a race a client would have no way to see, since JSON-RPC lets
+// responses come back in any order as long as the ids match.
+let queue = Promise.resolve()
+
+const rl = createInterface({ input: process.stdin })
+rl.on('line', (line) => {
+  const trimmed = line.trim()
+  if (!trimmed) return
+  let msg
+  try {
+    msg = JSON.parse(trimmed)
+  } catch {
+    respondError(null, -32700, 'parse error')
+    return
+  }
+  queue = queue.then(() => handle(msg).catch((err) => respondError(msg?.id ?? null, -32603, err.message)))
+})
+rl.on('close', persist)
+
+process.stderr.write(`json-layout webmcp eval server ready — case "${caseName}": ${evalCase.goal}\n`)

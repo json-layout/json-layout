@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The goal was fully met and nothing was invented. All three requested facts landed in the data: datasets[0] is the exact 'Agenda-manifestations' dataset picked by suggestionIndex from an 11-item list, labelField is 'nomevenement' picked by suggestionIndex from the 27-column list (its x-concept is even 'label'), and crowdSourcing is true, with the form ending valid. Every non-boolean value came from a suggestion list rather than from the agent's head, and the agent correctly declined to fill the optional contribsDataset that crowd sourcing revealed, since the goal never named one. The path ordering was forced correctly by the protocol rather than guessed: the initial describeState reported the dataset error, and /$allOf-3 (crowdSourcing) did not exist in the tree at all until the dataset made x-if 'datasets.0.isRest' true, so the agent could not have reached it earlier and never hit the 'No suggestions available' trap that labelField (x-fromUrl on {datasets.0.href}) would have produced if queried first. Nine calls against a plausible floor of seven is tight. The three describeState calls are not all equal: call 4 was necessary — setFieldValue named /$allOf-3 as revealed but gave no children, so the crowdSourcing path had to be fetched. The two-call tail is thin value: call 8 re-reads /$allOf-3 and reproduces four of seven lines verbatim from call 4 to confirm 'crowdSourcing = true', which call 7 had already echoed; call 9 reads /$allOf-0/datasets only to learn the newly revealed tuple slot 1 is neither required nor in error, which call 7's 'form is valid' had already implied. Those two calls cost 1157 bytes, 15% of the run, and bought roughly one bit. The bytes are otherwise well spent: 3575 (46%) is the two suggestion listings, the only information the agent could not have derived; 1739 (22%) is the one full-tree read; the value abbreviation is clearly working, with the 12486-char dataset object named rather than printed in all three places it appears.",
+  "friction": [
+    {
+      "call": 1,
+      "tool": "describeState",
+      "observed": "- /$allOf-0/datasets: must have required property datasets",
+      "inferred": "The error is attached to the node already named 'datasets' while carrying ajv's root-level message, so the line reads as if the datasets node itself is missing a 'datasets' property rather than as 'the array needs its first entry'. The agent recovered immediately from the tree line below it (/$allOf-0/datasets/0, autocomplete, suggestions) and went to the right path, so the cost was interpretive only.",
+      "severity": "low"
+    },
+    {
+      "call": 7,
+      "tool": "setFieldValue",
+      "observed": "4 field(s) became available: /$allOf-0/datasets/1, /$allOf-3/contribsDataset, /$allOf-3/deleteValidatedContribs, /$allOf-3/colorContrib",
+      "inferred": "The reveal line gives bare paths with no label, no requiredness and no default, and the same contribsDataset definition surfaces at two unrelated paths. The agent could not tell from this line whether crowd sourcing now demanded a contributions dataset, and spent both tail calls (8 and 9, 1157 bytes) re-describing sections to establish that the answer was no — something the same response's 'form is valid' had already said.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "setFieldValue",
+      "observed": "the whole 442-char column schema echoed back",
+      "inferred": "The value was applied by suggestionIndex and never needed in full; the write echo printed it anyway. The only avoidable echo left in this run.",
+      "severity": "low"
+    }
+  ]
+}

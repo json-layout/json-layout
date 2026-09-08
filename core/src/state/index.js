@@ -172,6 +172,19 @@ export class StatefulLayout {
   _lastCreateStateTreeContext
 
   /**
+   * The raw validation errors of the last state update, each carrying the data pointer
+   * (instancePath) it applies to.
+   *
+   * A node only carries an error when it is hydrated, so an error below an unhydrated
+   * subtree — a list item shown in summary mode, say — has no node to attach to and
+   * collapses onto the nearest ancestor. These keep the precise location.
+   * @returns {import('ajv').ErrorObject[]}
+   */
+  get validationErrors () {
+    return this._lastCreateStateTreeContext?.allErrors ?? []
+  }
+
+  /**
    * @private
    * @type {string | null}
    */
@@ -703,7 +716,11 @@ export class StatefulLayout {
         item.value = layout.getItems?.itemValue ? this.evalNodeExpression(node, layout.getItems.itemValue, rawItem) : (layout.getItems?.returnObjects ? rawItem : rawItem.value)
         item.key = layout.getItems?.itemKey ? this.evalNodeExpression(node, layout.getItems.itemKey, rawItem) : rawItem.key
         item.title = layout.getItems?.itemTitle ? this.evalNodeExpression(node, layout.getItems.itemTitle, rawItem) : rawItem.title
-        item.value = item.value ?? item.key
+        // A legitimate null — a { const: null } branch, normalized to
+        // { key: "null", value: null } — is a value, not an absence. `??` would swallow
+        // it and keep the key, so the tool hands the agent the string "null" and the
+        // schema then rejects the very suggestion it offered.
+        if (item.value === undefined) item.value = item.key
         item.key = item.key ?? item.value + ''
         item.title = item.title ?? item.key
       }

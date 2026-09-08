@@ -1024,3 +1024,47 @@ describe('Special cases of oneOfs', () => {
     assert.equal(getNode('$oneOf').children?.[0]?.key, 0)
   })
 })
+
+describe('a oneOf whose layout keyword is invalid', () => {
+  const branch = (/** @type {string} */ title, /** @type {object} */ extra) => ({
+    title,
+    required: ['type'],
+    properties: { type: { const: title.toLowerCase() }, ...extra }
+  })
+  const schema = (/** @type {object} */ oneOfLayout) => ({
+    type: 'object',
+    properties: { elements: { type: 'array', items: { $ref: '#/$defs/element' } } },
+    $defs: {
+      element: {
+        type: 'object',
+        oneOfLayout,
+        discriminator: { propertyName: 'type' },
+        oneOf: [branch('Text', { content: { type: 'string' } }), branch('Image', { url: { type: 'string' } })]
+      }
+    }
+  })
+  const data = { elements: [{ type: 'text', content: 'hi' }] }
+
+  it('should keep the data intact instead of keying the branch under its index', () => {
+    // A oneOf that loses its one-of-select nature stops merging the active branch into
+    // its parent, and the state layer writes the branch under its numeric key instead:
+    // { "0": {...}, ...same fields }. That never matches the data it came from, so
+    // updateState spins to its 100-iteration guard and reports unstable data — pointing
+    // at the data rather than at a layout keyword that failed to normalize much earlier.
+    for (const oneOfLayout of [{ label: 'Type', notAThing: true }, { label: 42 }]) {
+      const compiled = compile(schema(oneOfLayout), { ajvOptions: { discriminator: true } })
+      const layout = new StatefulLayout(
+        compiled,
+        compiled.skeletonTrees[compiled.mainTree],
+        { debounceInputMs: 0 },
+        structuredClone(data)
+      )
+      assert.deepEqual(layout.data, data, `data must survive oneOfLayout ${JSON.stringify(oneOfLayout)}`)
+    }
+  })
+
+  it('should still report the invalid keyword rather than swallow it', () => {
+    const compiled = compile(schema({ label: 'Type', notAThing: true }), { ajvOptions: { discriminator: true } })
+    assert.ok(Object.keys(compiled.validationErrors).length, 'a bad keyword must not pass unnoticed')
+  })
+})

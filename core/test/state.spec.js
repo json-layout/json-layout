@@ -365,6 +365,67 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(arrNode2.children?.[0].data, 'test')
     })
 
+    it('should carry validation constraints the raw schema would otherwise keep', async () => {
+      // serialize() emits the skeleton, the layouts and the validators — not the schema. So
+      // a precompiled layout could not tell a form filler that a field is an email, matches
+      // a pattern, or that an array holds at most five items, while ajv went on enforcing
+      // every one of them. This test runs in build-time mode too, which is the mode that
+      // could not know.
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          mail: { type: 'string', format: 'email' },
+          code: { type: 'string', pattern: '^[A-Z]{3}$', minLength: 3, maxLength: 3 },
+          tags: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5, uniqueItems: true },
+          plain: { type: 'string' }
+        }
+      })
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      const byKey = Object.fromEntries((root.children ?? []).map(c => [compiledLayout.skeletonNodes[c].key, compiledLayout.skeletonNodes[c]]))
+      assert.deepEqual(byKey.mail.constraints, { format: 'email' })
+      assert.deepEqual(byKey.code.constraints, { pattern: '^[A-Z]{3}$', minLength: 3, maxLength: 3 })
+      assert.deepEqual(byKey.tags.constraints, { minItems: 1, maxItems: 5, uniqueItems: true })
+      assert.equal(byKey.plain.constraints, undefined, 'nothing is carried for a node that constrains nothing')
+    })
+
+    it('should only mark a tuple entry required while minItems covers it', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          loose: { type: 'array', items: [{ type: 'string' }, { type: 'string' }] },
+          strict: { type: 'array', minItems: 1, items: [{ type: 'string' }, { type: 'string' }] }
+        }
+      })
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      const [loose, strict] = (root.children ?? []).map(c => compiledLayout.skeletonNodes[c])
+      // an array with no minItems validates while empty, so neither entry is required.
+      // Reporting every tuple entry as required had webmcp tell an agent a field was
+      // required and undefined in the same response that said the form was valid, and it
+      // spent three calls hunting for a value nothing was asking for.
+      assert.deepEqual(loose.children?.map(c => compiledLayout.skeletonNodes[c].required), [false, false])
+      assert.deepEqual(strict.children?.map(c => compiledLayout.skeletonNodes[c].required), [true, false])
+    })
+
+    it('should materialize a tuple entry that is not required', async () => {
+      // requiredness is not what makes a tuple slot exist: json-layout renders every entry
+      // whatever minItems says, and data-fair pickers read rootData.datasets[0].href off
+      // an untouched form. Materialization is the `alwaysPresent` half of the pair.
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          datasets: { type: 'array', items: [{ type: 'object', properties: { href: { type: 'string' } } }] }
+        }
+      })
+      const mainTree = compiledLayout.skeletonTrees[compiledLayout.mainTree]
+      const root = compiledLayout.skeletonNodes[mainTree.root]
+      const entry = compiledLayout.skeletonNodes[compiledLayout.skeletonNodes[root.children?.[0] ?? ''].children?.[0] ?? '']
+      assert.equal(entry.required, false)
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, {})
+      assert.deepEqual(statefulLayout.data, { datasets: [{}] })
+    })
+
     it('should use children info for ordering', async () => {
       const compiledLayout = await compile({
         type: 'object',

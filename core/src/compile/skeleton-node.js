@@ -5,6 +5,30 @@ import { makeSkeletonTree } from './skeleton-tree.js'
 import { partialResolveRefs } from './utils/resolve-refs.js'
 
 /**
+ * Validation keywords that change what a value has to look like, as opposed to how it is
+ * rendered. A build-time compiled layout does not carry the raw schema — `serialize` emits
+ * the skeleton, the layouts and the validators, and nothing else — so a form filler working
+ * against a precompiled layout could not learn that a field is an email, or matches a
+ * pattern, or that an array holds at most five items. Ajv still enforces every one of them,
+ * which made the omission worse than useless: the rule was invisible until it was violated.
+ * Numbers are left out because min/max/step already reach the layout.
+ */
+const CONSTRAINT_KEYWORDS = ['format', 'pattern', 'minLength', 'maxLength', 'minItems', 'maxItems', 'uniqueItems']
+
+/**
+ * @param {any} schema
+ * @returns {Record<string, unknown> | undefined}
+ */
+function collectConstraints (schema) {
+  /** @type {Record<string, unknown>} */
+  const constraints = {}
+  for (const keyword of CONSTRAINT_KEYWORDS) {
+    if (schema?.[keyword] !== undefined) constraints[keyword] = schema[keyword]
+  }
+  return Object.keys(constraints).length ? constraints : undefined
+}
+
+/**
  * @param {any} rawSchema
  * @param {string} sourceSchemaId
  * @param {import('./index.js').CompileOptions} options
@@ -17,10 +41,17 @@ import { partialResolveRefs } from './utils/resolve-refs.js'
  * @param {import('@json-layout/vocabulary').Expression[]} expressions
  * @param {string | number} key
  * @param {string} pointer
- * @param {boolean} required
+ * @param {boolean} required - the schema makes this node's value mandatory: omitting it is
+ * a validation error. This is what `node.required` reports and what a UI marks with an
+ * asterisk, so it must never be true for a node the schema is happy to see absent.
  * @param {string} [condition]
  * @param {boolean} [dependent]
  * @param {string} [knownType]
+ * @param {boolean} [alwaysPresent] - the node's value is materialized whether or not the
+ * schema requires it, because its parent renders it as a fixed slot. Drives default and
+ * empty-container application only. Defaults to `required`, which is the same thing for
+ * every parent that builds its children from what the schema demands; tuple entries are
+ * the exception, always present but only required up to `minItems`.
  * @returns {import('./types.js').SkeletonNode}
  */
 export function makeSkeletonNode (
@@ -39,7 +70,8 @@ export function makeSkeletonNode (
   required,
   condition,
   dependent,
-  knownType
+  knownType,
+  alwaysPresent = required
 ) {
   let schemaId = sourceSchemaId
   let schema = rawSchema
@@ -136,8 +168,8 @@ export function makeSkeletonNode (
     if (compObject.getConstData) pushExpression(expressions, compObject.getConstData)
 
     let defaultData
-    if ('default' in schema && (options.useDefault === 'data' || options.useDefault === true || required)) defaultData = schema.default
-    else if (required) {
+    if ('default' in schema && (options.useDefault === 'data' || options.useDefault === true || alwaysPresent)) defaultData = schema.default
+    else if (alwaysPresent) {
       if (nullable) defaultData = null
       else if (type === 'object' && isCompositeLayout(compObject, options.components)) defaultData = {}
       else if (type === 'array') defaultData = []
@@ -197,6 +229,9 @@ export function makeSkeletonNode (
     nullable,
     required: required && !nullable
   }
+
+  const constraints = collectConstraints(schema)
+  if (constraints) node.constraints = constraints
 
   if (condition) {
     if (isSwitchStruct(normalizedLayout)) throw new Error('Switch struct not allowed in conditional schema')
@@ -320,7 +355,7 @@ export function makeSkeletonNode (
         const compObjects = isSwitchStruct(normalizationResult.layout) ? normalizationResult.layout.switch : [normalizationResult.layout]
         for (const compObject of compObjects) {
           let defaultData
-          if ('default' in schema && (options.useDefault === 'data' || options.useDefault === true || required)) defaultData = schema.default
+          if ('default' in schema && (options.useDefault === 'data' || options.useDefault === true || alwaysPresent)) defaultData = schema.default
           else defaultData = nullable ? null : {}
           if (compObject.defaultData === undefined) compObject.defaultData = defaultData
           if (compObject.defaultData !== undefined && !compObject.getDefaultData) compObject.getDefaultData = { type: 'js-eval', expr: 'layout.defaultData', pure: true, dataAlias: 'value' }
@@ -549,6 +584,12 @@ export function makeSkeletonNode (
             expressions,
             i,
             childPointer,
+            // a tuple entry is only mandatory while minItems still covers its position,
+            // but json-layout renders every entry, so all of them are always present
+            (schema.minItems ?? 0) > i,
+            undefined,
+            undefined,
+            undefined,
             true
           )
         }

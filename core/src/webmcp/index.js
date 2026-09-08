@@ -12,7 +12,10 @@ import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions } from './project.js'
+import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource } from './project.js'
+import { resolveNode } from './resolve.js'
+import { SuggestionsStore } from './suggestions-store.js'
+import { VariantsMemo } from './variants-memo.js'
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -42,21 +45,9 @@ function parseIfJsonString (value) {
  * @typedef {object} WebMCPOptions
  * @property {string} [prefixName] - Prefix for all tool names
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
- * @property {object} [schema] - The original JSON schema
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
  * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
  */
-
-/**
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {"small"|"medium"|"large"}
- */
-function getComplexity (statefulLayout) {
-  const nbNormalizedLayouts = Object.keys(statefulLayout.compiledLayout.normalizedLayouts).length
-  if (nbNormalizedLayouts > 50) return 'large'
-  if (nbNormalizedLayouts > 15) return 'medium'
-  return 'small'
-}
 
 /**
  * WebMCP class that provides MCP tool descriptors for a StatefulLayout instance
@@ -82,18 +73,6 @@ export class WebMCP {
 
   /**
    * @readonly
-   * @type {"small"|"medium"|"large"}
-   */
-  _complexity
-
-  /**
-   * @readonly
-   * @type {object | null}
-   */
-  _schema = null
-
-  /**
-   * @readonly
    * @type {boolean}
    */
   _includeFillFormSkill = false
@@ -110,6 +89,21 @@ export class WebMCP {
   _registeredTools = []
 
   /**
+   * memory of the last suggestions per node path, used by setFieldValue's suggestionIndex
+   * @readonly
+   * @type {SuggestionsStore}
+   */
+  _suggestionsStore = new SuggestionsStore()
+
+  /**
+   * Variant lists already sent to the agent. Never cleared on a write: a schema's branches
+   * are a constant, so unlike memorized suggestions nothing about the data can invalidate
+   * them.
+   * @type {VariantsMemo}
+   */
+  _variantsMemo = new VariantsMemo()
+
+  /**
    * @param {import('../state/index.js').StatefulLayout} statefulLayout
    * @param {WebMCPOptions} [options]
    */
@@ -117,10 +111,8 @@ export class WebMCP {
     this._statefulLayout = statefulLayout
     this._prefixName = options.prefixName || ''
     this._dataTitle = options.dataTitle || 'form'
-    this._schema = options.schema || null
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
-    this._complexity = getComplexity(statefulLayout)
   }
 
   /**
@@ -136,17 +128,15 @@ export class WebMCP {
    */
   getTools () {
     const dataTitle = this._dataTitle
-    const complexity = this._complexity
 
     /** @type {ToolDescriptor[]} */
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, !!this._schema, this._statefulLayout)
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName)
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
-        outputSchema: { type: 'string' },
         execute: async (args) => {
           try {
             return {
@@ -166,15 +156,18 @@ export class WebMCP {
     tools.push(
       {
         name: this._toolName('getData'),
-        description: `Get current "${dataTitle}" data and validity status. Call this first to see what data already exists.`,
+        description: getData.getDescription(dataTitle),
         inputSchema: getData.inputSchema,
-        outputSchema: getData.outputSchema,
         execute: async (args) => {
           try {
             const result = getData.execute(this._statefulLayout, args || {})
+            // Returned whole, always. This tool's answer IS the data: an agent may hand it
+            // to an API, and a document with named placeholders where its values should be
+            // would be forwarded as those strings with nothing looking wrong. Volume on a
+            // large form is a question of when to call this at all, which the guide
+            // answers — not a licence for the tool to answer with something else.
             return {
-              content: [{ type: 'text', text: JSON.stringify(result) }],
-              structuredContent: result
+              content: [{ type: 'text', text: JSON.stringify(result) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -187,9 +180,8 @@ export class WebMCP {
       },
       {
         name: this._toolName('setData'),
-        description: setData.getDescription(dataTitle, complexity),
+        description: setData.getDescription(dataTitle),
         inputSchema: setData.inputSchema,
-        outputSchema: setData.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.data) {
@@ -198,11 +190,22 @@ export class WebMCP {
             args.data = parseIfJsonString(args.data)
             const result = setData.execute(
               this._statefulLayout,
-              /** @type {{ data: unknown }} */(args)
+              /** @type {{ data: unknown, merge?: boolean }} */(args)
             )
+            // the whole data was replaced, what a memorized path designates may have changed
+            this._suggestionsStore.clear()
+            const warnings = []
+            if (result.removed.length) {
+              warnings.push(`removed ${result.removed.length} key(s) not present in the data you passed: ${result.removed.join(', ')} — pass merge=true to keep them`)
+            }
+            if (result.unknownKeys.length) {
+              warnings.push(`${result.unknownKeys.length} key(s) match no field of this form and were ignored by it: ${result.unknownKeys.join(', ')} — check for a typo with describeState`)
+            }
+            const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
+            const stored = result.written.length ? `stored ${result.written.length} key(s): ${result.written.join(', ')}` : ''
+            const text = [formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors) }],
-              structuredContent: result
+              content: [{ type: 'text', text }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -215,16 +218,13 @@ export class WebMCP {
       },
       {
         name: this._toolName('describeState'),
-        description: describeState.getDescription(dataTitle, complexity),
+        description: describeState.getDescription(dataTitle),
         inputSchema: describeState.inputSchema,
-        outputSchema: describeState.outputSchema,
         execute: async (args) => {
           try {
-            const result = describeState.execute(this._statefulLayout, args || {})
-            const text = describeState.toMarkdown(this._statefulLayout, args || {})
+            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo)
             return {
-              content: [{ type: 'text', text }],
-              structuredContent: result
+              content: [{ type: 'text', text }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -239,21 +239,34 @@ export class WebMCP {
         name: this._toolName('setFieldValue'),
         description: setFieldValue.getDescription(dataTitle),
         inputSchema: setFieldValue.inputSchema,
-        outputSchema: setFieldValue.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.path) {
               throw new Error('path is required')
             }
-            args.value = parseIfJsonString(args.value)
+            if (args.value !== undefined) args.value = parseIfJsonString(args.value)
             const result = setFieldValue.execute(
               this._statefulLayout,
-              /** @type {{ path: string, value: unknown }} */(args)
+              /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
+              this._suggestionsStore,
+              this._variantsMemo
             )
-            const fieldInfo = `${result.field.path} (${result.field.type}) = ${JSON.stringify(result.field.data)}`
+            // A getItems expression can depend on another field, so this write may have
+            // changed the options of a field memorized under an unchanged path — but only
+            // of a field whose list actually depends on it. Comparing each memorized path's
+            // itemsCacheKey against the node's current one is how the state layer itself
+            // decides whether to re-fetch.
+            this._suggestionsStore.retainFresh((path, cacheKey) => {
+              const node = resolveNode(this._statefulLayout.stateTree.root, path)
+              return !!node && node.itemsCacheKey === cacheKey
+            })
+            let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
+            if (result.visibility) fieldInfo += formatVisibilityDiff(result.visibility)
+            if (result.activatedMarkdown) {
+              fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
+            }
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo) }],
-              structuredContent: result
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -266,9 +279,8 @@ export class WebMCP {
       },
       {
         name: this._toolName('getFieldSuggestions'),
-        description: `Get allowed values for a dropdown or autocomplete field in "${dataTitle}". Required when describeState shows "suggestions" for a field. Pass the returned value directly to setFieldValue or include it in setData.`,
+        description: getFieldSuggestions.getDescription(dataTitle),
         inputSchema: getFieldSuggestions.inputSchema,
-        outputSchema: getFieldSuggestions.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.path) {
@@ -276,11 +288,17 @@ export class WebMCP {
             }
             const result = await getFieldSuggestions.execute(
               this._statefulLayout,
-              /** @type {{ path: string, query?: string }} */(args)
+              /** @type {{ path: string, query?: string }} */(args),
+              this._suggestionsStore
             )
+            const suggestions = projectSuggestions(result.items, result.baseIndex)
+            // An empty answer has two causes the agent must tell apart: a query that
+            // matched nothing, and a list whose request could not be built because another
+            // field is still empty. Only the second is a reason to go somewhere else.
+            const node = resolveNode(this._statefulLayout.stateTree.root, /** @type {any} */(args).path)
+            const blockedOn = node && suggestionsBlocked(node) ? suggestionsSource(node) : undefined
             return {
-              content: [{ type: 'text', text: formatSuggestions(result.items) }],
-              structuredContent: result
+              content: [{ type: 'text', text: formatSuggestions(suggestions, blockedOn) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -295,7 +313,6 @@ export class WebMCP {
         name: this._toolName('editArray'),
         description: editArray.getDescription(dataTitle),
         inputSchema: editArray.inputSchema,
-        outputSchema: editArray.outputSchema,
         execute: async (args) => {
           try {
             if (!args?.path || !args?.action) {
@@ -306,14 +323,20 @@ export class WebMCP {
             }
             const result = editArray.execute(
               this._statefulLayout,
-              /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args)
+              /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args),
+              this._variantsMemo
             )
-            const actionInfo = args.action === 'add'
-              ? `added item, ${result.itemCount} total`
-              : `removed item, ${result.itemCount} remaining`
+            // adding or removing an item shifts the paths of the items after it, so the
+            // suggestions memorized for those paths now designate another item
+            this._suggestionsStore.clear()
+            let actionInfo = args.action === 'add'
+              ? `added item at index ${result.index}, ${result.itemCount} total`
+              : `removed item at index ${result.index}, ${result.itemCount} remaining`
+            if (result.itemMarkdown) {
+              actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
+            }
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo) }],
-              structuredContent: result
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -326,26 +349,9 @@ export class WebMCP {
       }
     )
 
-    if (this._schema) {
-      tools.push({
-        name: this._toolName('getSchema'),
-        description: `Get the JSON schema that governs the "${dataTitle}" form.`,
-        outputSchema: {
-          type: 'object',
-          description: 'The JSON schema definition'
-        },
-        execute: async (args) => {
-          return {
-            content: [{ type: 'text', text: JSON.stringify(this._schema) }],
-            structuredContent: this._schema
-          }
-        }
-      })
-    }
-
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, !!this._schema, this._statefulLayout)
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName)
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,
@@ -357,9 +363,9 @@ export class WebMCP {
           required: ['task']
         },
         execute: async () => {
+          const config = { prompt, tools: toolNames }
           return {
-            content: [{ type: 'text', text: JSON.stringify({ prompt, tools: toolNames }) }],
-            structuredContent: { prompt, tools: toolNames }
+            content: [{ type: 'text', text: JSON.stringify(config) }]
           }
         }
       })

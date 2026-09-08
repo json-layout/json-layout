@@ -1,0 +1,42 @@
+{
+  "case": "portal-page",
+  "verdict": "satisfactory",
+  "reasoning": "The goal is fully met and the resulting document is exactly what the goal describes: title 'Nos donnees ouvertes', one element of type two-columns, children[0] a text block 'Bienvenue', children2[0] a text block 'Contactez-nous', valid true — and no value in it was invented, every path and every variant index the agent wrote came from a line a tool had just printed. The cost was 10 calls / 7492 bytes on a 280 KB schema with a 39-branch recursive union, against a floor of 8; the two extras are call 3 (a describeState on an empty array that re-printed one line already in call 1) and call 10 (a closing getData after every write had already said 'form is valid'). The variants memo does its job: the 39-branch list is emitted once, at call 4, and calls 6 and 7 replace it with a one-line pointer back, holding those responses to ~900 bytes each — roughly 2.8 KB saved. The remaining bytes are load-bearing rather than waste. The absence of getSchema cost this run essentially nothing. The single-path guide carried the run on describeState-first and on arrays, but it says nothing at all about variant selectors, which on this form are the entire content model; the index-as-value protocol exists only in setFieldValue's description, and the guide's 'values=[...] or suggestions' dichotomy does not cover the third shape ('variant N: label') the agent actually had to read. The new constraint reporting is not exercised here: nothing on this path carries format/pattern/minItems/uniqueItems.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "editArray",
+      "observed": "- /$comp-2/elements/0/$oneOf (variant-selector) label=\"Type d'element\" [39 variants listed] ... - /$comp-2/elements/0/$oneOf/1 (section, required) title=\"Texte\"",
+      "inferred": "The selector line carries no selected= marker, yet one branch's fields are printed underneath it; the agent had to infer that branch 1 was the auto-activated variant. projectNodeToMarkdown only emits selected= when an oneOfItems entry is flagged selected, and a branch auto-activated from data or defaults is not flagged. This repeats at calls 6 and 7, where the run's final data depends on that unstated default being 'text' — the outcome is correct but rests on an inference the response never states.",
+      "severity": "medium"
+    },
+    {
+      "call": 5,
+      "tool": "setFieldValue",
+      "observed": "path /$comp-2/elements/0/$oneOf, value 12",
+      "inferred": "The agent correctly wrote the bare integer index, but the guide never mentions variant selectors; the only statement of the index-as-value protocol is inside setFieldValue's own description. On the one form whose whole content is a recursive discriminated union, the single-path guide is silent about the mechanism that drives it.",
+      "severity": "low"
+    },
+    {
+      "call": 3,
+      "tool": "describeState",
+      "observed": "- /$comp-2/elements (array, required, 0 items) title=\"\" value=[]",
+      "inferred": "The agent asked what an element looks like and got back verbatim the same line call 1 had already given, with no indication that an empty array's item structure is only revealed by editArray; it bought no information.",
+      "severity": "low"
+    },
+    {
+      "call": 5,
+      "tool": "setFieldValue",
+      "observed": "children title=\"Contenu\" ... children2 title=\"Deuxieme contenu\" ... align/left label=\"Colonne 1\"",
+      "inferred": "Nothing in the response binds children to the left column and children2 to the right; the agent mapped them by ordering and by the adjacent labels. Correct per the schema, but inferred rather than stated.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "getData",
+      "observed": "386 bytes after calls 8 and 9 had each reported 'form is valid'",
+      "inferred": "A closing read-back the guide itself says is rarely needed.",
+      "severity": "low"
+    }
+  ]
+}

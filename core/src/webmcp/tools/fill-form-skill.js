@@ -2,13 +2,6 @@
  * @file fillFormSkill tool
  */
 
-export const outputSchema = {
-  type: 'object',
-  properties: {
-    content: { type: 'string' }
-  }
-}
-
 /**
  * @param {string} dataTitle
  * @returns {string}
@@ -18,50 +11,33 @@ export function getDescription (dataTitle) {
 }
 
 /**
- * Generate skill content with dataTitle injected
+ * The one path. There used to be three, chosen by counting normalized layouts and calling
+ * the result small, medium or large — a threshold nobody could justify, measuring the
+ * schema when the question was about data, and duplicated between here and index.js. Four
+ * commits in a row went to fixing contradictions between those branches, and across four
+ * recorded baselines the small and medium advice was never taken on a real form: setData
+ * was used zero times and getSchema once.
  * @param {string} dataTitle
  * @param {string} prefixName
- * @param {boolean} hasSchema
- * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @returns {string}
  */
-export function generateSkill (dataTitle, prefixName, hasSchema, statefulLayout) {
-  /** @type {"small" | "medium" | "large"} */
-  let complexity = 'small'
-  const nbNormalizedLayouts = Object.keys(statefulLayout.compiledLayout.normalizedLayouts).length
-  if (nbNormalizedLayouts > 15) complexity = 'medium'
-  if (nbNormalizedLayouts > 50) complexity = 'large'
-  let skill = `# JSON ${dataTitle.charAt(0).toUpperCase() + dataTitle.slice(1)} Form-Filling Guide
+export function generateSkill (dataTitle, prefixName) {
+  return `# JSON ${dataTitle.charAt(0).toUpperCase() + dataTitle.slice(1)} Form-Filling Guide
 
 This guide teaches you how to use tools to fill the data of a form in the user's page.
 
-Always start by getting the current data using ${prefixName}getData.
-`
+Start with ${prefixName}describeState. It lists every field with its path, its current value and anything invalid; a value too large to inline is shown as its type and size, with the path to read it. Call it again on a path whenever you need to look at one part of the form.
 
-  if (complexity === 'small') {
-    skill += `
-Given the small complexity of this form you should start by reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'} and attempt updating the whole data using ${prefixName}setData.
-Only use ${prefixName}describeState and iterate with ${prefixName}setFieldValue if you encounter some difficulties with ${prefixName}setData.
-`
-  }
+Then write. If the goal already tells you every value, set them in one call with ${prefixName}setData. Otherwise change one field at a time with ${prefixName}setFieldValue, which is also what you need when a value has to be looked up first or when a field only exists once another has been set. Every write reports whether the form is valid and lists what is wrong, so you rarely need to read anything back.
 
-  if (complexity === 'medium') {
-    skill += `
-Given the medium complexity of this form you should start by reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}, if you have a satisfying understanding of the schema you can attempt updating the whole data using ${prefixName}setData at least once.
-Then use ${prefixName}describeState and iterate with ${prefixName}setFieldValue.
-`
-  }
+Never invent a value for a field that has a fixed set of accepted ones. ${prefixName}describeState tells you which case you are in: it either states them on the field's line as values=[...], and you write one of those directly, or it marks the field "suggestions", and the list exists only behind a request — then call ${prefixName}getFieldSuggestions, whose description says how to apply what it returns.
 
-  if (complexity === 'large') {
-    skill += `
-Given the large complexity of this form you should avoid reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}.
-Prefer using ${prefixName}describeState and iterating with ${prefixName}setFieldValue.
-`
-  }
+A field shown as (variant-selector) chooses between shapes rather than between values: ${prefixName}describeState lists its branches under it as "variant N: label", and you switch to one by setting the field to that number with ${prefixName}setFieldValue, which then lists the fields the branch contains.
 
-  skill += `
-If you encounter getItems definitions in the schema or "suggestions" flags in the state, you must use ${prefixName}getFieldSuggestions to fetch the accepted values, then pass the chosen value directly to ${prefixName}setFieldValue or include it in ${prefixName}setData.
-`
+To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.
 
-  return skill
+${prefixName}getData returns the data document itself, whole or one part of it by path, for when you need the values rather than a description of them.
+
+The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are only counted.
+`
 }

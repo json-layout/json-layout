@@ -1,0 +1,28 @@
+{
+  "case": "charts",
+  "verdict": "satisfactory",
+  "reasoning": "The agent reached the goal in 15 calls on a deeply nested 7-variant app schema, and every value it wrote was grounded in something a tool had shown it. It read the tree once, resolved the dataset by search, selected the 'Histogramme' variant and the 'Grouper les lignes' variant by index from the lists describeState had printed, looked up the real column names behind the two suggestions-marked selects, and set nom_com / valeur / avg / title / legendPosition=right. Nothing was invented: nom_com and valeur came out of getFieldSuggestions responses, and 'avg' and 'right' came from values=[...] lists printed on their own field lines. The final document is valid and matches the goal exactly. Of the 4 getFieldSuggestions calls, 3 were correct — all marked '(... suggestions)' in a prior response, all genuinely remote — and exactly 1, call 3 on legendPosition, was for a closed list the agent had already been handed verbatim in call 1. So the values=[...] convention held in 3 of 4 cases and was ignored once, on the very first list the agent met. The variants-memo dedup line in call 5 worked as intended: the agent mapped variant 2 across paths and set it without a re-read. 78% of the 15997 bytes sit in four responses — the closing whole-document getData (4757, 30%), the initial describeState (2575), the dataset suggestion list with its 12 full URLs (2437), and the config-variant activation echo (2707).",
+  "friction": [
+    {
+      "call": 15,
+      "tool": "getData",
+      "observed": "4757 bytes including the full 25-column dataset schema",
+      "inferred": "The agent read the whole document back to confirm work whose own writes had already said 'form is valid' four times. It also called getData with no path on a form it had just been told holds a 4213-char object, against getData's own description. The single largest response of the run, 30% of all bytes, for information it already had.",
+      "severity": "medium"
+    },
+    {
+      "call": 3,
+      "tool": "getFieldSuggestions",
+      "observed": "4 suggestion(s) - [0] Haut (top) ... [3] Droite (right)",
+      "inferred": "The agent treated a list it had already been given as needing a lookup: call 1 printed values=[\"top\",\"bottom\",\"left\",\"right\"] on the field's own line. The call added only the French titles, which it did not need to pick 'right', and it was made 10 calls before the write it served.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "setFieldValue",
+      "observed": "no error here / form is valid",
+      "inferred": "The response declared the form valid at the moment the chart was grouped by nothing and computing a row count rather than an average — the two things the goal is about. True, since defaults satisfied the variant's required objects, but it reads as 'done'. This agent kept going; one using validity as its stop condition would have shipped an empty chart config.",
+      "severity": "low"
+    }
+  ]
+}
