@@ -91,6 +91,11 @@ export function summarise (runs) {
     lines.push(`  ran ${metrics.toolCalls} calls, read ${metrics.outputBytes} bytes, form valid=${ev.valid}`)
     if (runRecord?.model) {
       lines.push(`  model ${runRecord.model}${runRecord.costUsd != null ? `, $${runRecord.costUsd.toFixed(3)}` : ''}`)
+      // Printed next to the byte count on purpose. Output bytes are what a tool answers
+      // with; these are what the run was billed for, and the two have pointed in opposite
+      // directions often enough today to be worth seeing side by side.
+      const tk = runRecord.tokens
+      if (tk) lines.push(`  tokens in ${tk.input + tk.cacheRead + tk.cacheWrite} (${tk.cacheRead} cached), out ${tk.output}`)
     }
 
     const friction = /** @type {any} */(verdict)?.friction ?? []

@@ -119,6 +119,7 @@ export function buildLaunchArgs (evalCase, options = {}) {
  * @property {boolean} ok - false when the run must not be judged
  * @property {string|null} model - the model actually used, read back from the subprocess
  * @property {string} requestedModel - the alias or id asked for
+ * @property {{input: number, output: number, cacheRead: number, cacheWrite: number}|null} tokens - what the run actually consumed
  * @property {number|null} costUsd - total cost reported by the subprocess, in US dollars
  * @property {number|null} turns - number of turns the subprocess took
  * @property {unknown[]} denials - non-empty means the allow-list and tool set have drifted
@@ -274,6 +275,18 @@ export async function runCase (evalCase, options = {}) {
     key === requestedModel || entry?.canonicalModel === requestedModel || key.includes(requestedModel))
   const usage = (matchedUsage ?? usageEntries[0])?.[1]
   record.model = /** @type {any} */(usage)?.canonicalModel ?? null
+  // Kept because output bytes are a poor proxy for what a run costs, and we have argued
+  // from them all the same. A tool result is read once as input and then again on every
+  // later turn, so what one big response really costs only shows up here.
+  const u = /** @type {any} */(usage)
+  record.tokens = u
+    ? {
+        input: u.inputTokens ?? 0,
+        output: u.outputTokens ?? 0,
+        cacheRead: u.cacheReadInputTokens ?? 0,
+        cacheWrite: u.cacheCreationInputTokens ?? 0
+      }
+    : null
   record.costUsd = result.total_cost_usd ?? null
   record.turns = result.num_turns ?? null
   record.denials = result.permission_denials ?? []
