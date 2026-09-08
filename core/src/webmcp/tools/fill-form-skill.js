@@ -35,7 +35,7 @@ export function generateSkill (dataTitle, prefixName, hasSchema, statefulLayout)
 
 This guide teaches you how to use tools to fill the data of a form in the user's page.
 
-Always start by reading the form with ${prefixName}describeState: it lists every field with its path, its current value and anything invalid. A value too large to inline is shown as its type and size, with the path to read it if you need it.
+${prefixName}describeState lists every field with its path, its current value and anything invalid; a value too large to inline is shown as its type and size, with the path to read it. It is how you see the state of the form at any point.
 `
 
   if (complexity === 'small') {
@@ -54,8 +54,7 @@ Then use ${prefixName}describeState and iterate with ${prefixName}setFieldValue.
 
   if (complexity === 'large') {
     skill += `
-Given the large complexity of this form you should avoid reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}.
-Prefer using ${prefixName}describeState and iterating with ${prefixName}setFieldValue.
+Given the large complexity of this form, start with ${prefixName}describeState and iterate with ${prefixName}setFieldValue. Avoid reading the full schema definition using ${prefixName}${hasSchema ? 'getSchema' : 'describeState'}.
 Every write already reports whether the form is valid and lists what is wrong, so you rarely need to read the document back; ${prefixName}describeState and ${prefixName}getData both take a path when you want to look at one part of it.
 `
     if (hasSchema) {
