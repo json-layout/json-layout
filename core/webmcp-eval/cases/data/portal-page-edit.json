@@ -1,0 +1,46 @@
+{
+  "showBreadcrumbs": true,
+  "fluid": false,
+  "elements": [
+    {
+      "uuid": "a1b2c3d4",
+      "type": "text",
+      "centered": false,
+      "mb": 0,
+      "content": "Bienvenue sur le portail"
+    },
+    {
+      "uuid": "8b0f9271",
+      "type": "two-columns",
+      "mb": 0,
+      "disposition": "equal",
+      "gutter": "default",
+      "children": [
+        {
+          "uuid": "e0a9ef4c",
+          "type": "text",
+          "centered": false,
+          "mb": 0,
+          "content": "Bienvenue"
+        }
+      ],
+      "children2": [
+        {
+          "uuid": "ff0dd29c",
+          "type": "text",
+          "centered": false,
+          "mb": 0,
+          "content": "Contactez-nous"
+        }
+      ]
+    },
+    {
+      "uuid": "e5f6a7b8",
+      "type": "text",
+      "centered": false,
+      "mb": 0,
+      "content": "Mentions légales"
+    }
+  ],
+  "title": "Accueil"
+}

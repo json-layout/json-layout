@@ -27,6 +27,20 @@ function loadSchema (file) {
 }
 
 /**
+ * A document a case starts from.
+ *
+ * Every one of these was PRODUCED BY AN AGENT through these tools and then kept, rather
+ * than written by hand: a starting document invented alongside the case would be a guess
+ * about what the form accepts, and a case that begins from an invalid document measures
+ * the harness rather than the protocol.
+ * @param {string} file
+ * @returns {Record<string, unknown>}
+ */
+function loadData (file) {
+  return JSON.parse(readFileSync(join(here, 'data', file), 'utf8'))
+}
+
+/**
  * Small hand-written control. Fast, and the only case whose shape is fully under our
  * control, which makes it the one to reach for when debugging the harness itself.
  * @type {EvalCase}
@@ -129,8 +143,47 @@ const portalPage = {
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
 }
 
+/**
+ * Changing a chart that already works, rather than building one.
+ *
+ * The four other cases all start from {} and measure construction. This measures the other
+ * half, and it is the half a config editor mostly does: the value to change sits five
+ * levels down a discriminated union that is ALREADY on the right branch, so nothing has to
+ * be activated and there is no error to follow — the agent has to find a setting by
+ * reading, not by fixing what the form complains about.
+ * @type {EvalCase}
+ */
+const chartsEdit = {
+  name: 'charts-edit',
+  title: 'chart configuration',
+  goal: 'This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.',
+  schema: v2compat(loadSchema('app-charts.json'), undefined, 'fr'),
+  data: loadData('charts-edit.json'),
+  compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
+  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
+}
+
+/**
+ * Removing part of a page that already exists.
+ *
+ * The only case that asks an agent to take something away, so the only one that reaches
+ * editArray's "remove" action — which no agent had ever called before this case was added,
+ * across every run the harness has recorded. Removal is where a wrong index is silently
+ * destructive rather than merely wrong, and the page's three elements make the index
+ * ambiguous enough to be worth checking.
+ * @type {EvalCase}
+ */
+const portalPageEdit = {
+  name: 'portal-page-edit',
+  title: 'page configuration',
+  goal: 'Delete the "Mentions légales" block from this page, and rename the page to "Données ouvertes".',
+  schema: loadSchema('portal-page.json'),
+  data: loadData('portal-page-edit.json'),
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
+}
+
 /** @type {EvalCase[]} */
-export const cases = [contact, calendar, charts, portalPage]
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit]
 
 /**
  * @param {string} name
