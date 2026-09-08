@@ -289,7 +289,8 @@ describe('webmcp tool schemas', () => {
 
   it('should have valid getDataSchema', () => {
     assert.equal(getData.inputSchema.type, 'object')
-    assert.deepEqual(Object.keys(getData.inputSchema.properties), [])
+    assert.deepEqual(Object.keys(getData.inputSchema.properties), ['path'])
+    assert.equal(getData.inputSchema.required, undefined, 'reading the whole document must stay the default')
   })
 
   it('should have valid getFieldSuggestionsSchema', () => {
@@ -1766,5 +1767,47 @@ describe('webmcp large value rendering', () => {
     assert.deepEqual(JSON.parse(text).data, { title: 'Nos données', datasets: [big] })
     assert.deepEqual(res.structuredContent.data, { title: 'Nos données', datasets: [big] })
     assert.ok(text.includes('col0'), 'the whole value must be present')
+  })
+})
+
+describe('webmcp getData by path', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      title: { type: 'string', title: 'Title' },
+      datasets: { type: 'array', items: { type: 'object', properties: {} } }
+    }
+  }
+  const dataset = { schema: Array.from({ length: 40 }, (_, i) => ({ key: 'col' + i })), id: 'ds', title: 'Big' }
+  const data = { title: 'Nos données', datasets: [dataset] }
+
+  const toolsFor = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, structuredClone(data))
+    return new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+  }
+  const call = async (/** @type {any} */ tools, /** @type {object} */ args) =>
+    (await /** @type {any} */(tools.find((/** @type {any} */ t) => t.name === 'getData')).execute(args))
+
+  it('should still return the whole data with no path', async () => {
+    const res = await call(toolsFor(), {})
+    assert.deepEqual(res.structuredContent.data, data)
+  })
+
+  it('should return only the subtree asked for, faithfully', async () => {
+    // The point is to remove the reason to pull the whole document, not to shrink what is
+    // returned: everything here is real data, so it can still be forwarded to an API.
+    const res = await call(toolsFor(), { path: '/title' })
+    assert.equal(res.structuredContent.data, 'Nos données')
+    const sub = await call(toolsFor(), { path: '/datasets/0' })
+    assert.deepEqual(sub.structuredContent.data, dataset, 'a subtree is returned in full, never abbreviated')
+    const text = sub.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.ok(text.includes('col0'))
+  })
+
+  it('should report an unknown path rather than answer with nothing', async () => {
+    const res = await call(toolsFor(), { path: '/nope' })
+    assert.ok(res.isError)
+    assert.match(res.content[0].text, /node not found at path/)
   })
 })
