@@ -9,7 +9,7 @@ export const inputSchema = {
   properties: {
     path: {
       type: 'string',
-      description: 'Optional path of a node (as returned by describeState) to read only that part of the data. Omit it to read the whole document.'
+      description: 'Node path as returned by describeState (e.g. "/address/city"). Omit for the whole document.'
     }
   }
 }

@@ -2103,3 +2103,47 @@ describe('webmcp help text', () => {
     assert.ok(one.includes(longHelp.trim()), `got: ${one}`)
   })
 })
+
+describe('webmcp instruction redundancy', () => {
+  // One fact, one home. The suggestion protocol used to be stated four times — in
+  // getFieldSuggestions' description, again in setFieldValue's, a third time in its
+  // suggestionIndex parameter and a fourth in the guide. Four copies that had to agree,
+  // and 7d3814e is what happens when two copies of one fact drift: index.js held a stale
+  // duplicate of getData's description and cost two eval cases a call each.
+  const schema = {
+    type: 'object',
+    properties: { pick: { type: 'string', oneOf: [{ const: 'a', title: 'A' }, { const: 'b', title: 'B' }] } }
+  }
+  const webmcpOf = () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    return new WebMCP(layout, { dataTitle: 'doc', schema })
+  }
+
+  it('should explain how to apply a suggestion in exactly one place', () => {
+    const tools = webmcpOf().getTools()
+    const explains = tools.filter((t) => /suggestionIndex/.test(t.description ?? ''))
+    assert.deepEqual(explains.map((t) => t.name), ['getFieldSuggestions'],
+      'the mechanics belong to the tool that hands out the indexes, and nowhere else')
+  })
+
+  it('should let the guide say when to fetch suggestions without repeating how', () => {
+    // the split that keeps this from being a loss: the guide carries the trigger, where a
+    // prescription is followed, and points at the description for the mechanics
+    const skill = fillFormSkill.generateSkill('doc', '', true, webmcpOf()._statefulLayout)
+    assert.match(skill, /must call getFieldSuggestions/, 'the trigger stays in the guide')
+    assert.ok(!/suggestionIndex/.test(skill), `the guide must not restate the mechanics: ${skill}`)
+  })
+
+  it('should describe a node path the same way in every tool', () => {
+    const tools = webmcpOf().getTools()
+    const paths = tools
+      .map((t) => /** @type {any} */(t.inputSchema)?.properties?.path?.description)
+      .filter((/** @type {string|undefined} */ d) => !!d)
+    assert.ok(paths.length >= 5, 'several tools take a path')
+    for (const d of paths) {
+      assert.match(d, /^Node path as returned by describeState \(e\.g\. "\/address\/city"\)\./,
+        `every path parameter opens with the same sentence, got: ${d}`)
+    }
+  })
+})

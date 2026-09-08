@@ -10,7 +10,7 @@ export const inputSchema = {
   properties: {
     path: {
       type: 'string',
-      description: 'Path to the array field (e.g. "/items", "/tags")'
+      description: 'Node path as returned by describeState (e.g. "/address/city"). Must be an array field.'
     },
     action: {
       type: 'string',

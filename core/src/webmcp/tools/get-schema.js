@@ -16,7 +16,7 @@ export const inputSchema = {
   properties: {
     path: {
       type: 'string',
-      description: 'Path of a node of the form as returned by describeState (e.g. "/address" or "/items/0"). Returns only the sub-schema that governs this node. Required on large schemas.'
+      description: 'Node path as returned by describeState (e.g. "/address/city"). Returns only the sub-schema of that node; required on a large schema.'
     }
   }
 }

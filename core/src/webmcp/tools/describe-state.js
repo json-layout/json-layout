@@ -11,7 +11,7 @@ export const inputSchema = {
   properties: {
     path: {
       type: 'string',
-      description: 'Path to a specific node (e.g. "/address/city"). Omit for full tree.'
+      description: 'Node path as returned by describeState (e.g. "/address/city"). Omit for the whole tree.'
     }
   }
 }

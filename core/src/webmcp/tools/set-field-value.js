@@ -10,14 +10,14 @@ export const inputSchema = {
   properties: {
     path: {
       type: 'string',
-      description: 'Path to the field (e.g. "/name", "/items/0/quantity")'
+      description: 'Node path as returned by describeState (e.g. "/address/city").'
     },
     value: {
       description: 'The value to set. For variant-selector fields, pass the variant index to switch variants. Exclusive with "suggestionIndex".'
     },
     suggestionIndex: {
       type: 'number',
-      description: 'Index of a suggestion returned by the last getFieldSuggestions call on this same path. The full original value of this suggestion is applied, even if it was truncated in the output. Exclusive with "value".'
+      description: 'Index from the last getFieldSuggestions call on this same path. Exclusive with "value".'
     }
   },
   required: ['path']
@@ -63,7 +63,7 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Set the value of a specific field of "${dataTitle}" by path. For fields with suggestions, call getFieldSuggestions first then pass "suggestionIndex" (do not copy back a truncated value). To switch a variant selector, set value to the desired variant index (shown in describeState); the answer then lists the fields of the branch it activated. The returned errors are scoped to the modified field.`
+  return `Set the value of a specific field of "${dataTitle}" by path. To switch a variant selector, set value to the desired variant index (shown in describeState); the answer then lists the fields of the branch it activated. The returned errors are scoped to the modified field.`
 }
 
 /**

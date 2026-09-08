@@ -9,7 +9,7 @@ export const inputSchema = {
   properties: {
     path: {
       type: 'string',
-      description: 'Path to the field'
+      description: 'Node path as returned by describeState (e.g. "/address/city").'
     },
     query: {
       type: 'string',
@@ -44,7 +44,12 @@ export const outputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Get available options for a select/autocomplete/combobox field of form "${dataTitle}". Supports query-based filtering. Each option is returned with an "index" and a title; an option whose value is not a short scalar is listed by title alone, exactly as a user sees it. To choose one, call setFieldValue with the field path and "suggestionIndex" set to its index, and the full original value is applied.`
+  // The one statement of the suggestion protocol. It used to be said here, again in
+  // setFieldValue's description, a third time in that tool's suggestionIndex parameter and
+  // a fourth in the guide — 1114 bytes of the 5941 the model is sent, and four copies that
+  // had to agree. The trigger moved in from the guide so that the whole contract sits in
+  // the description of the tool it belongs to.
+  return `Get the accepted values of a select/autocomplete/combobox field of "${dataTitle}", optionally filtered by a query. Each option comes back with an index and a title; one whose value is not a short scalar is listed by title alone, exactly as a user sees it. To choose one, call setFieldValue with the same path and "suggestionIndex" set to its index, and the full original value is applied.`
 }
 
 /**
