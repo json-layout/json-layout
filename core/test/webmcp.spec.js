@@ -2167,6 +2167,17 @@ describe('webmcp instructions that contradicted each other', () => {
     assert.ok(!followed.includes('call getData with this path'), `got: ${followed.slice(0, 120)}`)
   })
 
+  it('should offer the one-call write before the incremental one', () => {
+    // Leading with setFieldValue took contact from 5 calls to 7: the agent wrote a
+    // four-field form one field at a time because that is the order the sentence gave.
+    // Not a complexity band — no threshold, no classification, just not putting the
+    // incremental path first for a form the goal fully specifies.
+    const skill = fillFormSkill.generateSkill('doc', '')
+    const writeLine = skill.split('\n').find((l) => l.includes('Then write')) ?? ''
+    assert.ok(writeLine.indexOf('setData') < writeLine.indexOf('setFieldValue'),
+      `setData must come first in the writing sentence: ${writeLine}`)
+  })
+
   it('should tell the agent what a variant selector is', () => {
     // portal-page is entirely a recursive discriminated union, and the guide described
     // neither the "variant N: label" lines nor writing the index back.

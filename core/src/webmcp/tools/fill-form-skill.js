@@ -35,7 +35,7 @@ This guide teaches you how to use tools to fill the data of a form in the user's
 
 Start with ${prefixName}describeState. It lists every field with its path, its current value and anything invalid; a value too large to inline is shown as its type and size, with the path to read it. Call it again on a path whenever you need to look at one part of the form.
 
-Then write, field by field, with ${prefixName}setFieldValue — or all at once with ${prefixName}setData when you already know every value. Every write reports whether the form is valid and lists what is wrong, so you rarely need to read anything back.
+Then write. If the goal already tells you every value, set them in one call with ${prefixName}setData. Otherwise change one field at a time with ${prefixName}setFieldValue, which is also what you need when a value has to be looked up first or when a field only exists once another has been set. Every write reports whether the form is valid and lists what is wrong, so you rarely need to read anything back.
 
 Never invent a value for a field that has a fixed set of accepted ones. ${prefixName}describeState tells you which case you are in: it either states them on the field's line as values=[...], and you write one of those directly, or it marks the field "suggestions", and the list exists only behind a request — then call ${prefixName}getFieldSuggestions, whose description says how to apply what it returns.
 
