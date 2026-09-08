@@ -28,8 +28,13 @@ through these tools** and we kept — a starting document written by hand is a g
 the form accepts, and one that is subtly invalid measures the harness rather than the
 protocol. They are also the only cases that reach `editArray`'s `remove`.
 
-The model is pinned by `JL_WEBMCP_EVAL_MODEL` (`opus`, `sonnet`, `haiku`; default `opus`) and
-recorded per run, so runs are comparable across time and across tiers.
+The model is pinned by `JL_WEBMCP_EVAL_MODEL` (`opus`, `sonnet`, `haiku`) and recorded per
+run, so runs are comparable across time and across tiers. **The default is `haiku`, the
+smallest**: a protocol that carries a small model carries a large one, and the reverse is not
+true — what a big model works out for itself is what hides an unstated dependency or an
+ambiguous message. It is also what makes the suite cheap enough to run often, which is the
+real constraint here: $0.25 against $0.84 for the same six cases. Pin a larger tier when a
+finding needs checking against one.
 
 ### Where the vendored schemas came from
 

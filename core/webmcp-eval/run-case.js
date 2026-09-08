@@ -37,8 +37,20 @@ export const SERVER_PATH = join(here, 'server.js')
  */
 export const MCP_SERVER_NAME = 'page-form'
 
-/** Runners silently inherited the orchestrator's model, so verdicts were never comparable. */
-export const DEFAULT_MODEL = 'opus'
+/**
+ * Runners silently inherited the orchestrator's model, so verdicts were never comparable.
+ *
+ * The default is the SMALLEST model on purpose. A protocol that carries a small model
+ * carries a large one, and the reverse is not true: what a big model works out for itself
+ * is exactly what hides an unstated dependency or an ambiguous message. Measured on six
+ * cases, haiku got every one right — including the points the design leaves to inference —
+ * and ran the recursive union case in the floor number of calls.
+ *
+ * It is also what makes the suite affordable enough to run often, which is the real
+ * constraint on this harness: $0.25 against $0.84 for the same six cases on opus. Pin a
+ * larger tier with JL_WEBMCP_EVAL_MODEL when a finding needs checking against one.
+ */
+export const DEFAULT_MODEL = 'haiku'
 
 /**
  * Tool names WebMCP registers when no prefixName is set. Listed explicitly rather than
