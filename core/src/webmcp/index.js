@@ -194,9 +194,6 @@ export class WebMCP {
             )
             // the whole data was replaced, what a memorized path designates may have changed
             this._suggestionsStore.clear()
-            // Warnings go in the TEXT: tool passers keep the text and discard
-            // structuredContent, and both of these describe damage the form reports as
-            // valid — so nothing else in the response would reveal them.
             const warnings = []
             if (result.removed.length) {
               warnings.push(`removed ${result.removed.length} key(s) not present in the data you passed: ${result.removed.join(', ')} — pass merge=true to keep them`)
@@ -205,7 +202,8 @@ export class WebMCP {
               warnings.push(`${result.unknownKeys.length} key(s) match no field of this form and were ignored by it: ${result.unknownKeys.join(', ')} — check for a typo with describeState`)
             }
             const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
-            const text = [formatMutationResult(result.valid, result.errors), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
+            const stored = result.written.length ? `stored ${result.written.length} key(s): ${result.written.join(', ')}` : ''
+            const text = [formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
             return {
               content: [{ type: 'text', text }]
             }

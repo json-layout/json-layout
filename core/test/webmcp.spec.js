@@ -2160,3 +2160,63 @@ describe('webmcp instructions that contradicted each other', () => {
     assert.match(skill, /setting the field to that number/)
   })
 })
+
+describe('webmcp getData answers about the path it was given', () => {
+  const schema = {
+    type: 'object',
+    properties: { name: { type: 'string' }, unset: { type: 'string' } },
+    allOf: [{ properties: { extra: { type: 'string' } } }]
+  }
+  const toolsOf = (/** @type {any} */ data = {}) => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
+    return new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+  }
+  /**
+   * @param {any[]} tools
+   * @param {any} args
+   * @returns {Promise<string>}
+   */
+  const getData = async (tools, args) => {
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute(args)
+    return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+  }
+
+  it('should refuse a layout section instead of quietly returning the document', async () => {
+    // charts asked for "/$allOf-1" and got the whole form back — 29% of that run's bytes —
+    // with nothing to say the path had bought nothing. A wrapper node's data IS its
+    // parent's, which is exactly what `path` exists to avoid pulling.
+    const tools = toolsOf({ name: 'Ada', extra: 'x' })
+    const whole = await getData(tools, {})
+    const section = await getData(tools, { path: '/$allOf-0' })
+    assert.ok(!section.includes('"data"'), `it must not answer with the document: ${section}`)
+    assert.match(section, /layout section, it holds no data of its own/)
+    assert.match(section, /Pass the path of a field/)
+    // and the real fields underneath it still answer
+    assert.match(await getData(tools, { path: '/$allOf-0/extra' }), /"data":"x"/)
+    assert.match(whole, /"name":"Ada"/)
+  })
+
+  it('should say a field is unset rather than answer with no data key', async () => {
+    // JSON.stringify drops undefined, so this used to come back as {"valid":true} — an
+    // agent cannot tell that from a malformed answer.
+    const answer = await getData(toolsOf({ name: 'Ada' }), { path: '/unset' })
+    assert.match(answer, /"unset":true/)
+    assert.ok(!answer.includes('"data"'))
+  })
+})
+
+describe('webmcp setData says what it stored', () => {
+  it('should name the keys it wrote, not only that the form is valid', async () => {
+    // "valid, no errors" confirms the state and says nothing about the write, and
+    // contact's agent read that as a reason to spend a call on getData to see its own
+    // work. Keys only — the values can be a 12 KB dataset object.
+    const compiled = compile({ type: 'object', properties: { name: { type: 'string' }, age: { type: 'number' } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'setData')).execute({ data: { name: 'Ada', age: 36 } })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.match(text, /stored 2 key\(s\): name, age/)
+    assert.ok(!text.includes('"Ada"'), 'the values themselves stay out of the echo')
+  })
+})

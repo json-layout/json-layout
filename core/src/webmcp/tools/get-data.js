@@ -28,7 +28,7 @@ export function getDescription (dataTitle) {
  * wanting one field is not a reason to pull a document that can run to tens of kilobytes.
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path?: string }} args
- * @returns {{ data: unknown, valid: boolean }}
+ * @returns {{ data?: unknown, unset?: boolean, valid: boolean }}
  */
 export function execute (statefulLayout, args) {
   if (!args?.path) {
@@ -37,6 +37,20 @@ export function execute (statefulLayout, args) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
     throw new Error(`node not found at path: ${args.path}`)
+  }
+  // A section a `$allOf`, `$oneOf` or `$comp-` wrapper introduces holds no data of its
+  // own: its value IS its parent's, so asking for it returns the document the `path`
+  // argument exists to avoid. charts asked for "/$allOf-1" and got the whole thing back,
+  // 29% of that run's bytes, with nothing in the answer to say the path had bought
+  // nothing. Refusing costs one short line and names where to go instead.
+  if (node.dataPath === node.parentDataPath) {
+    const owner = node.parentDataPath === '' ? 'the whole document' : `"${node.parentDataPath}"`
+    throw new Error(`"${args.path}" is a layout section, it holds no data of its own — its value is the data of ${owner}. Pass the path of a field, or omit "path" to read the document.`)
+  }
+  // JSON.stringify drops an undefined value, so an unset field would come back as a
+  // response with no "data" key at all — indistinguishable from a malformed answer.
+  if (node.data === undefined) {
+    return { unset: true, valid: statefulLayout.valid }
   }
   // The form's validity, not the node's: it is what an agent is deciding on, and a
   // subtree that validates inside a form that does not would read as done.

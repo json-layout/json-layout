@@ -54,7 +54,7 @@ function isPlainObject (value) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ data: unknown, merge?: boolean }} args
- * @returns {{ valid: boolean, removed: string[], unknownKeys: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, written: string[], removed: string[], unknownKeys: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args) {
   const current = statefulLayout.data
@@ -97,6 +97,10 @@ export function execute (statefulLayout, args) {
 
   return {
     valid: statefulLayout.valid,
+    // Which keys landed. "valid, no errors" says the form is happy but nothing about what
+    // was stored, and contact's agent read that as a reason to spend a call on getData
+    // to see its own write. Keys only: the values can be a 12 KB dataset object.
+    written: isPlainObject(args.data) ? Object.keys(/** @type {Record<string, unknown>} */(args.data)) : [],
     removed,
     unknownKeys,
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
