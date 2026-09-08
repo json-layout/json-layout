@@ -19,6 +19,48 @@ import { projectDeclaredFields } from './schema.js'
  */
 export const SUGGESTION_VALUE_MAX_LENGTH = 100
 
+/**
+ * Longest value rendered in full anywhere the agent reads state. Beyond it a value is
+ * named rather than printed: a picked data-fair dataset is 4-13 KB of column schema, and
+ * echoing it on the write, again in the state tree and a third time from getData was the
+ * single largest cost in the eval — for content the agent applied by index and never had
+ * to handle.
+ */
+export const DISPLAYED_VALUE_MAX_LENGTH = 1000
+
+/**
+ * Render a value for the agent: in full when it is small enough to be worth reading,
+ * otherwise named with its kind and size so the agent knows what is there without paying
+ * for it. It can always read a node's own subtree with describeState.
+ * @param {unknown} value
+ * @returns {string | undefined}
+ */
+export function abbreviateValue (value) {
+  const json = JSON.stringify(value)
+  if (json === undefined || json.length <= DISPLAYED_VALUE_MAX_LENGTH) return json
+  if (Array.isArray(value)) return `<array of ${value.length} items, ${json.length} chars — describeState its path to read it>`
+  if (value !== null && typeof value === 'object') return `<object, ${json.length} chars — describeState its path to read it>`
+  return `<${typeof value}, ${json.length} chars>`
+}
+
+/**
+ * Abbreviate the oversized objects nested in a data document while keeping its shape.
+ * The root is never collapsed and arrays are always walked, so item counts and every
+ * small value survive — those are what an agent reads getData to verify.
+ * @param {unknown} value
+ * @param {number} [depth]
+ * @returns {unknown}
+ */
+export function abbreviateData (value, depth = 0) {
+  if (value === null || typeof value !== 'object') return value
+  if (Array.isArray(value)) return value.map((item) => abbreviateData(item, depth + 1))
+  const json = JSON.stringify(value)
+  if (depth > 0 && json !== undefined && json.length > DISPLAYED_VALUE_MAX_LENGTH) {
+    return `<object, ${json.length} chars — describeState its path to read it>`
+  }
+  return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, abbreviateData(v, depth + 1)]))
+}
+
 const constraintKeys = {
   'number-field': ['min', 'max', 'step', 'precision'],
   slider: ['min', 'max', 'step'],
@@ -325,7 +367,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 
   // value for leaf nodes (no children or empty children)
   if (children.length === 0) {
-    line += ` value=${JSON.stringify(node.data)}`
+    line += ` value=${abbreviateValue(node.data)}`
   }
 
   // Help is the guidance a model cannot infer — that a negative height means automatic

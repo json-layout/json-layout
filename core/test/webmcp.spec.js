@@ -14,7 +14,7 @@ import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as getSchema from '../src/webmcp/tools/get-schema.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { projectStateTree, projectStateTreeToMarkdown, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { projectStateTree, projectStateTreeToMarkdown, projectNode, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
@@ -1715,5 +1715,52 @@ describe('webmcp suggestions store, through the tools', () => {
 
     assert.deepEqual(indicesOf(first), [0, 1])
     assert.deepEqual(indicesOf(second), [2, 3], 'a repeated search must not reuse indices it already handed out')
+  })
+})
+
+describe('webmcp large value rendering', () => {
+  const big = { schema: Array.from({ length: 40 }, (_, i) => ({ key: 'col' + i, title: 'Column ' + i, type: 'string' })), id: 'ds', title: 'Big dataset' }
+
+  it('should abbreviate a value too large to be worth printing', () => {
+    assert.equal(abbreviateValue('short'), '"short"')
+    assert.equal(abbreviateValue(1815), '1815')
+    assert.equal(abbreviateValue({ a: 1 }), '{"a":1}')
+    const abbreviated = abbreviateValue(big)
+    assert.match(abbreviated, /^<object, \d+ chars/, `got ${abbreviated}`)
+    assert.ok(!abbreviated.includes('col0'), 'no fragment of the value may be printed')
+    assert.match(abbreviateValue([big, big]), /^<array of 2 items, \d+ chars/)
+  })
+
+  it('should abbreviate the echo of a written value', async () => {
+    // getFieldSuggestions omits an object value so the agent never has to handle it, and
+    // then the write used to echo the whole thing back, undoing the saving on the very
+    // next call: 12.6 KB on the calendar case, 4.3 KB on charts.
+    const schema = { type: 'object', properties: { dataset: { type: 'object', properties: {} } } }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'setFieldValue')).execute({ path: '/dataset', value: big })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.ok(!text.includes('col0'), `the written value must not be echoed in full: ${text.slice(0, 120)}`)
+    assert.match(text, /<object, \d+ chars/)
+  })
+
+  it('should abbreviate nested objects in getData but keep the shape', async () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        datasets: { type: 'array', items: { type: 'object', properties: {} } }
+      }
+    }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, { title: 'Nos données', datasets: [big] })
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'getData')).execute({})
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.ok(text.includes('Nos données'), 'small values must survive — this is what the agent verifies')
+    assert.ok(text.includes('datasets'), 'the shape must survive')
+    assert.ok(!text.includes('col0'), 'the oversized nested object must not be printed')
+    assert.match(text, /<object, \d+ chars/)
   })
 })

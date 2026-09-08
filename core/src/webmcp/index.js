@@ -13,7 +13,7 @@ import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as getSchema from './tools/get-schema.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions, projectSuggestions } from './project.js'
+import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, abbreviateData } from './project.js'
 import { SuggestionsStore } from './suggestions-store.js'
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
@@ -181,9 +181,12 @@ export class WebMCP {
         execute: async (args) => {
           try {
             const result = getData.execute(this._statefulLayout, args || {})
+            // Oversized nested objects are named rather than printed; the shape and every
+            // small value survive, which is what an agent reads getData to verify.
+            const shown = { ...result, data: abbreviateData(result.data) }
             return {
-              content: [{ type: 'text', text: JSON.stringify(result) }],
-              structuredContent: result
+              content: [{ type: 'text', text: JSON.stringify(shown) }],
+              structuredContent: shown
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -276,7 +279,7 @@ export class WebMCP {
             // a getItems expression can depend on another field, so writing one may change the
             // options of a field whose suggestions were memorized under an unchanged path
             this._suggestionsStore.clear()
-            let fieldInfo = `${result.field.path} (${result.field.type}) = ${JSON.stringify(result.field.data)}`
+            let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
             if (result.activatedMarkdown) {
               fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
             }
