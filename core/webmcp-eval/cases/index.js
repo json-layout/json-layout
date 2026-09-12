@@ -182,8 +182,59 @@ const portalPageEdit = {
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
 }
 
+/**
+ * Discriminated unions whose default branch is the wrong one, and which error while you
+ * work in them.
+ *
+ * Every other union in the suite is either already on the branch the goal needs
+ * (charts-edit) or chosen from an empty slot with nothing standing against it (charts,
+ * portal-page). Adding an indicator here lands on the schema's default, `{"type": "enum"}`,
+ * whose `enumOptions.field` is required — so from the moment the item exists the form is
+ * invalid and complaining about a branch the goal does not want. Getting anywhere means
+ * switching off an erroring default, and then reading what the new branch reports as a
+ * to-do list rather than as damage the switch did. It happens twice: the value calculation
+ * inside the chosen branch defaults to "Nombre de lignes" and has to become "Valeurs d'une
+ * colonne", which reveals a required field of its own.
+ *
+ * This is app-choropleth-map's shape, and it is where a real session lost itself: it sent
+ * the variant index as the string "0", which the tools wrote as data instead of switching
+ * — a $oneOf node's value being the object around it, "0" was merged into that object as
+ * {"0":"0"} — and then spent fifteen identical calls trying to understand an answer that
+ * said "no error here, form is valid" every time. The tools were corrected; the case is
+ * here so the shape stays covered rather than remembered.
+ *
+ * It starts from a configured map rather than from {} because the `datasets` array that
+ * gates `joinColumn` is not maintained by the schema: the page consolidates it from the
+ * geometries and indicator datasets in a watcher (src/composables/config.ts), and without a
+ * page nothing fills it, leaving joinColumn hidden and every values picker below it unable
+ * to resolve. The starting document was produced through these tools — outlines chosen from
+ * the picker, `datasets` set as the watcher sets it, join column chosen from the schema of
+ * the dataset that produced it — so it is a document the form accepts rather than a guess.
+ *
+ * Vendored on 2026-09-12 from koumoul/app-choropleth-map @ a176b65, src/config/schema.json —
+ * the source, whose `#/definitions` refs json-layout resolves itself, rather than the
+ * generated public/config-schema.json. The unions carry a `discriminator` keyword but their
+ * branches do not put the tag in `required`, which ajv's discriminator support demands, so
+ * this is the one app case compiled WITHOUT that option: json-layout resolves the branches
+ * from their distinct `const` instead, exactly as the deployed page does. Its layouts use
+ * the modern `layout` keyword, so unlike calendar and charts-edit it needs no v2 pass.
+ *
+ * The goal names a public koumoul.com dataset carrying a commune code and a numeric index,
+ * so the join has both halves without credentials.
+ * @type {EvalCase}
+ */
+const choropleth = {
+  name: 'choropleth',
+  title: 'choropleth map configuration',
+  goal: 'This map already outlines the communes. Shade them by their digital fragility index, taking the values from the "Indice de Fragilité Numérique" dataset, and label that indicator "Fragilité numérique".',
+  schema: loadSchema('app-choropleth.json'),
+  data: loadData('choropleth.json'),
+  compileOptions: { locale: 'fr' },
+  context: { datasetFilter: '' }
+}
+
 /** @type {EvalCase[]} */
-export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit]
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth]
 
 /**
  * @param {string} name

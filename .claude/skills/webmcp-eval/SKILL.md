@@ -42,8 +42,11 @@ run any number of times and always reflects the current `core/src` and case regi
    concurrently. The case a subprocess serves is chosen by the `JL_WEBMCP_EVAL_CASE`
    environment variable, which its MCP server child inherits — the runner itself never
    sees a case identifier. The model is pinned by `JL_WEBMCP_EVAL_MODEL` (default
-   `opus`) so verdicts from different models are never compared silently; it is recorded
-   in the sidecar and printed by the report.
+   `haiku`, see `DEFAULT_MODEL` in `run-case.js` for why: the smallest tier is what
+   exposes an unstated dependency, and it is what keeps the suite cheap enough to run
+   often) so verdicts from different models are never compared silently; it is recorded
+   in the sidecar and printed by the report. Reach for a larger tier only to check a
+   finding against one.
 
 4. **Ignore the runner's own summary of its work.** The transcript at
    `core/tmp/webmcp-eval-<case>.json` is the evidence, and it is what the judge reads —
