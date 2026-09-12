@@ -1290,6 +1290,68 @@ describe('webmcp help in the markdown projection', () => {
   })
 })
 
+describe('webmcp errors of a variant that is not the active one', () => {
+  // ajv validates every branch of a oneOf and reports the failures of all of them, so a
+  // union whose active branch is still incomplete drags in the complaints of the branches
+  // nobody chose. json-layout already resolves this — it matches errors to nodes by
+  // schema pointer, so only the active branch's errors land on a node — but the webmcp
+  // layer then appended the raw ajv list on top of that work, and those extras name paths
+  // that exist nowhere in the form.
+  const schema = {
+    type: 'object',
+    properties: {
+      shape: {
+        type: 'object',
+        oneOf: [
+          { title: 'Circle', required: ['radius'], properties: { kind: { const: 'circle' }, radius: { type: 'number', title: 'Radius' } } },
+          { title: 'Rect', required: ['w', 'h'], properties: { kind: { const: 'rect' }, w: { type: 'number', title: 'Width' }, h: { type: 'number', title: 'Height' } } }
+        ]
+      }
+    }
+  }
+
+  it('should not report errors of a branch the form is not showing', () => {
+    // Reproduced from app-chloropleth-map: while the active branch was incomplete the
+    // form reported "/indicators/0/type: doit être égal à la constante" and
+    // "/indicators/0: choisissez une valeur" — the losing branch's complaints. The agent
+    // read them as proof its variant switch had not taken and went back to re-switching a
+    // variant that was already correct.
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+    setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
+
+    const errors = collectErrors(layout)
+    for (const error of errors) {
+      assert.ok(
+        resolveNode(layout.stateTree.root, error.path),
+        `every reported error must name a path the agent can reach, got "${error.path}": ${JSON.stringify(errors)}`
+      )
+    }
+    const paths = errors.map((e) => e.path)
+    assert.ok(paths.includes('/shape/$oneOf/1/w') && paths.includes('/shape/$oneOf/1/h'), `the active branch's own errors must survive: ${JSON.stringify(errors)}`)
+    assert.ok(!paths.some((p) => p.endsWith('/radius')), `the unchosen branch's required field must not be reported: ${JSON.stringify(errors)}`)
+  })
+
+  it('should still report the whole union failing to resolve', () => {
+    // Dropping the losing branches must not drop the one message that is about the union
+    // itself, which sits on a node and is the agent's signal that no branch is satisfied.
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+    setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
+    assert.ok(collectErrors(layout).some((e) => e.path === '/shape'), 'the union-level error is on a real node and stays')
+  })
+
+  it('should clear once the active branch is complete', () => {
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+    setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
+    setFieldValue.execute(layout, { path: '/shape/$oneOf/1/w', value: 3 })
+    setFieldValue.execute(layout, { path: '/shape/$oneOf/1/h', value: 4 })
+    assert.deepEqual(collectErrors(layout), [], 'a complete branch leaves nothing behind')
+    assert.equal(layout.valid, true)
+  })
+})
+
 describe('webmcp errors below an unhydrated list item', () => {
   // A list renders its items in summary mode, so an item's children are only built once
   // it is activated for edition. Errors below an unhydrated item then have no node to
@@ -1434,11 +1496,55 @@ describe('webmcp variant activation', () => {
     assert.ok(markdown.includes('Width') && markdown.includes('Height'))
   })
 
+  it('should switch a variant when the index arrives as a string', () => {
+    // Models emit tool arguments as JSON and routinely write an index as "0" rather than
+    // 0. The activation guard demanded a number, so a string fell through to an ordinary
+    // write on the $oneOf node — whose data IS its parent's, so the string was spread
+    // into it as {"0":"0"} and the branch never changed. The answer still read "no error,
+    // form is valid", which is how app-chloropleth-map's agent came to repeat the same
+    // call fifteen times.
+    const layout = layoutOf()
+    const result = setFieldValue.execute(layout, { path: '/shape/$oneOf', value: '1' })
+    assert.deepEqual(layout.data, { shape: { kind: 'rect' } }, 'the branch must switch, and nothing may be spread into the parent')
+    assert.ok(/** @type {any} */(result).activatedMarkdown?.includes('/shape/$oneOf/1/w'), 'a string index must reveal the branch like a number does')
+  })
+
+  it('should refuse a variant index that names no branch', () => {
+    // Anything that is not an index is a mistake about what this node is, and the only
+    // repair is to pick a branch. Writing it as data corrupted the parent object in
+    // silence; refusing names the branches so the next call can be right.
+    const layout = layoutOf()
+    assert.throws(
+      () => setFieldValue.execute(layout, { path: '/shape/$oneOf', value: '"0"' }),
+      /variant/,
+      'a non-index write to a variant selector must be refused'
+    )
+    assert.throws(() => setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 7 }), /variant/)
+    assert.deepEqual(layout.data, { shape: { kind: 'circle' } }, 'a refused call must leave the data untouched')
+  })
+
   it('should not report activated fields for an ordinary write', () => {
     // Only an activation reveals a subtree; a plain write must stay as terse as it is.
     const layout = layoutOf()
     const result = setFieldValue.execute(layout, { path: '/title', value: 'hello' })
     assert.equal(/** @type {any} */(result).activatedMarkdown, undefined)
+  })
+
+  it('should mark which variant is the active one', () => {
+    // The list of variants and the branch's fields were printed as two unrelated things,
+    // so which branch was live had to be inferred from the index in a child path. The
+    // chloropleth agent never made that inference: it read the branch section as "a
+    // branch exists" rather than "this one is active", and spent a dozen turns testing
+    // the question against a form that was answering it all along.
+    const layout = layoutOf()
+    const before = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(before, /variant 0: Circle \(active\)/, 'the live branch must say so where the branches are listed')
+    assert.ok(!/variant 1: Rect \(active\)/.test(before), 'only the live branch is marked')
+
+    setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
+    const after = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(after, /variant 1: Rect \(active\)/, 'the mark must follow the switch')
+    assert.ok(!/variant 0: Circle \(active\)/.test(after))
   })
 
   it('should put the activated fields in the tool text', async () => {
@@ -1654,6 +1760,33 @@ describe('webmcp reveals caused by a write', () => {
     assert.ok(text.includes('/contribColor'))
   })
 
+  it('should report a field a JSON Schema if/then just created', async () => {
+    // The reveal diff only counted nodes that flipped from comp "none", which is how a
+    // layout `if` hides a field that already exists. A schema-level if/then does not hide
+    // its branch, it has no branch at all until the condition holds — so the node is new
+    // rather than unhidden, and the one rule meant to catch "a write turned a condition
+    // true and unhid a whole section" skipped exactly that case. The write answered "no
+    // error here" and counted the required field it had just conjured among "other
+    // errors elsewhere", naming nothing.
+    const conditional = {
+      type: 'object',
+      properties: { billing: { type: 'string', title: 'Billing', enum: ['free', 'paid'] } },
+      allOf: [{
+        if: { properties: { billing: { const: 'paid' } }, required: ['billing'] },
+        then: { required: ['card'], properties: { card: { type: 'string', title: 'Card number' } } }
+      }]
+    }
+    const compiled = compile(conditional)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = new WebMCP(layout, { dataTitle: 'doc' }).getTools()
+    const res = await /** @type {any} */(tools.find((t) => t.name === 'setFieldValue')).execute({ path: '/billing', value: 'paid' })
+    const text = res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
+    assert.match(text, /became available/i, `the created field must be named: ${text}`)
+    assert.ok(text.includes('/$allOf-0/$then/card'), `the path must be usable directly: ${text}`)
+    // the wrapper sections a condition brings with it are not fields to fill
+    assert.ok(!/became available[^\n]*\/\$allOf-0\/\$then[,\s]*$/.test(text), `only data-owning fields: ${text}`)
+  })
+
   it('should not double-report an activated variant as newly available', async () => {
     // Switching a variant already lists the activated branch's fields; those nodes are
     // new keys rather than nodes that changed visibility, so they must not be counted
@@ -1810,7 +1943,10 @@ describe('webmcp repeated variant lists', () => {
     const nested = await run(tools, 'editArray', { path: '/elements/0/$oneOf/1/children', action: 'add' })
 
     assert.ok(!/- variant 0: Text/.test(nested), `the same union must not be listed again: ${nested}`)
-    assert.match(nested, /2 variants, the same list already given for \/elements\/0\/\$oneOf/)
+    assert.match(nested, /2 variants.*the same list already given for \/elements\/0\/\$oneOf/)
+    // not repeating the list must not cost the one fact that is this node's own rather
+    // than the union's: which of the branches is the live one
+    assert.match(nested, /variant 0: Text active/, `the pointer back must still say which branch is active: ${nested}`)
     // "this path" was ambiguous between the path just named and the node being described
     assert.match(nested, /call describeState on \/elements\/0\/\$oneOf\/1\/children\/0\/\$oneOf to see them again/)
     // the branch that is actually being edited is still spelled out
