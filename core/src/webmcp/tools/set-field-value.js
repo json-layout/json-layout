@@ -32,6 +32,31 @@ export function getDescription (dataTitle) {
 }
 
 /**
+ * The variant index an agent meant, from either spelling of it. A tool call is JSON and a
+ * model writes 0 and "0" interchangeably; both name the same branch.
+ * @param {unknown} value
+ * @returns {number|undefined}
+ */
+function variantIndex (value) {
+  if (typeof value === 'number') return Number.isInteger(value) ? value : undefined
+  if (typeof value === 'string' && /^\s*\d+\s*$/.test(value)) return Number(value)
+  return undefined
+}
+
+/**
+ * The branches a variant selector offers, as describeState lists them, so that refusing a
+ * call can name what to write instead of only what was wrong.
+ * @param {import('../../state/types.js').StateNode} node
+ * @returns {Array<{key: number, title: string}>|undefined}
+ */
+function listVariants (node) {
+  const oneOfItems = /** @type {Array<{header?: boolean, key: number, title: string}>|undefined} */(
+    /** @type {Record<string, unknown>} */(node.layout).oneOfItems
+  )
+  return Array.isArray(oneOfItems) ? oneOfItems.filter((item) => !item.header) : undefined
+}
+
+/**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value?: unknown, suggestionIndex?: number }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
@@ -64,9 +89,23 @@ export function execute (statefulLayout, args, store, variantsMemo) {
   const visibleBefore = visibilitySnapshot(statefulLayout.stateTree.root)
 
   let activating = false
-  if (node.key === '$oneOf' && typeof value === 'number') {
+  if (node.key === '$oneOf') {
+    // A variant selector holds no data of its own — its value IS the object around it —
+    // so anything that is not an index does not land on the selector, it is merged into
+    // that object: the string "0" became {"0":"0"} beside the branch's own properties.
+    // The guard used to demand a number and let everything else through to that write,
+    // which reported no error and left the form valid. Models emit tool arguments as
+    // JSON and write an index as "0" at least as readily as 0, so the common spelling of
+    // a correct call was silently doing nothing at all — app-chloropleth-map's agent
+    // repeated it fifteen times, each answer as reassuring as the last.
+    const index = variantIndex(value)
+    const variants = listVariants(node)
+    if (index === undefined || (variants && !variants.some((v) => v.key === index))) {
+      const listed = variants?.map((v) => `variant ${v.key}: ${v.title}`).join(', ')
+      throw new Error(`"${args.path}" is a variant selector: its value is the index of the branch to activate${listed ? `, one of ${listed}` : ''}.`)
+    }
     activating = true
-    statefulLayout.activateItem(node, value)
+    statefulLayout.activateItem(node, index)
   } else {
     statefulLayout.input(node, value)
     statefulLayout.blur(node)
@@ -80,7 +119,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
   // was written leaves the agent knowing a branch appeared but not what is in it. This
   // mirrors what editArray already does for an item it activates.
   const activated = activating ? (updatedNode || node).children?.[0] : undefined
-  const visibility = diffVisibility(visibleBefore, visibilitySnapshot(statefulLayout.stateTree.root))
+  const visibility = diffVisibility(visibleBefore, visibilitySnapshot(statefulLayout.stateTree.root), activating ? args.path : undefined)
 
   return {
     valid: statefulLayout.valid,

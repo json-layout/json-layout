@@ -95,15 +95,20 @@ export function helpToText (html) {
 }
 
 /**
- * Which nodes are currently rendered, by path. A node hidden by an `if` condition stays
- * in the tree as comp "none", so what a write changes is visibility rather than the set
- * of paths — comparing paths alone would report nothing.
+ * Which nodes are currently rendered, by path. A node hidden by a layout `if` stays in
+ * the tree as comp "none", so what a write changes there is visibility rather than the
+ * set of paths — comparing paths alone would report nothing. A node governed by a schema
+ * if/then is the other way round: it is absent until the condition holds, so the set of
+ * paths is all there is to compare. Recording both facts lets one diff serve both.
  * @param {import('../state/types.js').StateNode} node
- * @param {Map<string, string>} [into]
- * @returns {Map<string, string>}
+ * @param {Map<string, {comp: string, owns: boolean}>} [into]
+ * @returns {Map<string, {comp: string, owns: boolean}>}
  */
 export function visibilitySnapshot (node, into = new Map()) {
-  if (node.fullKey !== undefined) into.set(node.fullKey, node.layout?.comp)
+  // `owns` separates a field from the wrappers around it. A condition turning true brings
+  // its `$then` section along with the fields inside it, and naming the section among the
+  // things that "became available" would point the agent at a path it cannot write.
+  if (node.fullKey !== undefined) into.set(node.fullKey, { comp: node.layout?.comp, owns: node.dataPath !== node.parentDataPath })
   for (const child of node.children ?? []) visibilitySnapshot(child, into)
   return into
 }
@@ -111,24 +116,40 @@ export function visibilitySnapshot (node, into = new Map()) {
 /**
  * What a write turned visible or invisible.
  *
- * Only paths present in both snapshots count. Activating a variant replaces one branch
- * with another, so its nodes are new paths rather than nodes that changed visibility —
- * setFieldValue already lists the activated branch, and counting them here would print
- * the same subtree twice.
- * @param {Map<string, string>} before
- * @param {Map<string, string>} after
+ * A field can arrive two ways: a layout `if` toggles a node that already exists between
+ * comp "none" and its real component, while a schema-level if/then has no node at all
+ * until the condition holds and then creates one. Both are the same event to an agent —
+ * something it must now fill that it could not before — so both count.
+ *
+ * `activated` is the variant selector a write just switched, if any. Activating a variant
+ * replaces a whole branch, and setFieldValue already lists the branch it activated;
+ * counting those nodes here too would print the same subtree twice.
+ * @param {Map<string, {comp: string, owns: boolean}>} before
+ * @param {Map<string, {comp: string, owns: boolean}>} after
+ * @param {string} [activated] - fullKey of a variant selector whose subtree is reported elsewhere
  * @returns {{ revealed: string[], hidden: string[] }}
  */
-export function diffVisibility (before, after) {
+export function diffVisibility (before, after, activated) {
   /** @type {string[]} */
   const revealed = []
   /** @type {string[]} */
   const hidden = []
-  for (const [path, comp] of after) {
-    if (!before.has(path)) continue
+  /** @param {string} path */
+  const reportedElsewhere = (path) => activated !== undefined && (path === activated || path.startsWith(activated + '/'))
+  for (const [path, node] of after) {
+    if (reportedElsewhere(path)) continue
     const was = before.get(path)
-    if (was === 'none' && comp !== 'none') revealed.push(path)
-    else if (was !== 'none' && comp === 'none') hidden.push(path)
+    if (was === undefined) {
+      if (node.comp !== 'none' && node.owns) revealed.push(path)
+    } else if (was.comp === 'none' && node.comp !== 'none') revealed.push(path)
+    else if (was.comp !== 'none' && node.comp === 'none') hidden.push(path)
+  }
+  // A condition turning false takes its subtree away entirely rather than hiding it. That
+  // is worth one line: an agent holding a path from an earlier describeState would
+  // otherwise keep trying to write somewhere that no longer exists.
+  for (const [path, node] of before) {
+    if (after.has(path) || reportedElsewhere(path)) continue
+    if (node.comp !== 'none' && node.owns) hidden.push(path)
   }
   return { revealed, hidden }
 }
@@ -441,16 +462,25 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
   // variants list
   if (node.layout.comp === 'one-of-select' && Array.isArray(layout.oneOfItems)) {
     const variants = layout.oneOfItems.filter((item) => !item.header)
+    // Which branch is live was only ever implied, by the index in the path of the section
+    // printed underneath. That reads as "a branch exists" rather than "this one is
+    // active", and an agent that cannot tell the two apart cannot tell a switch that
+    // worked from one that did nothing — which is the whole question it asks a variant
+    // selector. The activated branch is always this node's first child.
+    const activeKey = node.children?.[0]?.key
     const listedAt = variantsMemo?.listedAt(node.skeleton.pointer)
     if (listedAt === undefined) {
       variantsMemo?.record(node.skeleton.pointer, path)
       for (const v of variants) {
-        lines.push(`${indent}  - variant ${v.key}: ${v.title}`)
+        lines.push(`${indent}  - variant ${v.key}: ${v.title}${v.key === activeKey ? ' (active)' : ''}`)
       }
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
-      // so name where it was given rather than repeat it
-      lines.push(`${indent}  - ${variants.length} variants, the same list already given for ${listedAt} — call describeState on ${path} to see them again`)
+      // so name where it was given rather than repeat it — but which branch is active is
+      // this node's own, so it still has to be said here
+      const active = variants.find((v) => v.key === activeKey)
+      const activeLabel = active ? ` (variant ${active.key}: ${active.title} active)` : ''
+      lines.push(`${indent}  - ${variants.length} variants${activeLabel}, the same list already given for ${listedAt} — call describeState on ${path} to see them again`)
     }
   }
 
@@ -623,6 +653,35 @@ function dataPointerOf (error) {
 }
 
 /**
+ * Whether an error belongs to a branch of a union the form is actually showing.
+ *
+ * ajv validates every branch of a `oneOf` and reports the failures of all of them, so
+ * while the chosen branch is still incomplete the losing branches complain too. Those
+ * complaints name properties of a shape that was not chosen: there is no node for them,
+ * no way to write them and no way to clear them. The state tree already draws this line —
+ * it matches an error to a node by schema pointer, so only the active branch's errors
+ * ever land on one — and this keeps the raw list that is appended afterwards to the same
+ * line rather than undoing the work.
+ *
+ * The test is per `oneOf` crossed on the way down, not on the error's path as a whole: an
+ * error below an unhydrated list item has no node either, and that one must survive.
+ * @param {any} error
+ * @param {Set<string>} renderedPointers - skeleton pointers of the nodes the form has built
+ * @returns {boolean}
+ */
+function isRenderedBranch (error, renderedPointers) {
+  for (const schemaPath of [error?.schemaPath, error?.params?.errors?.[0]?.schemaPath]) {
+    if (typeof schemaPath !== 'string') continue
+    const branches = /\/oneOf\/\d+/g
+    let match
+    while ((match = branches.exec(schemaPath)) !== null) {
+      if (!renderedPointers.has(schemaPath.slice(0, match.index + match[0].length))) return false
+    }
+  }
+  return true
+}
+
+/**
  * Errors of the whole form, each named by the location it actually applies to.
  *
  * A node only carries an error while it is hydrated. A list shows its items in summary
@@ -639,9 +698,12 @@ function dataPointerOf (error) {
 export function collectErrors (statefulLayout) {
   /** @type {Array<{fullKey: string, dataPath: string, message: string}>} */
   const nodeErrors = []
+  /** @type {Set<string>} */
+  const renderedPointers = new Set()
   /** @param {import('../state/types.js').StateNode} node */
   const recurse = (node) => {
     if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: node.error })
+    if (node.skeleton?.pointer) renderedPointers.add(node.skeleton.pointer)
     // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
     // occurrences of an activated item do not carry the same errors, and deduplicating
     // here silently drops them (verified: 2 errors became 0).
@@ -651,6 +713,7 @@ export function collectErrors (statefulLayout) {
 
   const named = new Set(nodeErrors.map((e) => e.dataPath))
   const unnamed = statefulLayout.validationErrors
+    .filter((error) => isRenderedBranch(error, renderedPointers))
     .map((error) => ({ pointer: dataPointerOf(error), message: error.message ?? 'invalid' }))
     .filter((error) => !named.has(error.pointer))
 

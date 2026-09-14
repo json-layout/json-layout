@@ -1,0 +1,1659 @@
+{
+  "$id": "https://github.com/koumoul-dev/infos-territoires/config",
+  "title": "AppConfiguration",
+  "x-exports": ["types", "resolvedSchemaJson"],
+  "type": "object",
+  "allOf": [
+    {
+      "title": "Fond de carte",
+      "properties": {
+        "datasets": {
+          "type": "array",
+          "items": {
+            "title": "Jeu de données",
+            "type": "object",
+            "properties": {
+              "href": { "type": "string" },
+              "title": { "type": "string" },
+              "id": { "type": "string" },
+              "schema": { "type": "array" },
+              "bbox": { "type": "array" }
+            },
+            "layout": {
+              "getItems": {
+                "url": "api/v1/datasets?status=finalized&q={q}&select=id,title,schema,bbox&${context.datasetFilter}&size=100",
+                "itemKey": "data.id",
+                "itemTitle": "data.title",
+                "itemsResults": "data.results"
+              }
+            }
+          },
+          "layout": {
+            "comp": "none",
+            "itemTitle": "data.title"
+          }
+        },
+        "geometries": {
+          "title": "Contours des territoires",
+          "type": "object",
+          "oneOf": [
+            {
+              "title": "Depuis mes données",
+              "properties": {
+                "type": {
+                  "const": "own"
+                },
+                "dataset": {
+                  "type": "object",
+                  "title": "Jeu de données",
+                  "properties": {
+                    "href": { "type": "string" },
+                    "title": { "type": "string" },
+                    "id": { "type": "string" },
+                    "schema": { "type": "array" },
+                    "bbox": { "type": "array" }
+                  },
+                  "layout": {
+                    "getItems": {
+                      "url": "api/v1/datasets?status=finalized&q={q}&select=id,title,schema,bbox&${context.datasetFilter}&size=100&concepts=https%3A%2F%2Fpurl.org%2Fgeojson%2Fvocab%23geometry,http%3A%2F%2Fdata.ign.fr%2Fdef%2Fgeometrie%23Geometry",
+                      "itemKey": "data.id",
+                      "itemTitle": "data.title",
+                      "itemsResults": "data.results"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "title": "Depuis les données de référence",
+              "properties": {
+                "type": {
+                  "const": "reference"
+                },
+                "dataset": {
+                  "type": "object",
+                  "title": "Jeu de données",
+                  "properties": {
+                    "href": { "type": "string" },
+                    "title": { "type": "string" },
+                    "id": { "type": "string" },
+                    "schema": { "type": "array" },
+                    "bbox": { "type": "array" }
+                  },
+                  "layout": {
+                    "getItems": {
+                      "url": "https://opendata.koumoul.com/data-fair/api/v1/datasets?status=finalized&q=contours&select=id,title,schema,bbox&owner=organization:5a5dc47163ebd4a6f438589b&size=100&concepts=https%3A%2F%2Fpurl.org%2Fgeojson%2Fvocab%23geometry,http%3A%2F%2Fdata.ign.fr%2Fdef%2Fgeometrie%23Geometry",
+                      "itemKey": "data.id",
+                      "itemTitle": "data.title",
+                      "itemsResults": "data.results"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "default": {
+            "type": "reference"
+          }
+        },
+        "joinColumn": {
+          "title": "Colonne du code de territoire",
+          "type": "object",
+          "properties": {
+            "key": { "type": "string" },
+            "label": { "type": "string" },
+            "x-concept": { "type": "object" }
+          },
+          "layout": {
+            "if": "rootData.datasets?.[0]",
+            "getItems": {
+              "url": "${rootData.datasets[0].href}/schema?calculated=false&separator=false&concept=true&maxCardinality=100000",
+              "itemKey": "data.key",
+              "itemTitle": "data.label"
+            }
+          }
+        },
+        "style": {
+          "title": "Style du fond",
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "klokantech-basic",
+              "title": "Klokantech Basic"
+            },
+            {
+              "const": "minimal",
+              "title": "Minimal"
+            },
+            {
+              "const": "void",
+              "title": "Vide"
+            },
+            {
+              "const": "admindiv",
+              "title": "Divisions administratives"
+            },
+            {
+              "const": "dark-matter",
+              "title": "Dark Matter"
+            },
+            {
+              "const": "fiord-color",
+              "title": "Fiord Color"
+            },
+            {
+              "const": "osm-bright",
+              "title": "OSM Bright"
+            },
+            {
+              "const": "positron",
+              "title": "Positron"
+            },
+            {
+              "const": "osm-liberty",
+              "title": "OSM Liberty"
+            },
+            {
+              "const": "cassini",
+              "title": "Cassini"
+            },
+            {
+              "const": "cadastre",
+              "title": "Cadastre"
+            },
+            {
+              "const": "satellite",
+              "title": "Vue satellite"
+            },
+            {
+              "const": "plan-ign-standard",
+              "title": "Plan IGN"
+            }
+          ],
+          "default": "minimal"
+        },
+        "projection": {
+          "title": "Projection",
+          "description": "Mode de projection de la carte. Le globe affiche une sphère et repasse automatiquement en Mercator au zoom rapproché.",
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "mercator",
+              "title": "Mercator"
+            },
+            {
+              "const": "globe",
+              "title": "Globe"
+            },
+            {
+              "const": "vertical-perspective",
+              "title": "Perspective verticale"
+            }
+          ],
+          "default": "mercator"
+        }
+      }
+    },
+    {
+      "title": "Détails au clic",
+      "properties": {
+        "details": {
+          "title": "Détails",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "oneOf": [
+              {
+                "$ref": "#/definitions/list"
+              },
+              {
+                "$ref": "#/definitions/table"
+              },
+              {
+                "$ref": "#/definitions/application"
+              },
+              {
+                "$ref": "#/definitions/form"
+              }
+            ],
+            "default": {
+              "type": "list"
+            },
+            "properties": {
+              "label": {
+                "type": "string",
+                "title": "Libellé de l'onglet",
+                "description": "Si vide, le titre du jeu de données ou de la visualisation associé sera utilisé"
+              }
+            }
+          },
+          "layout": "list"
+        },
+        "detailsWidthMobile": {
+          "title": "Largeur de la fiche de détails en mobile",
+          "type": "integer",
+          "default": 300,
+          "minimum": 100,
+          "maximum": 600
+        }
+      }
+    },
+    {
+      "title": "Remplissage de la carte",
+      "properties": {
+        "defaultColor": {
+          "title": "Couleur de remplissage par défaut",
+          "type": "string",
+          "default": "#828282",
+          "layout": "color-picker"
+        },
+        "defaultFillOpacity": {
+          "title": "Opacité du remplissage par défaut",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 8,
+          "layout": "slider"
+        },
+        "fillOpacity": {
+          "title": "Opacité du remplissage",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 8,
+          "layout": "slider"
+        },
+        "outlines": {
+          "title": "Affichage des contours",
+          "type": "object",
+          "properties": {
+            "width": {
+              "title": "Epaisseur des contours",
+              "type": "integer",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 12,
+              "layout": "slider"
+            },
+            "color": {
+              "title": "Couleur des contours",
+              "type": "string",
+              "default": "#CCCCCC",
+              "layout": "color-picker"
+            }
+          }
+        },
+        "selection": {
+          "title": "Affichage de la sélection",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "oneOf": [
+                  {
+                    "const": "fill",
+                    "title": "Remplissage"
+                  },
+                  {
+                    "const": "outline",
+                    "title": "Contours"
+                  },
+                  {
+                    "const": "location",
+                    "title": "Position"
+                  }
+                ]
+              },
+              "default": ["fill"]
+            },
+            "color": {
+              "title": "Couleur de sélection",
+              "type": "string",
+              "default": "#A44444",
+              "layout": "color-picker"
+            }
+          }
+        },
+        "hover": {
+          "title": "Couleur au survol d'une zone",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "oneOf": [
+                  {
+                    "const": "fill",
+                    "title": "Remplissage"
+                  },
+                  {
+                    "const": "outline",
+                    "title": "Contours"
+                  }
+                ]
+              },
+              "default": ["outline"]
+            },
+            "color": {
+              "title": "Couleur de survol",
+              "type": "string",
+              "default": "#A44444",
+              "layout": "color-picker"
+            }
+          }
+        },
+        "label": {
+          "title": "Libellé des zones",
+          "type": "object",
+          "properties": {
+            "field": {
+              "title": "Champ de libellé",
+              "description": "Si non renseigné, utilise le champ qui a le concept libellé",
+              "type": "string",
+              "layout": {
+                "if": "rootData.datasets?.[0]",
+                "getItems": {
+                  "url": "${rootData.datasets[0].href}/schema?calculated=false&separator=false",
+                  "itemKey": "data.key",
+                  "itemTitle": "data.label"
+                }
+              }
+            },
+            "type": {
+              "title": "Affichage",
+              "type": "string",
+              "oneOf": [
+                {
+                  "const": "none",
+                  "title": "Uniquement au clic"
+                },
+                {
+                  "const": "hover",
+                  "title": "Au survol"
+                },
+                {
+                  "const": "layer",
+                  "title": "Sur la carte"
+                }
+              ],
+              "default": "none"
+            }
+          }
+        },
+        "indicators": {
+          "title": "Indicateurs",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/indicator"
+          },
+          "layout": "list"
+        }
+      }
+    },
+    {
+      "title": "Navigation",
+      "properties": {
+        "panelAlwaysOpen": {
+          "title": "Panneau latéral toujours visible",
+          "type": "boolean",
+          "default": false
+        },
+        "largePanel": {
+          "title": "Panneau de navigation plus large",
+          "type": "boolean",
+          "default": false
+        },
+        "panelPosition": {
+          "title": "Position du panneau de navigation",
+          "type": "string",
+          "default": "right",
+          "oneOf": [
+            {
+              "const": "left",
+              "title": "Gauche"
+            },
+            {
+              "const": "right",
+              "title": "Droite"
+            }
+          ]
+        },
+        "geolocate": {
+          "title": "Activer la géolocalisation",
+          "type": "boolean",
+          "default": false
+        },
+        "hideSearchAddress": {
+          "title": "Cacher la recherche par adresse",
+          "type": "boolean"
+        },
+        "noAddressUpdate": {
+          "title": "Ne pas mettre à jour l'adresse au clic",
+          "type": "boolean"
+        },
+        "hideSelectionIfEmpty": {
+          "title": "Cacher la sélection si vide",
+          "type": "boolean"
+        },
+        "hideLegend": {
+          "title": "Cacher la légende",
+          "type": "boolean"
+        },
+        "directLinkAccess": {
+          "title": "Navigation directe au clic",
+          "type": "boolean",
+          "default": false
+        },
+        "linkTemplate": {
+          "title": "Template de lien de navigation",
+          "description": "Si ce template n'est pas renseignée, la navigation se fera en utilisant la colonne avec le concept de Page Web. La syntaxe est à utiliser est [celle la](https://en.wikipedia.org/wiki/URI_Template).",
+          "type": "string",
+          "layout": {
+            "if": "rootData.directLinkAccess"
+          }
+        },
+        "fixedZoom": {
+          "title": "Figer le niveau de zoom",
+          "type": "boolean",
+          "default": false
+        },
+        "fixedPosition": {
+          "title": "Figer la position",
+          "type": "boolean",
+          "default": false
+        },
+        "zoomOnSelection": {
+          "title": "Zoomer sur la sélection",
+          "type": "boolean",
+          "default": false
+        },
+        "navigationLabels": {
+          "type": "object",
+          "title": "Libellé des onglets",
+          "properties": {
+            "address": {
+              "type": "string",
+              "title": "Adresse",
+              "default": "Adresse"
+            },
+            "selection": {
+              "type": "string",
+              "title": "Sélection",
+              "default": "Sélection"
+            },
+            "legend": {
+              "type": "string",
+              "title": "Légende",
+              "default": "Légende"
+            }
+          }
+        },
+        "center": {
+          "title": "Position initiale",
+          "description": "Centre de la carte au démarrage. Cliquer sur l'icône 'cible' pour récupérer la position courante.",
+          "type": "object",
+          "properties": {
+            "lon": {
+              "title": "Longitude",
+              "type": "number"
+            },
+            "lat": {
+              "title": "Latitude",
+              "type": "number"
+            }
+          }
+        },
+        "zoom": {
+          "title": "Zoom initial",
+          "description": "Niveau de zoom de la carte au démarrage (0-22). Cliquer sur l'icône 'cible' pour récupérer le zoom courant.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 22
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "qualitativePalette": {
+      "title": "Ensembles de couleurs prédéfinis",
+      "required": ["name"],
+      "properties": {
+        "type": {
+          "const": "qualitative"
+        },
+        "computed": {
+          "const": true
+        },
+        "name": {
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "Accent",
+              "title": "Accent"
+            },
+            {
+              "const": "Dark2",
+              "title": "Foncé"
+            },
+            {
+              "const": "Paired",
+              "title": "Paires"
+            },
+            {
+              "const": "Set1",
+              "title": "Ensemble 1"
+            },
+            {
+              "const": "Set2",
+              "title": "Ensemble 2"
+            },
+            {
+              "const": "Set3",
+              "title": "Ensemble 3"
+            },
+            {
+              "const": "Pastel1",
+              "title": "Pastel 1"
+            },
+            {
+              "const": "Pastel2",
+              "title": "Pastel 2"
+            }
+          ],
+          "default": "Accent",
+          "title": "Nom de la palette de couleurs"
+        },
+        "offset": {
+          "type": "integer",
+          "title": "Décallage",
+          "default": 0
+        }
+      }
+    },
+    "divergingPalette": {
+      "title": "Dégradé entre des couleurs différentes",
+      "properties": {
+        "type": {
+          "const": "diverging"
+        },
+        "computed": {
+          "const": true
+        },
+        "name": {
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "Spectral",
+              "title": "Spectral"
+            },
+            {
+              "const": "RdYlGn",
+              "title": "Rouge-jaune-Vert"
+            },
+            {
+              "const": "RdBu",
+              "title": "Rouge-Bleu"
+            },
+            {
+              "const": "PiYG",
+              "title": "Rose-Jaune-Vert"
+            },
+            {
+              "const": "PRGn",
+              "title": "Violet-Vert"
+            },
+            {
+              "const": "RdYlBu",
+              "title": "Rouge-Jaune-Bleu"
+            },
+            {
+              "const": "BrBG",
+              "title": "Marron-Bleu-Vert"
+            },
+            {
+              "const": "RdGy",
+              "title": "Rouge-Gris"
+            },
+            {
+              "const": "PuOr",
+              "title": "Orange-Violet"
+            }
+          ],
+          "title": "Nom de la palette de couleurs",
+          "default": "RdYlGn"
+        },
+        "reverse": {
+          "type": "boolean",
+          "title": "Inverser"
+        }
+      }
+    },
+    "sequentialPalette": {
+      "title": "Dégradé, même ton de couleurs",
+      "properties": {
+        "type": {
+          "const": "sequential"
+        },
+        "computed": {
+          "const": true
+        },
+        "name": {
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "OrRd",
+              "title": "Orange-Rouge"
+            },
+            {
+              "const": "PuBu",
+              "title": "Violet-Bleu"
+            },
+            {
+              "const": "BuPu",
+              "title": "Bleu-Violet"
+            },
+            {
+              "const": "Oranges",
+              "title": "Orange"
+            },
+            {
+              "const": "BuGn",
+              "title": "Bleu-Vert"
+            },
+            {
+              "const": "YlOrBr",
+              "title": "Jaune-Orange-Marron"
+            },
+            {
+              "const": "YlGn",
+              "title": "Jaune-Vert"
+            },
+            {
+              "const": "Reds",
+              "title": "Rouge"
+            },
+            {
+              "const": "RdPu",
+              "title": "Rouge-Violet"
+            },
+            {
+              "const": "Greens",
+              "title": "Vert"
+            },
+            {
+              "const": "YlGnBu",
+              "title": "Jaune-Vert-Bleu"
+            },
+            {
+              "const": "Purples",
+              "title": "Violet"
+            },
+            {
+              "const": "GnBu",
+              "title": "Vert-Bleu"
+            },
+            {
+              "const": "Greys",
+              "title": "Gris"
+            },
+            {
+              "const": "YlOrRd",
+              "title": "Jaune-Orange-Marron"
+            },
+            {
+              "const": "PuRd",
+              "title": "Violet-Rouge"
+            },
+            {
+              "const": "Blues",
+              "title": "Bleu"
+            },
+            {
+              "const": "PuBuGn",
+              "title": "Violet-Bleu-Vert"
+            },
+            {
+              "const": "Viridis",
+              "title": "Viridis"
+            }
+          ],
+          "title": "Nom de la palette de couleurs",
+          "default": "YlOrRd"
+        },
+        "reverse": {
+          "type": "boolean",
+          "title": "Inverser"
+        },
+        "subset": {
+          "type": "string",
+          "title": "Sous-ensemble",
+          "oneOf": [
+            {
+              "const": "all",
+              "title": "Tout"
+            },
+            {
+              "const": "light",
+              "title": "Clair"
+            },
+            {
+              "const": "dark",
+              "title": "Foncé"
+            }
+          ],
+          "default": "all"
+        }
+      }
+    },
+    "manualPalette": {
+      "title": "Couleurs spécifique",
+      "properties": {
+        "type": {
+          "const": "manual"
+        },
+        "manual": {
+          "const": true
+        }
+      }
+    },
+    "indicator": {
+      "title": "Indicateur",
+      "type": "object",
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [
+        {
+          "title": "Couleur en fonction de valeurs dans un intervalle",
+          "properties": {
+            "type": {
+              "const": "range"
+            },
+            "dataset": {
+              "type": "object",
+              "title": "Jeu de données contenant les valeurs",
+              "properties": {
+                "href": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "array"
+                }
+              },
+              "layout": {
+                "getItems": {
+                  "url": "api/v1/datasets?queryable=true&q={q}&select=id,title,schema&${context.datasetFilter}&size=100&short-concept=${rootData.joinColumn['x-concept'].id}",
+                  "itemKey": "data.href",
+                  "itemTitle": "data.title",
+                  "itemsResults": "data.results"
+                }
+              }
+            },
+            "filters": {
+              "$ref": "#/definitions/filters"
+            },
+            "rangeOptions": {
+              "type": "object",
+              "properties": {
+                "valueCalc": {
+                  "title": "Calcul de la valeur",
+                  "type": "object",
+                  "default": {
+                    "type": "count"
+                  },
+                  "oneOf": [
+                    {
+                      "title": "Nombre de lignes",
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "count"
+                        }
+                      }
+                    },
+                    {
+                      "title": "Valeurs d'une colonne",
+                      "required": ["field"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "value"
+                        },
+                        "field": {
+                          "type": "string",
+                          "title": "Champ contenant les valeurs",
+                          "layout": {
+                            "getItems": {
+                              "url": "${parent.parent.parent.parent.parent.data.dataset.href}/schema?calculated=false&type=number,integer&separator=false",
+                              "itemKey": "data.key",
+                              "itemTitle": "data.label"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "title": "Calcul depuis les valeurs d'une colonne",
+                      "required": ["field", "metric"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "metric"
+                        },
+                        "field": {
+                          "type": "string",
+                          "title": "Champ contenant les valeurs",
+                          "layout": {
+                            "getItems": {
+                              "url": "${parent.parent.parent.parent.parent.data.dataset.href}/schema?calculated=false&type=number,integer&separator=false",
+                              "itemKey": "data.key",
+                              "itemTitle": "data.label"
+                            }
+                          }
+                        },
+                        "metric": {
+                          "type": "string",
+                          "title": "Type de calcul",
+                          "default": "sum",
+                          "oneOf": [
+                            {
+                              "const": "avg",
+                              "title": "Moyenne"
+                            },
+                            {
+                              "const": "min",
+                              "title": "Valeur minimale"
+                            },
+                            {
+                              "const": "max",
+                              "title": "Valeur maximale"
+                            },
+                            {
+                              "const": "sum",
+                              "title": "Somme"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "scheme": {
+                  "type": "object",
+                  "title": "Type de palette",
+                  "default": {
+                    "type": "diverging"
+                  },
+                  "discriminator": { "propertyName": "type" },
+                  "oneOf": [
+                    {
+                      "$ref": "#/definitions/divergingPalette"
+                    },
+                    {
+                      "$ref": "#/definitions/sequentialPalette"
+                    },
+                    {
+                      "$ref": "#/definitions/manualPalette"
+                    }
+                  ]
+                },
+                "rangesColor": {
+                  "title": "Intervalles",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "min": {
+                        "title": "Valeur min",
+                        "type": "number"
+                      },
+                      "max": {
+                        "title": "Valeur max",
+                        "type": "number"
+                      },
+                      "color": {
+                        "title": "Couleur",
+                        "type": "string",
+                        "default": "#828282",
+                        "layout": "color-picker"
+                      }
+                    }
+                  },
+                  "layout": {
+                    "if": "parent.data.scheme?.manual"
+                  }
+                },
+                "ranges": {
+                  "title": "Type d'intervalle",
+                  "type": "object",
+                  "oneOf": [
+                    {
+                      "title": "De même taille",
+                      "required": ["size"],
+                      "properties": {
+                        "type": {
+                          "const": "equals"
+                        },
+                        "size": {
+                          "type": "integer",
+                          "title": "Nombre d'intervalles",
+                          "default": 4
+                        }
+                      }
+                    },
+                    {
+                      "title": "Quantiles",
+                      "required": ["size"],
+                      "properties": {
+                        "type": {
+                          "const": "quantiles"
+                        },
+                        "size": {
+                          "type": "integer",
+                          "title": "Nombre d'intervalles",
+                          "default": 4
+                        }
+                      }
+                    },
+                    {
+                      "title": "Réglage manuel",
+                      "properties": {
+                        "type": {
+                          "const": "manual"
+                        },
+                        "ranges": {
+                          "title": "Intervalles",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "min": {
+                                "title": "Valeur min",
+                                "type": "number"
+                              },
+                              "max": {
+                                "title": "Valeur max",
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "layout": "list"
+                        }
+                      }
+                    }
+                  ],
+                  "default": {
+                    "type": "equals",
+                    "size": 4
+                  },
+                  "layout": {
+                    "if": "parent.data.scheme?.computed"
+                  }
+                }
+              }
+            },
+            "multiplier": {
+              "type": "number",
+              "title": "Multiplicateur",
+              "description": "Multiplicateur appliqué à la valeur de l'indicateur (ex : 100 pour exprimer un ratio en pourcentage)",
+              "default": 1
+            },
+            "divider": {
+              "type": "object",
+              "title": "Diviseur",
+              "description": "Valeur par laquelle diviser l'indicateur, pour chaque territoire (ex : population, superficie, total pour un pourcentage)",
+              "discriminator": { "propertyName": "type" },
+              "default": {
+                "type": "none"
+              },
+              "layout": {
+                "getConstData": "typeof data === 'object' && data !== null ? data : { type: 'none' }"
+              },
+              "oneOf": [
+                {
+                  "title": "Pas de diviseur",
+                  "required": ["type"],
+                  "properties": {
+                    "type": {
+                      "const": "none"
+                    }
+                  }
+                },
+                {
+                  "title": "Diviseur calculé",
+                  "required": ["type", "dataset", "field"],
+                  "properties": {
+                    "type": {
+                      "const": "metric"
+                    },
+                    "dataset": {
+                      "type": "object",
+                      "title": "Jeu de données",
+                      "properties": {
+                        "href": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "type": "array"
+                        }
+                      },
+                      "layout": {
+                        "getItems": {
+                          "url": "api/v1/datasets?queryable=true&q={q}&select=id,title,schema&${context.datasetFilter}&size=100&short-concept=${rootData.joinColumn['x-concept'].id}",
+                          "itemKey": "data.href",
+                          "itemTitle": "data.title",
+                          "itemsResults": "data.results"
+                        }
+                      }
+                    },
+                    "field": {
+                      "type": "string",
+                      "title": "Champ contenant les valeurs",
+                      "layout": {
+                        "getItems": {
+                          "url": "${parent.parent.data.dataset.href}/schema?calculated=false&type=number,integer&separator=false",
+                          "itemKey": "data.key",
+                          "itemTitle": "data.label"
+                        }
+                      }
+                    },
+                    "metric": {
+                      "type": "string",
+                      "title": "Type de calcul",
+                      "description": "La somme est adaptée aux champs à une ligne par territoire (population, superficie)",
+                      "default": "sum",
+                      "oneOf": [
+                        {
+                          "const": "avg",
+                          "title": "Moyenne"
+                        },
+                        {
+                          "const": "min",
+                          "title": "Valeur minimale"
+                        },
+                        {
+                          "const": "max",
+                          "title": "Valeur maximale"
+                        },
+                        {
+                          "const": "sum",
+                          "title": "Somme"
+                        }
+                      ]
+                    },
+                    "filters": {
+                      "$ref": "#/definitions/filters"
+                    }
+                  }
+                }
+              ]
+            },
+            "unit": {
+              "type": "string",
+              "title": "Unité"
+            },
+            "label": {
+              "type": "string",
+              "title": "Libellé de l'onglet",
+              "description": "Si vide, le titre du jeu de données associé sera utilisé"
+            }
+          }
+        },
+        {
+          "title": "Couleur en fonction de valeurs dans un ensemble",
+          "properties": {
+            "type": {
+              "const": "enum"
+            },
+            "dataset": {
+              "type": "object",
+              "title": "Jeu de données contenant les valeurs",
+              "properties": {
+                "href": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "array"
+                }
+              },
+              "layout": {
+                "getItems": {
+                  "url": "api/v1/datasets?queryable=true&q={q}&select=id,title,schema&${context.datasetFilter}&size=100&short-concept=${rootData.joinColumn['x-concept'].id}",
+                  "itemKey": "data.href",
+                  "itemTitle": "data.title",
+                  "itemsResults": "data.results"
+                }
+              }
+            },
+            "filters": {
+              "$ref": "#/definitions/filters"
+            },
+            "enumOptions": {
+              "type": "object",
+              "required": ["field"],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "title": "Champ contenant les valeurs",
+                  "description": "Les champs multivalués ou ayant plus de 12 valeurs différentes ne peuvent pas être utilisés",
+                  "layout": {
+                    "getItems": {
+                      "url": "${parent.parent.parent.data.dataset.href}/schema?calculated=false&enum=true&separator=false&maxCardinality=12",
+                      "itemKey": "data.key",
+                      "itemTitle": "data.label"
+                    }
+                  }
+                },
+                "scheme": {
+                  "type": "object",
+                  "title": "Type de palette",
+                  "default": {
+                    "type": "qualitative"
+                  },
+                  "discriminator": { "propertyName": "type" },
+                  "oneOf": [
+                    {
+                      "$ref": "#/definitions/qualitativePalette"
+                    },
+                    {
+                      "$ref": "#/definitions/manualPalette"
+                    }
+                  ]
+                }
+              },
+              "dependencies": {
+                "field": {
+                  "properties": {
+                    "valuesColor": {
+                      "title": "Catégories",
+                      "description": "",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "layout": "none"
+                          },
+                          "color": {
+                            "title": "Couleur",
+                            "type": "string",
+                            "default": "#828282",
+                            "layout": "color-picker"
+                          }
+                        }
+                      },
+                      "layout": {
+                        "comp": "list",
+                        "if": "parent.parent.parent.data.enumOptions?.scheme?.manual",
+                        "getItems": {
+                          "url": "${parent.parent.parent.parent.data.dataset.href}/values_agg?field=${parent.data.field}&agg_size=1000&size=0",
+                          "itemKey": "data.value",
+                          "itemTitle": "data.value",
+                          "itemsResults": "data.aggs"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "label": {
+              "type": "string",
+              "title": "Libellé de l'onglet",
+              "description": "Si vide, le titre du jeu de données associé sera utilisé"
+            }
+          }
+        }
+      ],
+      "default": {
+        "type": "enum",
+        "enumOptions": {
+          "scheme": {
+            "type": "qualitative",
+            "name": "Paired",
+            "offset": 0,
+            "computed": true
+          }
+        }
+      }
+    },
+    "list": {
+      "title": "Afficher certains champs",
+      "required": ["type", "fields"],
+      "properties": {
+        "type": {
+          "const": "list"
+        },
+        "dataset": {
+          "type": "object",
+          "title": "Jeu de données",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "href": {
+              "type": "string"
+            },
+            "schema": {
+              "type": "array"
+            }
+          },
+          "layout": {
+            "getItems": {
+              "url": "api/v1/datasets?q={q}&${context.datasetFilter}&short-concept=${rootData.joinColumn['x-concept'].id}&select=id,title,schema&size=100",
+              "itemKey": "data.id",
+              "itemTitle": "data.title",
+              "itemsResults": "data.results"
+            }
+          }
+        },
+        "fields": {
+          "title": "Champs à utiliser",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+              "key": {
+                "type": "string",
+                "title": "Champ",
+                "layout": {
+                  "getItems": {
+                    "url": "${parent.parent.parent.data.dataset.href}/schema?calculated=false",
+                    "itemKey": "data.key",
+                    "itemTitle": "data.label"
+                  }
+                }
+              },
+              "hideLabel": {
+                "title": "Cacher le libellé",
+                "type": "boolean"
+              }
+            }
+          },
+          "layout": "list"
+        }
+      }
+    },
+    "table": {
+      "title": "Visualisation table",
+      "properties": {
+        "type": {
+          "const": "table",
+          "title": "Type de l'élément"
+        },
+        "dataset": {
+          "type": "object",
+          "title": "Jeu de données",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "href": {
+              "type": "string"
+            },
+            "schema": {
+              "type": "array"
+            }
+          },
+          "layout": {
+            "getItems": {
+              "url": "api/v1/datasets?q={q}&${context.datasetFilter}&short-concept=${rootData.joinColumn['x-concept'].id}&select=id,title,schema&size=100",
+              "itemKey": "data.id",
+              "itemTitle": "data.title",
+              "itemsResults": "data.results"
+            }
+          }
+        },
+        "display": {
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "table",
+              "title": "Tableau"
+            },
+            {
+              "const": "table-dense",
+              "title": "Tableau dense"
+            },
+            {
+              "const": "list",
+              "title": "Vignettes"
+            }
+          ],
+          "default": "table",
+          "title": "Affichage"
+        },
+        "noInteractions": {
+          "title": "Désactiver les interactions",
+          "type": "boolean",
+          "default": false
+        },
+        "fields": {
+          "title": "Champs à afficher",
+          "description": "Si vide, tous les champs seront affichés",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "layout": {
+            "getItems": {
+              "url": "${parent.data.dataset.href}/schema?calculated=false",
+              "itemKey": "data.key",
+              "itemTitle": "data.label"
+            }
+          }
+        },
+        "height": {
+          "type": "number",
+          "title": "Hauteur en px",
+          "default": 400
+        }
+      }
+    },
+    "application": {
+      "title": "Visualisation",
+      "properties": {
+        "type": {
+          "const": "application",
+          "title": "Type de l'élément"
+        },
+        "application": {
+          "type": "object",
+          "title": "Application",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "baseApp": {
+              "type": "object"
+            }
+          },
+          "layout": {
+            "getItems": {
+              "url": "api/v1/applications?q={q}&${context.datasetFilter}&filterConcepts=true&select=id,title,baseApp&size=100",
+              "itemKey": "data.id",
+              "itemTitle": "data.title",
+              "itemsResults": "data.results"
+            }
+          }
+        },
+        "heightMode": {
+          "title": "Hauteur",
+          "type": "string",
+          "default": "fixed",
+          "oneOf": [
+            {
+              "const": "fixed",
+              "title": "Fixée (hauteur en px)"
+            },
+            {
+              "const": "auto",
+              "title": "Auto (s'adapte au contenu)"
+            }
+          ]
+        },
+        "height": {
+          "type": "number",
+          "title": "Hauteur en px",
+          "description": "En mode Auto, utilisé en repli si l'application embarquée ne supporte pas le redimensionnement automatique",
+          "default": 400,
+          "layout": {
+            "if": "parent.data.heightMode === 'fixed'"
+          }
+        }
+      }
+    },
+    "form": {
+      "title": "Formulaire de saisie",
+      "properties": {
+        "type": {
+          "const": "form",
+          "title": "Type de l'élément"
+        },
+        "dataset": {
+          "type": "object",
+          "title": "Jeu de données",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "href": {
+              "type": "string"
+            },
+            "schema": {
+              "type": "array"
+            }
+          },
+          "layout": {
+            "getItems": {
+              "url": "api/v1/datasets?q={q}&${context.datasetFilter}&rest=true&short-concept=${rootData.joinColumn['x-concept'].id}&select=id,title,schema&size=100",
+              "itemKey": "data.id",
+              "itemTitle": "data.title",
+              "itemsResults": "data.results"
+            }
+          }
+        },
+        "heightMode": {
+          "title": "Hauteur",
+          "type": "string",
+          "default": "fixed",
+          "oneOf": [
+            {
+              "const": "fixed",
+              "title": "Fixée (hauteur en px)"
+            },
+            {
+              "const": "auto",
+              "title": "Auto (s'adapte au contenu)"
+            }
+          ]
+        },
+        "height": {
+          "type": "number",
+          "title": "Hauteur en px",
+          "description": "En mode Auto, hauteur minimale",
+          "default": 400,
+          "layout": {
+            "if": "parent.data.heightMode === 'fixed'"
+          }
+        }
+      }
+    },
+    "filters": {
+      "title": "Filtres prédéfinis",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "default": {
+          "type": "in"
+        },
+        "discriminator": { "propertyName": "type" },
+        "oneOf": [
+          {
+            "title": "Restreindre à des valeurs",
+            "required": ["field", "values"],
+            "properties": {
+              "type": {
+                "const": "in"
+              },
+              "field": {
+                "$ref": "#/definitions/filterField"
+              },
+              "values": {
+                "type": "array",
+                "title": "Valeurs",
+                "items": {
+                  "type": "string"
+                },
+                "layout": {
+                  "if": "parent.data.field",
+                  "getItems": {
+                    "url": "${parent.parent.parent.parent.parent.data.dataset.href}/values-labels/${parent.data.field.key}?q={q}&q_mode=complete&size=1000&stringify=true",
+                    "itemKey": "data.value",
+                    "itemTitle": "data.label"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "title": "Restreindre à un interval de valeurs",
+            "required": ["field"],
+            "properties": {
+              "type": {
+                "const": "interval"
+              },
+              "field": {
+                "$ref": "#/definitions/filterField"
+              },
+              "minValue": {
+                "type": "string",
+                "title": "Valeur min",
+                "layout": {
+                  "if": "parent.data.field",
+                  "getItems": {
+                    "url": "${parent.parent.parent.parent.parent.data.dataset.href}/values-labels/${parent.data.field.key}?sort=asc&${parent.data.field.key}_gte={q}&stringify=true&size=20",
+                    "itemKey": "data.value",
+                    "itemTitle": "data.label"
+                  }
+                }
+              },
+              "maxValue": {
+                "type": "string",
+                "title": "Valeur max",
+                "layout": {
+                  "if": "parent.data.field",
+                  "getItems": {
+                    "url": "${parent.parent.parent.parent.parent.data.dataset.href}/values-labels/${parent.data.field.key}?sort=desc&${parent.data.field.key}_lte={q}&stringify=true&size=20",
+                    "itemKey": "data.value",
+                    "itemTitle": "data.label"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "title": "Exclure des valeurs",
+            "required": ["field", "values"],
+            "properties": {
+              "type": {
+                "const": "out"
+              },
+              "field": {
+                "$ref": "#/definitions/filterField"
+              },
+              "values": {
+                "type": "array",
+                "title": "Valeurs à exclure",
+                "items": {
+                  "type": "string"
+                },
+                "layout": {
+                  "if": "parent.data.field",
+                  "getItems": {
+                    "url": "${parent.parent.parent.parent.parent.data.dataset.href}/values-labels/${parent.data.field.key}?q={q}&q_mode=complete&size=1000&stringify=true",
+                    "itemKey": "data.value",
+                    "itemTitle": "data.label"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "title": "Commence par",
+            "required": ["field", "value"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "starts"
+              },
+              "field": {
+                "$ref": "#/definitions/filterField"
+              },
+              "value": {
+                "type": "string",
+                "title": "Valeur",
+                "layout": {
+                  "if": "parent.data.field"
+                }
+              }
+            }
+          },
+          {
+            "title": "Exclure les valeurs vides ou non définies",
+            "required": ["field"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "exists"
+              },
+              "field": {
+                "$ref": "#/definitions/filterField"
+              }
+            }
+          },
+          {
+            "title": "Restreindre aux valeurs vides ou non définies",
+            "required": ["field"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "notExists"
+              },
+              "field": {
+                "$ref": "#/definitions/filterField"
+              }
+            }
+          }
+        ]
+      },
+      "layout": "list"
+    },
+    "filterField": {
+      "type": "object",
+      "title": "Colonne de filtre",
+      "layout": {
+        "getItems": {
+          "url": "${parent.parent.parent.parent.parent.data.dataset.href}/schema?calculated=false",
+          "itemKey": "data.key",
+          "itemTitle": "data.label"
+        }
+      }
+    }
+  },
+  "$id": "config-schema",
+  "layout": "tabs"
+}
