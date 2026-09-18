@@ -9,49 +9,10 @@ import { WebMCP } from '@json-layout/core/webmcp'
 import { unwrapEnvelope } from './envelope.js'
 import { resolveCompiledLayout } from './layout-cache.js'
 
-/** @typedef {import('@json-layout/core').CompiledLayout} CompiledLayout */
-/** @typedef {import('@json-layout/core').PartialCompileOptions} PartialCompileOptions */
-
-/**
- * @typedef {object} SaveContext
- * @property {unknown} [version] - the version the document was loaded at, when the
- *   consumer's `load` returned one
- * @property {unknown} [base] - the document as loaded, before any edit
- */
-
-/**
- * @typedef {object} FormTool
- * @property {string} name - the tool name, prefixed when the session sets one
- * @property {string} description - what the agent reads to decide when to call it
- * @property {object} [inputSchema] - JSON Schema of the accepted arguments
- * @property {(args?: any) => Promise<any>} execute - returns an MCP-shaped tool result
- */
-
-/**
- * @typedef {object} SessionSpec
- * @property {() => unknown} load - returns the resource document, or `{ data, version }`
- * @property {(data: unknown, context: SaveContext) => unknown} [save] - persists the
- *   document; absent means the session is read-only
- * @property {() => unknown} [schema] - returns a JSON Schema, or `{ schema, version }`
- * @property {CompiledLayout} [layout] - an already compiled layout; wins over `schema`
- * @property {string} title - what the form edits, e.g. "portal page"; goes into every
- *   tool description
- * @property {Partial<import('@json-layout/core/state').StatefulLayoutOptions>} [options] -
- *   forwarded to the state layer (notably `fetch` and `fetchBaseURL` for remote items)
- * @property {PartialCompileOptions} [compileOptions] - only used when compiling `schema`
- * @property {boolean} [allowInvalid] - let `save` persist a document that fails the
- *   schema's validation (default false)
- * @property {string} [prefixName] - prefix for every tool name, for a consumer that
- *   registers several sessions in one namespace
- * @property {boolean} [includeFillFormSkill] - include the guide-as-a-tool from core
- *   (default false; production pages pass the guide to a sub-agent instead)
- * @property {boolean} [includeSubAgent] - include core's sub-agent entry tool
- *   (default false)
- */
-
-/**
- * @typedef {'closed' | 'opening' | 'ready' | 'stale' | 'saving' | 'error'} SessionStatus
- */
+/** @typedef {import('./types.js').SaveContext} SaveContext */
+/** @typedef {import('./types.js').FormTool} FormTool */
+/** @typedef {import('./types.js').SessionSpec} SessionSpec */
+/** @typedef {import('./types.js').SessionStatus} SessionStatus */
 
 /**
  * @param {string} message
@@ -70,6 +31,23 @@ function sessionError (message, code) {
  */
 function message (err) {
   return err instanceof Error ? err.message : String(err)
+}
+
+/**
+ * The baseline `modified` is computed against. A document that loads as `undefined` -
+ * a record being created - gets `null`, because the state layer reports nothing as
+ * modified while its baseline is `undefined`.
+ * @param {unknown} data
+ * @param {string} title
+ * @returns {unknown}
+ */
+function baselineOf (data, title) {
+  if (data === undefined) return null
+  try {
+    return structuredClone(data)
+  } catch (err) {
+    throw sessionError(`"${title}" could not be copied (${message(err)}): a session edits a plain JSON document`, 'document')
+  }
 }
 
 /**
@@ -94,6 +72,26 @@ export class FormSession {
 
   /** @type {Promise<FormSession> | undefined} */
   _openPromise
+
+  /** @type {Promise<{ version: unknown }> | undefined} */
+  _savePromise
+
+  /**
+   * Bumped by every `close`, so a load still in flight knows the session it was loading
+   * for is gone and drops what it loaded instead of installing it.
+   * @type {number}
+   */
+  _generation = 0
+
+  /** @type {FormTool[] | undefined} */
+  _tools
+
+  /**
+   * The core tools of the current WebMCP, by name. Rebuilt by every open; the facades in
+   * `_tools` look their target up here at call time.
+   * @type {Map<string, any> | undefined}
+   */
+  _coreTools
 
   /**
    * @param {SessionSpec} spec
@@ -144,9 +142,11 @@ export class FormSession {
     if (this._layout) return this
     if (!this._openPromise) {
       this._status = 'opening'
-      this._openPromise = this._open().finally(() => {
-        this._openPromise = undefined
+      const opening = this._open(this._generation).finally(() => {
+        // a close during the load already dropped it and may have started another one
+        if (this._openPromise === opening) this._openPromise = undefined
       })
+      this._openPromise = opening
     }
     return this._openPromise
   }
@@ -156,11 +156,7 @@ export class FormSession {
    * @returns {Promise<FormSession>}
    */
   async reload () {
-    if (this._openPromise) await this._openPromise.catch(() => {})
-    this._layout = undefined
-    this._webmcp = undefined
-    this._version = undefined
-    this._status = 'closed'
+    this.close()
     return this.open()
   }
 
@@ -184,34 +180,65 @@ export class FormSession {
     if (typeof this._spec.save !== 'function') {
       throw sessionError(`"${this.title}" is read-only: no save function was provided`, 'readonly')
     }
+    if (this._savePromise) {
+      throw sessionError(`"${this.title}" is already being saved: wait for that save to report before starting another`, 'saving')
+    }
     const allowInvalid = options.allowInvalid ?? this._spec.allowInvalid ?? false
     if (!this.valid && !allowInvalid) {
       throw sessionError(`"${this.title}" is not valid: fix the reported errors, or allow invalid saves`, 'invalid')
     }
 
     this._status = 'saving'
+    // the document as it stands now, not as it stands when the consumer comes back: an
+    // edit that lands while the save is in flight is not part of what was persisted
+    const saving = this._save(this._layout, this._layout.data, this._generation)
+    this._savePromise = saving
     try {
-      const result = await this._spec.save(this._layout.data, {
+      return await saving
+    } finally {
+      if (this._savePromise === saving) this._savePromise = undefined
+    }
+  }
+
+  /**
+   * @param {StatefulLayout} layout - the layout the save was started from
+   * @param {unknown} snapshot - the document handed to the consumer
+   * @param {number} generation - the session generation the save was started in
+   * @returns {Promise<{ version: unknown }>}
+   */
+  async _save (layout, snapshot, generation) {
+    /** @param {SessionStatus} status */
+    const setStatus = (status) => {
+      // a close or reload during the save left this one talking about a form that is gone
+      if (generation === this._generation) this._status = status
+    }
+    try {
+      const result = await /** @type {(data: unknown, context: SaveContext) => unknown} */(this._spec.save)(snapshot, {
         version: this._version,
-        base: this._layout.savedData
+        base: layout.savedData
       })
       if (result !== null && typeof result === 'object' && 'version' in result) {
         this._version = /** @type {{ version: unknown }} */(result).version
+      } else {
+        // the consumer persisted the document but reported no new version: keeping the
+        // one loaded would make every later save conflict against a version the source
+        // has moved past, so forget it rather than send a stale precondition
+        this._version = undefined
       }
-      // what the server now holds is the baseline; this clears the modified markers
-      this._layout.savedData = this._layout.data
-      this._status = 'ready'
+      // what the source now holds is the baseline; this clears the modified markers
+      layout.savedData = snapshot
+      setStatus('ready')
       return { version: this._version }
     } catch (/** @type {any} */err) {
       if (err?.status === 409 || err?.code === 'conflict') {
-        this._status = 'stale'
+        setStatus('stale')
         const conflict = /** @type {Error & { code: string, cause: unknown }} */(
           sessionError(`"${this.title}" changed on the server since it was loaded (${message(err)}): reload to get the server's copy and re-apply your changes`, 'conflict')
         )
         conflict.cause = err
         throw conflict
       }
-      this._status = 'error'
+      setStatus('error')
       throw err
     }
   }
@@ -220,8 +247,14 @@ export class FormSession {
    * Forget the form. The session can be opened again, which loads afresh.
    */
   close () {
+    this._generation += 1
+    this._openPromise = undefined
+    // a save still in flight was for the form being dropped: it settles on its own, and
+    // must not hold back a save on the form that replaces it
+    this._savePromise = undefined
     this._layout = undefined
     this._webmcp = undefined
+    this._coreTools = undefined
     this._version = undefined
     this._status = 'closed'
   }
@@ -230,17 +263,42 @@ export class FormSession {
    * The tools over this session: core's six, plus `saveForm` and `reloadForm`. Names
    * carry the session's `prefixName`; execution results are MCP-shaped, so a consumer
    * hands them to whatever server SDK it uses.
+   *
+   * The same descriptors are returned for the life of the session, and they follow it
+   * across a reload: a consumer registers them once, the way an MCP server does.
    * @returns {FormTool[]}
    */
   getTools () {
     if (!this._layout || !this._webmcp) {
       throw sessionError('open the session before asking for its tools', 'closed')
     }
+    this._tools = this._tools ?? this._buildTools()
+    return this._tools
+  }
+
+  /**
+   * @returns {FormTool[]}
+   */
+  _buildTools () {
     const prefix = this._spec.prefixName ?? ''
     const title = this.title
+    // Facades over core's tools rather than the descriptors themselves: `reload` builds a
+    // new layout and a new WebMCP under the session, and a descriptor bound to the old one
+    // would keep editing a form nobody reads any more.
+    const coreTools = /** @type {FormTool[]} */(/** @type {WebMCP} */(this._webmcp).getTools().map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      execute: async (/** @type {any} */ args) => {
+        const current = this._coreTools?.get(tool.name)
+        if (!current) {
+          return { content: [{ type: 'text', text: `Error: "${title}" is not open` }], isError: true }
+        }
+        return current.execute(args)
+      }
+    })))
     return [
-      // @ts-ignore - the descriptor type is generic over client arguments
-      ...this._webmcp.getTools(),
+      ...coreTools,
       {
         name: `${prefix}saveForm`,
         description: `Save the "${title}" form: persist the data currently in it through the session's save function. Refuses while the form is invalid. On a version conflict, reload first.`,
@@ -272,9 +330,10 @@ export class FormSession {
   }
 
   /**
+   * @param {number} generation - the session generation this load was started in
    * @returns {Promise<FormSession>}
    */
-  async _open () {
+  async _open (generation) {
     try {
       const compiled = await resolveCompiledLayout(this._spec)
       const mainTree = compiled.skeletonTrees[compiled.mainTree]
@@ -282,20 +341,25 @@ export class FormSession {
         throw new Error(`main skeleton tree "${compiled.mainTree}" not found in the compiled layout`)
       }
       const { value: data, version } = unwrapEnvelope(await this._spec.load(), 'data')
+      const baseline = baselineOf(data, this.title)
+      // closed while this was loading: whoever closed it wants nothing installed
+      if (generation !== this._generation) return this
       this._version = version
       // server-side there is no typing to debounce, and input is the only arrival mode
+      /** @type {Partial<import('@json-layout/core/state').StatefulLayoutOptions>} */
       const options = { validateOn: 'input', debounceInputMs: 0, ...this._spec.options }
-      this._layout = new StatefulLayout(compiled, mainTree, options, data, structuredClone(data))
+      this._layout = new StatefulLayout(compiled, mainTree, options, data, baseline)
       this._webmcp = new WebMCP(this._layout, {
         dataTitle: this.title,
         prefixName: this._spec.prefixName,
         includeFillFormSkill: !!this._spec.includeFillFormSkill,
         includeSubAgent: !!this._spec.includeSubAgent
       })
+      this._coreTools = new Map(this._webmcp.getTools().map((tool) => [tool.name, tool]))
       this._status = 'ready'
       return this
     } catch (err) {
-      this._status = 'error'
+      if (generation === this._generation) this._status = 'error'
       throw err
     }
   }

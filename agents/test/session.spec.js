@@ -65,7 +65,9 @@ describe('FormSession lifecycle', () => {
 
   it('should dedupe concurrent opens', async () => {
     let loads = 0
+    /** @type {(value?: any) => void} */
     let resolveLoad = () => {}
+    /** @type {(value?: any) => void} */
     let loadStarted = () => {}
     const started = new Promise((resolve) => { loadStarted = resolve })
     const session = makeSession({
@@ -254,5 +256,175 @@ describe('FormSession save', () => {
     const session = makeSession({ schema: async () => ({ schema: simpleSchema, version: 'v1' }) })
     await session.open()
     assert.deepEqual(session.data, { name: 'Alice', age: 30 })
+  })
+})
+
+/**
+ * Let the event loop run until `predicate` holds, for a step that a promise chain
+ * reaches on its own but not synchronously.
+ * @param {() => boolean} predicate
+ * @param {string} what
+ */
+async function waitUntil (predicate, what) {
+  for (let i = 0; i < 100 && !predicate(); i++) await new Promise((resolve) => setImmediate(resolve))
+  assert.ok(predicate(), `waited for ${what}`)
+}
+
+describe('FormSession tool stability', () => {
+  it('should keep tools captured before a reload bound to the reloaded form', async () => {
+    let loads = 0
+    const session = makeSession({
+      load: async () => { loads += 1; return { name: loads === 1 ? 'Alice' : 'Server', age: 30 } },
+      save: async () => ({})
+    })
+    await session.open()
+    // a consumer registers the descriptors once, as an MCP server does
+    const tools = session.getTools()
+    const tool = (/** @type {string} */ name) => {
+      const found = tools.find((t) => t.name === name)
+      assert.ok(found, `tool ${name} exists`)
+      return found
+    }
+
+    await tool('reloadForm').execute({})
+    await tool('setFieldValue').execute({ path: '/name', value: 'Edited' })
+
+    assert.deepEqual(session.data, { name: 'Edited', age: 30 })
+    assert.deepEqual(JSON.parse(textOf(await tool('getData').execute({}))).data, { name: 'Edited', age: 30 })
+  })
+
+  it('should report a closed session from a captured tool', async () => {
+    const session = makeSession()
+    await session.open()
+    const tools = session.getTools()
+    session.close()
+
+    const result = await tools[0].execute({})
+    assert.equal(result.isError, true)
+    assert.match(textOf(result), /not open/)
+  })
+})
+
+describe('FormSession save concurrency', () => {
+  it('should not adopt an edit that lands while a save is in flight', async () => {
+    /** @type {(value?: any) => void} */
+    let resolveSave = () => {}
+    /** @type {any[]} */
+    const persisted = []
+    const session = makeSession({
+      save: async (data) => {
+        persisted.push(structuredClone(data))
+        return new Promise((resolve) => { resolveSave = resolve })
+      }
+    })
+    await session.open()
+    await call(session, 'setFieldValue', { path: '/name', value: 'Bob' })
+
+    const saving = session.save()
+    await call(session, 'setFieldValue', { path: '/age', value: 42 })
+    resolveSave({})
+    await saving
+
+    assert.deepEqual(persisted, [{ name: 'Bob', age: 30 }])
+    // the age edit was never persisted, so the form is still modified
+    assert.equal(session.modified, true)
+    assert.match(textOf(await call(session, 'describeState', {})), /\/age[^\n]*modified/)
+  })
+
+  it('should refuse a second save while one is in flight', async () => {
+    let release = () => {}
+    // one gate for every call, so the test cannot hang on a save that is never let go
+    const gate = new Promise((resolve) => { release = () => resolve(undefined) })
+    let saves = 0
+    const session = makeSession({
+      save: async () => { saves += 1; await gate; return {} }
+    })
+    await session.open()
+
+    const saving = session.save()
+    const refused = session.save().then(() => 'resolved', (err) => err.code)
+    release()
+
+    await saving
+    assert.equal(await refused, 'saving')
+    assert.equal(saves, 1)
+    assert.equal(session.status, 'ready')
+  })
+
+  it('should forget the load-time version when the save reports none', async () => {
+    /** @type {unknown[]} */
+    const versions = []
+    const session = makeSession({
+      load: async () => ({ data: { name: 'Alice' }, version: 7 }),
+      save: async (data, context) => { versions.push(context.version) }
+    })
+    await session.open()
+
+    await session.save()
+    assert.equal(session.version, undefined)
+    await session.save()
+    assert.deepEqual(versions, [7, undefined])
+  })
+})
+
+describe('FormSession open races', () => {
+  it('should stay closed when discarded during the load', async () => {
+    /** @type {(value?: any) => void} */
+    let resolveLoad = () => {}
+    let started = false
+    const session = makeSession({
+      load: () => {
+        started = true
+        return new Promise((resolve) => { resolveLoad = resolve })
+      }
+    })
+
+    const opening = session.open()
+    await waitUntil(() => started, 'the load to start')
+    session.discard()
+    resolveLoad({ name: 'Alice' })
+    await opening
+
+    assert.equal(session.isOpen, false)
+    assert.equal(session.status, 'closed')
+    assert.equal(session.data, undefined)
+  })
+
+  it('should load again when closed and reopened during a load', async () => {
+    /** @type {Array<(value?: any) => void>} */
+    const resolvers = []
+    const session = makeSession({
+      load: () => new Promise((resolve) => { resolvers.push(resolve) })
+    })
+
+    const first = session.open()
+    await waitUntil(() => resolvers.length === 1, 'the first load to start')
+    session.close()
+    const second = session.open()
+    await waitUntil(() => resolvers.length === 2, 'the second load to start')
+
+    resolvers[0]({ name: 'Stale' })
+    resolvers[1]({ name: 'Fresh' })
+    await Promise.all([first, second])
+
+    assert.deepEqual(session.data, { name: 'Fresh' })
+    assert.equal(session.status, 'ready')
+  })
+})
+
+describe('FormSession documents', () => {
+  it('should track modifications on a document that loads as undefined', async () => {
+    const session = makeSession({ load: async () => undefined })
+    await session.open()
+    assert.equal(session.modified, false)
+
+    await call(session, 'setFieldValue', { path: '/name', value: 'Alice' })
+    assert.equal(session.modified, true)
+  })
+
+  it('should report a document it cannot clone', async () => {
+    const session = makeSession({ load: async () => ({ name: 'Alice', notify: () => {} }) })
+    await assert.rejects(session.open(), /plain JSON document/)
+    assert.equal(session.status, 'error')
   })
 })

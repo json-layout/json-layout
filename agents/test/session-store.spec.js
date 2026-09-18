@@ -76,3 +76,60 @@ describe('SessionStore', () => {
     assert.equal(store.size, 0)
   })
 })
+
+/**
+ * A promise plus its resolver, built eagerly so a test can settle a factory that has
+ * not started running yet.
+ * @returns {{ promise: Promise<any>, resolve: (value?: any) => void }}
+ */
+function deferred () {
+  /** @type {(value?: any) => void} */
+  let resolve = () => {}
+  const promise = new Promise((_resolve) => { resolve = _resolve })
+  return { promise, resolve }
+}
+
+describe('SessionStore creation races', () => {
+  it('should not store a value deleted while its factory was running', async () => {
+    const loading = deferred()
+    const store = new SessionStore()
+
+    const creating = store.getOrCreate('a', () => loading.promise)
+    store.delete('a')
+    loading.resolve({ id: 'a' })
+    await creating
+
+    assert.equal(store.get('a'), undefined)
+    assert.equal(store.size, 0)
+  })
+
+  it('should not store a value created while the store was cleared', async () => {
+    const loading = deferred()
+    const store = new SessionStore()
+
+    const creating = store.getOrCreate('a', () => loading.promise)
+    store.clear()
+    loading.resolve({ id: 'a' })
+    await creating
+
+    assert.equal(store.size, 0)
+  })
+
+  it('should run the factory again after a delete during creation', async () => {
+    const loadings = [deferred(), deferred()]
+    let runs = 0
+    const store = new SessionStore()
+    const factory = () => loadings[runs++].promise
+
+    const first = store.getOrCreate('a', factory)
+    store.delete('a')
+    const second = store.getOrCreate('a', factory)
+
+    loadings[0].resolve({ id: 'stale' })
+    loadings[1].resolve({ id: 'fresh' })
+    await Promise.all([first, second])
+
+    assert.equal(runs, 2)
+    assert.deepEqual(store.get('a'), { id: 'fresh' })
+  })
+})

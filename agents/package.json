@@ -4,14 +4,22 @@
   "description": "Server-side form sessions: load, edit and save schematized JSON documents through json-layout MCP tools.",
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": {
+      "import": {
+        "types": "./types/index.d.ts",
+        "default": "./src/index.js"
+      }
+    }
   },
   "files": [
     "src",
+    "types",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test test/*.spec.js",
+    "build": "rm -rf ./types && tsc -p tsconfig.build.json",
+    "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "test:only": "node --test --test-only test/*.spec.js",
     "watch:test": "node --test --watch test/*.spec.js"
   },

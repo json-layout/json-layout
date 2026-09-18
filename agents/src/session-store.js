@@ -89,11 +89,13 @@ export class SessionStore {
     const created = Promise.resolve()
       .then(factory)
       .then((value) => {
-        this.set(key, value)
+        // a delete or a clear while the factory ran says the consumer is done with this
+        // key: storing what the factory produced would resurrect it for a whole ttl
+        if (this._pending.get(key) === created) this.set(key, value)
         return value
       })
       .finally(() => {
-        this._pending.delete(key)
+        if (this._pending.get(key) === created) this._pending.delete(key)
       })
     this._pending.set(key, created)
     return created
@@ -104,10 +106,14 @@ export class SessionStore {
    * @returns {boolean}
    */
   delete (key) {
+    // a creation still running for this key is abandoned: its value is not stored, and
+    // the next getOrCreate runs the factory again
+    this._pending.delete(key)
     return this._entries.delete(key)
   }
 
   clear () {
+    this._pending.clear()
     this._entries.clear()
   }
 

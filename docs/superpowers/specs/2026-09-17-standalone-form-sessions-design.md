@@ -87,9 +87,11 @@ decides, and may swap HTTP for anything else without the library noticing.
 
 ### LayoutCache
 
-Compiles schemas at runtime through core's `compile` and caches by schema path
-plus version (`updateDate`, ETag/version equivalent from `schema()`). Compiled
-layouts are immutable, so one cache entry serves every session of that resource.
+Compiles schemas at runtime through core's `compile` and caches by the `schema`
+function, the version it reports (`updateDate`, ETag/version equivalent) and the
+compile options — a locale or a message override changes what `compile` produces,
+so sessions differing there must not share an entry. Compiled layouts are
+immutable, so one cache entry serves every session of that resource.
 A consumer holding build-time serialized layouts may pass one in directly and
 skip compilation entirely.
 
@@ -122,9 +124,15 @@ closed), `save()`, `close()`. Accessors: `valid`, `status`
 `save()` runs the validity gate (`session.valid`, unless the consumer opts into
 `allowInvalid`), calls `save(document, { version, base })`, and on success advances
 the baseline (`savedData = document`, core/src/state/index.js:412) so the
-`modified` markers clear without rebuilding the layout. A save that throws with
-`err.code === 'conflict'` (or `err.status === 409`) marks the session `stale` and
-tells the agent to reload rather than overwriting the server's copy.
+`modified` markers clear without rebuilding the layout. The baseline is the
+document as it stood when the save started, not as it stands when the consumer
+comes back: an edit landing mid-save stays modified, because it was not persisted.
+A second `save()` while one is in flight is refused (`code: 'saving'`) rather than
+interleaved. A save that returns a version adopts it; one that returns none forgets
+the version loaded, since replaying it would make every later save conflict against
+a version the source has moved past. A save that throws with `err.code ===
+'conflict'` (or `err.status === 409`) marks the session `stale` and tells the agent
+to reload rather than overwriting the server's copy.
 
 ### SessionStore
 
@@ -134,8 +142,12 @@ Sliding TTL map, keyed by whatever the consumer uses to name a form edit
 
 ### Tools
 
-The six tools from `WebMCP.getTools()` pass through unchanged — same descriptors,
-same descriptions, same guide text. The library adds server-only wrappers:
+The six tools from `WebMCP.getTools()` pass through unchanged — same names, same
+descriptions, same guide text — as facades that resolve the session's current
+WebMCP at call time. `reload()` builds a new layout and a new WebMCP underneath
+them, and a consumer that registered the descriptors once (what an MCP server does)
+keeps editing the reloaded form rather than the one that was replaced. The library
+adds server-only wrappers:
 
 | tool | purpose |
 |---|---|

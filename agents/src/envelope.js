@@ -18,7 +18,7 @@ export function unwrapEnvelope (result, key) {
   if (result !== null && typeof result === 'object' && !Array.isArray(result) &&
       key in result && 'version' in result &&
       Object.keys(result).every((k) => k === key || k === 'version')) {
-    return { value: result[key], version: result.version }
+    return { value: /** @type {Record<string, unknown>} */(result)[key], version: /** @type {{ version: unknown }} */(result).version }
   }
   return { value: result, version: undefined }
 }

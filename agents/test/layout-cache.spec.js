@@ -42,3 +42,28 @@ describe('layout cache', () => {
     assert.notEqual(first, second)
   })
 })
+
+describe('layout cache keys', () => {
+  it('should compile once per set of compile options', async () => {
+    const schema = async () => simpleSchema
+    const en = await resolveCompiledLayout({ schema, compileOptions: { locale: 'en' } })
+    const fr = await resolveCompiledLayout({ schema, compileOptions: { locale: 'fr' } })
+
+    assert.notEqual(en, fr)
+    assert.equal(en.locale, 'en')
+    assert.equal(fr.locale, 'fr')
+    // equal options, written as two distinct literals, still share one compilation
+    assert.equal(fr, await resolveCompiledLayout({ schema, compileOptions: { locale: 'fr' } }))
+    assert.equal(en, await resolveCompiledLayout({ schema, compileOptions: { locale: 'en' } }))
+  })
+
+  it('should separate compile options that differ only deep down', async () => {
+    const schema = async () => simpleSchema
+    const first = await resolveCompiledLayout({ schema, compileOptions: { messages: { errorRequired: 'needed' } } })
+    const second = await resolveCompiledLayout({ schema, compileOptions: { messages: { errorRequired: 'mandatory' } } })
+
+    assert.notEqual(first, second)
+    assert.equal(first.messages.errorRequired, 'needed')
+    assert.equal(second.messages.errorRequired, 'mandatory')
+  })
+})
