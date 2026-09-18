@@ -3,13 +3,14 @@
 ## Project Overview
 
 Monorepo for JSON Layout: a system that compiles JSON Schemas into layout
-descriptions for form rendering. Four npm workspaces:
+descriptions for form rendering. Five npm workspaces:
 
 - `vocabulary/` (`@json-layout/vocabulary`) - JSON schemas, TS types, normalize/validate
 - `core/` (`@json-layout/core`) - Compilation and stateful layout management
+- `agents/` (`@json-layout/agents`) - Server-side form sessions over core's MCP tools
 - `examples/` (`@json-layout/examples`) - Standard examples for docs/testing
 
-Source in vocabulary/core/examples is **plain JavaScript with JSDoc type annotations**.
+Source in vocabulary/core/agents/examples is **plain JavaScript with JSDoc type annotations**.
 
 ## Build / Lint / Test Commands
 
@@ -36,6 +37,7 @@ npm test
 # Test a single workspace
 npm test -w vocabulary
 npm test -w core
+npm test -w agents
 
 # Run a single test file
 node --test core/test/compile.spec.js

@@ -1,0 +1,40 @@
+{
+  "name": "@json-layout/agents",
+  "version": "0.1.0",
+  "description": "Server-side form sessions: load, edit and save schematized JSON documents through json-layout MCP tools.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.spec.js",
+    "test:only": "node --test --test-only test/*.spec.js",
+    "watch:test": "node --test --watch test/*.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/json-layout/json-layout.git"
+  },
+  "keywords": [
+    "json",
+    "schema",
+    "forms",
+    "mcp"
+  ],
+  "author": "Alban Mouton <alban.mouton@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/json-layout/json-layout/issues"
+  },
+  "homepage": "https://github.com/json-layout/json-layout#readme",
+  "dependencies": {
+    "@json-layout/core": "^2.9.1"
+  },
+  "peerDependencies": {
+    "@json-layout/vocabulary": "^2.13.2"
+  }
+}
