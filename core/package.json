@@ -10,6 +10,12 @@
         "default": "./src/index.js"
       }
     },
+    "./compat/v2": {
+      "import": {
+        "types": "./types/compat/v2.d.ts",
+        "default": "./src/compat/v2.js"
+      }
+    },
     "./compile": {
       "import": {
         "types": "./types/compile/index.d.ts",

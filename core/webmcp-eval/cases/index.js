@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { v2compat } from './vjsf-compat-v2.js'
+import { v2compat } from '../../src/compat/v2.js'
 
 /** @typedef {import('./types.js').EvalCase} EvalCase */
 

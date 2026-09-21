@@ -53,10 +53,10 @@ schema — 185 660 characters against 29 472, for a byte-identical state project
 `app-calendar` has no `src/config/schema.json`, so its published file is the source.
 
 `app-calendar` is written for vjsf v2 (`x-fromUrl`, `x-itemKey`, `x-if`, ...), which a
-real page translates through vjsf's compatibility layer before json-layout sees it. The
-case applies the same layer, vendored as `cases/vjsf-compat-v2.js` from vjsf's
-`lib/src/compat/v2.js` and pinned for the same reason the schemas are. Compiled raw, the
-first judged run showed why this matters: the pickers rendered as plain sections and
+real page translates through the compatibility layer before json-layout sees it. The case
+applies the same layer, now `src/compat/v2.js` in this package — it was vendored here from
+vjsf until it moved, and moving it means the eval tracks the layer rather than a pinned
+copy of it. Compiled raw, the first judged run showed why this matters: the pickers rendered as plain sections and
 `getFieldSuggestions` refused them, while the schema still showed the vendor keywords —
 two surfaces contradicting each other on the same path.
 

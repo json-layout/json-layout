@@ -1,23 +1,16 @@
 /**
- * @file vjsf v2 compatibility layer, vendored from the vjsf repository.
+ * @file vjsf v2 compatibility layer.
  *
- * `app-calendar` is written for vjsf v2 (`x-fromUrl`, `x-itemKey`, `x-if`, ...). A real
- * page runs it through this layer before json-layout sees it, so the eval must too:
- * compiled raw, its pickers render as plain sections while getSchema still shows the
- * vendor keywords. Pinned here, next to the vendored schemas, for the same reason they
- * are — a run today must be comparable to one months later, and CI has no sibling
- * checkout to import from.
- *
- * Source: vjsf `lib/src/compat/v2.js` (exported as `@koumoul/vjsf/compat/v2`), copied on
- * 2026-09-07 with only the two workspace imports rewritten. Refresh by copying the file
- * again and re-applying the header and import lines.
+ * Schemas written for vjsf v2 (`x-fromUrl`, `x-itemKey`, `x-if`, ...) are rewritten here
+ * into the vocabulary `compile` understands. This lived in vjsf until it had three
+ * consumers outside it — vjsf itself, this package's webmcp eval, and server-side tools
+ * that have no business depending on a Vue component library to reach it. It has no vjsf
+ * dependency: ajv, ajv-formats and the vocabulary are all already core's.
  */
-
-/* eslint-disable jsdoc/valid-types, jsdoc/require-returns-type -- vendored, kept close to upstream */
 
 import ajvModule from 'ajv'
 import addFormats from 'ajv-formats'
-import { resolveLocaleRefs } from '../../src/compile/index.js'
+import { resolveLocaleRefs } from '../compile/index.js'
 import { clone, isPartialGetItemsObj } from '@json-layout/vocabulary'
 
 // @ts-ignore
@@ -93,7 +86,7 @@ const processFragment = (schema, getJSONRef, schemaId, processed) => {
     processFragment(refFragment, getJSONRef, refSchemaId, processed)
   }
   if (!schema.layout) {
-    /** @type import('@json-layout/vocabulary').PartialCompObject */
+    /** @type {import('@json-layout/vocabulary').PartialCompObject} */
     const layout = {}
 
     if (schema.separator || schema['x-separator']) {
@@ -120,7 +113,7 @@ const processFragment = (schema, getJSONRef, schemaId, processed) => {
         }
         const allOfChild = {
           comp: display,
-          children: /** @type string[] */([])
+          children: /** @type {string[]} */([])
         }
         for (let i = 0; i < schema.allOf.length; i++) {
           allOfChild.children.push('$allOf-' + i)
@@ -246,11 +239,11 @@ const processFragment = (schema, getJSONRef, schemaId, processed) => {
 }
 
 /**
- *
- * @param {object} _schema
- * @param {import("ajv").default} [_ajv]
- * @param {string} lang
- * @returns
+ * Rewrite a vjsf v2 schema into the vocabulary `compile` understands.
+ * @param {object} _schema the source schema, left untouched
+ * @param {import("ajv").default} [_ajv] an ajv instance to resolve locale refs with
+ * @param {string} [lang] the locale to resolve those refs for
+ * @returns {import("ajv").SchemaObject} a new schema carrying `layout` keywords
  */
 export function v2compat (_schema, _ajv, lang = 'en') {
   let ajv = _ajv
