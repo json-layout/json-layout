@@ -144,6 +144,24 @@ describe('FormSession tools', () => {
     ])
   })
 
+  it('should give the fill-form skill of its schema, with the schema\'s agent guide', async () => {
+    // openapi-mcp publishes this as the MCP skill of an editor group: until now it could
+    // only say "Tools: …", the core skill builder not being public
+    const session = makeSession({
+      prefixName: 'contact_',
+      schema: async () => ({ ...simpleSchema, 'x-agent-guide': 'Age is in completed years.' })
+    })
+    await session.open()
+    const skill = session.getSkill()
+    assert.ok(skill.includes('Age is in completed years.'))
+    assert.ok(skill.includes('contact_describeState'))
+    assert.ok(skill.includes('contact_saveForm'), 'a session tells how its document is persisted')
+  })
+
+  it('should refuse to give a skill before it is open', () => {
+    assert.throws(() => makeSession().getSkill(), /open the session/)
+  })
+
   it('should prefix every tool name', async () => {
     const session = makeSession({ prefixName: 'contact_' })
     await session.open()

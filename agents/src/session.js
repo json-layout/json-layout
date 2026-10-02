@@ -4,7 +4,7 @@
  */
 
 import { StatefulLayout } from '@json-layout/core/state'
-import { WebMCP } from '@json-layout/core/webmcp'
+import { WebMCP, generateSkill } from '@json-layout/core/webmcp'
 
 import { unwrapEnvelope } from './envelope.js'
 import { resolveCompiledLayout } from './layout-cache.js'
@@ -274,6 +274,27 @@ export class FormSession {
     }
     this._tools = this._tools ?? this._buildTools()
     return this._tools
+  }
+
+  /**
+   * The fill-form skill of this session's form: the core guide to the tools, the "About
+   * this …" section of the schema's agent guide, and how a session persists its document.
+   * A server publishes it next to the tools (openapi-mcp serves it as the MCP skill of an
+   * editor group), since a session has no sub-agent tool to hand it over itself.
+   * @returns {string}
+   */
+  getSkill () {
+    if (!this._layout) {
+      throw sessionError('open the session before asking for its skill', 'closed')
+    }
+    const prefix = this._spec.prefixName ?? ''
+    const skill = generateSkill(this.title, prefix, { guide: this._layout.compiledLayout.agentGuide })
+    return `${skill.trimEnd()}
+
+## Saving
+
+Your edits stay in this session until you call ${prefix}saveForm, which persists the whole document and refuses while the form is invalid. ${prefix}reloadForm discards local changes and reloads the document from its source; use it after a version conflict.
+`
   }
 
   /**
