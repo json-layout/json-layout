@@ -2,7 +2,7 @@
  * @file getFieldSuggestions tool
  */
 
-import { resolveNode, nodeNotFoundError } from '../resolve.js'
+import { resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -39,9 +39,9 @@ export function getDescription (dataTitle) {
  * @returns {Promise<{items: Array<{value: unknown, title: string, key?: string}>, baseIndex: number}>}
  */
 export async function execute (statefulLayout, args, store) {
-  const node = resolveNode(statefulLayout.stateTree.root, args.path)
+  const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
-    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
+    throw nodeNotFoundError(statefulLayout, args.path)
   }
 
   if (node.layout.comp === 'one-of-select') {

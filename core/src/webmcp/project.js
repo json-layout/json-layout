@@ -278,12 +278,23 @@ function isReadOnly (node, statefulLayout) {
 function indexErrorsByPath (root) {
   /** @type {Record<string, string>} */
   const byPath = {}
+  /** @type {Array<[string, string]>} */
+  const hidden = []
   /** @param {import('../state/types.js').StateNode} node */
   const recurse = (node) => {
-    if (node.error && byPath[node.fullKey] === undefined) byPath[node.fullKey] = node.error
+    if (node.error) {
+      if (node.layout.comp === 'none') hidden.push([node.fullKey, node.error])
+      else if (byPath[node.fullKey] === undefined) byPath[node.fullKey] = node.error
+    }
     for (const child of node.children ?? []) recurse(child)
   }
   recurse(root)
+  // same rule as collectErrors: a hidden node's echo of an error a visible node reports is
+  // not another error, one only a hidden node carries is kept
+  const visibleMessages = new Set(Object.values(byPath))
+  for (const [path, message] of hidden) {
+    if (!visibleMessages.has(message) && byPath[path] === undefined) byPath[path] = message
+  }
   return byPath
 }
 
@@ -491,7 +502,11 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 
   // fields known from the skeleton but not hydrated in the state tree, skipped on a node fed by
   // getItems: its properties are not separate nodes, it is filled from getFieldSuggestions
+  // a slot is a custom component bound to its parent's data (a preview): its "fields" are
+  // edited elsewhere in the form, and listing them re-listed whole configurations — 310 of
+  // the 757 lines of data-fair's portal editor
   if (children.length === 0 && node.skeleton.children?.length &&
+    node.layout.comp !== 'slot' &&
     !isValuePickedFromItems(node, statefulLayout)) {
     for (const field of projectDeclaredFields(node, statefulLayout)) {
       const fieldMeta = ['declared']
@@ -595,7 +610,10 @@ export function projectSuggestions (items, baseIndex = 0) {
   return items.map((item, index) => {
     /** @type {ProjectedSuggestion} */
     const out = { index: baseIndex + index, title: item.title }
-    if (item.key !== undefined && item.key !== item.title) out.key = item.key
+    // only a plain key identifies anything: an object key (a page reference picked whole)
+    // printed as "[object Object]" next to its title
+    const key = /** @type {unknown} */(item.key)
+    if ((typeof key === 'string' || typeof key === 'number') && key !== item.title) out.key = String(key)
     const json = JSON.stringify(item.value)
     if (json === undefined) return out
     // Short scalars stay: agents batch those straight into setData rather than spending a
@@ -696,13 +714,13 @@ function isRenderedBranch (error, renderedPointers) {
  * @returns {Array<{path: string, message: string}>}
  */
 export function collectErrors (statefulLayout) {
-  /** @type {Array<{fullKey: string, dataPath: string, message: string}>} */
+  /** @type {Array<{fullKey: string, dataPath: string, message: string, hidden: boolean}>} */
   const nodeErrors = []
   /** @type {Set<string>} */
   const renderedPointers = new Set()
   /** @param {import('../state/types.js').StateNode} node */
   const recurse = (node) => {
-    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: node.error })
+    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: node.error, hidden: node.layout.comp === 'none' })
     if (node.skeleton?.pointer) renderedPointers.add(node.skeleton.pointer)
     // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
     // occurrences of an activated item do not carry the same errors, and deduplicating
@@ -717,9 +735,15 @@ export function collectErrors (statefulLayout) {
     .map((error) => ({ pointer: dataPointerOf(error), message: error.message ?? 'invalid' }))
     .filter((error) => !named.has(error.pointer))
 
+  // a hidden node (comp "none") can carry an echo of an error a visible node already reports:
+  // a new menu item's error was also reported on three hidden nodes of data-fair's portal
+  // editor, announced as "3 other error(s) elsewhere". An error only a hidden node carries is
+  // kept, so an invalid form always says why.
+  const visibleMessages = new Set(nodeErrors.filter((e) => !e.hidden).map((e) => e.message))
   /** @type {Array<{path: string, message: string}>} */
   const errors = []
   for (const nodeError of nodeErrors) {
+    if (nodeError.hidden && visibleMessages.has(nodeError.message)) continue
     const prefix = nodeError.dataPath === '' ? '/' : `${nodeError.dataPath}/`
     const standsInForDeeperErrors = unnamed.some((e) => e.pointer.startsWith(prefix))
     if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })

@@ -3,7 +3,7 @@
  */
 
 import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility } from '../project.js'
-import { resolveNode, nodeNotFoundError } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -65,9 +65,9 @@ function listVariants (node) {
  * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
  */
 export function execute (statefulLayout, args, store, variantsMemo) {
-  const node = resolveNode(statefulLayout.stateTree.root, args.path)
+  const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
-    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
+    throw nodeNotFoundError(statefulLayout, args.path)
   }
 
   let value = args.value

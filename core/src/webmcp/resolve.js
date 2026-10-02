@@ -87,13 +87,60 @@ export function resolveNode (root, path) {
 }
 
 /**
+ * Resolve a path for a tool that acts on the node. A list in "inline-single", "menu" or
+ * "dialog" mode shows its items as read-only summaries until one is opened, and a summary
+ * has no hydrated fields: describeState listed /menu/children/1/$oneOf and every tool
+ * refused it. When a path runs through such an item, it is opened — as a person clicking
+ * it would — and resolved again.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path
+ * @returns {import('../state/types.js').StateNode|undefined}
+ */
+export function resolveNodeForEdit (statefulLayout, path) {
+  const found = resolveNode(statefulLayout.stateTree.root, path)
+  if (found || !path) return found
+  const segments = path.replace(/^\//, '').split('/')
+  for (let i = segments.length - 1; i > 0; i--) {
+    const item = resolveNode(statefulLayout.stateTree.root, '/' + segments.slice(0, i).join('/'))
+    if (!item) continue
+    if (!item.options.summary || typeof item.key !== 'number' || item.parentFullKey == null) return undefined
+    const list = resolveNode(statefulLayout.stateTree.root, item.parentFullKey)
+    if (!list || list.layout.comp !== 'list') return undefined
+    statefulLayout.activateItem(list, item.key)
+    return resolveNode(statefulLayout.stateTree.root, path)
+  }
+  return undefined
+}
+
+/**
+ * @param {unknown} data
+ * @param {string} path
+ * @returns {boolean}
+ */
+function hasValueAt (data, path) {
+  /** @type {any} */
+  let current = data
+  for (const segment of path.replace(/^\/+/, '').replace(/\/+$/, '').split('/')) {
+    if (current === null || typeof current !== 'object' || !(segment in current)) return false
+    current = current[segment]
+  }
+  return true
+}
+
+/**
  * The error of a path that resolves to nothing. A bare "node not found" sent a model
- * guessing path after path; this names where the form actually starts.
- * @param {import('../state/types.js').StateNode} root
+ * guessing path after path; this names where the form actually starts, and says so when
+ * the value exists but its field is not shown (in assisted colour mode, data-fair's portal
+ * hides /theme/colors/primary and edits /theme/assistedModeColors/primary instead).
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {string} path
  * @returns {Error}
  */
-export function nodeNotFoundError (root, path) {
+export function nodeNotFoundError (statefulLayout, path) {
+  if (path && hasValueAt(statefulLayout.data, path)) {
+    return new Error(`node not found at path: ${path}. The value exists in the data but its field is not shown in the form right now: a condition hides it, another setting replaces it or must change first. Look for the field the form shows instead with describeState.`)
+  }
+  const root = statefulLayout.stateTree.root
   const top = visibleChildren(root).slice(0, 12).map((child) => {
     const title = child.layout.label ?? child.layout.title
     return `/${child.key}${title ? ` ("${title}")` : ''}`

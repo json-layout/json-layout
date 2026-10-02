@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
+import { readFileSync } from 'node:fs'
 
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
@@ -2542,5 +2543,65 @@ describe('webmcp a list that cannot be fetched yet', () => {
     assert.match(formatSuggestions([]), /No option matched/)
     // eslint-disable-next-line no-template-curly-in-string -- the expression as an agent sees it
     assert.match(formatSuggestions([], '${rootData.source.href}/columns'), /No options yet/)
+  })
+})
+
+// Frictions the judges of the 2026-10-02 portal-config-edit eval still flagged once data paths
+// worked (baselines/2026-10-02-portal-config). Pinned on the vendored case itself, so the
+// shapes are the real ones: preview slots, inline-single menu items, hidden echo nodes.
+describe('webmcp frictions of the portal-config-edit eval', () => {
+  const portalLayout = () => {
+    const schema = JSON.parse(readFileSync(new URL('../webmcp-eval/cases/schemas/portal-config.json', import.meta.url), 'utf8'))
+    const data = JSON.parse(readFileSync(new URL('../webmcp-eval/cases/data/portal-config-edit.json', import.meta.url), 'utf8'))
+    const compiled = compile(schema, { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } })
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: { owner: { type: 'organization', id: 'o' }, pages: { generic: [], event: [], news: [] } } }, data)
+  }
+
+  it('does not list the declared fields of a preview slot', () => {
+    // each $slot-1 preview re-listed the whole config: 310 of 757 lines, ~83 KB
+    const markdown = describeState.toMarkdown(portalLayout(), {})
+    assert.ok(!/\$slot-\d+\/\w/.test(markdown), 'no field is listed below a slot')
+    // measured 82764 chars before, 55128 after: what is left are the real fields of 14 tabs
+    assert.ok(markdown.length < 60000, `the root description no longer repeats the config (${markdown.length} chars)`)
+  })
+
+  it('opens a menu item shown as a summary when a path runs through it', () => {
+    const layout = portalLayout()
+    // describeState lists this selector, the tools used to refuse it
+    assert.match(describeState.toMarkdown(layout, { path: '/menu/children' }), /\/menu\/children\/1\/\$oneOf/)
+    setFieldValue.execute(layout, { path: '/$comp-4/$comp-3/menu/children/1/$oneOf', value: 1 })
+    assert.equal(/** @type {any} */(layout.data).menu.children[1].type, 'generic')
+  })
+
+  it('does not count echoes of the same error on hidden nodes as errors elsewhere', () => {
+    const layout = portalLayout()
+    const result = editArray.execute(layout, { path: '/menu/children', action: 'add' })
+    assert.equal(result.otherErrors, 0, 'the only error is the new item\'s own')
+  })
+})
+
+describe('webmcp data path of a hidden field', () => {
+  it('says the value exists but its field is not shown right now', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        assisted: { type: 'boolean' },
+        colors: { type: 'object', layout: { if: '!parent.data?.assisted' }, properties: { primary: { type: 'string' } } }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { assisted: true, colors: { primary: '#000000' } })
+    assert.throws(() => setFieldValue.execute(layout, { path: '/colors/primary', value: '#1b5e20' }), /exists in the data but its field is not shown/)
+  })
+})
+
+describe('webmcp suggestion keys', () => {
+  it('names a key only when it is a plain value', () => {
+    const [object, scalar] = projectSuggestions([
+      { title: 'Nos actions pour la jeunesse (jeunesse)', key: /** @type {any} */({ slug: 'jeunesse' }), value: { slug: 'jeunesse', title: 'Nos actions pour la jeunesse' } },
+      { title: 'Paris', key: '75056', value: { code: '75056' } }
+    ])
+    assert.equal(object.key, undefined)
+    assert.ok(!formatSuggestions([object]).includes('[object Object]'))
+    assert.equal(scalar.key, '75056')
   })
 })

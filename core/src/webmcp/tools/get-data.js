@@ -60,7 +60,7 @@ export function execute (statefulLayout, args) {
   }
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
-    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
+    throw nodeNotFoundError(statefulLayout, args.path)
   }
   // A section a `$allOf`, `$oneOf` or `$comp-` wrapper introduces holds no data of its
   // own: its value IS its parent's, so asking for it returns the document the `path`

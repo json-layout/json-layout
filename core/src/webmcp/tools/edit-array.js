@@ -3,7 +3,7 @@
  */
 
 import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
-import { resolveNode, nodeNotFoundError } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -45,9 +45,9 @@ export function getDescription (dataTitle) {
  * @returns {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
-  const node = resolveNode(statefulLayout.stateTree.root, args.path)
+  const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
-    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
+    throw nodeNotFoundError(statefulLayout, args.path)
   }
 
   if (node.layout.comp !== 'list') {
