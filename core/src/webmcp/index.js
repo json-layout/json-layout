@@ -12,10 +12,13 @@ import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
+import { generateFormOverview } from './form-overview.js'
 import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource } from './project.js'
 import { resolveNode } from './resolve.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
+
+export { generateFormOverview }
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -47,6 +50,9 @@ function parseIfJsonString (value) {
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
  * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
+ * @property {boolean} [includeFormOverview] - Add the static form structure map to the guide
+ *   (default: false). It costs prompt bytes on every turn, so it is opt-in and meant to be
+ *   enabled where an eval has shown it pays.
  */
 
 /**
@@ -84,6 +90,12 @@ export class WebMCP {
   _includeSubAgent = false
 
   /**
+   * @readonly
+   * @type {boolean}
+   */
+  _includeFormOverview = false
+
+  /**
    * @type {string[]}
    */
   _registeredTools = []
@@ -113,6 +125,7 @@ export class WebMCP {
     this._dataTitle = options.dataTitle || 'form'
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
+    this._includeFormOverview = options.includeFormOverview || false
   }
 
   /**
@@ -128,12 +141,15 @@ export class WebMCP {
    */
   getTools () {
     const dataTitle = this._dataTitle
+    const overview = this._includeFormOverview
+      ? generateFormOverview(this._statefulLayout.compiledLayout)
+      : undefined
 
     /** @type {ToolDescriptor[]} */
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName)
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, overview)
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
@@ -351,7 +367,7 @@ export class WebMCP {
 
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName)
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, overview)
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,

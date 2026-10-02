@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -166,6 +166,26 @@ describe('webmcp eval runner execution', () => {
     assert.equal(seen.opts.env.JL_WEBMCP_EVAL_CASE, 'calendar')
   })
 
+  it('should run the overview variant guide-only and label its evidence', async () => {
+    // The ablation has to differ from its control in exactly one thing — what the agent was
+    // told before it started. Same server, same tools, same case; only the injected guide
+    // gains the map. And its evidence must land beside the control, never on it.
+    /** @type {any} */
+    let seen
+    const spawn = async (/** @type {string} */ cmd, /** @type {string[]} */ args, /** @type {any} */ opts) => {
+      seen = { cmd, args, opts }
+      return { code: 0, stdout: claudeOutput(), stderr: '' }
+    }
+    const dir = tmpSidecarDir()
+    await runCase(getCase('contact'), { spawn, variant: 'overview', sidecarDir: dir })
+    assert.equal(seen.opts.env.JL_WEBMCP_EVAL_VARIANT, 'overview')
+    const skill = optionValue(seen.args, '--append-system-prompt')
+    assert.match(skill, /## Form structure/)
+    assert.match(skill, /\/contactMethod/)
+    assert.ok(existsSync(sidecarPath('contact--overview', dir)), 'variant evidence must not land on the control')
+    assert.ok(!existsSync(sidecarPath('contact', dir)))
+  })
+
   it('should run from a working directory outside this repository', async () => {
     // Auto-memory is keyed to the project directory; running from inside the repo hands
     // the runner an index naming this eval.
@@ -234,13 +254,12 @@ describe('webmcp eval runner execution', () => {
   })
 
   it('should name a variant run so it cannot stand in for its control', () => {
-    // There is no second variant to run since getSchema went, so this can no longer be
-    // exercised end to end. What it guarded is still worth pinning: a variant's evidence
-    // must not overwrite the run it exists to be compared against, and an unknown variant
-    // must be refused rather than silently treated as the control.
+    // A variant's evidence must not overwrite the run it exists to be compared against,
+    // and an unknown variant must be refused rather than silently treated as the control.
     assert.equal(evidenceName('contact'), 'contact')
     assert.equal(evidenceName('contact', 'default'), 'contact')
-    assert.equal(evidenceName('contact', 'guideless'), 'contact--guideless')
+    assert.equal(evidenceName('contact', 'overview'), 'contact--overview')
+    assert.doesNotThrow(() => applyVariant(getCase('contact'), 'overview'))
     assert.throws(() => applyVariant(getCase('contact'), 'no-schema'), /unknown variant/)
   })
 

@@ -353,7 +353,8 @@ export class FormSession {
         dataTitle: this.title,
         prefixName: this._spec.prefixName,
         includeFillFormSkill: !!this._spec.includeFillFormSkill,
-        includeSubAgent: !!this._spec.includeSubAgent
+        includeSubAgent: !!this._spec.includeSubAgent,
+        includeFormOverview: !!this._spec.includeFormOverview
       })
       this._coreTools = new Map(this._webmcp.getTools().map((tool) => [tool.name, tool]))
       this._status = 'ready'

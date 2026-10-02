@@ -35,7 +35,7 @@ run any number of times and always reflects the current `core/src` and case regi
    ```bash
    npm run webmcp-eval:run -w core            # every case in the registry
    npm run webmcp-eval:run -w core -- charts calendar   # only the cases named
-   npm run webmcp-eval:run -w core -- contact --no-schema  # the no-getSchema variant
+   npm run webmcp-eval:run -w core -- contact --variant overview  # append the static form map
    ```
 
    Each case launches as its own `claude` subprocess, and the subprocesses run

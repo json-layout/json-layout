@@ -161,7 +161,12 @@ export function sidecarPath (name, dir = DEFAULT_SIDECAR_DIR) {
  */
 function defaultSpawn (command, args, opts) {
   return new Promise((resolve, reject) => {
-    const child = nodeSpawn(command, args, { cwd: opts.cwd, env: opts.env })
+    // stdin is held at /dev/null on purpose. `claude -p` reads stdin when anything is
+    // piped into it, so an inherited pipe makes it wait and then fail ("no stdin data
+    // received in 3s") depending on how the harness itself was launched. Closing it is
+    // also part of the isolation: nothing from the orchestrator's standard input may
+    // reach the runner.
+    const child = nodeSpawn(command, args, { cwd: opts.cwd, env: opts.env, stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
     child.stdout.on('data', (d) => { stdout += d })
@@ -219,7 +224,7 @@ export async function runCase (evalCase, options = {}) {
   // Compiling here costs a second or two but is what lets the runner be handed the same
   // guide and the same tool list the server will register — the pair a page's subagent
   // tool returns. A mismatch would grant a tool the guide never mentions, or the reverse.
-  const session = options.session ?? new EvalSession(variantCase)
+  const session = options.session ?? new EvalSession(variantCase, { variant })
   const args = buildLaunchArgs(variantCase, {
     model: requestedModel,
     skill: session.skill,
@@ -320,10 +325,10 @@ export async function runCase (evalCase, options = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const argv = process.argv.slice(2)
-  const variantFlag = argv.find((a) => a.startsWith('--'))
-  const variant = variantFlag === '--no-schema' ? 'no-schema' : undefined
-  if (variantFlag && !variant) throw new Error(`unknown flag "${variantFlag}", only --no-schema is supported`)
-  const wanted = argv.filter((a) => !a.startsWith('--'))
+  const variantIndex = argv.indexOf('--variant')
+  if (variantIndex !== -1 && !argv[variantIndex + 1]) throw new Error('--variant needs a name')
+  const variant = variantIndex === -1 ? undefined : argv[variantIndex + 1]
+  const wanted = argv.filter((a, i) => !a.startsWith('--') && (variantIndex === -1 || i !== variantIndex + 1))
   const selected = wanted.length ? wanted.map(getCase) : cases
   // Each run is its own process with its own server and working directory, so nothing
   // is shared and the cases can go at once. allSettled rather than all: each case's

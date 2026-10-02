@@ -13,6 +13,7 @@
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
+import { generateFormOverview } from '../src/webmcp/form-overview.js'
 import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
@@ -48,12 +49,12 @@ import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
 export const DEFAULT_DATA_FAIR_URL = 'https://koumoul.com/data-fair/'
 
 /**
- * Tool configurations a case can be run under. There is one, since every page now gets the
- * same tools: `no-schema` was retired with getSchema itself, once describeState carried the
- * validation constraints that only the raw schema used to hold. The machinery is kept
- * because the next ablation — running with and without the guide, say — plugs into it.
+ * Tool configurations a case can be run under. `overview` is the same tools with the
+ * static form structure map appended to the guide, so the two runs differ only in what
+ * the agent was told before it started. It is applied in the session, not to the case:
+ * the case's schema and data are the control.
  */
-export const VARIANTS = ['default']
+export const VARIANTS = ['default', 'overview']
 
 /**
  * @param {EvalCase} evalCase
@@ -61,10 +62,10 @@ export const VARIANTS = ['default']
  * @returns {EvalCase}
  */
 export function applyVariant (evalCase, variant) {
-  if (!variant || variant === 'default') return evalCase
-  // The 'no-schema' variant was retired with getSchema: there is no longer a second tool
-  // configuration to compare against. The machinery stays because the next ablation — the
-  // guide, say — plugs straight into it.
+  if (!variant || variant === 'default' || variant === 'overview') return evalCase
+  // The 'no-schema' variant was retired with getSchema, and 'overview' does not change the
+  // case itself — only the guide EvalSession builds. Everything else is a typo and must be
+  // refused rather than silently run as the control.
   throw new Error(`unknown variant "${variant}", available: ${VARIANTS.join(', ')}`)
 }
 
@@ -85,6 +86,8 @@ export function evidenceName (name, variant) {
  *   `JL_WEBMCP_EVAL_DATA_FAIR` or the public koumoul.com instance
  * @property {(url: string, options?: RequestInit) => Promise<any>} [fetch] - replaces the
  *   network for tests
+ * @property {string} [variant] - tool configuration to run under, see VARIANTS; `overview`
+ *   appends the static form structure map to the runner's guide
  */
 
 export class EvalSession {
@@ -134,7 +137,9 @@ export class EvalSession {
     this._tools = webmcp.getTools()
     // The same pair the subagent tool returns to a page: the guide, and the tools it
     // describes. The launcher injects them; nothing here is a tool the runner can call.
-    this._skill = generateSkill(evalCase.title, '')
+    // The overview variant exercises the same generator WebMCP's includeFormOverview uses.
+    const overview = options.variant === 'overview' ? generateFormOverview(compiled) : undefined
+    this._skill = generateSkill(evalCase.title, '', overview)
   }
 
   /** @returns {import('@mcp-b/webmcp-types').ToolDescriptor[]} */

@@ -199,7 +199,7 @@ const constraintKeys = {
 }
 
 /** @type {Record<string, string>} */
-const compToType = {
+export const compToType = {
   'text-field': 'text',
   'number-field': 'number',
   textarea: 'textarea',

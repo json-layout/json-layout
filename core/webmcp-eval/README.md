@@ -123,10 +123,11 @@ procedure):
    how this harness answers whether the protocol leans on a large model or carries the work
    itself — a question it should measure rather than presume.
 
-4. **Variants.** The machinery for running a case under a second tool configuration is
-   still in `session.js` (`VARIANTS`, `applyVariant`, `evidenceName`), but there is nothing
-   to vary since `getSchema` was removed: every page now gets the same six tools. Variant
-   evidence would land beside the control as `webmcp-eval-<case>--<variant>.json`.
+4. **Variants.** `--variant overview` runs a case with the static form structure map
+   appended to the runner's guide, same tools and same server as the control, so the two
+   differ only in what the agent was told before it started. The machinery lives in
+   `session.js` (`VARIANTS`, `applyVariant`, `evidenceName`); variant evidence lands beside
+   the control as `webmcp-eval-<case>--<variant>.json` and the report prints both.
 
    **Isolation.** The run happens from a temporary directory outside this repository,
    with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from

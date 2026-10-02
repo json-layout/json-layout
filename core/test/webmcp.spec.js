@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
+import { generateFormOverview } from '../src/webmcp/form-overview.js'
 
 import * as describeState from '../src/webmcp/tools/describe-state.js'
 import * as setFieldValue from '../src/webmcp/tools/set-field-value.js'
@@ -212,11 +213,9 @@ describe('webmcp tool functions', () => {
 
   it('should use fillFormSkill', () => {
     const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const result = fillFormSkill.generateSkill('test-form', '', false, layout)
+    const result = fillFormSkill.generateSkill('test-form', '', generateFormOverview(compiled))
     assert.ok(result.includes('JSON Test-form Form-Filling Guide'))
+    assert.ok(result.includes('## Form structure'))
   })
 
   it('should editArray add item', () => {
@@ -2068,7 +2067,7 @@ describe('webmcp instruction redundancy', () => {
   it('should let the guide say when to fetch suggestions without repeating how', () => {
     // the split that keeps this from being a loss: the guide carries the trigger, where a
     // prescription is followed, and points at the description for the mechanics
-    const skill = fillFormSkill.generateSkill('doc', '', true, webmcpOf()._statefulLayout)
+    const skill = fillFormSkill.generateSkill('doc', '')
     assert.match(skill, /call getFieldSuggestions/, 'the trigger stays in the guide')
     // One rule with two branches rather than an imperative and an exception. "You must call
     // getFieldSuggestions" read as unconditional, and the sentence that followed it looked
