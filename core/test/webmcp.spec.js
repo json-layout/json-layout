@@ -1222,6 +1222,36 @@ describe('webmcp setData merge semantics', () => {
     assert.deepEqual(data.sections, [{ title: 'Démographie' }], 'the written key must be applied')
   })
 
+  it('should merge nested objects instead of replacing them', () => {
+    // Judged simulations of the portal editor: { theme: { colors: { primary } } } replaced
+    // the whole theme, every other colour and the fonts went missing, the draft carried 19
+    // errors, and a person pressing « Valider le brouillon » would have published it.
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        theme: {
+          type: 'object',
+          properties: {
+            font: { type: 'string' },
+            colors: { type: 'object', properties: { primary: { type: 'string' }, secondary: { type: 'string' } } }
+          }
+        },
+        menu: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' } } } }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {
+      theme: { font: 'Nunito', colors: { primary: '#1565c0', secondary: '#ad1457' } },
+      menu: [{ title: 'Accueil' }, { title: 'Données' }]
+    })
+
+    setData.execute(layout, { data: { theme: { colors: { primary: '#1b5e20' } }, menu: [{ title: 'Accueil' }] } })
+
+    const data = /** @type {any} */(layout.data)
+    assert.deepEqual(data.theme, { font: 'Nunito', colors: { primary: '#1b5e20', secondary: '#ad1457' } })
+    // an array is a value: the agent writing a list means that list
+    assert.deepEqual(data.menu, [{ title: 'Accueil' }])
+  })
+
   it('should replace and name the dropped keys when merge is explicitly disabled', () => {
     // Replacement stays available, but never silently: the response says what it removed.
     const layout = dashboard({ datasets: ['air-quality'], title: 'Mon tableau', showSources: true })

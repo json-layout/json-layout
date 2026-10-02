@@ -12,7 +12,7 @@ export const inputSchema = {
     },
     merge: {
       type: 'boolean',
-      description: 'Merge the given keys into the existing data (default). Set false to replace the whole object, which removes every key you do not pass.'
+      description: 'Merge the given keys into the existing data, nested objects included (default); arrays you pass replace the existing ones. Set false to replace the whole object, which removes every key you do not pass.'
     }
   },
   required: ['data']
@@ -52,6 +52,25 @@ function isPlainObject (value) {
 }
 
 /**
+ * Merge plain objects recursively. Arrays and scalars are values and replace what was
+ * there: an agent writing a list means that list.
+ * @param {Record<string, unknown>} target
+ * @param {Record<string, unknown>} source
+ * @returns {Record<string, unknown>}
+ */
+function deepMerge (target, source) {
+  /** @type {Record<string, unknown>} */
+  const merged = { ...target }
+  for (const [key, value] of Object.entries(source)) {
+    const existing = merged[key]
+    merged[key] = isPlainObject(existing) && isPlainObject(value)
+      ? deepMerge(/** @type {Record<string, unknown>} */(existing), /** @type {Record<string, unknown>} */(value))
+      : value
+  }
+  return merged
+}
+
+/**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ data: unknown, merge?: boolean }} args
  * @returns {{ valid: boolean, written: string[], removed: string[], unknownKeys: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
@@ -74,8 +93,9 @@ export function execute (statefulLayout, args) {
         .filter((key) => !(key in /** @type {Record<string, unknown>} */(args.data)))
     } else {
       // Merging is the default because an agent asking to set some keys means to set
-      // those keys, not to delete everything else.
-      next = { ...(/** @type {Record<string, unknown>} */(current)), ...(/** @type {Record<string, unknown>} */(args.data)) }
+      // those keys, not to delete everything else — at every depth: a shallow merge of
+      // { theme: { colors: { primary } } } replaced a portal's whole theme.
+      next = deepMerge(/** @type {Record<string, unknown>} */(current), /** @type {Record<string, unknown>} */(args.data))
     }
   }
 
