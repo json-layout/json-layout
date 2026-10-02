@@ -22,12 +22,25 @@ export function getDescription (dataTitle) {
  * context, not state: it names the branches that are not active yet, which describeState
  * cannot show before they are switched. It is opt-in because it costs prompt bytes on
  * every turn, and only the eval can say whether that trade pays.
+ *
+ * `guide` is the per-entity guide a schema carries in its root `x-agent-guide` annotation
+ * (compiledLayout.agentGuide): what the fields of this kind of document mean, its
+ * conventions and traps — knowledge json-layout cannot derive from the schema itself.
  * @param {string} dataTitle
  * @param {string} prefixName
- * @param {string} [overview]
+ * @param {{ overview?: string, guide?: string }} [options]
  * @returns {string}
  */
-export function generateSkill (dataTitle, prefixName, overview) {
+export function generateSkill (dataTitle, prefixName, options = {}) {
+  const { overview, guide } = options
+  const about = typeof guide === 'string' && guide.trim()
+    ? `
+
+## About this ${dataTitle}
+
+${guide.trim()}
+`
+    : ''
   const structure = typeof overview === 'string' && overview
     ? `
 
@@ -44,7 +57,7 @@ ${overview}
   return `# JSON ${dataTitle.charAt(0).toUpperCase() + dataTitle.slice(1)} Form-Filling Guide
 
 This guide teaches you how to use tools to fill the data of a form in the user's page.
-${structure}
+${about}${structure}
 Start with ${prefixName}describeState. It lists every field with its path, its current value and anything invalid; a value too large to inline is shown as its type and size, with the path to read it. Call it again on a path whenever you need to look at one part of the form. Every tool also accepts the data path of a value, as getData shows it (/theme/colors/primary), when you do not have its listed path.
 
 Then write. If the goal already tells you every value, set them in one call with ${prefixName}setData. Otherwise change one field at a time with ${prefixName}setFieldValue, which is also what you need when a value has to be looked up first or when a field only exists once another has been set. Every write reports whether the form is valid and lists what is wrong, so you rarely need to read anything back.

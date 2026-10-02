@@ -139,7 +139,7 @@ export class EvalSession {
     // describes. The launcher injects them; nothing here is a tool the runner can call.
     // The overview variant exercises the same generator WebMCP's includeFormOverview uses.
     const overview = options.variant === 'overview' ? generateFormOverview(compiled) : undefined
-    this._skill = generateSkill(evalCase.title, '', overview)
+    this._skill = generateSkill(evalCase.title, '', { overview, guide: compiled.agentGuide })
   }
 
   /** @returns {import('@mcp-b/webmcp-types').ToolDescriptor[]} */

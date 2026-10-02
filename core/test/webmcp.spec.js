@@ -277,7 +277,7 @@ describe('webmcp tool functions', () => {
 
   it('should use fillFormSkill', () => {
     const compiled = compile(simpleSchema)
-    const result = fillFormSkill.generateSkill('test-form', '', generateFormOverview(compiled))
+    const result = fillFormSkill.generateSkill('test-form', '', { overview: generateFormOverview(compiled) })
     assert.ok(result.includes('JSON Test-form Form-Filling Guide'))
     assert.ok(result.includes('## Form structure'))
   })

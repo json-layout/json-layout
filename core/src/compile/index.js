@@ -138,6 +138,7 @@ export function compile (_schema, partialOptions = {}) {
     options,
     schema,
     mainTree: mainTreePointer,
+    agentGuide: typeof schema['x-agent-guide'] === 'string' ? schema['x-agent-guide'] : undefined,
     skeletonTrees,
     skeletonNodes,
     validates,

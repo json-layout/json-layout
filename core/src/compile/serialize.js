@@ -105,6 +105,7 @@ export async function serialize (compiledLayout) {
   const ast = parseModule('export const compiledLayout = {}')
   ast.exports.compiledLayout = {
     mainTree: compiledLayout.mainTree,
+    agentGuide: compiledLayout.agentGuide,
     skeletonTrees: clone(compiledLayout.skeletonTrees),
     skeletonNodes: clone(compiledLayout.skeletonNodes),
     normalizedLayouts: clone(compiledLayout.normalizedLayouts),

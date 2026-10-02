@@ -19,6 +19,9 @@ import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
 
 export { generateFormOverview }
+// public: a host that serves the form tools elsewhere (an MCP server's editor groups) needs
+// the same guide text the in-page sub-agent gets
+export const generateSkill = fillFormSkill.generateSkill
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -144,12 +147,13 @@ export class WebMCP {
     const overview = this._includeFormOverview
       ? generateFormOverview(this._statefulLayout.compiledLayout)
       : undefined
+    const guide = this._statefulLayout.compiledLayout.agentGuide
 
     /** @type {ToolDescriptor[]} */
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, overview)
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { overview, guide })
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
@@ -367,7 +371,7 @@ export class WebMCP {
 
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, overview)
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { overview, guide })
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,

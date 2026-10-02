@@ -143,12 +143,12 @@ describe('static form overview', () => {
 describe('form overview in the guide', () => {
   it('should be absent unless the caller asks for it', () => {
     assert.ok(!generateSkill('doc', '').includes('Form structure'))
-    assert.ok(!generateSkill('doc', '', '').includes('Form structure'))
+    assert.ok(!generateSkill('doc', '', { overview: '' }).includes('Form structure'))
   })
 
   it('should be inserted as static context with a warning that it is not state', () => {
     const overview = overviewOf(simpleSchema)
-    const skill = generateSkill('doc', '', overview)
+    const skill = generateSkill('doc', '', { overview })
     assert.match(skill, /## Form structure/)
     assert.match(skill, /call describeState for\s+the live state/)
     assert.ok(skill.includes(overview))

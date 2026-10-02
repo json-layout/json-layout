@@ -52,6 +52,8 @@ export interface CompiledLayout {
   locale: string
   messages: LocaleMessages
   components: Record<string, Omit<ComponentInfo, 'schema'>>
+  // the per-entity guide of the root schema's x-agent-guide annotation, localized
+  agentGuide?: string
   localizeErrors: (errors: ajvModule.ErrorObject[]) => void
 }
 
