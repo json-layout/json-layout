@@ -1,0 +1,42 @@
+{
+ "case": "portal-config-edit",
+ "verdict": "satisfactory",
+ "reasoning": "The session met both parts of the goal in 9 calls and ended with a valid form. The agent found the 'Couleur principale' color-picker under assisted mode (assistedMode=true) and set it to #1B5E20, a dark green. It then added an item to the navigation menu array, picked the 'Page libre' variant and used getFieldSuggestions on pageRef. That call returned exactly one match, 'Nos actions pour la jeunesse (jeunesse)', which the agent applied by suggestionIndex. The page reference {slug:'jeunesse', title:'Nos actions pour la jeunesse'} came from the tool, not from a guess. The agent invented no values. The derived theme.colors.primary is still #1976D2, but that is expected: with assisted mode on, the colours are derived from assistedModeColors, and that is the field the form shows. The friction is minor. The opening describeState returned 55 KB and already contained the theme and menu subtrees, so the next three calls only re-read data already returned. The suggestion line also contained a broken '[object Object]' fragment. The new menu item started with a bare 'tag \"type\" must be string' error before a variant was chosen, but the variant list shown next to it was enough for the agent to recover at once.",
+ "friction": [
+  {
+   "call": 2,
+   "tool": "describeState",
+   "observed": "Re-listed the /$comp-2/$comp-2/theme subtree, including assistedModeColors/primary value=\"#1976D2\", already present verbatim in call 1's full-form dump",
+   "inferred": "The agent wanted to confirm where the main colour lives; it gained no new information",
+   "severity": "low"
+  },
+  {
+   "call": 3,
+   "tool": "describeState",
+   "observed": "- /$comp-4/$comp-3/menu/children (array, required, 2 items) ... value={\"type\":\"standard\",\"subtype\":\"home\"} ... {\"type\":\"standard\",\"subtype\":\"datasets\"}",
+   "inferred": "The agent re-read the menu items it had already seen in call 1",
+   "severity": "low"
+  },
+  {
+   "call": 4,
+   "tool": "getData",
+   "observed": "{\"data\":[{\"type\":\"standard\",\"subtype\":\"home\"},{\"type\":\"standard\",\"subtype\":\"datasets\"}],\"valid\":true}",
+   "inferred": "The agent read the same two menu items a third time, now as raw data; no new information",
+   "severity": "low"
+  },
+  {
+   "call": 6,
+   "tool": "editArray",
+   "observed": "- /$comp-4/$comp-3/menu/children/2 (section, required, error) — tag \"type\" must be string ... form is invalid",
+   "inferred": "The agent correctly read the error as 'no variant chosen yet' because the variant list was shown next to it, but the message describes an internal discriminator check, not the missing choice",
+   "severity": "low"
+  },
+  {
+   "call": 8,
+   "tool": "getFieldSuggestions",
+   "observed": "- [0] Nos actions pour la jeunesse (jeunesse) ([object Object]) — apply with suggestionIndex=0",
+   "inferred": "The agent ignored the broken '[object Object]' fragment and applied the suggestion by index; no harm here, but the response shows a stringified object",
+   "severity": "low"
+  }
+ ]
+}

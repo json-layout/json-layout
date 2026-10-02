@@ -1,0 +1,56 @@
+{
+ "case": "portal-config-edit",
+ "verdict": "satisfactory",
+ "reasoning": "The session met both parts of the goal. The agent set 'Couleur principale' (theme.assistedModeColors.primary, which is the active field because assisted mode is on) to #1B5E20, a dark green, at call 10. It then added a 'Page libre' menu entry whose pageRef was picked from real suggestions at call 13: {slug:'jeunesse', title:'Nos actions pour la jeunesse'}. The final data is valid, and the agent invented no value it could not have known. Without the guide, though, the route was indirect. The agent first guessed the data path /theme/colors/primary (call 7). That path does exist in the data, still holding #1976D2, but the form hides it in assisted mode. The agent recovered only by re-reading the Apparence section, even though the field it needed was already listed in the call-1 overview. It also spent calls on paths that mixed data paths with layout paths, and on re-reading menu nodes already shown. At the end, the getData calls it used to verify could not read back the colour it had set (call 15). The 16 calls are about twice what the form needed (around 7 to 8), but every error led to a correct recovery, and the outcome came from tool information rather than luck.",
+ "friction": [
+  {
+   "call": 2,
+   "tool": "getData",
+   "observed": "full form data returned, including the 3191-char bodyFontFamilyCss and the theme colour objects",
+   "inferred": "the agent looked for colour paths in the raw data, which led it to the hidden data path theme.colors.primary instead of the assisted-mode field shown in call 1",
+   "severity": "medium"
+  },
+  {
+   "call": 3,
+   "tool": "describeState",
+   "observed": "- /$comp-4/$comp-3/menu/children (array, required, 2 items) ... /0/$oneOf (one-of-select, declared)",
+   "inferred": "nothing new; the same subtree was already in the call-1 overview, and call 4 repeated it again for children/0",
+   "severity": "low"
+  },
+  {
+   "call": 5,
+   "tool": "describeState",
+   "observed": "Error: node not found at path: /menu/children/0/$oneOf. ... Use a path listed by describeState, or the data path of a value as getData shows it.",
+   "inferred": "the agent learned that $oneOf nodes are only reachable by their layout path and retried with the /$comp-4/$comp-3 prefix; it recovered, but at the cost of a round-trip",
+   "severity": "low"
+  },
+  {
+   "call": 7,
+   "tool": "setFieldValue",
+   "observed": "Error: node not found at path: /theme/colors/primary. The value exists in the data but its field is not shown in the form right now: a condition hides it, another setting replaces it or must change first.",
+   "inferred": "the agent understood that the primary colour lives in a different visible field and re-described /$comp-2 (call 9) to find assistedModeColors/primary; the error did not name that replacing field, even though it was already in the call-1 listing",
+   "severity": "medium"
+  },
+  {
+   "call": 8,
+   "tool": "editArray",
+   "observed": "added item at index 2 ... (section, required, error) — tag \"type\" must be string ... form is invalid",
+   "inferred": "the agent correctly read this as 'pick a variant' rather than a real failure, but the raw discriminator error is presented as a validation error on a newly added, empty item",
+   "severity": "low"
+  },
+  {
+   "call": 12,
+   "tool": "getFieldSuggestions",
+   "observed": "[0] Nos actions pour la jeunesse (jeunesse) ([object Object]) — apply with suggestionIndex=0",
+   "inferred": "the agent ignored the stringified-object noise and applied index 0, which was correct; the '[object Object]' segment carried no information",
+   "severity": "low"
+  },
+  {
+   "call": 15,
+   "tool": "getData",
+   "observed": "Error: node not found at path: /theme/colors/primary. The value exists in the data but its field is not shown in the form right now",
+   "inferred": "the agent tried to verify the colour through getData, which also refuses hidden data paths; it got no confirmation and moved on without checking assistedModeColors/primary, so the verification bought no information",
+   "severity": "medium"
+  }
+ ]
+}

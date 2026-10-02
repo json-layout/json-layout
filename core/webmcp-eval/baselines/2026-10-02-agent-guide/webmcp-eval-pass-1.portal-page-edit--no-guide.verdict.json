@@ -1,0 +1,6 @@
+{
+ "case": "portal-page-edit",
+ "verdict": "satisfactory",
+ "reasoning": "The session achieved the goal in the fewest calls the form allows. Call 1 (describeState) showed the full form. It listed the page title at /$comp-1/title with the value \"Accueil\", and it showed that /$comp-2/elements/2 was a Texte block whose content was \"Mentions légales\". The schema's labels are in French, but the response made each target field clear. The agent renamed the title (call 2) and removed array item 2 (call 3). Both responses confirmed the change and reported the form valid. The final data shows the title \"Données ouvertes\" and only the two other elements left. The agent guessed no paths, invented no values and made no wasted calls. Leaving out the agent guide did not hold it back on this case. The first response of 7.5 KB was mostly the 40-variant list, which it gave in full only once and abbreviated for the other elements.",
+ "friction": []
+}
