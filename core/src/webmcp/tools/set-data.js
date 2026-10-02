@@ -77,6 +77,11 @@ function deepMerge (target, source) {
  */
 export function execute (statefulLayout, args) {
   const current = statefulLayout.data
+  // An object form only ever holds an object. A JSON string that failed to parse used to
+  // be written as is: the whole form data became a string and every later call crashed.
+  if (isPlainObject(current) && !isPlainObject(args.data)) {
+    throw new Error(`data must be a JSON object (got ${typeof args.data === 'string' ? 'a string that is not valid JSON' : Array.isArray(args.data) ? 'an array' : typeof args.data}); nothing was written`)
+  }
   const mergeable = isPlainObject(current) && isPlainObject(args.data)
 
   /** @type {string[]} */

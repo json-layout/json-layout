@@ -1267,6 +1267,15 @@ describe('webmcp setData merge semantics', () => {
     assert.deepEqual(data.menu, [{ title: 'Accueil' }])
   })
 
+  it('should refuse a non-object document instead of writing it over the form', () => {
+    // An eval run passed an unparsable JSON string: it replaced the whole form data with a
+    // string, every later call failed with "Cannot create property 'socialShares' on
+    // string", and the portal configuration was lost.
+    const layout = dashboard({ title: 'Mon tableau' })
+    assert.throws(() => setData.execute(layout, { data: '{"title": "Autre",' }), /data must be a JSON object/)
+    assert.deepEqual(layout.data, { title: 'Mon tableau' })
+  })
+
   it('should replace and name the dropped keys when merge is explicitly disabled', () => {
     // Replacement stays available, but never silently: the response says what it removed.
     const layout = dashboard({ datasets: ['air-quality'], title: 'Mon tableau', showSources: true })
