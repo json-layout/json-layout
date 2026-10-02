@@ -45,7 +45,7 @@ ${overview}
 
 This guide teaches you how to use tools to fill the data of a form in the user's page.
 ${structure}
-Start with ${prefixName}describeState. It lists every field with its path, its current value and anything invalid; a value too large to inline is shown as its type and size, with the path to read it. Call it again on a path whenever you need to look at one part of the form.
+Start with ${prefixName}describeState. It lists every field with its path, its current value and anything invalid; a value too large to inline is shown as its type and size, with the path to read it. Call it again on a path whenever you need to look at one part of the form. Every tool also accepts the data path of a value, as getData shows it (/theme/colors/primary), when you do not have its listed path.
 
 Then write. If the goal already tells you every value, set them in one call with ${prefixName}setData. Otherwise change one field at a time with ${prefixName}setFieldValue, which is also what you need when a value has to be looked up first or when a field only exists once another has been set. Every write reports whether the form is valid and lists what is wrong, so you rarely need to read anything back.
 

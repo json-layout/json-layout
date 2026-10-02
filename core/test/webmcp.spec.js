@@ -143,6 +143,54 @@ describe('webmcp resolveNode', () => {
   })
 })
 
+// A form laid out in tabs or sections gives its fields layout paths (/$comp-1/theme/primary)
+// while getData and every agent's intuition speak data paths (/theme/primary). Judged
+// simulations of the data-fair portal editor had the tools sub-agent loop for minutes on
+// "node not found at path: /menu".
+const tabbedSchema = {
+  type: 'object',
+  layout: { comp: 'tabs', children: [{ title: 'Apparence', children: ['theme'] }, { title: 'Navigation', children: ['menu'] }] },
+  properties: {
+    theme: { type: 'object', properties: { primary: { type: 'string' } } },
+    menu: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' } } } }
+  }
+}
+
+describe('webmcp data paths on a tabbed form', () => {
+  const makeLayout = () => {
+    const compiled = compile(tabbedSchema)
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { theme: { primary: '#000000' }, menu: [{ title: 'a' }] })
+  }
+
+  it('resolves a data path to the same node as its layout path', () => {
+    const layout = makeLayout()
+    const byLayout = resolveNode(layout.stateTree.root, '/$comp-1/theme/primary')
+    const byData = resolveNode(layout.stateTree.root, '/theme/primary')
+    assert.ok(byLayout)
+    assert.equal(byData, byLayout)
+    assert.equal(resolveNode(layout.stateTree.root, '/menu')?.dataPath, '/menu')
+  })
+
+  it('lets the tools write through a data path', () => {
+    const layout = makeLayout()
+    setFieldValue.execute(layout, { path: '/theme/primary', value: '#1b5e20' })
+    assert.deepEqual(layout.data, { theme: { primary: '#1b5e20' }, menu: [{ title: 'a' }] })
+    editArray.execute(layout, { path: '/menu', action: 'add', value: { title: 'b' } })
+    assert.deepEqual(layout.data.menu, [{ title: 'a' }, { title: 'b' }])
+    setFieldValue.execute(layout, { path: '/menu/1/title', value: 'c' })
+    assert.equal(layout.data.menu[1].title, 'c')
+  })
+
+  it('points to the paths describeState lists when nothing matches', () => {
+    const layout = makeLayout()
+    assert.throws(() => setFieldValue.execute(layout, { path: '/navBar/items', value: 'x' }), (err) => {
+      const message = /** @type {Error} */(err).message
+      return message.includes('node not found at path: /navBar/items') &&
+        message.includes('/$comp-1') && message.includes('/$comp-2') && message.includes('describeState')
+    })
+  })
+})
+
 describe('webmcp tool functions', () => {
   it('should describeState return full tree', () => {
     const compiled = compile(simpleSchema)

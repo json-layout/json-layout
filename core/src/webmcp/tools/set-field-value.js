@@ -3,7 +3,7 @@
  */
 
 import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility } from '../project.js'
-import { resolveNode } from '../resolve.js'
+import { resolveNode, nodeNotFoundError } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -67,7 +67,7 @@ function listVariants (node) {
 export function execute (statefulLayout, args, store, variantsMemo) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
-    throw new Error(`node not found at path: ${args.path}`)
+    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
   }
 
   let value = args.value

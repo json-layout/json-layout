@@ -3,7 +3,7 @@
  */
 
 import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
-import { resolveNode } from '../resolve.js'
+import { resolveNode, nodeNotFoundError } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -47,7 +47,7 @@ export function getDescription (dataTitle) {
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
-    throw new Error(`node not found at path: ${args.path}`)
+    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
   }
 
   if (node.layout.comp !== 'list') {

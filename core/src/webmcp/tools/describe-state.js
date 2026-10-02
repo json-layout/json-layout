@@ -3,7 +3,7 @@
  */
 
 import { collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
-import { resolveNode } from '../resolve.js'
+import { resolveNode, nodeNotFoundError } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 
 export const inputSchema = {
@@ -38,7 +38,7 @@ export function toMarkdown (statefulLayout, args, variantsMemo) {
   if (args.path) {
     const node = resolveNode(statefulLayout.stateTree.root, args.path)
     if (!node) {
-      throw new Error(`node not found at path: ${args.path}`)
+      throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
     }
     const { errors, otherErrors } = collectScopedErrors(statefulLayout, node)
     const markdown = formatMutationResult(statefulLayout.valid, errors,

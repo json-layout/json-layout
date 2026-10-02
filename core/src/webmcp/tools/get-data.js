@@ -2,7 +2,7 @@
  * @file getData tool
  */
 
-import { resolveNode } from '../resolve.js'
+import { resolveNode, nodeNotFoundError } from '../resolve.js'
 
 /** Most field paths named in a refusal before the rest are counted instead. */
 export const NAMED_FIELDS_MAX = 12
@@ -60,7 +60,7 @@ export function execute (statefulLayout, args) {
   }
   const node = resolveNode(statefulLayout.stateTree.root, args.path)
   if (!node) {
-    throw new Error(`node not found at path: ${args.path}`)
+    throw nodeNotFoundError(statefulLayout.stateTree.root, args.path)
   }
   // A section a `$allOf`, `$oneOf` or `$comp-` wrapper introduces holds no data of its
   // own: its value IS its parent's, so asking for it returns the document the `path`
