@@ -1,0 +1,1 @@
+{"case":"portal-config-edit","verdict":"satisfactory","friction_count":6,"note":"11 calls; assistedModeColors/primary set; Page libre item with pageRef jeunesse; root describeState 83 KB of repeated $slot-1 declared fields; /theme/colors data path rejected (reachable only through a slot); re-read subtrees; wrong variant first; [object Object] in suggestion line"}
