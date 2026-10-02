@@ -234,7 +234,44 @@ const choropleth = {
 }
 
 /** @type {EvalCase[]} */
-export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth]
+/**
+ * A whole site configuration laid out in tabs, edited from a person's words.
+ *
+ * Every other case names its fields the way the form does. Here the goal is phrased as a
+ * portal manager phrases it — a colour, a page in the menu — and the form answers in its
+ * own structure: fourteen tabs, so every path runs through structural levels
+ * (/$comp-4/$comp-3/menu/children), the colour that shows is the assisted-mode one rather
+ * than /theme/colors/primary, and a page goes in the menu as a « Page libre » item picked
+ * from suggestions. It is where judged simulations of the data-fair portal editor lost
+ * themselves: the tools sub-agent spent 80+ calls on "node not found at path: /menu".
+ *
+ * Vendored on 2026-10-02 from data-fair/portals @ 0341c4d2, api/types/portal-config, bundled
+ * with its referenced schemas (recursive refs kept internal). The starting document is the
+ * draft the portals manager stored for a seeded portal after opening its editor, so it is
+ * one the form accepts. The context gives the page picker what the editor gives it.
+ * @type {EvalCase}
+ */
+const portalConfigEdit = {
+  name: 'portal-config-edit',
+  title: 'portal configuration',
+  goal: 'I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.',
+  schema: loadSchema('portal-config.json'),
+  data: loadData('portal-config-edit.json'),
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  context: {
+    owner: { type: 'organization', id: 'test_org1' },
+    pages: {
+      generic: [
+        { slug: 'jeunesse', title: 'Nos actions pour la jeunesse', titleBackOffice: 'Nos actions pour la jeunesse' },
+        { slug: 'contact-presse', title: 'Contact presse', titleBackOffice: 'Contact presse' }
+      ],
+      event: [],
+      news: []
+    }
+  }
+}
+
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit]
 
 /**
  * @param {string} name

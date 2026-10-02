@@ -21,6 +21,7 @@ case.
 | `portal-page` | portals page editor | 285874 | 814 | empty |
 | `charts-edit` | app-charts | 57330 | 286 | a configured chart |
 | `portal-page-edit` | portals page editor | 285874 | 814 | a page of three elements |
+| `portal-config-edit` | portals portal editor (14 tabs) | 125813 | 600 | a seeded portal's draft |
 
 The four build cases measure construction; the two edit cases measure the other half, which
 is what a configuration editor mostly does. Both start from a document **an agent produced
