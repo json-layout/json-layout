@@ -50,12 +50,20 @@ function resolveDataPath (root, path) {
   const pointer = '/' + path.replace(/^\/+/, '').replace(/\/+$/, '')
   /** @type {import('../state/types.js').StateNode[]} */
   const stack = [root]
+  /** @type {import('../state/types.js').StateNode|undefined} */
+  let summary
   while (stack.length) {
     const node = /** @type {import('../state/types.js').StateNode} */(stack.shift())
-    if (node.dataPath === pointer && !isStructural(node) && !node.options.summary) return node
-    stack.push(...visibleChildren(node))
+    if (node.dataPath === pointer && !isStructural(node)) {
+      // Like findChild: the editable occurrence of an activated list item wins, but an
+      // item that is not activated in "menu" or "dialog" mode only exists as its summary,
+      // which its layout path resolves too.
+      if (!node.options.summary) return node
+      summary ??= node
+    }
+    stack.push(...(node.children ?? []).filter((child) => child.layout.comp !== 'none'))
   }
-  return undefined
+  return summary
 }
 
 /**

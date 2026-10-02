@@ -181,6 +181,21 @@ describe('webmcp data paths on a tabbed form', () => {
     assert.equal(layout.data.menu[1].title, 'c')
   })
 
+  it('resolves the data path of a list item that is only shown as a summary', () => {
+    // In "menu" and "dialog" list modes an item that is not activated only exists as its
+    // read-only summary. The layout path resolves it, so its data path must too: an eval
+    // run had /menu resolve and /menu/children/0 refused.
+    const compiled = compile({
+      type: 'object',
+      layout: { comp: 'tabs', children: [{ title: 'Navigation', children: ['filters'] }] },
+      properties: { filters: listModeSchema('menu').properties.filters }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { filters: [{ type: 'in', field: 'a' }, { type: 'out', field: 'b' }] })
+    const byLayout = resolveNode(layout.stateTree.root, '/$comp-1/filters/1')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(layout.stateTree.root, '/filters/1'), byLayout)
+  })
+
   it('points to the paths describeState lists when nothing matches', () => {
     const layout = makeLayout()
     assert.throws(() => setFieldValue.execute(layout, { path: '/navBar/items', value: 'x' }), (err) => {
