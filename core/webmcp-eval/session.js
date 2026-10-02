@@ -52,9 +52,11 @@ export const DEFAULT_DATA_FAIR_URL = 'https://koumoul.com/data-fair/'
  * Tool configurations a case can be run under. `overview` is the same tools with the
  * static form structure map appended to the guide, so the two runs differ only in what
  * the agent was told before it started. It is applied in the session, not to the case:
- * the case's schema and data are the control.
+ * the case's schema and data are the control. `no-guide` is the control for a schema's
+ * x-agent-guide: the same case with that annotation removed, so a guided case can be
+ * compared with the tools alone.
  */
-export const VARIANTS = ['default', 'overview']
+export const VARIANTS = ['default', 'overview', 'no-guide']
 
 /**
  * @param {EvalCase} evalCase
@@ -63,6 +65,11 @@ export const VARIANTS = ['default', 'overview']
  */
 export function applyVariant (evalCase, variant) {
   if (!variant || variant === 'default' || variant === 'overview') return evalCase
+  if (variant === 'no-guide') {
+    // the control for the schema's x-agent-guide: the same case, its guide removed
+    const { 'x-agent-guide': _guide, 'x-i18n-x-agent-guide': _i18nGuide, ...schema } = evalCase.schema
+    return { ...evalCase, schema }
+  }
   // The 'no-schema' variant was retired with getSchema, and 'overview' does not change the
   // case itself — only the guide EvalSession builds. Everything else is a typo and must be
   // refused rather than silently run as the control.

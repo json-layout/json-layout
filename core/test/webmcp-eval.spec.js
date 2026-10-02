@@ -183,3 +183,17 @@ describe('webmcp eval session', () => {
     assert.equal(typeof (/** @type {any} */(session).score), 'undefined', 'score() must be gone')
   })
 })
+
+describe('webmcp eval no-guide variant', () => {
+  it('strips the schema\'s agent guide and nothing else', async () => {
+    const { applyVariant } = await import('../webmcp-eval/session.js')
+    const { getCase } = await import('../webmcp-eval/cases/index.js')
+    const guided = getCase('portal-config-edit')
+    assert.ok(guided.schema['x-agent-guide'], 'the vendored case carries a guide')
+    const stripped = applyVariant(guided, 'no-guide')
+    assert.equal(stripped.schema['x-agent-guide'], undefined)
+    assert.equal(stripped.schema['x-i18n-x-agent-guide'], undefined)
+    assert.ok(guided.schema['x-agent-guide'], 'the shared case is not mutated')
+    assert.deepEqual(Object.keys(stripped.schema.properties), Object.keys(guided.schema.properties))
+  })
+})
