@@ -7,6 +7,7 @@ export default {
   confirm: 'Bevestigen',
   edit: 'Bewerken',
   close: 'Sluiten',
+  actions: 'Acties',
   duplicate: 'Verveelvoudigen',
   insertAfter: 'Hierna invoegen',
   copy: 'Kopiëren',

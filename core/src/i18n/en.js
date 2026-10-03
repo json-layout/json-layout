@@ -7,6 +7,7 @@ export default {
   edit: 'Edit',
   confirm: 'Confirm',
   close: 'Close',
+  actions: 'Actions',
   duplicate: 'Duplicate',
   insertAfter: 'Insert after',
   copy: 'Copy',
