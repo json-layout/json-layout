@@ -21,6 +21,15 @@ import { VariantsMemo } from './variants-memo.js'
 // the same guide text the in-page sub-agent gets
 export const generateSkill = fillFormSkill.generateSkill
 
+// The sub-agent answers another agent, which relays to the person: judged runs had it claim a
+// setting it never applied (« scroll infini »), and write emoji, bold headings or prose
+// addressed to the person.
+const SUB_AGENT_REPORT = `
+## Your report
+
+End with a short report for the agent that delegated this task: what you changed, field by field with the values written, and whether the form is valid. Report only what the tool results confirmed, never a setting you did not write. Plain text, no emoji or headings, and do not address the person: the delegating agent talks to them.
+`
+
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
 const log = debug('jl:webmcp')
@@ -356,7 +365,7 @@ export class WebMCP {
 
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide })
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide }) + SUB_AGENT_REPORT
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,
