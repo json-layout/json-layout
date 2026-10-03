@@ -196,6 +196,34 @@ describe('webmcp data paths on a tabbed form', () => {
     assert.equal(resolveNode(layout.stateTree.root, '/filters/1'), byLayout)
   })
 
+  it('resolves a data path followed by the variant selector of a union', () => {
+    // a judged run wrote /menu/children/2/$oneOf: the data path of an item, then the selector
+    // describeState shows under it. describeState took the data path, setFieldValue refused it
+    const compiled = compile({
+      type: 'object',
+      layout: { comp: 'tabs', children: [{ title: 'Navigation', children: ['menu'] }] },
+      properties: {
+        menu: {
+          type: 'array',
+          items: {
+            type: 'object',
+            discriminator: { propertyName: 'type' },
+            oneOf: [
+              { title: 'Page standard', properties: { type: { const: 'standard' } }, required: ['type'] },
+              { title: 'Page libre', properties: { type: { const: 'generic' }, slug: { type: 'string' } }, required: ['type'] }
+            ]
+          }
+        }
+      }
+    }, { ajvOptions: { discriminator: true } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { menu: [{ type: 'standard' }] })
+    const byLayout = resolveNode(layout.stateTree.root, '/$comp-1/menu/0/$oneOf')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(layout.stateTree.root, '/menu/0/$oneOf'), byLayout)
+    setFieldValue.execute(layout, { path: '/menu/0/$oneOf', value: 1 })
+    assert.equal(/** @type {any} */(layout.data).menu[0].type, 'generic')
+  })
+
   it('points to the paths describeState lists when nothing matches', () => {
     const layout = makeLayout()
     assert.throws(() => setFieldValue.execute(layout, { path: '/navBar/items', value: 'x' }), (err) => {

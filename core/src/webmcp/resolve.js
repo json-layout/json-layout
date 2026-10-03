@@ -83,7 +83,23 @@ function isStructural (node) {
  */
 export function resolveNode (root, path) {
   if (!path || path === '/') return root
-  return resolveLayoutPath(root, path) ?? resolveDataPath(root, path)
+  return resolveLayoutPath(root, path) ?? resolveDataPath(root, path) ?? resolveMixedPath(root, path)
+}
+
+/**
+ * A data path followed by structural segments, as an agent writes it after reading the
+ * selector describeState lists under an item: /menu/children/2/$oneOf. The data path part
+ * resolves to its node, the rest is followed as a layout path from there.
+ * @param {import('../state/types.js').StateNode} root
+ * @param {string} path
+ * @returns {import('../state/types.js').StateNode|undefined}
+ */
+function resolveMixedPath (root, path) {
+  const segments = path.replace(/^\//, '').split('/')
+  const first = segments.findIndex((segment) => segment.startsWith('$'))
+  if (first <= 0) return undefined
+  const base = resolveDataPath(root, '/' + segments.slice(0, first).join('/'))
+  return base && resolveLayoutPath(base, segments.slice(first).join('/'))
 }
 
 /**
