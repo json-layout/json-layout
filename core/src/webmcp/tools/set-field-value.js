@@ -3,7 +3,7 @@
  */
 
 import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility, variantTitle } from '../project.js'
-import { resolveNode, resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -107,6 +107,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     activating = true
     statefulLayout.activateItem(node, index)
   } else {
+    assertNoStructuralKey(value, 'value')
     statefulLayout.input(node, value)
     statefulLayout.blur(node)
   }

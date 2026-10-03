@@ -1608,6 +1608,21 @@ describe('webmcp suggestions flag', () => {
     assert.ok(!line.includes('"contact" (Contact)'), 'a title that only differs in case adds nothing: ' + line)
   })
 
+  it('refuses a value carrying a structural key, and says how to pick a variant', () => {
+    // a judged run added an item as { "$oneOf": 22 }: the key went into the data, the form
+    // still said valid, and the API refused the draft (« additional property $oneOf »)
+    const compiled = compile(arraySchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { items: [{ name: 'a' }] })
+    assert.throws(() => editArray.execute(layout, { path: '/items', action: 'add', value: { $oneOf: 22 } }), (err) => {
+      const message = /** @type {Error} */(err).message
+      assert.match(message, /\$oneOf/)
+      assert.match(message, /path/)
+      return true
+    })
+    assert.throws(() => setData.execute(layout, { data: { items: [{ $oneOf: 1 }] } }), /\$oneOf/)
+    assert.deepEqual(layout.data, { items: [{ name: 'a' }] }, 'nothing was written')
+  })
+
   it('should keep the flag and getFieldSuggestions in agreement', async () => {
     // Whatever the projection promises, the tool must deliver. Not a biconditional any
     // more: a node whose options are stated outright still answers getFieldSuggestions, it

@@ -3,7 +3,7 @@
  */
 
 import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
-import { resolveNode, resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -60,6 +60,7 @@ export function execute (statefulLayout, args, variantsMemo) {
   let index
 
   if (args.action === 'add') {
+    assertNoStructuralKey(args.value, 'value')
     index = args.index !== undefined ? args.index : currentData.length
     // splice() would silently clamp an out of bounds index, but the reported index and the
     // item activated below would then designate an item that does not exist

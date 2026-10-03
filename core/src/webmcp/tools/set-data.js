@@ -3,6 +3,7 @@
  */
 
 import { collectErrors, visibilitySnapshot, diffVisibility } from '../project.js'
+import { assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -82,6 +83,7 @@ export function execute (statefulLayout, args) {
   if (isPlainObject(current) && !isPlainObject(args.data)) {
     throw new Error(`data must be a JSON object (got ${typeof args.data === 'string' ? 'a string that is not valid JSON' : Array.isArray(args.data) ? 'an array' : typeof args.data}); nothing was written`)
   }
+  assertNoStructuralKey(args.data, 'data')
   const mergeable = isPlainObject(current) && isPlainObject(args.data)
 
   /** @type {string[]} */
