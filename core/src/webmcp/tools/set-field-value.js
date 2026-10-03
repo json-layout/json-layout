@@ -2,7 +2,7 @@
  * @file setFieldValue tool
  */
 
-import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility } from '../project.js'
+import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility, variantTitle } from '../project.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
 
 export const inputSchema = {
@@ -101,7 +101,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     const index = variantIndex(value)
     const variants = listVariants(node)
     if (index === undefined || (variants && !variants.some((v) => v.key === index))) {
-      const listed = variants?.map((v) => `variant ${v.key}: ${v.title}`).join(', ')
+      const listed = variants?.map((v) => `variant ${v.key}: ${variantTitle(node, statefulLayout, v)}`).join(', ')
       throw new Error(`"${args.path}" is a variant selector: its value is the index of the branch to activate${listed ? `, one of ${listed}` : ''}.`)
     }
     activating = true

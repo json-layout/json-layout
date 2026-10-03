@@ -341,6 +341,24 @@ export function suggestionsSource (node) {
 }
 
 /**
+ * The title of a variant of a union, with the discriminator value behind it when the union
+ * has one: a judged run added a menu item as { type: 'free' } from the label « Page libre »,
+ * the value ('generic') being written nowhere.
+ * @param {import('../state/types.js').StateNode} node - the union's $oneOf node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {{ key: number, title: string }} variant
+ * @returns {string}
+ */
+export function variantTitle (node, statefulLayout, variant) {
+  const discriminator = node.skeleton.discriminator
+  const tree = node.skeleton.childrenTrees?.[variant.key]
+  const value = discriminator !== undefined && tree !== undefined
+    ? statefulLayout.compiledLayout.skeletonTrees[tree]?.discriminatorValue
+    : undefined
+  return value === undefined ? variant.title : `${variant.title} (${discriminator}=${JSON.stringify(value)})`
+}
+
+/**
  * Whether this node can actually answer getFieldSuggestions.
  *
  * isItemsLayout only says the component KIND is items-based; it is true of a plain array
@@ -483,7 +501,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     if (listedAt === undefined) {
       variantsMemo?.record(node.skeleton.pointer, path)
       for (const v of variants) {
-        lines.push(`${indent}  - variant ${v.key}: ${v.title}${v.key === activeKey ? ' (active)' : ''}`)
+        lines.push(`${indent}  - variant ${v.key}: ${variantTitle(node, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}`)
       }
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,

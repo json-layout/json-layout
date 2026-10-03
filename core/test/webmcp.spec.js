@@ -348,6 +348,21 @@ describe('webmcp tool schemas', () => {
     assert.equal(getData.inputSchema.required, undefined, 'reading the whole document must stay the default')
   })
 
+  it('says what to do when asked for the suggestions of a list or a plain field', async () => {
+    // a judged run asked for the suggestions of the menu list itself and got the internal
+    // "missing items or getItems parameters", with nothing telling it to look at an item
+    const compiled = compile(arraySchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { items: [{ name: 'a' }] })
+    await assert.rejects(getFieldSuggestions.execute(layout, { path: '/items' }), (err) => {
+      const message = /** @type {Error} */(err).message
+      assert.match(message, /is a list/)
+      assert.match(message, /editArray/)
+      assert.doesNotMatch(message, /getItems parameters/)
+      return true
+    })
+    await assert.rejects(getFieldSuggestions.execute(layout, { path: '/items/0/name' }), /has no suggestions/)
+  })
+
   it('should have valid getFieldSuggestionsSchema', () => {
     assert.equal(getFieldSuggestions.inputSchema.type, 'object')
     assert.ok(getFieldSuggestions.inputSchema.properties.path)
@@ -1629,6 +1644,29 @@ describe('webmcp variant activation', () => {
     assert.equal(/** @type {any} */(result).activatedMarkdown, undefined)
   })
 
+  it('gives the discriminator value of each variant', () => {
+    // a judged run added a menu item as { type: 'free' } from the label « Page libre »:
+    // the value behind each label was nowhere, so the first add was refused and retried
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        link: {
+          type: 'object',
+          discriminator: { propertyName: 'type' },
+          oneOf: [
+            { title: 'Page standard', properties: { type: { const: 'standard' } }, required: ['type'] },
+            { title: 'Page libre', properties: { type: { const: 'generic' } }, required: ['type'] }
+          ]
+        }
+      }
+    }, { ajvOptions: { discriminator: true } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { link: { type: 'standard' } })
+    const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(markdown, /variant 0: Page standard \(type="standard"\) \(active\)/)
+    assert.match(markdown, /variant 1: Page libre \(type="generic"\)/)
+    assert.throws(() => setFieldValue.execute(layout, { path: '/link/$oneOf', value: 'generic' }), /variant 1: Page libre \(type="generic"\)/)
+  })
+
   it('should mark which variant is the active one', () => {
     // The list of variants and the branch's fields were printed as two unrelated things,
     // so which branch was live had to be inferred from the index in a child path. The
@@ -1637,13 +1675,13 @@ describe('webmcp variant activation', () => {
     // the question against a form that was answering it all along.
     const layout = layoutOf()
     const before = projectStateTreeToMarkdown(layout.stateTree, layout)
-    assert.match(before, /variant 0: Circle \(active\)/, 'the live branch must say so where the branches are listed')
-    assert.ok(!/variant 1: Rect \(active\)/.test(before), 'only the live branch is marked')
+    assert.match(before, /variant 0: Circle \(kind="circle"\) \(active\)/, 'the live branch must say so where the branches are listed')
+    assert.ok(!/variant 1: Rect \(kind="rect"\) \(active\)/.test(before), 'only the live branch is marked')
 
     setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
     const after = projectStateTreeToMarkdown(layout.stateTree, layout)
-    assert.match(after, /variant 1: Rect \(active\)/, 'the mark must follow the switch')
-    assert.ok(!/variant 0: Circle \(active\)/.test(after))
+    assert.match(after, /variant 1: Rect \(kind="rect"\) \(active\)/, 'the mark must follow the switch')
+    assert.ok(!/variant 0: Circle \(kind="circle"\) \(active\)/.test(after))
   })
 
   it('should put the activated fields in the tool text', async () => {
