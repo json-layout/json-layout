@@ -68,6 +68,8 @@ describe('report of the form sub-agent', () => {
     assert.match(prompt, /## Your report/)
     assert.match(prompt, /only what the tool results confirmed/)
     assert.match(prompt, /no emoji/)
+    // a run asked to link a page that was not offered linked another one and called it valid
+    assert.match(prompt, /never put another value in its place/)
     // the skill published to the lead is not a sub-agent: it gets no reporting rules
     const skillTool = /** @type {any} */(tools.find((t) => t.name === 'portalConfig_fillFormSkill'))
     assert.doesNotMatch((await skillTool.execute({})).content[0].text, /## Your report/)

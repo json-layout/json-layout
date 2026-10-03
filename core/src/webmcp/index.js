@@ -22,10 +22,12 @@ import { VariantsMemo } from './variants-memo.js'
 export const generateSkill = fillFormSkill.generateSkill
 
 // The sub-agent answers another agent, which relays to the person: judged runs had it claim a
-// setting it never applied (« scroll infini »), and write emoji, bold headings or prose
-// addressed to the person.
+// setting it never applied (« scroll infini »), link another page than the one asked for,
+// and write emoji, bold headings or prose addressed to the person.
 const SUB_AGENT_REPORT = `
 ## Your report
+
+If a value the task asks for is not accepted or not offered (a page missing from a field's suggestions, say), never put another value in its place: leave that field, and say in your report what could not be done and what the tools answered.
 
 End with a short report for the agent that delegated this task: what you changed, field by field with the values written, and whether the form is valid. Report only what the tool results confirmed, never a setting you did not write. Plain text, no emoji or headings, and do not address the person: the delegating agent talks to them.
 `
