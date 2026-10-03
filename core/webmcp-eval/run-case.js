@@ -224,7 +224,7 @@ export async function runCase (evalCase, options = {}) {
   // Compiling here costs a second or two but is what lets the runner be handed the same
   // guide and the same tool list the server will register — the pair a page's subagent
   // tool returns. A mismatch would grant a tool the guide never mentions, or the reverse.
-  const session = options.session ?? new EvalSession(variantCase, { variant })
+  const session = options.session ?? new EvalSession(variantCase)
   const args = buildLaunchArgs(variantCase, {
     model: requestedModel,
     skill: session.skill,

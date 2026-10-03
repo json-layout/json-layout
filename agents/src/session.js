@@ -374,8 +374,7 @@ Your edits stay in this session until you call ${prefix}saveForm, which persists
         dataTitle: this.title,
         prefixName: this._spec.prefixName,
         includeFillFormSkill: !!this._spec.includeFillFormSkill,
-        includeSubAgent: !!this._spec.includeSubAgent,
-        includeFormOverview: !!this._spec.includeFormOverview
+        includeSubAgent: !!this._spec.includeSubAgent
       })
       this._coreTools = new Map(this._webmcp.getTools().map((tool) => [tool.name, tool]))
       this._status = 'ready'

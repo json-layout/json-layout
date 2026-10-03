@@ -136,18 +136,6 @@ describe('webmcp eval session', () => {
     assert.match(session.skill, /describeState/)
   })
 
-  it('should append the static overview to the guide only in the overview variant', () => {
-    // The ablation is guide-only: the case, the tools and the server are the control. If
-    // this ever changed the case itself, the comparison would measure two variables.
-    const control = new EvalSession(getCase('contact'))
-    assert.ok(!control.skill.includes('Form structure'))
-    const variant = new EvalSession(getCase('contact'), { variant: 'overview' })
-    assert.match(variant.skill, /## Form structure/)
-    assert.match(variant.skill, /\/contactMethod/)
-    assert.deepEqual(variant.toolNames, control.toolNames)
-    assert.deepEqual(variant.data, control.data)
-  })
-
   it('should record the cost of every call', async () => {
     const session = new EvalSession(getCase('contact'))
     await session.call('getData', {})

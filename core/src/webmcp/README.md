@@ -79,15 +79,6 @@ offered, the validation keywords, now reaches the state tree instead: `format`, 
 `minLength`, `maxLength`, `minItems`, `maxItems` and `uniqueItems` are carried onto the
 skeleton node, because ajv enforces them and nothing else was telling the agent.
 
-**A static map can be generated, not fetched.** `includeFormOverview` appends to the guide an
-indented listing of the compiled skeleton and layouts: sections, closed lists, and the
-branches of a union that are not active yet — the one thing `describeState` cannot show before
-a branch is switched. It is generated from the same skeleton the form renders, never from a
-raw schema, so it works where `getSchema` could not. It is off by default and has no
-behavioural evidence yet: it costs prompt bytes on every turn, and
-`webmcp-eval/run-case.js --variant overview` is how the suite answers whether that cost buys
-better planning.
-
 **Large values are named, never truncated.** `<object, 12486 chars — call getData with this
 path to read it>`. A truncated value read as real would be forwarded to an API as a wrong
 value with nothing looking wrong; a marker fails loudly. `getData` itself is never abbreviated
