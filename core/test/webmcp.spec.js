@@ -1588,6 +1588,26 @@ describe('webmcp suggestions flag', () => {
     assert.ok(lineFor('picker').includes('values=["x","y"]'), `got: ${lineFor('picker')}`)
   })
 
+  it('gives the title of each option when it differs from its value', () => {
+    // a judged run told the person to pick « event-catalog »: the screen says « Catalogue
+    // d'événements », and the value was all the form tools showed
+    const subtypes = [['home', 'Accueil'], ['contact', 'Contact'], ['accessibility', 'Accessibilité'],
+      ['terms-of-service', "Conditions générales d'utilisation"], ['legal-notice', 'Mentions légales'],
+      ['privacy-policy', 'Politique de confidentialité'], ['cookie-policy', 'Politique de cookies'],
+      ['datasets', 'Catalogue de données'], ['applications', 'Catalogue de visualisations'],
+      ['reuses', 'Catalogue de réutilisations'], ['event-catalog', "Catalogue d'événements"],
+      ['news-catalog', "Catalogue d'actualités"], ['sitemap', 'Plan du site'], ['catalog-api-doc', "Documentation d'API"]]
+    const compiled = compile({
+      type: 'object',
+      properties: { subtype: { type: 'string', title: 'Type de page', oneOf: subtypes.map(([v, t]) => ({ const: v, title: t })) } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/subtype ')) ?? ''
+    assert.ok(line.includes('"event-catalog" (Catalogue d\'événements)'), line)
+    assert.ok(line.includes('"contact"'), line)
+    assert.ok(!line.includes('"contact" (Contact)'), 'a title that only differs in case adds nothing: ' + line)
+  })
+
   it('should keep the flag and getFieldSuggestions in agreement', async () => {
     // Whatever the projection promises, the tool must deliver. Not a biconditional any
     // more: a node whose options are stated outright still answers getFieldSuggestions, it
@@ -2338,7 +2358,8 @@ describe('webmcp closed lists stated instead of flagged', () => {
     })
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
     const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/metric ')) ?? ''
-    assert.match(line, /values=\["avg","sum"\]/)
+    // with their titles, which are what the person sees
+    assert.match(line, /values=\["avg" \(Moyenne\), "sum" \(Somme\)\]/)
     assert.ok(!line.includes('suggestions'), `the guide makes "suggestions" an order to fetch: ${line}`)
   })
 
@@ -2624,8 +2645,10 @@ describe('webmcp frictions of the portal-config-edit eval', () => {
     // each $slot-1 preview re-listed the whole config: 310 of 757 lines, ~83 KB
     const markdown = describeState.toMarkdown(portalLayout(), {})
     assert.ok(!/\$slot-\d+\/\w/.test(markdown), 'no field is listed below a slot')
-    // measured 82764 chars before, 55128 after: what is left are the real fields of 14 tabs
-    assert.ok(markdown.length < 60000, `the root description no longer repeats the config (${markdown.length} chars)`)
+    // measured 82764 chars before, 55128 after: what is left are the real fields of 14 tabs.
+    // Option titles beside their values then added ~6.6k (61731): what the person sees on
+    // screen, a run having relayed « event-catalog » for « Catalogue d'événements ».
+    assert.ok(markdown.length < 65000, `the root description no longer repeats the config (${markdown.length} chars)`)
   })
 
   it('opens a menu item shown as a summary when a path runs through it', () => {

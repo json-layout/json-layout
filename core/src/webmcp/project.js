@@ -39,6 +39,8 @@ export const REVEALED_PATHS_MAX = 10
  * and sortBy, sortOrder, color and strValue would each have cost another.
  */
 export const INLINE_ITEMS_MAX_LENGTH = 200
+/** Longest inlined list of options with their titles: the titles are what the person sees. */
+export const INLINE_TITLED_ITEMS_MAX_LENGTH = 600
 
 /**
  * The options of a node when they are already resolved, and short enough to say out loud.
@@ -57,6 +59,17 @@ function inlineItems (node) {
   // only a short scalar can be written straight back; an object value has to be applied by
   // suggestionIndex, so stating it would cost bytes and still leave the agent a lookup
   if (!values.every((v) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) return undefined
+  // The title is what the person sees: a judged run told the person to pick
+  // « event-catalog » where the screen says « Catalogue d'événements ».
+  const titled = items.map((item, i) => {
+    const title = item && typeof item === 'object' && typeof item.title === 'string' ? item.title : undefined
+    const value = JSON.stringify(values[i])
+    return title && title.toLowerCase() !== String(values[i]).toLowerCase() ? `${value} (${title})` : value
+  })
+  if (titled.some((t, i) => t !== JSON.stringify(values[i]))) {
+    const rendered = `[${titled.join(', ')}]`
+    if (rendered.length <= INLINE_TITLED_ITEMS_MAX_LENGTH) return rendered
+  }
   const rendered = JSON.stringify(values)
   return rendered.length <= INLINE_ITEMS_MAX_LENGTH ? rendered : undefined
 }
