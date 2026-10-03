@@ -6,6 +6,7 @@ import { StatefulLayout } from '../src/state/index.js'
 import * as setFieldValue from '../src/webmcp/tools/set-field-value.js'
 import * as setData from '../src/webmcp/tools/set-data.js'
 import * as editArray from '../src/webmcp/tools/edit-array.js'
+import { waitForSettled } from './utils/wait-for.js'
 
 // A form fills defaults into its data as soon as it opens. An application that saves
 // every data event as a draft then saves a change nobody made: the portals editor marked
@@ -48,6 +49,18 @@ describe('edit count of a stateful layout', () => {
   it('stays at 0 while the form fills its defaults', () => {
     const { layout, events } = open({ title: 'Portal' })
     assert.equal(events.at(-1).display, 'card')
+    assert.equal(layout.editCount, 0)
+  })
+
+  it('stays at 0 while a list fills itself from its items', async () => {
+    // the portals editor's topics list, filled from the account's topics, counted as an edit
+    const compiledLayout = compile({
+      type: 'object',
+      properties: { topics: { type: 'array', layout: { comp: 'list', items: ['sport', 'culture'] }, items: { type: 'string' } } }
+    })
+    const layout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {}, {})
+    await waitForSettled(layout)
+    assert.deepEqual(/** @type {any} */(layout.data).topics, ['sport', 'culture'])
     assert.equal(layout.editCount, 0)
   })
 

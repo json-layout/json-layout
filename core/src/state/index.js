@@ -170,6 +170,13 @@ export class StatefulLayout {
   _editCount = 0
 
   /**
+   * Set while the form fills a list from its fetched items: that input is not an edit.
+   * @private
+   * @type {boolean}
+   */
+  _autoFill = false
+
+  /**
    * How many edits were applied to the data: a person's input once it reaches the data
    * (after debounce), or inputData (form tools). What the form produces by itself (defaults,
    * items fetched for a list, data set from outside) does not count, so an application
@@ -387,7 +394,15 @@ export class StatefulLayout {
         const replaceData = isList && Array.isArray(listActions) && !listActions.includes('edit') && listEditMode !== 'inline'
         const data = produceListData(rawData, existingItems, items, preserveOrder, replaceData)
         logGetItems(node.fullKey, 'automatic get items, input produced data', data)
-        this.input(node, data)
+        // the form fills the list itself, this is not an edit (editCount). An edit still
+        // waiting for its debounce is applied first, so that it is counted.
+        this.applyDebouncedInput()
+        this._autoFill = true
+        try {
+          this.input(node, data)
+        } finally {
+          this._autoFill = false
+        }
       }, err => console.error('error fetching items', node.fullKey, err))
     }
   }
@@ -508,7 +523,7 @@ export class StatefulLayout {
     if (node.parentFullKey === null) {
       logDataBinding('update root state after input')
       // counted once per input, where it reaches the root data
-      this._editCount += 1
+      if (!this._autoFill) this._editCount += 1
       this._data = data
       this.updateState()
       return
