@@ -107,7 +107,7 @@ export function execute (statefulLayout, args) {
   // Same reason as setFieldValue: a written key can turn a condition true and unhide a
   // section that nothing else in the answer would mention.
   const visibleBefore = visibilitySnapshot(statefulLayout.stateTree.root)
-  statefulLayout.data = next
+  statefulLayout.inputData(next)
 
   // Computed after applying the data so the tree reflects it: a key that activates a
   // oneOf branch is only hydrated once written, and flagging it before would cry wolf.

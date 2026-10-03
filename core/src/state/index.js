@@ -147,10 +147,36 @@ export class StatefulLayout {
   }
 
   /**
+   * Replace the whole data as an edit: unlike the data setter, which syncs data owned by
+   * the application, it counts in editCount.
+   * @param {unknown} data
+   */
+  inputData (data) {
+    logDataBinding('apply main data input', data)
+    this._editCount += 1
+    this.data = data
+  }
+
+  /**
    * @private
    * @type {unknown}
    */
   _previousData
+
+  /**
+   * @private
+   * @type {number}
+   */
+  _editCount = 0
+
+  /**
+   * How many edits were applied to the data: a person's input once it reaches the data
+   * (after debounce), or inputData (form tools). What the form produces by itself (defaults,
+   * items fetched for a list, data set from outside) does not count, so an application
+   * saving drafts can save only when this moved.
+   * @returns {number}
+   */
+  get editCount () { return this._editCount }
 
   /**
    * @private
@@ -481,6 +507,8 @@ export class StatefulLayout {
     }
     if (node.parentFullKey === null) {
       logDataBinding('update root state after input')
+      // counted once per input, where it reaches the root data
+      this._editCount += 1
       this._data = data
       this.updateState()
       return
