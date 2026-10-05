@@ -162,7 +162,7 @@ export function nodeNotFoundError (statefulLayout, path) {
     return `/${child.key}${title ? ` ("${title}")` : ''}`
   })
   const hint = top.length ? ` The form starts with ${top.join(', ')}.` : ''
-  return new Error(`node not found at path: ${path}.${hint} Use a path listed by describeState, or the data path of a value as getData shows it.`)
+  return new Error(`node not found at path: ${path}.${hint} Use a path listed by describeState, or the data path of a value as getData shows it. What does not exist yet — an option not chosen, an item not added — is described by describeSchema at that same path.`)
 }
 
 /**

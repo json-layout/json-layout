@@ -7,6 +7,7 @@ import debug from 'debug'
 
 import * as describeState from './tools/describe-state.js'
 import * as openSection from './tools/open-section.js'
+import * as describeSchema from './tools/describe-schema.js'
 import * as setFieldValue from './tools/set-field-value.js'
 import * as setData from './tools/set-data.js'
 import * as getData from './tools/get-data.js'
@@ -266,6 +267,25 @@ export class WebMCP {
         execute: async (args) => {
           try {
             const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo, this._screen)
+            return {
+              content: [{ type: 'text', text }]
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            return {
+              content: [{ type: 'text', text: `Error: ${message}` }],
+              isError: true
+            }
+          }
+        }
+      },
+      {
+        name: this._toolName('describeSchema'),
+        description: describeSchema.getDescription(dataTitle),
+        inputSchema: describeSchema.inputSchema,
+        execute: async (args) => {
+          try {
+            const text = describeSchema.execute(this._statefulLayout, /** @type {{ path?: string }} */(args || {}))
             return {
               content: [{ type: 'text', text }]
             }
