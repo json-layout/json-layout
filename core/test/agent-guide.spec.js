@@ -94,7 +94,6 @@ describe('a sub-agent that only reads', () => {
       assert.ok(!readOnly.tools.includes(name), `${name} withheld`)
     }
     assert.ok(readOnly.tools.includes('portalConfig_describeState'))
-    assert.ok(readOnly.tools.includes('portalConfig_describeSchema'))
     const full = JSON.parse((await subAgent.execute({ task: 'x' })).content[0].text)
     assert.ok(full.tools.includes('portalConfig_setFieldValue'))
   })

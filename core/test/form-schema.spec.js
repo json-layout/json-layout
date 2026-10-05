@@ -135,14 +135,15 @@ describe('what a form can hold, whatever its state', () => {
     const overview = overviewOf(simpleSchema, {})
     assert.ok(!overview.includes('truncated'))
     const small = describeFormSchema(compile(simpleSchema), { maxLength: 60 })
-    assert.match(small, /truncated at 60 characters — call describeSchema with the path of a part/)
+    assert.match(small, /truncated at 60 characters — call describeState with the path of a part/)
   })
 })
 
 // Judged simulations of a portal editor: asked which menu link type to choose, the form
 // sub-agent could only read the type already chosen — describeState on another option answered
 // « node not found » five times in a row — and the assistant guessed the options and their
-// fields. describeSchema answers what the form can hold, at any path, whatever its state.
+// fields. describeState now also says what the form can hold beyond its state: the fields each
+// option of a choice brings, and what an option not chosen or an item not added would hold.
 const menuSchema = {
   type: 'object',
   layout: { comp: 'tabs', children: [{ title: 'Général', children: ['title'] }, { title: 'Navigation', children: ['menu'] }] },
@@ -188,22 +189,31 @@ describe('a form too large for the budget', () => {
     assert.match(text, /\/part0 /)
     assert.match(text, /\/part29 /, 'the last part is still listed')
     assert.doesNotMatch(text, /truncated/)
-    assert.match(text, /describeSchema/, 'it says how to see a part in full')
+    assert.match(text, /describeState/, 'it says how to see a part in full')
   })
 })
 
-describe('the describeSchema tool', () => {
-  it('describes every option of an empty list, with the fields each brings', async () => {
-    const text = await call(menuTools({ title: 'Portail', menu: [] }), 'p_describeSchema', {})
-    assert.match(text, /Titre/)
-    assert.match(text, /variant 0: Page standard/)
-    assert.match(text, /variant 1: Page libre — \{ pageRef\*: text, title: text \}/)
+describe('what describeState says the form can hold', () => {
+  it('has no separate tool for it', () => {
+    const tools = menuTools({ title: 'Portail', menu: [] })
+    assert.ok(!tools.some(tool => tool.name === 'p_describeSchema'))
+  })
+
+  it('lists each option of a choice with the fields it brings, and the values of a short choice', async () => {
+    const text = await call(menuTools({ title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] }), 'p_describeState', {})
+    assert.match(text, /variant 1: Page libre.* — \{ pageRef\*: text, title: text \}/)
+    // the values a person picks from, so that « a catalogue of events » can be named before choosing
+    assert.match(text, /variant 0: Page standard.* — \{ subtype\*: select \["home" \(Accueil\), "event-catalog" \(Catalogue d'événements\)\]/)
+  })
+
+  it('describes an item of a list still empty', async () => {
+    const text = await call(menuTools({ title: 'Portail', menu: [] }), 'p_describeState', { path: '/menu/0' })
+    assert.match(text, /not in the form yet/)
     assert.match(text, /variant 2: Lien — \{ href\*: text \}/)
   })
 
   it('details one option of a list item that does not exist yet', async () => {
-    const tools = menuTools({ title: 'Portail', menu: [] })
-    const text = await call(tools, 'p_describeSchema', { path: '/menu/0/$oneOf/0' })
+    const text = await call(menuTools({ title: 'Portail', menu: [] }), 'p_describeState', { path: '/menu/0/$oneOf/0' })
     assert.match(text, /\/menu\/0\/subtype \(select, required, values=.*\) label="Type de page"/)
     // every value of the choice, with the label a person sees: the one asked for must not hide
     // in a « +6 more »
@@ -212,47 +222,20 @@ describe('the describeSchema tool', () => {
   })
 
   it('details an option that is not the one chosen', async () => {
-    const tools = menuTools({ title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] })
-    const text = await call(tools, 'p_describeSchema', { path: '/menu/0/$oneOf/1' })
+    const text = await call(menuTools({ title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] }), 'p_describeState', { path: '/menu/0/$oneOf/1' })
+    assert.match(text, /not in the form yet/)
     assert.match(text, /\/menu\/0\/pageRef \(text, required\) label="Page"/)
   })
 
-  it('sends describeState on an option not chosen to describeSchema', async () => {
-    const tools = menuTools({ title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] })
-    const text = await call(tools, 'p_describeState', { path: '/menu/0/$oneOf/1' })
-    assert.match(text, /describeSchema/)
-  })
-})
-
-// The two other ways to offer a form's potential, kept to compare them in the eval harness:
-// no tool for it at all (what came before describeSchema), and describeState itself telling it.
-describe('the alternatives to describeSchema', () => {
-  const tools = (/** @type {any} */options, /** @type {any} */data) => {
+  it('names describeState, never a tool that is not there, in the guide and the errors', async () => {
     const compiled = compile(menuSchema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, data)
-    return new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_', includeSubAgent: true, ...options }).getTools()
-  }
-
-  it('without describeSchema, names no tool that is not there', async () => {
-    const t = tools({ describeSchema: false }, { title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] })
-    assert.ok(!t.some(tool => tool.name === 'p_describeSchema'))
-    const { prompt } = JSON.parse((await t.find(tool => tool.name === 'subagent_p_form').execute({ task: 'x' })).content[0].text)
-    assert.doesNotMatch(prompt, /describeSchema/)
-    const error = await call(t, 'p_describeState', { path: '/menu/0/$oneOf/1' })
-    assert.match(error, /node not found/)
-    assert.doesNotMatch(error, /describeSchema/)
-  })
-
-  it("with the potential in describeState, lists each option's fields and describes one not chosen", async () => {
-    const t = tools({ describeSchema: false, statePotential: true }, { title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] })
-    assert.ok(!t.some(tool => tool.name === 'p_describeSchema'))
-    const whole = await call(t, 'p_describeState', {})
-    assert.match(whole, /variant 1: Page libre.* — \{ pageRef\*: text, title: text \}/)
-    const other = await call(t, 'p_describeState', { path: '/menu/0/$oneOf/1' })
-    assert.match(other, /not in the form yet/)
-    assert.match(other, /\/menu\/0\/pageRef \(text, required\) label="Page"/)
-    const { prompt } = JSON.parse((await t.find(tool => tool.name === 'subagent_p_form').execute({ task: 'x' })).content[0].text)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { title: 'Portail', menu: [] })
+    const tools = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_', includeSubAgent: true }).getTools()
+    const { prompt } = JSON.parse((await /** @type {any} */(tools.find(tool => tool.name === 'subagent_p_form')).execute({ task: 'x' })).content[0].text)
     assert.match(prompt, /describeState on a branch not chosen/)
     assert.doesNotMatch(prompt, /describeSchema/)
+    const error = await call(tools, 'p_setFieldValue', { path: '/nope', value: 1 })
+    assert.match(error, /node not found/)
+    assert.doesNotMatch(error, /describeSchema/)
   })
 })

@@ -288,14 +288,14 @@ const menuContext = {
 }
 
 /**
- * Choosing among options none of which is chosen yet: the case describeSchema was made for.
+ * Choosing among options none of which is chosen yet: what describeState's account of a form's
+ * potential is for.
  *
  * An agenda that lists every event is the « Catalogue d'événements » page type of a « Page
  * standard » item — one of 14 values of a field that only exists once that option is chosen.
  * The tempting wrong answers are the « Page d'événements » option (a link to one event, and
  * the context has one) and « Page libre ». Judged portal simulations got this wrong when the
- * agent could only read the option already chosen. Compared under the variants that offer the
- * form's potential through describeSchema, through describeState, or not at all.
+ * agent could only read the option already chosen.
  * @type {EvalCase}
  */
 const portalMenuCatalog = {

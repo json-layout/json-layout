@@ -17,6 +17,7 @@
 import { isItemsLayout } from '@json-layout/vocabulary'
 
 import { compToType } from './project.js'
+import { resolveNode } from './resolve.js'
 
 /** Levels of nested objects expanded as bullets before a node is rendered as an inline shape. */
 export const OVERVIEW_MAX_DEPTH = 3
@@ -29,6 +30,9 @@ const MAX_VALUES_IN_DETAIL = 50
 
 /** Values of a closed list stated before the rest is elided. */
 const MAX_VALUES = 8
+
+/** Values of a closed list stated in an inline shape: beyond, the shape only says its type. */
+const MAX_SHAPE_VALUES = 6
 
 /** Fields named in an inline `{ a*, b }` shape before the rest is elided. */
 const MAX_SHAPE_FIELDS = 6
@@ -81,7 +85,7 @@ export function describeFormSchema (compiledLayout, options = {}) {
     if (!truncated) {
       return depth === OVERVIEW_MAX_DEPTH
         ? text
-        : `${text}\n(shown ${depth + 1} level(s) deep to fit — call describeSchema with the path of a part to see it in full)`
+        : `${text}\n(shown ${depth + 1} level(s) deep to fit — call describeState with the path of a part to see it in full)`
     }
     if (depth === 0) return text
   }
@@ -196,6 +200,19 @@ function renderFormSchema (compiledLayout, options) {
     return undefined
   }
 
+  /**
+   * The values of a closed list, with the label a person sees next to the value written when
+   * they differ.
+   * @param {Array<{ value: unknown, title: string | undefined }>} values
+   * @returns {string}
+   */
+  const valuesList = (values) => {
+    const titled = values.some(v => v.title !== undefined && v.title !== String(v.value))
+    return titled
+      ? `[${values.map(v => `${JSON.stringify(v.value)}${v.title !== undefined && v.title !== String(v.value) ? ` (${v.title})` : ''}`).join(', ')}]`
+      : JSON.stringify(values.map(v => v.value))
+  }
+
   // A part asked for by path is shown with every value of its choices: the one asked for hid
   // in a « +6 more » (« Catalogue d'événements » of a portal menu's « Type de page »).
   const maxValues = options.pointer ? MAX_VALUES_IN_DETAIL : MAX_VALUES
@@ -209,12 +226,7 @@ function renderFormSchema (compiledLayout, options) {
     if (values) {
       const shown = values.slice(0, maxValues)
       const rest = values.length > maxValues ? ` (+${values.length - maxValues} more)` : ''
-      // the label a person sees, next to the value written, when they differ
-      const titled = shown.some(v => v.title !== undefined && v.title !== String(v.value))
-      const list = titled
-        ? `[${shown.map(v => `${JSON.stringify(v.value)}${v.title !== undefined && v.title !== String(v.value) ? ` (${v.title})` : ''}`).join(', ')}]`
-        : JSON.stringify(shown.map(v => v.value))
-      return [`values=${list}${rest}`]
+      return [`values=${valuesList(shown)}${rest}`]
     }
     if (comp.getItems) return ['suggestions']
     return []
@@ -287,7 +299,12 @@ function renderFormSchema (compiledLayout, options) {
       const itemRoot = itemTree && trees[itemTree]?.root
       return itemRoot ? `array of ${shapeOf(itemRoot, branchSeen)}` : 'array'
     }
-    if (!isObjectish(node, comp)) return typeOf(comp)
+    if (!isObjectish(node, comp)) {
+      // a short choice is told with its values: an option is chosen for what it lets pick
+      const values = closedValues(comp)
+      if (values?.length && values.length <= MAX_SHAPE_VALUES) return `${typeOf(comp)} ${valuesList(values)}`
+      return typeOf(comp)
+    }
 
     /** @type {string[]} */
     const required = []
@@ -312,7 +329,7 @@ function renderFormSchema (compiledLayout, options) {
     if (shape.length <= MAX_INLINE_SHAPE_LENGTH) return shape
     const node = nodes[pointer]
     const count = (node?.children ?? []).filter(child => compOf(child)?.comp !== 'none').length
-    return `${count} fields, describeSchema on this path to see them`
+    return `${count} fields, describeState on this path to see them`
   }
 
   /**
@@ -428,7 +445,7 @@ function renderFormSchema (compiledLayout, options) {
 
   const overview = lines.join('\n')
   if (!truncated) return { text: overview, truncated }
-  return { text: `${overview}\n… (truncated at ${maxLength} characters — call describeSchema with the path of a part to see it whole)`, truncated }
+  return { text: `${overview}\n… (truncated at ${maxLength} characters — call describeState with the path of a part to see it whole)`, truncated }
 }
 
 /**
@@ -447,4 +464,69 @@ export function variantShapes (compiledLayout, pointer) {
     if (match) shapes[match[1]] = match[2]
   }
   return shapes
+}
+
+/**
+ * @param {string} path
+ * @returns {string[]}
+ */
+const segmentsOf = (path) => path.split('/').filter(Boolean)
+
+/**
+ * The skeleton node a path designates, and its data path. The live state answers as far as it
+ * exists; the rest of the path is followed in the compiled skeleton: a list index leads to the
+ * item's shape, "$oneOf" to the choice between options, a number after it to one option.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path
+ * @returns {{ pointer: string, path: string, variant?: number }}
+ */
+export function resolveSchemaPath (statefulLayout, path) {
+  const compiled = statefulLayout.compiledLayout
+  const nodes = compiled.skeletonNodes
+  const trees = compiled.skeletonTrees
+  const segments = segmentsOf(path)
+  // the longest prefix the live state knows
+  let known = segments.length
+  let stateNode
+  for (; known > 0; known--) {
+    stateNode = resolveNode(statefulLayout.stateTree.root, '/' + segments.slice(0, known).join('/'))
+    if (stateNode) break
+  }
+  stateNode = stateNode ?? statefulLayout.stateTree.root
+  let pointer = stateNode.skeleton.pointer
+  let dataPath = stateNode.dataPath || '/'
+  /** @type {number | undefined} */
+  let variant
+  const join = (/** @type {string} */ key) => (dataPath === '/' ? `/${key}` : `${dataPath}/${key}`)
+  for (const segment of segments.slice(known)) {
+    const node = nodes[pointer]
+    const layout = /** @type {any} */(compiled.normalizedLayouts[pointer])
+    const isSelector = !!(layout && (Array.isArray(layout.oneOfItems) || layout.comp === 'one-of-select'))
+    if (variant !== undefined) {
+      // inside one option: continue in its branch
+      const branchRoot = trees[/** @type {string} */(node.childrenTrees?.[variant])]?.root
+      if (!branchRoot) throw new Error(`no option ${variant} at this path`)
+      pointer = branchRoot
+      variant = undefined
+    }
+    if (isSelector && /^\d+$/.test(segment)) {
+      if (!node.childrenTrees?.[Number(segment)]) throw new Error(`there is no option ${segment} at this path: describeState on the choice lists them`)
+      variant = Number(segment)
+      continue
+    }
+    const current = nodes[pointer]
+    if (/^\d+$/.test(segment) && current.childrenTrees?.length && !isSelector) {
+      // an item of a list, whether it exists or not: the shape of its items
+      const itemRoot = trees[current.childrenTrees[0]]?.root
+      if (!itemRoot) throw new Error(`no item shape at ${path}`)
+      pointer = itemRoot
+      dataPath = join(segment)
+      continue
+    }
+    const child = (current.children ?? []).find((/** @type {string} */childPointer) => String(nodes[childPointer]?.key) === segment)
+    if (!child) throw new Error(`"${segment}" is not a part of the form at this path`)
+    pointer = child
+    if (!segment.startsWith('$')) dataPath = join(segment)
+  }
+  return { pointer, path: dataPath, variant }
 }

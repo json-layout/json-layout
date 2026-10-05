@@ -60,7 +60,6 @@ export const TOOL_NAMES = [
   'getData',
   'setData',
   'describeState',
-  'describeSchema',
   'openSection',
   'setFieldValue',
   'getFieldSuggestions',

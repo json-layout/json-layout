@@ -7,7 +7,6 @@ import debug from 'debug'
 
 import * as describeState from './tools/describe-state.js'
 import * as openSection from './tools/open-section.js'
-import * as describeSchema from './tools/describe-schema.js'
 import * as setFieldValue from './tools/set-field-value.js'
 import * as setData from './tools/set-data.js'
 import * as getData from './tools/get-data.js'
@@ -88,11 +87,6 @@ function parseIfJsonString (value) {
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
  * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
- * @property {boolean} [describeSchema] - Register describeSchema, which describes what the form can
- * hold whatever its state (default: true)
- * @property {boolean} [statePotential] - Have describeState itself describe what options not chosen
- * and items not added would hold (default: false). An alternative to describeSchema, kept to
- * compare the two in the eval harness
  * @property {boolean} [screen] - The form is on a person's screen (default: true). Without one
  * (a server-side session) there is no open tab to tell, open or reveal, and no openSection tool
  */
@@ -134,12 +128,6 @@ export class WebMCP {
   /** @private */
   _screen = true
 
-  /** @private */
-  _describeSchema = true
-
-  /** @private */
-  _statePotential = false
-
   /**
    * @type {string[]}
    */
@@ -171,32 +159,6 @@ export class WebMCP {
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
     this._screen = options.screen ?? true
-    this._describeSchema = options.describeSchema ?? true
-    this._statePotential = options.statePotential ?? false
-  }
-
-  /**
-   * Which tool the guide names for what the form can hold beyond its state.
-   * @private
-   * @returns {'schema' | 'state' | 'none'}
-   */
-  _potentialMode () {
-    if (this._describeSchema) return 'schema'
-    return this._statePotential ? 'state' : 'none'
-  }
-
-  /**
-   * An error's text, its pointer to describeSchema adapted to the tools registered.
-   * @private
-   * @param {unknown} err
-   * @returns {string}
-   */
-  _errorMessage (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    if (this._describeSchema) return message
-    const replacement = this._statePotential ? ' is described by describeState at that same path.' : ''
-    return message.replace(/ What does not exist yet — an option not chosen, an item not added — is described by describeSchema at that same path\./,
-      replacement ? ` What does not exist yet — an option not chosen, an item not added —${replacement}` : '')
   }
 
   /**
@@ -218,7 +180,7 @@ export class WebMCP {
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen, potential: this._potentialMode() })
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen })
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
@@ -228,7 +190,7 @@ export class WebMCP {
               content: [{ type: 'text', text: skill }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -255,7 +217,7 @@ export class WebMCP {
               content: [{ type: 'text', text: JSON.stringify(result) }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -293,7 +255,7 @@ export class WebMCP {
               content: [{ type: 'text', text }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -303,35 +265,16 @@ export class WebMCP {
       },
       {
         name: this._toolName('describeState'),
-        description: describeState.getDescription(dataTitle, this._screen, this._statePotential),
+        description: describeState.getDescription(dataTitle, this._screen),
         inputSchema: describeState.inputSchema,
         execute: async (args) => {
           try {
-            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo, this._screen, this._statePotential)
+            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo, this._screen)
             return {
               content: [{ type: 'text', text }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
-            return {
-              content: [{ type: 'text', text: `Error: ${message}` }],
-              isError: true
-            }
-          }
-        }
-      },
-      {
-        name: this._toolName('describeSchema'),
-        description: describeSchema.getDescription(dataTitle),
-        inputSchema: describeSchema.inputSchema,
-        execute: async (args) => {
-          try {
-            const text = describeSchema.execute(this._statefulLayout, /** @type {{ path?: string }} */(args || {}))
-            return {
-              content: [{ type: 'text', text }]
-            }
-          } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -353,7 +296,7 @@ export class WebMCP {
               content: [{ type: 'text', text }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -396,7 +339,7 @@ export class WebMCP {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -428,7 +371,7 @@ export class WebMCP {
               content: [{ type: 'text', text: formatSuggestions(suggestions, blockedOn) }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -467,7 +410,7 @@ export class WebMCP {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
             }
           } catch (err) {
-            const message = this._errorMessage(err)
+            const message = err instanceof Error ? err.message : String(err)
             return {
               content: [{ type: 'text', text: `Error: ${message}` }],
               isError: true
@@ -479,11 +422,10 @@ export class WebMCP {
 
     // with no screen there is no tab to open
     if (!this._screen) tools.splice(tools.findIndex(t => t.name === this._toolName('openSection')), 1)
-    if (!this._describeSchema) tools.splice(tools.findIndex(t => t.name === this._toolName('describeSchema')), 1)
 
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen, potential: this._potentialMode() }) + SUB_AGENT_REPORT
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen }) + SUB_AGENT_REPORT
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,

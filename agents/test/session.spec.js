@@ -136,7 +136,6 @@ describe('FormSession tools', () => {
       'getData',
       'setData',
       'describeState',
-      'describeSchema',
       'setFieldValue',
       'getFieldSuggestions',
       'editArray',
