@@ -23,11 +23,18 @@ export function getDescription (dataTitle) {
  * conventions and traps — knowledge json-layout cannot derive from the schema itself.
  * @param {string} dataTitle
  * @param {string} prefixName
- * @param {{ guide?: string }} [options]
+ * @param {{ guide?: string, screen?: boolean }} [options] - screen: false for a form edited with no
+ * screen, whose guide says nothing of open tabs
  * @returns {string}
  */
 export function generateSkill (dataTitle, prefixName, options = {}) {
-  const { guide } = options
+  const { guide, screen = true } = options
+  // a form edited with no screen (a server-side session) has no open tab to tell or change
+  const sections = screen
+    ? `A form laid out in tabs or steps shows one at a time: describeState marks the one on the person's screen (open), and writing a field opens the one that holds it and says what is now on screen. To show the person another part of the form without changing it, call ${prefixName}openSection with its path or the path of a field it holds.
+
+`
+    : ''
   const about = typeof guide === 'string' && guide.trim()
     ? `
 
@@ -51,7 +58,7 @@ A field shown as (variant-selector) chooses between shapes rather than between v
 
 To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.
 
-${prefixName}getData returns the data document itself, whole or one part of it by path, for when you need the values rather than a description of them.
+${sections}${prefixName}getData returns the data document itself, whole or one part of it by path, for when you need the values rather than a description of them.
 
 The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are only counted.
 `

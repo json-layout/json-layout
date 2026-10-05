@@ -18,10 +18,12 @@ export const inputSchema = {
 
 /**
  * @param {string} dataTitle
+ * @param {boolean} [screen] - false for a form edited with no screen
  * @returns {string}
  */
-export function getDescription (dataTitle) {
-  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form. Of tabs or steps, the one on screen is marked (open); writing a field opens the one that holds it.`
+export function getDescription (dataTitle, screen = true) {
+  const sections = screen ? ' Of tabs or steps, the one on screen is marked (open); writing a field opens the one that holds it.' : ''
+  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form.${sections}`
 }
 
 /**
@@ -30,9 +32,10 @@ export function getDescription (dataTitle) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - updated, not consulted:
  * a read is what the agent asked to see, so every union under it is listed in full, and the
  * memo is what later writes use to avoid repeating those lists
+ * @param {boolean} [screen] - false for a form edited with no screen: no section is "open"
  * @returns {string}
  */
-export function toMarkdown (statefulLayout, args, variantsMemo) {
+export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
   const listed = new VariantsMemo()
 
   if (args.path) {
@@ -42,14 +45,14 @@ export function toMarkdown (statefulLayout, args, variantsMemo) {
     }
     const { errors, otherErrors } = collectScopedErrors(statefulLayout, node)
     const markdown = formatMutationResult(statefulLayout.valid, errors,
-      projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed),
+      projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen),
       otherErrors
     )
     variantsMemo?.merge(listed)
     return markdown
   }
 
-  const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed)
+  const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed, screen)
   variantsMemo?.merge(listed)
   return markdown
 }

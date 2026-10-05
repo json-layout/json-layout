@@ -6,6 +6,7 @@
 import debug from 'debug'
 
 import * as describeState from './tools/describe-state.js'
+import * as openSection from './tools/open-section.js'
 import * as setFieldValue from './tools/set-field-value.js'
 import * as setData from './tools/set-data.js'
 import * as getData from './tools/get-data.js'
@@ -82,6 +83,8 @@ function parseIfJsonString (value) {
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
  * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
+ * @property {boolean} [screen] - The form is on a person's screen (default: true). Without one
+ * (a server-side session) there is no open tab to tell, open or reveal, and no openSection tool
  */
 
 /**
@@ -118,6 +121,9 @@ export class WebMCP {
    */
   _includeSubAgent = false
 
+  /** @private */
+  _screen = true
+
   /**
    * @type {string[]}
    */
@@ -148,6 +154,7 @@ export class WebMCP {
     this._dataTitle = options.dataTitle || 'form'
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
+    this._screen = options.screen ?? true
   }
 
   /**
@@ -169,7 +176,7 @@ export class WebMCP {
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide })
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen })
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
@@ -254,11 +261,33 @@ export class WebMCP {
       },
       {
         name: this._toolName('describeState'),
-        description: describeState.getDescription(dataTitle),
+        description: describeState.getDescription(dataTitle, this._screen),
         inputSchema: describeState.inputSchema,
         execute: async (args) => {
           try {
-            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo)
+            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo, this._screen)
+            return {
+              content: [{ type: 'text', text }]
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            return {
+              content: [{ type: 'text', text: `Error: ${message}` }],
+              isError: true
+            }
+          }
+        }
+      },
+      {
+        name: this._toolName('openSection'),
+        description: openSection.getDescription(dataTitle),
+        inputSchema: openSection.inputSchema,
+        execute: async (args) => {
+          try {
+            if (!args?.path) {
+              throw new Error('path is required')
+            }
+            const text = openSection.execute(this._statefulLayout, /** @type {{ path: string }} */(args))
             return {
               content: [{ type: 'text', text }]
             }
@@ -301,7 +330,7 @@ export class WebMCP {
             if (result.activatedMarkdown) {
               fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
             }
-            fieldInfo += revealWritten(this._statefulLayout, result.field.path)
+            if (this._screen) fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
             }
@@ -372,7 +401,7 @@ export class WebMCP {
             if (result.itemMarkdown) {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }
-            actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
+            if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
             }
@@ -387,9 +416,12 @@ export class WebMCP {
       }
     )
 
+    // with no screen there is no tab to open
+    if (!this._screen) tools.splice(tools.findIndex(t => t.name === this._toolName('openSection')), 1)
+
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide }) + SUB_AGENT_REPORT
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen }) + SUB_AGENT_REPORT
       tools.push({
         name: `subagent_${this._toolName('form')}`,
         description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,

@@ -109,3 +109,36 @@ describe('open sections of tabbed containers', () => {
     assert.match(added.content[0].text, /now on screen: « Barre de navigation » > « Menu »/)
   })
 })
+
+describe('the tool that opens a section', () => {
+  it('opens the section of a path and says what is on screen', async () => {
+    const layout = makeLayout()
+    const tools = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_' }).getTools()
+    const openSection = /** @type {any} */(tools.find(t => t.name === 'p_openSection'))
+    assert.ok(openSection, 'an openSection tool')
+    // by a section's own path, as describeState lists it
+    let result = await openSection.execute({ path: '/$comp-2/$comp-2' })
+    assert.match(result.content[0].text, /now on screen: « Barre de navigation » > « Menu »/)
+    assert.equal(layout.activeSectionIndex(layout.stateTree.root), 1)
+    // by the data path of a field
+    result = await openSection.execute({ path: '/title' })
+    assert.match(result.content[0].text, /now on screen: « Général »/)
+    result = await openSection.execute({ path: '/title' })
+    assert.match(result.content[0].text, /already on screen: « Général »/)
+    // nothing to open
+    result = await openSection.execute({ path: '/nope' })
+    assert.equal(result.isError, true)
+  })
+})
+
+describe('the guide of the form tools', () => {
+  it('says how the tabs and steps on screen are told and opened', () => {
+    const layout = makeLayout()
+    const tools = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_', includeFillFormSkill: true }).getTools()
+    const skill = /** @type {any} */(tools.find(t => t.name === 'p_fillFormSkill'))
+    return skill.execute({}).then((/** @type {any} */result) => {
+      assert.match(result.content[0].text, /p_openSection/)
+      assert.match(result.content[0].text, /\(open\)/)
+    })
+  })
+})

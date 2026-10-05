@@ -144,6 +144,16 @@ describe('FormSession tools', () => {
     ])
   })
 
+  it('should say nothing of a screen it does not have', async () => {
+    // tabs and the tool that opens them are about the person's screen; a session has none
+    const session = makeSession()
+    await session.open()
+    const tools = session.getTools()
+    assert.ok(!tools.some((t) => t.name === 'openSection'))
+    const describe = /** @type {any} */(tools.find((t) => t.name === 'describeState'))
+    assert.doesNotMatch(describe.description, /screen/)
+  })
+
   it('should give the fill-form skill of its schema, with the schema\'s agent guide', async () => {
     // openapi-mcp publishes this as the MCP skill of an editor group: until now it could
     // only say "Tools: …", the core skill builder not being public

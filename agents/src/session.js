@@ -288,7 +288,7 @@ export class FormSession {
       throw sessionError('open the session before asking for its skill', 'closed')
     }
     const prefix = this._spec.prefixName ?? ''
-    const skill = generateSkill(this.title, prefix, { guide: this._layout.compiledLayout.agentGuide })
+    const skill = generateSkill(this.title, prefix, { guide: this._layout.compiledLayout.agentGuide, screen: false })
     return `${skill.trimEnd()}
 
 ## Saving
@@ -374,7 +374,9 @@ Your edits stay in this session until you call ${prefix}saveForm, which persists
         dataTitle: this.title,
         prefixName: this._spec.prefixName,
         includeFillFormSkill: !!this._spec.includeFillFormSkill,
-        includeSubAgent: !!this._spec.includeSubAgent
+        includeSubAgent: !!this._spec.includeSubAgent,
+        // edited server-side: there is no person's screen with tabs to open
+        screen: false
       })
       this._coreTools = new Map(this._webmcp.getTools().map((tool) => [tool.name, tool]))
       this._status = 'ready'
