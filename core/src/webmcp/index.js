@@ -23,9 +23,14 @@ export const generateSkill = fillFormSkill.generateSkill
 
 // The sub-agent answers another agent, which relays to the person: judged runs had it claim a
 // setting it never applied (« scroll infini »), link another page than the one asked for,
-// and write emoji, bold headings or prose addressed to the person.
+// and write emoji, bold headings or prose addressed to the person. Others edited the form
+// under a describe-only task, and said which tab was open, which no tool shows.
 const SUB_AGENT_REPORT = `
 ## Your report
+
+If the task asks you only to describe or read the form, call no tool that writes: an edit undone is still a change of the form, and the person would have a draft to validate.
+
+You do not see the screen: never say which tab, card or preview is open or visible, only what the form state shows.
 
 If a value the task asks for is not accepted or not offered (a page missing from a field's suggestions, say), never put another value in its place: leave that field, and say in your report what could not be done and what the tools answered.
 

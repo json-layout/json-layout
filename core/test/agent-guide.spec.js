@@ -70,6 +70,10 @@ describe('report of the form sub-agent', () => {
     assert.match(prompt, /no emoji/)
     // a run asked to link a page that was not offered linked another one and called it valid
     assert.match(prompt, /never put another value in its place/)
+    // judged runs: a sub-agent told « ne modifie rien » added and removed a menu row, which
+    // left a draft to validate; and three said which tab was open, which no tool shows
+    assert.match(prompt, /call no tool that writes/)
+    assert.match(prompt, /You do not see the screen/)
     // the skill published to the lead is not a sub-agent: it gets no reporting rules
     const skillTool = /** @type {any} */(tools.find((t) => t.name === 'portalConfig_fillFormSkill'))
     assert.doesNotMatch((await skillTool.execute({})).content[0].text, /## Your report/)
