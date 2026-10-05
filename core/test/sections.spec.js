@@ -3,7 +3,7 @@ import { describe, it } from 'node:test'
 
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
-import { WebMCP } from '../src/webmcp/index.js'
+import { WebMCP, generateSkill } from '../src/webmcp/index.js'
 import { projectStateTreeToMarkdown } from '../src/webmcp/project.js'
 
 // The open tab of a form lived in the rendering components only. Judged simulations of a portal
@@ -140,5 +140,16 @@ describe('the guide of the form tools', () => {
       assert.match(result.content[0].text, /p_openSection/)
       assert.match(result.content[0].text, /\(open\)/)
     })
+  })
+})
+
+// Judged eval runs: an agent chose a datasets catalogue for « a block with a search field »,
+// saw its filters empty in the response, stopped there, and told the person a search field was
+// included.
+describe('the guide on what a choice sets', () => {
+  it('says a chosen branch only holds its defaults, and that a report says what the data holds', () => {
+    const skill = generateSkill('page', 'p_')
+    assert.match(skill, /only fills its defaults/)
+    assert.match(skill, /say only what the data now holds/)
   })
 })

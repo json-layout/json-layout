@@ -128,6 +128,6 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     errors,
     otherErrors,
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
-    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, variantsMemo) } : {})
+    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, variantsMemo, undefined, true) } : {})
   }
 }

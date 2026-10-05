@@ -113,7 +113,7 @@ export function execute (statefulLayout, args, variantsMemo) {
   if (args.action === 'add') {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
-      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo)
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo, undefined, true)
     }
   }
 

@@ -31,8 +31,11 @@ const MAX_VALUES_IN_DETAIL = 50
 /** Values of a closed list stated before the rest is elided. */
 const MAX_VALUES = 8
 
-/** Values of a closed list stated in an inline shape: beyond, the shape only says its type. */
-const MAX_SHAPE_VALUES = 6
+/**
+ * Values of a closed list stated in an inline shape: beyond, the shape only says its type. A
+ * portal menu entry's 14 page types are what tells its options apart.
+ */
+const MAX_SHAPE_VALUES = 16
 
 /** Fields named in an inline `{ a*, b }` shape before the rest is elided. */
 const MAX_SHAPE_FIELDS = 6

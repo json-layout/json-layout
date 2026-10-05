@@ -227,6 +227,32 @@ describe('what describeState says the form can hold', () => {
     assert.match(text, /\/menu\/0\/pageRef \(text, required\) label="Page"/)
   })
 
+  it('lists the fields of each option where a choice appears after a write', async () => {
+    // judged eval runs: the options of a menu entry added by editArray were listed by title
+    // only, and the agent chose « Page d'événements » (one event) for an agenda of all events
+    const tools = menuTools({ title: 'Portail', menu: [] })
+    const added = await call(tools, 'p_editArray', { path: '/menu', action: 'add' })
+    assert.match(added, /variant 1: Page libre.* — \{ pageRef\*: text, title: text \}/)
+  })
+
+  it('tells the values of a choice of up to 16 in an option\'s fields', () => {
+    const subtypes = Array.from({ length: 14 }, (_, i) => ({ const: `t${i}`, title: `Type ${i}` }))
+    const schema = {
+      type: 'object',
+      properties: {
+        item: {
+          type: 'object',
+          oneOf: [
+            { title: 'Standard', properties: { type: { const: 'standard' }, subtype: { type: 'string', oneOf: subtypes } } },
+            { title: 'Other', properties: { type: { const: 'other' } } }
+          ]
+        }
+      }
+    }
+    const text = overviewOf(schema)
+    assert.match(text, /variant 0: Standard — \{ .*subtype: select \["t0" \(Type 0\), .*"t13" \(Type 13\)\]/)
+  })
+
   it('names describeState, never a tool that is not there, in the guide and the errors', async () => {
     const compiled = compile(menuSchema)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { title: 'Portail', menu: [] })
