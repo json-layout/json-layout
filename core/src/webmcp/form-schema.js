@@ -430,3 +430,21 @@ function renderFormSchema (compiledLayout, options) {
   if (!truncated) return { text: overview, truncated }
   return { text: `${overview}\n… (truncated at ${maxLength} characters — call describeSchema with the path of a part to see it whole)`, truncated }
 }
+
+/**
+ * The fields each option of a choice brings, keyed by option, as describeFormSchema shapes
+ * them. For describeState when it is asked to say what options not chosen hold.
+ * @param {import('../compile/index.js').CompiledLayout} compiledLayout
+ * @param {string} pointer - the skeleton node of the variant selector
+ * @returns {Record<string, string>}
+ */
+export function variantShapes (compiledLayout, pointer) {
+  /** @type {Record<string, string>} */
+  const shapes = {}
+  const text = describeFormSchema(compiledLayout, { pointer, path: '/', maxDepth: OVERVIEW_MAX_DEPTH })
+  for (const line of text.split('\n')) {
+    const match = line.match(/^\s*- variant (\d+): .*? — (.+)$/)
+    if (match) shapes[match[1]] = match[2]
+  }
+  return shapes
+}

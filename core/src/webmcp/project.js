@@ -3,6 +3,7 @@
  */
 
 import { SECTION_CONTAINERS } from '../state/index.js'
+import { variantShapes } from './form-schema.js'
 import { isItemsLayout } from '@json-layout/vocabulary'
 
 import { visibleChildren, resolveNode } from './resolve.js'
@@ -427,9 +428,10 @@ export function projectFieldResult (node, statefulLayout) {
  * @param {import('./variants-memo.js').VariantsMemo} [variantsMemo] - when given, a variant
  * list already printed for the same schema node is replaced by a pointer back to it
  * @param {boolean} [screen] - false for a form edited with no screen: no section is "open"
+ * @param {boolean} [potential] - list the fields each option of a choice brings, chosen or not
  * @returns {string}
  */
-export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root), variantsMemo, screen = true) {
+export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root), variantsMemo, screen = true, potential = false) {
   const indent = '  '.repeat(depth)
   const type = compToType[node.layout.comp] || node.layout.comp
   const layout = /** @type {Record<string, unknown>} */(node.layout)
@@ -515,8 +517,10 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     const listedAt = variantsMemo?.listedAt(node.skeleton.pointer)
     if (listedAt === undefined) {
       variantsMemo?.record(node.skeleton.pointer, path)
+      const shapes = potential ? variantShapes(statefulLayout.compiledLayout, node.skeleton.pointer) : {}
       for (const v of variants) {
-        lines.push(`${indent}  - variant ${v.key}: ${variantTitle(node, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}`)
+        const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
+        lines.push(`${indent}  - variant ${v.key}: ${variantTitle(node, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}${shape}`)
       }
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
@@ -533,7 +537,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
   const openIndex = screen && SECTION_CONTAINERS.includes(node.layout.comp) ? statefulLayout.activeSectionIndex(node) : undefined
   const openKey = openIndex !== undefined ? node.children?.[openIndex]?.fullKey : undefined
   for (const child of children) {
-    const childMarkdown = projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath, variantsMemo, screen)
+    const childMarkdown = projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath, variantsMemo, screen, potential)
     lines.push(child.fullKey === openKey ? childMarkdown.replace(/^([^\n]*)/, '$1 (open)') : childMarkdown)
   }
 
@@ -563,9 +567,10 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {import('./variants-memo.js').VariantsMemo} [variantsMemo]
  * @param {boolean} [screen]
+ * @param {boolean} [potential]
  * @returns {string}
  */
-export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsMemo, screen = true) {
+export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsMemo, screen = true, potential = false) {
   const errors = collectErrors(statefulLayout)
   const validLine = stateTree.valid
     ? 'valid: true, no errors'
@@ -582,7 +587,7 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsM
   }
 
   lines.push('Fields:')
-  lines.push(projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen))
+  lines.push(projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen, potential))
 
   return lines.join('\n')
 }

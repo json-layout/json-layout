@@ -23,6 +23,8 @@ export type EvalCase = {
    * union, and compiling it without xI18n leaves the state tree unable to settle.
    */
   compileOptions?: Record<string, unknown>
+  /** WebMCP options a variant sets, to compare tool configurations on the same case. */
+  webmcpOptions?: { describeSchema?: boolean, statePotential?: boolean }
   /**
    * Whether the page hands WebMCP the source schema, which is what decides if a
    * getSchema tool exists at all. Defaults to true. The portals page does not: its

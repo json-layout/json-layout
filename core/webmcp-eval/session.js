@@ -52,7 +52,18 @@ export const DEFAULT_DATA_FAIR_URL = 'https://koumoul.com/data-fair/'
  * x-agent-guide: the same case with that annotation removed, so a guided case can be
  * compared with the tools alone.
  */
-export const VARIANTS = ['default', 'no-guide']
+export const VARIANTS = ['default', 'no-guide', 'no-describe-schema', 'state-potential']
+
+/**
+ * The WebMCP options of the variants that compare ways of telling what a form can hold
+ * beyond its state: `no-describe-schema` offers none (the tools before describeSchema),
+ * `state-potential` has describeState itself tell it instead of a separate tool.
+ * @type {Record<string, Record<string, boolean>>}
+ */
+const VARIANT_WEBMCP_OPTIONS = {
+  'no-describe-schema': { describeSchema: false },
+  'state-potential': { describeSchema: false, statePotential: true }
+}
 
 /**
  * @param {EvalCase} evalCase
@@ -65,6 +76,9 @@ export function applyVariant (evalCase, variant) {
     // the control for the schema's x-agent-guide: the same case, its guide removed
     const { 'x-agent-guide': _guide, 'x-i18n-x-agent-guide': _i18nGuide, ...schema } = evalCase.schema
     return { ...evalCase, schema }
+  }
+  if (VARIANT_WEBMCP_OPTIONS[variant]) {
+    return { ...evalCase, webmcpOptions: { ...evalCase.webmcpOptions, ...VARIANT_WEBMCP_OPTIONS[variant] } }
   }
   // The 'no-schema' and 'overview' variants were retired. Everything else is a typo and must
   // be refused rather than silently run as the control.
@@ -133,11 +147,13 @@ export class EvalSession {
     // No fillFormSkill tool: production pages enable includeSubAgent, which hands the
     // guide to the runner as its prompt. Clean runners never called the tool anyway —
     // only ones contaminated by a "always invoke a skill first" instruction did.
-    const webmcp = new WebMCP(this._layout, { dataTitle: evalCase.title })
+    const webmcpOptions = evalCase.webmcpOptions ?? {}
+    const webmcp = new WebMCP(this._layout, { dataTitle: evalCase.title, ...webmcpOptions })
     this._tools = webmcp.getTools()
     // The same pair the subagent tool returns to a page: the guide, and the tools it
     // describes. The launcher injects them; nothing here is a tool the runner can call.
-    this._skill = generateSkill(evalCase.title, '', { guide: compiled.agentGuide })
+    const potential = webmcpOptions.describeSchema === false ? (webmcpOptions.statePotential ? 'state' : 'none') : 'schema'
+    this._skill = generateSkill(evalCase.title, '', { guide: compiled.agentGuide, potential })
   }
 
   /** @returns {import('@mcp-b/webmcp-types').ToolDescriptor[]} */

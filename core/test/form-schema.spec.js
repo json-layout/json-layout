@@ -223,3 +223,36 @@ describe('the describeSchema tool', () => {
     assert.match(text, /describeSchema/)
   })
 })
+
+// The two other ways to offer a form's potential, kept to compare them in the eval harness:
+// no tool for it at all (what came before describeSchema), and describeState itself telling it.
+describe('the alternatives to describeSchema', () => {
+  const tools = (/** @type {any} */options, /** @type {any} */data) => {
+    const compiled = compile(menuSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, data)
+    return new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_', includeSubAgent: true, ...options }).getTools()
+  }
+
+  it('without describeSchema, names no tool that is not there', async () => {
+    const t = tools({ describeSchema: false }, { title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] })
+    assert.ok(!t.some(tool => tool.name === 'p_describeSchema'))
+    const { prompt } = JSON.parse((await t.find(tool => tool.name === 'subagent_p_form').execute({ task: 'x' })).content[0].text)
+    assert.doesNotMatch(prompt, /describeSchema/)
+    const error = await call(t, 'p_describeState', { path: '/menu/0/$oneOf/1' })
+    assert.match(error, /node not found/)
+    assert.doesNotMatch(error, /describeSchema/)
+  })
+
+  it("with the potential in describeState, lists each option's fields and describes one not chosen", async () => {
+    const t = tools({ describeSchema: false, statePotential: true }, { title: 'Portail', menu: [{ type: 'standard', subtype: 'home' }] })
+    assert.ok(!t.some(tool => tool.name === 'p_describeSchema'))
+    const whole = await call(t, 'p_describeState', {})
+    assert.match(whole, /variant 1: Page libre.* — \{ pageRef\*: text, title: text \}/)
+    const other = await call(t, 'p_describeState', { path: '/menu/0/$oneOf/1' })
+    assert.match(other, /not in the form yet/)
+    assert.match(other, /\/menu\/0\/pageRef \(text, required\) label="Page"/)
+    const { prompt } = JSON.parse((await t.find(tool => tool.name === 'subagent_p_form').execute({ task: 'x' })).content[0].text)
+    assert.match(prompt, /describeState on a branch not chosen/)
+    assert.doesNotMatch(prompt, /describeSchema/)
+  })
+})
