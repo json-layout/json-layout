@@ -253,6 +253,20 @@ const matchDataPathError = (error, dataPath) => {
 }
 
 /**
+ * should match if an error raised by validating a child's data alone is the same as an error of the whole data
+ * @param {import('ajv').ErrorObject} childError
+ * @param {import('ajv').ErrorObject} error
+ * @param {string} dataPath the data path of the child
+ * @returns {boolean}
+ */
+const matchSameAdditionalError = (childError, error, dataPath) => {
+  return childError.keyword === error.keyword &&
+    dataPath + childError.instancePath === error.instancePath &&
+    childError.params?.additionalProperty === error.params?.additionalProperty &&
+    childError.params?.unevaluatedProperty === error.params?.unevaluatedProperty
+}
+
+/**
  * should match if an error belongs to a child of the current node but the child was not displayed
  * @param {import('ajv').ErrorObject} error
  * @param {string} pointer1
@@ -644,6 +658,15 @@ export function createStateNode (
       })
 
       if (context.additionalPropertiesErrors?.length) {
+        // while the active child is invalid, the errors it raises itself cannot always be told by their schema path:
+        // a shared definition (a $ref) does not point inside the child, as a nested object's after a switch of option
+        /** @type {import('ajv').ErrorObject[] | undefined} */
+        let activeChildErrors
+        if (validChildTreeIndex === -1) {
+          const validateActiveChild = compiledLayout.validates[activeChildTree.refPointer]
+          validateActiveChild(data)
+          activeChildErrors = validateActiveChild.errors ?? []
+        }
         // exclude the additional properties errors from the other children
         context.additionalPropertiesErrors = context.additionalPropertiesErrors?.filter(error => {
           // keep errors from other parts of the data
@@ -654,7 +677,8 @@ export function createStateNode (
           if (matchChildError(compiledLayout, error, skeleton, dataPath, parentDataPath) && !matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) return false
           // ignore unevaluatedProperties errors from higher level that can be triggered because the active element is not yet valid
           // TODO: should the last check include comparing with activeChildNode.propertyKeys ?
-          if (validChildTreeIndex === -1) return false
+          // the errors the active child raises on its own are kept, not those of a higher level
+          if (activeChildErrors) return activeChildErrors.some(childError => matchSameAdditionalError(childError, error, dataPath))
           return true
         })
       }
