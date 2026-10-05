@@ -1,0 +1,111 @@
+import { strict as assert } from 'node:assert'
+import { describe, it } from 'node:test'
+
+import { compile } from '../src/compile/index.js'
+import { StatefulLayout } from '../src/state/index.js'
+import { WebMCP } from '../src/webmcp/index.js'
+import { projectStateTreeToMarkdown } from '../src/webmcp/project.js'
+
+// The open tab of a form lived in the rendering components only. Judged simulations of a portal
+// editor: the form sub-agent said a tab was open that was not, the assistant could not tell the
+// person where its change showed, and people asked to see a change before saving went looking
+// for it. The layout now knows which section of a tabbed container is open, the tools say it,
+// and a tool's write opens the section that shows it.
+
+const schema = {
+  type: 'object',
+  layout: {
+    comp: 'vertical-tabs',
+    children: [
+      { title: 'Général', children: ['title'] },
+      {
+        title: 'Barre de navigation',
+        comp: 'tabs',
+        children: [
+          { title: 'Options', children: ['navColor'] },
+          { title: 'Menu', children: ['menu'] }
+        ]
+      }
+    ]
+  },
+  properties: {
+    title: { type: 'string', title: 'Titre' },
+    navColor: { type: 'string', title: 'Couleur' },
+    menu: { type: 'array', title: 'Éléments du menu', items: { type: 'object', properties: { label: { type: 'string', title: 'Libellé' } } } }
+  }
+}
+
+/** @param {Record<string, any>} [options] */
+const makeLayout = (options = {}) => {
+  const compiled = compile(schema)
+  return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], options, { title: 'Portail', navColor: 'primary', menu: [] })
+}
+
+/**
+ * @param {any} layout
+ * @param {string} title
+ */
+const section = (layout, title) => {
+  /** @type {any[]} */
+  const stack = [layout.stateTree.root]
+  while (stack.length) {
+    const node = stack.pop()
+    if (node.children?.some((/** @type {any} */child) => child.layout.title === title)) return node
+    stack.push(...(node.children ?? []))
+  }
+  throw new Error(`no section holds "${title}"`)
+}
+
+describe('open sections of tabbed containers', () => {
+  it('opens the first visible section by default, and keeps a section chosen', () => {
+    const calls = /** @type {any[]} */([])
+    const layout = makeLayout({ onSections: (/** @type {any} */sections) => calls.push(sections) })
+    const root = layout.stateTree.root
+    assert.equal(layout.activeSectionIndex(root), 0)
+    layout.activateSection(root, 1)
+    assert.equal(layout.activeSectionIndex(root), 1)
+    assert.deepEqual(calls.at(-1), { [root.fullKey]: 1 })
+    // choosing the open section again is not a change
+    layout.activateSection(root, 1)
+    assert.equal(calls.length, 1)
+  })
+
+  it('reveals a field by opening every section that contains it', () => {
+    const layout = makeLayout()
+    const menuNode = section(layout, 'Menu').children[1].children[0]
+    const opened = layout.revealNode(menuNode.fullKey)
+    assert.deepEqual(opened, ['Barre de navigation', 'Menu'])
+    assert.equal(layout.activeSectionIndex(layout.stateTree.root), 1)
+    assert.equal(layout.activeSectionIndex(section(layout, 'Menu')), 1)
+    // already in view: nothing to open
+    assert.deepEqual(layout.revealNode(menuNode.fullKey), [])
+  })
+
+  it('says which section is open when describing the form', () => {
+    const layout = makeLayout()
+    let text = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(text, /Général.*\(open\)/)
+    assert.doesNotMatch(text, /Barre de navigation.*\(open\)/)
+    layout.activateSection(layout.stateTree.root, 1)
+    text = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(text, /Barre de navigation.*\(open\)/)
+    assert.match(text, /Options.*\(open\)/)
+  })
+
+  it('opens the section of a field a tool writes, and says it is now on screen', async () => {
+    const layout = makeLayout()
+    const webmcp = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_' })
+    const tools = webmcp.getTools()
+    const setFieldValue = /** @type {any} */(tools.find(t => t.name === 'p_setFieldValue'))
+    const result = await setFieldValue.execute({ path: '/navColor', value: 'secondary' })
+    const text = result.content[0].text
+    assert.equal(layout.activeSectionIndex(layout.stateTree.root), 1)
+    assert.match(text, /now on screen: « Barre de navigation » > « Options »/)
+    // a field already on screen: nothing said
+    const again = await setFieldValue.execute({ path: '/navColor', value: 'primary' })
+    assert.doesNotMatch(again.content[0].text, /now on screen/)
+    const editArray = /** @type {any} */(tools.find(t => t.name === 'p_editArray'))
+    const added = await editArray.execute({ path: '/menu', action: 'add' })
+    assert.match(added.content[0].text, /now on screen: « Barre de navigation » > « Menu »/)
+  })
+})

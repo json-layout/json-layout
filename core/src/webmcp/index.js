@@ -30,12 +30,27 @@ const SUB_AGENT_REPORT = `
 
 If the task asks you only to describe or read the form, call no tool that writes: an edit undone is still a change of the form, and the person would have a draft to validate.
 
-You do not see the screen: never say which tab, card or preview is open or visible, only what the form state shows.
+You do not see the screen: of what is visible, say only which section describeState marks (open), or which one a write reports as now on screen — never what a card or a preview shows.
 
 If a value the task asks for is not accepted or not offered (a page missing from a field's suggestions, say), never put another value in its place: leave that field, and say in your report what could not be done and what the tools answered.
 
 End with a short report for the agent that delegated this task: what you changed, field by field with the values written, and whether the form is valid. Report only what the tool results confirmed, never a setting you did not write. Plain text, no emoji or headings, and do not address the person: the delegating agent talks to them.
 `
+
+/**
+ * Open the sections that contain what a tool just wrote, so that the person sees it, and say
+ * so: the delegating agent can then tell the person where to look. Only the tools do this, a
+ * person's own edit never moves them to another tab.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path
+ * @returns {string}
+ */
+function revealWritten (statefulLayout, path) {
+  const node = resolveNode(statefulLayout.stateTree.root, path)
+  if (!node) return ''
+  if (!statefulLayout.revealNode(node.fullKey).length) return ''
+  return `\nnow on screen: ${statefulLayout.sectionTitles(node.fullKey).map(title => `« ${title} »`).join(' > ')}`
+}
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -286,6 +301,7 @@ export class WebMCP {
             if (result.activatedMarkdown) {
               fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
             }
+            fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
             }
@@ -356,6 +372,7 @@ export class WebMCP {
             if (result.itemMarkdown) {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }
+            actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
             }

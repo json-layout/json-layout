@@ -2,6 +2,7 @@
  * @file Projection functions for webmcp tools
  */
 
+import { SECTION_CONTAINERS } from '../state/index.js'
 import { isItemsLayout } from '@json-layout/vocabulary'
 
 import { visibleChildren, resolveNode } from './resolve.js'
@@ -526,9 +527,13 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     }
   }
 
-  // recurse children
+  // recurse children; in a container that shows one section at a time, say which one is open:
+  // the sub-agent told people a tab was open that was not, having no way to know
+  const openIndex = SECTION_CONTAINERS.includes(node.layout.comp) ? statefulLayout.activeSectionIndex(node) : undefined
+  const openKey = openIndex !== undefined ? node.children?.[openIndex]?.fullKey : undefined
   for (const child of children) {
-    lines.push(projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath, variantsMemo))
+    const childMarkdown = projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath, variantsMemo)
+    lines.push(child.fullKey === openKey ? childMarkdown.replace(/^([^\n]*)/, '$1 (open)') : childMarkdown)
   }
 
   // fields known from the skeleton but not hydrated in the state tree, skipped on a node fed by

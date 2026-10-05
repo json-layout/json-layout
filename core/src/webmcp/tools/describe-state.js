@@ -21,7 +21,7 @@ export const inputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form.`
+  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form. Of tabs or steps, the one on screen is marked (open); writing a field opens the one that holds it.`
 }
 
 /**
