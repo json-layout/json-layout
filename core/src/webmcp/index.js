@@ -54,6 +54,10 @@ function revealWritten (statefulLayout, path) {
   return `\nnow on screen: ${statefulLayout.sectionTitles(node.fullKey).map(title => `« ${title} »`).join(' > ')}`
 }
 
+const READ_ONLY_TASK = `
+This task is read-only: you have no tool that writes, describe what the form holds and can hold.
+`
+
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
 const log = debug('jl:webmcp')
@@ -448,11 +452,19 @@ export class WebMCP {
         inputSchema: {
           type: 'object',
           properties: {
-            task: { type: 'string', description: 'The task to delegate to this sub-agent' }
+            task: { type: 'string', description: 'The task to delegate to this sub-agent' },
+            readOnly: { type: 'boolean', description: 'true when the task only reads or describes the form: the sub-agent then gets no tool that writes, so it cannot change the form by accident.' }
           },
           required: ['task']
         },
-        execute: async () => {
+        execute: async (args) => {
+          // A rule in the prompt did not stop sub-agents told « ne modifie rien » from adding and
+          // removing a menu row, which left a draft to validate: a read-only task gets no writes.
+          if (args?.readOnly) {
+            const writing = ['setData', 'setFieldValue', 'editArray'].map(name => this._toolName(name))
+            const config = { prompt: prompt + READ_ONLY_TASK, tools: toolNames.filter(name => !writing.includes(name)) }
+            return { content: [{ type: 'text', text: JSON.stringify(config) }] }
+          }
           const config = { prompt, tools: toolNames }
           return {
             content: [{ type: 'text', text: JSON.stringify(config) }]

@@ -79,3 +79,23 @@ describe('report of the form sub-agent', () => {
     assert.doesNotMatch((await skillTool.execute({})).content[0].text, /## Your report/)
   })
 })
+
+describe('a sub-agent that only reads', () => {
+  it('gets no tool that writes when its task is declared read-only', async () => {
+    // judged runs: a sub-agent told « ne modifie rien » added and removed a menu row anyway,
+    // twice, which left a draft to validate; a rule in its prompt did not stop it
+    const compiled = compile(guidedSchema, { locale: 'en' })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const tools = new WebMCP(layout, { dataTitle: 'portal configuration', prefixName: 'portalConfig_', includeSubAgent: true }).getTools()
+    const subAgent = /** @type {any} */(tools.find((t) => t.name === 'subagent_portalConfig_form'))
+    assert.ok(subAgent.inputSchema.properties.readOnly, 'the delegating agent can declare it')
+    const readOnly = JSON.parse((await subAgent.execute({ task: 'x', readOnly: true })).content[0].text)
+    for (const name of ['portalConfig_setData', 'portalConfig_setFieldValue', 'portalConfig_editArray']) {
+      assert.ok(!readOnly.tools.includes(name), `${name} withheld`)
+    }
+    assert.ok(readOnly.tools.includes('portalConfig_describeState'))
+    assert.ok(readOnly.tools.includes('portalConfig_describeSchema'))
+    const full = JSON.parse((await subAgent.execute({ task: 'x' })).content[0].text)
+    assert.ok(full.tools.includes('portalConfig_setFieldValue'))
+  })
+})
