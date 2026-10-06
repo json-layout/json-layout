@@ -253,6 +253,23 @@ describe('what describeState says the form can hold', () => {
     assert.match(text, /variant 0: Standard — \{ .*subtype: select \["t0" \(Type 0\), .*"t13" \(Type 13\)\]/)
   })
 
+  it('refuses to add an item whose type is none of the options, and names them', async () => {
+    // judged portal runs: the sub-agent added menu rows as { type: 'free' } and
+    // { type: 'free-page' }, left an item in error and an incomplete form, then chose the option
+    const compiled = compile(menuSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { title: 'Portail', menu: [] })
+    const tools = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_' }).getTools()
+    const editArray = /** @type {any} */(tools.find(t => t.name === 'p_editArray'))
+    const refused = await editArray.execute({ path: '/menu', action: 'add', value: { type: 'free' } })
+    assert.equal(refused.isError, true)
+    assert.match(refused.content[0].text, /"standard", "generic", "external"/)
+    assert.equal((/** @type {any} */(layout.data).menu ?? []).length, 0, 'nothing added')
+    // a known type is still accepted
+    const added = await editArray.execute({ path: '/menu', action: 'add', value: { type: 'generic' } })
+    assert.ok(!added.isError)
+    assert.equal(/** @type {any} */(layout.data).menu[0].type, 'generic')
+  })
+
   it('names describeState, never a tool that is not there, in the guide and the errors', async () => {
     const compiled = compile(menuSchema)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { title: 'Portail', menu: [] })
