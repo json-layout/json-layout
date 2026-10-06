@@ -428,7 +428,7 @@ export class WebMCP {
       const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen }) + SUB_AGENT_REPORT
       tools.push({
         name: `subagent_${this._toolName('form')}`,
-        description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,
+        description: `Delegate a task on the "${dataTitle}" form to a specialized sub-agent: filling it, or describing it. For a task that only describes or explains the form (its fields, the options of a choice, what is on screen), pass readOnly: true, so that it cannot change the form.`,
         inputSchema: {
           type: 'object',
           properties: {

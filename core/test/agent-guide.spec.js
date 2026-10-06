@@ -97,4 +97,14 @@ describe('a sub-agent that only reads', () => {
     const full = JSON.parse((await subAgent.execute({ task: 'x' })).content[0].text)
     assert.ok(full.tools.includes('portalConfig_setFieldValue'))
   })
+
+  it('is offered as read-only by the description of the tool that delegates to it', () => {
+    // judged runs: the assistant asked the sub-agent four times to describe the menu, never
+    // with readOnly, and twice the sub-agent wrote to the form anyway
+    const compiled = compile(guidedSchema, { locale: 'en' })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const tools = new WebMCP(layout, { dataTitle: 'portal configuration', prefixName: 'portalConfig_', includeSubAgent: true }).getTools()
+    const subAgent = /** @type {any} */(tools.find((t) => t.name === 'subagent_portalConfig_form'))
+    assert.match(subAgent.description, /readOnly: true/)
+  })
 })
