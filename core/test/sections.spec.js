@@ -81,6 +81,15 @@ describe('open sections of tabbed containers', () => {
     assert.deepEqual(layout.revealNode(menuNode.fullKey), [])
   })
 
+  it('calls vertical tabs tabs: where they show is the rendering\'s, not the layout\'s', () => {
+    // a judged run read « vertical-tabs » and sent the person looking for a vertical list; the
+    // portal editor shows them as a row of tabs above the form
+    const layout = makeLayout()
+    const text = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(text, /^- \/ \(tabs/m)
+    assert.doesNotMatch(text, /vertical/)
+  })
+
   it('says which section is open when describing the form', () => {
     const layout = makeLayout()
     let text = projectStateTreeToMarkdown(layout.stateTree, layout)

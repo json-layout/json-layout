@@ -232,7 +232,9 @@ export const compToType = {
   slider: 'slider',
   'file-input': 'file',
   slot: 'slot',
-  'composite-slot': 'composite-slot'
+  'composite-slot': 'composite-slot',
+  // where vertical tabs show is the rendering's: the portal editor shows them as a row above the form
+  'vertical-tabs': 'tabs'
 }
 
 /**
