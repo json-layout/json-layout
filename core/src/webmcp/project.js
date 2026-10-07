@@ -2,6 +2,8 @@
  * @file Projection functions for webmcp tools
  */
 
+import { SECTION_CONTAINERS } from '../state/index.js'
+import { variantShapes } from './form-schema.js'
 import { isItemsLayout } from '@json-layout/vocabulary'
 
 import { visibleChildren, resolveNode } from './resolve.js'
@@ -39,6 +41,8 @@ export const REVEALED_PATHS_MAX = 10
  * and sortBy, sortOrder, color and strValue would each have cost another.
  */
 export const INLINE_ITEMS_MAX_LENGTH = 200
+/** Longest inlined list of options with their titles: the titles are what the person sees. */
+export const INLINE_TITLED_ITEMS_MAX_LENGTH = 600
 
 /**
  * The options of a node when they are already resolved, and short enough to say out loud.
@@ -57,6 +61,17 @@ function inlineItems (node) {
   // only a short scalar can be written straight back; an object value has to be applied by
   // suggestionIndex, so stating it would cost bytes and still leave the agent a lookup
   if (!values.every((v) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) return undefined
+  // The title is what the person sees: a judged run told the person to pick
+  // « event-catalog » where the screen says « Catalogue d'événements ».
+  const titled = items.map((item, i) => {
+    const title = item && typeof item === 'object' && typeof item.title === 'string' ? item.title : undefined
+    const value = JSON.stringify(values[i])
+    return title && title.toLowerCase() !== String(values[i]).toLowerCase() ? `${value} (${title})` : value
+  })
+  if (titled.some((t, i) => t !== JSON.stringify(values[i]))) {
+    const rendered = `[${titled.join(', ')}]`
+    if (rendered.length <= INLINE_TITLED_ITEMS_MAX_LENGTH) return rendered
+  }
   const rendered = JSON.stringify(values)
   return rendered.length <= INLINE_ITEMS_MAX_LENGTH ? rendered : undefined
 }
@@ -217,7 +232,9 @@ export const compToType = {
   slider: 'slider',
   'file-input': 'file',
   slot: 'slot',
-  'composite-slot': 'composite-slot'
+  'composite-slot': 'composite-slot',
+  // where vertical tabs show is the rendering's: the portal editor shows them as a row above the form
+  'vertical-tabs': 'tabs'
 }
 
 /**
@@ -341,6 +358,24 @@ export function suggestionsSource (node) {
 }
 
 /**
+ * The title of a variant of a union, with the discriminator value behind it when the union
+ * has one: a judged run added a menu item as { type: 'free' } from the label « Page libre »,
+ * the value ('generic') being written nowhere.
+ * @param {import('../state/types.js').StateNode} node - the union's $oneOf node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {{ key: number, title: string }} variant
+ * @returns {string}
+ */
+export function variantTitle (node, statefulLayout, variant) {
+  const discriminator = node.skeleton.discriminator
+  const tree = node.skeleton.childrenTrees?.[variant.key]
+  const value = discriminator !== undefined && tree !== undefined
+    ? statefulLayout.compiledLayout.skeletonTrees[tree]?.discriminatorValue
+    : undefined
+  return value === undefined ? variant.title : `${variant.title} (${discriminator}=${JSON.stringify(value)})`
+}
+
+/**
  * Whether this node can actually answer getFieldSuggestions.
  *
  * isItemsLayout only says the component KIND is items-based; it is true of a plain array
@@ -394,9 +429,11 @@ export function projectFieldResult (node, statefulLayout) {
  * @param {Record<string, string>} [errorsByPath] - computed on the root node when not given
  * @param {import('./variants-memo.js').VariantsMemo} [variantsMemo] - when given, a variant
  * list already printed for the same schema node is replaced by a pointer back to it
+ * @param {boolean} [screen] - false for a form edited with no screen: no section is "open"
+ * @param {boolean} [potential] - list the fields each option of a choice brings, chosen or not
  * @returns {string}
  */
-export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root), variantsMemo) {
+export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root), variantsMemo, screen = true, potential = false) {
   const indent = '  '.repeat(depth)
   const type = compToType[node.layout.comp] || node.layout.comp
   const layout = /** @type {Record<string, unknown>} */(node.layout)
@@ -482,8 +519,10 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     const listedAt = variantsMemo?.listedAt(node.skeleton.pointer)
     if (listedAt === undefined) {
       variantsMemo?.record(node.skeleton.pointer, path)
+      const shapes = potential ? variantShapes(statefulLayout.compiledLayout, node.skeleton.pointer) : {}
       for (const v of variants) {
-        lines.push(`${indent}  - variant ${v.key}: ${v.title}${v.key === activeKey ? ' (active)' : ''}`)
+        const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
+        lines.push(`${indent}  - variant ${v.key}: ${variantTitle(node, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}${shape}`)
       }
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
@@ -495,9 +534,13 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     }
   }
 
-  // recurse children
+  // recurse children; in a container that shows one section at a time, say which one is open:
+  // the sub-agent told people a tab was open that was not, having no way to know
+  const openIndex = screen && SECTION_CONTAINERS.includes(node.layout.comp) ? statefulLayout.activeSectionIndex(node) : undefined
+  const openKey = openIndex !== undefined ? node.children?.[openIndex]?.fullKey : undefined
   for (const child of children) {
-    lines.push(projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath, variantsMemo))
+    const childMarkdown = projectNodeToMarkdown(child, statefulLayout, depth + 1, errorsByPath, variantsMemo, screen, potential)
+    lines.push(child.fullKey === openKey ? childMarkdown.replace(/^([^\n]*)/, '$1 (open)') : childMarkdown)
   }
 
   // fields known from the skeleton but not hydrated in the state tree, skipped on a node fed by
@@ -525,9 +568,11 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @param {import('../state/types.js').StateTree} stateTree
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {import('./variants-memo.js').VariantsMemo} [variantsMemo]
+ * @param {boolean} [screen]
+ * @param {boolean} [potential]
  * @returns {string}
  */
-export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsMemo) {
+export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsMemo, screen = true, potential = false) {
   const errors = collectErrors(statefulLayout)
   const validLine = stateTree.valid
     ? 'valid: true, no errors'
@@ -544,7 +589,7 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsM
   }
 
   lines.push('Fields:')
-  lines.push(projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo))
+  lines.push(projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen, potential))
 
   return lines.join('\n')
 }

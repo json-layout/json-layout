@@ -99,6 +99,16 @@ describe('internationalization', () => {
     assert.equal(statefulLayout.stateTree.root.error, 'must be >= 0')
   })
 
+  it('names the menu of a list item\'s actions in every locale', () => {
+    // the button opening a row's actions (edit, duplicate, delete…) is an icon: without a
+    // name, neither a screen reader nor an assistant guiding the person can point to it
+    for (const [locale, expected] of [['fr', 'Actions'], ['en', 'Actions'], ['de', 'Aktionen'], ['nl', 'Acties']]) {
+      const compiledLayout = compile({ type: 'array', items: { type: 'string' }, layout: { comp: 'list' } }, { locale })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, [])
+      assert.equal(statefulLayout.stateTree.root.messages.actions, expected, locale)
+    }
+  })
+
   it('should overwrite non-compilation time messages on a state node', async () => {
     const compiledLayout = compile({
       type: 'object',

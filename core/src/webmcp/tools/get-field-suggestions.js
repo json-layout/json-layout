@@ -53,6 +53,15 @@ export async function execute (statefulLayout, args, store) {
     return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
   }
 
+  // the state layer would throw "missing items or getItems parameters": say instead what
+  // the agent can do, a list being the usual mistake (the suggestions belong to its items)
+  if (!(node.layout.items ?? node.layout.getItems)) {
+    if (node.layout.comp === 'list') {
+      throw new Error(`${args.path} is a list, it has no suggestions itself: add an item with editArray, then ask for the suggestions of the item's field (describeState lists the fields that have suggestions)`)
+    }
+    throw new Error(`${args.path} has no suggestions: describeState lists the fields that have them, give this one a value with setFieldValue`)
+  }
+
   const rawItems = await statefulLayout.getItems(node, args.query)
 
   const items = rawItems

@@ -525,7 +525,8 @@ for (const compileMode of ['runtime', 'build-time']) {
         fetch: statefulLayout.stateTree.root.options.fetch,
         onData: statefulLayout.stateTree.root.options.onData,
         onUpdate: statefulLayout.stateTree.root.options.onUpdate,
-        onAutofocus: statefulLayout.stateTree.root.options.onAutofocus
+        onAutofocus: statefulLayout.stateTree.root.options.onAutofocus,
+        onSections: statefulLayout.stateTree.root.options.onSections
       })
       assert.deepEqual(statefulLayout.stateTree.root.children?.[0].options, {
         opt0: 'Opt 0',
@@ -555,7 +556,8 @@ for (const compileMode of ['runtime', 'build-time']) {
         fetch: statefulLayout.stateTree.root.options.fetch,
         onData: statefulLayout.stateTree.root.children?.[0].options.onData,
         onUpdate: statefulLayout.stateTree.root.children?.[0].options.onUpdate,
-        onAutofocus: statefulLayout.stateTree.root.children?.[0].options.onAutofocus
+        onAutofocus: statefulLayout.stateTree.root.children?.[0].options.onAutofocus,
+        onSections: statefulLayout.stateTree.root.children?.[0].options.onSections
       })
     })
 

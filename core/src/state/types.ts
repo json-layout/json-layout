@@ -131,6 +131,8 @@ export type StateNodeOptions = Required<StateNodeOptionsBase & {
   onData: (data: any) => void
   onUpdate: (statefulLayout: StatefulLayout) => void
   onAutofocus: (key: string) => void
+  // which child of a tabs, vertical-tabs or stepper container is open, by its full key
+  onSections: (activeSections: Record<string, number>) => void
   noStateCache: boolean
 }>
 

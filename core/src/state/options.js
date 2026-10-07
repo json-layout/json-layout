@@ -34,6 +34,7 @@ export function fillOptions (partialOptions, compiledLayout) {
     onAutofocus: () => {},
     onUpdate: () => {},
     onData: () => {},
+    onSections: () => {},
     noStateCache: false,
     ...partialOptions,
     messages

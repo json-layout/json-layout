@@ -142,4 +142,39 @@ describe('Management of additional properties', () => {
     assert.ok(statefulLayout.valid)
     assert.deepEqual(statefulLayout.data, { obj1: { str1: 'str1' }, obj2: { str1: 'str1', str2: 'str2' } })
   })
+  // A chart editor switched from a bar chart to a pie chart: the nested config of the bar kept a
+  // property the pie's config rejects, and the form stayed invalid on a property nobody could see.
+  // The configs are shared definitions, so the errors they raise do not point inside the oneOf.
+  it('should remove a nested property rejected by the newly chosen option of a oneOf', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      discriminator: { propertyName: 'type' },
+      oneOf: [{
+        title: 'Bar',
+        required: ['type'],
+        additionalProperties: false,
+        properties: { type: { const: 'bar' }, config: { $ref: '#/$defs/barConfig' }, horizontal: { type: 'boolean' } }
+      }, {
+        title: 'Pie',
+        required: ['type'],
+        additionalProperties: false,
+        properties: { type: { const: 'pie' }, config: { $ref: '#/$defs/pieConfig' } }
+      }],
+      $defs: {
+        barConfig: { type: 'object', additionalProperties: false, properties: { field: { type: 'string' }, color: { type: 'string' } } },
+        pieConfig: { type: 'object', additionalProperties: false, properties: { field: { type: 'string' }, colors: { type: 'string' } } }
+      }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      { ...defaultOptions, removeAdditional: 'error' },
+      { type: 'bar', horizontal: true, config: { field: 'f', color: 'red' } }
+    )
+    assert.ok(statefulLayout.valid)
+    const oneOf = statefulLayout.stateTree.root.children?.find(c => c.key === '$oneOf')
+    assert.ok(oneOf)
+    statefulLayout.activateItem(oneOf, 1)
+    assert.deepEqual(statefulLayout.data, { type: 'pie', config: { field: 'f' } })
+    assert.ok(statefulLayout.valid)
+  })
 })

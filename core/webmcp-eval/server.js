@@ -39,7 +39,7 @@ if (!caseName) {
 }
 const variant = process.env.JL_WEBMCP_EVAL_VARIANT
 const evalCase = applyVariant(getCase(caseName), variant)
-const session = new EvalSession(evalCase, { variant })
+const session = new EvalSession(evalCase)
 
 const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${evidenceName(caseName, variant)}.json`)
 

@@ -5,7 +5,6 @@ import { readFileSync } from 'node:fs'
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
-import { generateFormOverview } from '../src/webmcp/form-overview.js'
 
 import * as describeState from '../src/webmcp/tools/describe-state.js'
 import * as setFieldValue from '../src/webmcp/tools/set-field-value.js'
@@ -197,6 +196,34 @@ describe('webmcp data paths on a tabbed form', () => {
     assert.equal(resolveNode(layout.stateTree.root, '/filters/1'), byLayout)
   })
 
+  it('resolves a data path followed by the variant selector of a union', () => {
+    // a judged run wrote /menu/children/2/$oneOf: the data path of an item, then the selector
+    // describeState shows under it. describeState took the data path, setFieldValue refused it
+    const compiled = compile({
+      type: 'object',
+      layout: { comp: 'tabs', children: [{ title: 'Navigation', children: ['menu'] }] },
+      properties: {
+        menu: {
+          type: 'array',
+          items: {
+            type: 'object',
+            discriminator: { propertyName: 'type' },
+            oneOf: [
+              { title: 'Page standard', properties: { type: { const: 'standard' } }, required: ['type'] },
+              { title: 'Page libre', properties: { type: { const: 'generic' }, slug: { type: 'string' } }, required: ['type'] }
+            ]
+          }
+        }
+      }
+    }, { ajvOptions: { discriminator: true } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { menu: [{ type: 'standard' }] })
+    const byLayout = resolveNode(layout.stateTree.root, '/$comp-1/menu/0/$oneOf')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(layout.stateTree.root, '/menu/0/$oneOf'), byLayout)
+    setFieldValue.execute(layout, { path: '/menu/0/$oneOf', value: 1 })
+    assert.equal(/** @type {any} */(layout.data).menu[0].type, 'generic')
+  })
+
   it('points to the paths describeState lists when nothing matches', () => {
     const layout = makeLayout()
     assert.throws(() => setFieldValue.execute(layout, { path: '/navBar/items', value: 'x' }), (err) => {
@@ -276,10 +303,8 @@ describe('webmcp tool functions', () => {
   })
 
   it('should use fillFormSkill', () => {
-    const compiled = compile(simpleSchema)
-    const result = fillFormSkill.generateSkill('test-form', '', { overview: generateFormOverview(compiled) })
+    const result = fillFormSkill.generateSkill('test-form', '')
     assert.ok(result.includes('JSON Test-form Form-Filling Guide'))
-    assert.ok(result.includes('## Form structure'))
   })
 
   it('should editArray add item', () => {
@@ -349,6 +374,21 @@ describe('webmcp tool schemas', () => {
     assert.equal(getData.inputSchema.type, 'object')
     assert.deepEqual(Object.keys(getData.inputSchema.properties), ['path'])
     assert.equal(getData.inputSchema.required, undefined, 'reading the whole document must stay the default')
+  })
+
+  it('says what to do when asked for the suggestions of a list or a plain field', async () => {
+    // a judged run asked for the suggestions of the menu list itself and got the internal
+    // "missing items or getItems parameters", with nothing telling it to look at an item
+    const compiled = compile(arraySchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { items: [{ name: 'a' }] })
+    await assert.rejects(getFieldSuggestions.execute(layout, { path: '/items' }), (err) => {
+      const message = /** @type {Error} */(err).message
+      assert.match(message, /is a list/)
+      assert.match(message, /editArray/)
+      assert.doesNotMatch(message, /getItems parameters/)
+      return true
+    })
+    await assert.rejects(getFieldSuggestions.execute(layout, { path: '/items/0/name' }), /has no suggestions/)
   })
 
   it('should have valid getFieldSuggestionsSchema', () => {
@@ -1548,6 +1588,41 @@ describe('webmcp suggestions flag', () => {
     assert.ok(lineFor('picker').includes('values=["x","y"]'), `got: ${lineFor('picker')}`)
   })
 
+  it('gives the title of each option when it differs from its value', () => {
+    // a judged run told the person to pick « event-catalog »: the screen says « Catalogue
+    // d'événements », and the value was all the form tools showed
+    const subtypes = [['home', 'Accueil'], ['contact', 'Contact'], ['accessibility', 'Accessibilité'],
+      ['terms-of-service', "Conditions générales d'utilisation"], ['legal-notice', 'Mentions légales'],
+      ['privacy-policy', 'Politique de confidentialité'], ['cookie-policy', 'Politique de cookies'],
+      ['datasets', 'Catalogue de données'], ['applications', 'Catalogue de visualisations'],
+      ['reuses', 'Catalogue de réutilisations'], ['event-catalog', "Catalogue d'événements"],
+      ['news-catalog', "Catalogue d'actualités"], ['sitemap', 'Plan du site'], ['catalog-api-doc', "Documentation d'API"]]
+    const compiled = compile({
+      type: 'object',
+      properties: { subtype: { type: 'string', title: 'Type de page', oneOf: subtypes.map(([v, t]) => ({ const: v, title: t })) } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/subtype ')) ?? ''
+    assert.ok(line.includes('"event-catalog" (Catalogue d\'événements)'), line)
+    assert.ok(line.includes('"contact"'), line)
+    assert.ok(!line.includes('"contact" (Contact)'), 'a title that only differs in case adds nothing: ' + line)
+  })
+
+  it('refuses a value carrying a structural key, and says how to pick a variant', () => {
+    // a judged run added an item as { "$oneOf": 22 }: the key went into the data, the form
+    // still said valid, and the API refused the draft (« additional property $oneOf »)
+    const compiled = compile(arraySchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { items: [{ name: 'a' }] })
+    assert.throws(() => editArray.execute(layout, { path: '/items', action: 'add', value: { $oneOf: 22 } }), (err) => {
+      const message = /** @type {Error} */(err).message
+      assert.match(message, /\$oneOf/)
+      assert.match(message, /path/)
+      return true
+    })
+    assert.throws(() => setData.execute(layout, { data: { items: [{ $oneOf: 1 }] } }), /\$oneOf/)
+    assert.deepEqual(layout.data, { items: [{ name: 'a' }] }, 'nothing was written')
+  })
+
   it('should keep the flag and getFieldSuggestions in agreement', async () => {
     // Whatever the projection promises, the tool must deliver. Not a biconditional any
     // more: a node whose options are stated outright still answers getFieldSuggestions, it
@@ -1632,6 +1707,29 @@ describe('webmcp variant activation', () => {
     assert.equal(/** @type {any} */(result).activatedMarkdown, undefined)
   })
 
+  it('gives the discriminator value of each variant', () => {
+    // a judged run added a menu item as { type: 'free' } from the label « Page libre »:
+    // the value behind each label was nowhere, so the first add was refused and retried
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        link: {
+          type: 'object',
+          discriminator: { propertyName: 'type' },
+          oneOf: [
+            { title: 'Page standard', properties: { type: { const: 'standard' } }, required: ['type'] },
+            { title: 'Page libre', properties: { type: { const: 'generic' } }, required: ['type'] }
+          ]
+        }
+      }
+    }, { ajvOptions: { discriminator: true } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { link: { type: 'standard' } })
+    const markdown = projectStateTreeToMarkdown(layout.stateTree, layout)
+    assert.match(markdown, /variant 0: Page standard \(type="standard"\) \(active\)/)
+    assert.match(markdown, /variant 1: Page libre \(type="generic"\)/)
+    assert.throws(() => setFieldValue.execute(layout, { path: '/link/$oneOf', value: 'generic' }), /variant 1: Page libre \(type="generic"\)/)
+  })
+
   it('should mark which variant is the active one', () => {
     // The list of variants and the branch's fields were printed as two unrelated things,
     // so which branch was live had to be inferred from the index in a child path. The
@@ -1640,13 +1738,13 @@ describe('webmcp variant activation', () => {
     // the question against a form that was answering it all along.
     const layout = layoutOf()
     const before = projectStateTreeToMarkdown(layout.stateTree, layout)
-    assert.match(before, /variant 0: Circle \(active\)/, 'the live branch must say so where the branches are listed')
-    assert.ok(!/variant 1: Rect \(active\)/.test(before), 'only the live branch is marked')
+    assert.match(before, /variant 0: Circle \(kind="circle"\) \(active\)/, 'the live branch must say so where the branches are listed')
+    assert.ok(!/variant 1: Rect \(kind="rect"\) \(active\)/.test(before), 'only the live branch is marked')
 
     setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
     const after = projectStateTreeToMarkdown(layout.stateTree, layout)
-    assert.match(after, /variant 1: Rect \(active\)/, 'the mark must follow the switch')
-    assert.ok(!/variant 0: Circle \(active\)/.test(after))
+    assert.match(after, /variant 1: Rect \(kind="rect"\) \(active\)/, 'the mark must follow the switch')
+    assert.ok(!/variant 0: Circle \(kind="circle"\) \(active\)/.test(after))
   })
 
   it('should put the activated fields in the tool text', async () => {
@@ -2170,7 +2268,7 @@ describe('webmcp instruction redundancy', () => {
   it('should let the guide say when to fetch suggestions without repeating how', () => {
     // the split that keeps this from being a loss: the guide carries the trigger, where a
     // prescription is followed, and points at the description for the mechanics
-    const skill = fillFormSkill.generateSkill('doc', '')
+    const skill = fillFormSkill.generateSkill('doc', '', true, webmcpOf()._statefulLayout)
     assert.match(skill, /call getFieldSuggestions/, 'the trigger stays in the guide')
     // One rule with two branches rather than an imperative and an exception. "You must call
     // getFieldSuggestions" read as unconditional, and the sentence that followed it looked
@@ -2275,7 +2373,8 @@ describe('webmcp closed lists stated instead of flagged', () => {
     })
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
     const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/metric ')) ?? ''
-    assert.match(line, /values=\["avg","sum"\]/)
+    // with their titles, which are what the person sees
+    assert.match(line, /values=\["avg" \(Moyenne\), "sum" \(Somme\)\]/)
     assert.ok(!line.includes('suggestions'), `the guide makes "suggestions" an order to fetch: ${line}`)
   })
 
@@ -2561,8 +2660,10 @@ describe('webmcp frictions of the portal-config-edit eval', () => {
     // each $slot-1 preview re-listed the whole config: 310 of 757 lines, ~83 KB
     const markdown = describeState.toMarkdown(portalLayout(), {})
     assert.ok(!/\$slot-\d+\/\w/.test(markdown), 'no field is listed below a slot')
-    // measured 82764 chars before, 55128 after: what is left are the real fields of 14 tabs
-    assert.ok(markdown.length < 60000, `the root description no longer repeats the config (${markdown.length} chars)`)
+    // measured 82764 chars before, 55128 after: what is left are the real fields of 14 tabs.
+    // Option titles beside their values then added ~6.6k (61731): what the person sees on
+    // screen, a run having relayed « event-catalog » for « Catalogue d'événements ».
+    assert.ok(markdown.length < 65000, `the root description no longer repeats the config (${markdown.length} chars)`)
   })
 
   it('opens a menu item shown as a summary when a path runs through it', () => {

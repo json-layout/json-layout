@@ -3,7 +3,7 @@
  */
 
 import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
-import { resolveNode, resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -22,7 +22,7 @@ export const inputSchema = {
       description: 'Index to insert at (for add, defaults to end) or remove from (for remove, defaults to last)'
     },
     value: {
-      description: 'Value for the new item (for add action)'
+      description: 'Value for the new item (for add action). For an item that is a choice between options, choose its option by the discriminator value describeState lists for it, e.g. { "type": "..." }: "$oneOf" is a path segment, not a data key. Or omit the value and choose the option afterwards with setFieldValue on the item\'s $oneOf.'
     }
   },
   required: ['path', 'action']
@@ -34,6 +34,32 @@ export const inputSchema = {
  */
 export function getDescription (dataTitle) {
   return `Add or remove items in an array field of "${dataTitle}". Use describeState to see current array contents. When adding an item it is activated for edition and its children fields are returned, they can then be filled with setFieldValue. The returned errors are scoped to this array.`
+}
+
+/**
+ * An item that is a choice between options, added with a value whose discriminator names none
+ * of them, is refused rather than added in error: judged portal runs added menu rows as
+ * { type: 'free' } and { type: 'free-page' }, which left an incomplete form until the option
+ * was chosen in another call.
+ * @param {import('../../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('../../state/types.js').StateNode} listNode
+ * @param {unknown} value
+ */
+function assertKnownVariant (statefulLayout, listNode, value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return
+  const compiled = statefulLayout.compiledLayout
+  const itemTree = listNode.skeleton.childrenTrees?.[0]
+  const itemRoot = itemTree ? compiled.skeletonNodes[compiled.skeletonTrees[itemTree].root] : undefined
+  if (!itemRoot) return
+  const choice = [itemRoot, ...(itemRoot.children ?? []).map(c => compiled.skeletonNodes[c])]
+    .find(n => n?.key === '$oneOf' && n.discriminator !== undefined) ?? (itemRoot.discriminator !== undefined ? itemRoot : undefined)
+  if (!choice?.childrenTrees || choice.discriminator === undefined) return
+  const discriminator = choice.discriminator
+  const given = /** @type {Record<string, unknown>} */(value)[discriminator]
+  if (given === undefined) return
+  const known = choice.childrenTrees.map(t => compiled.skeletonTrees[t].discriminatorValue).filter(v => v !== undefined)
+  if (!known.length || known.some(v => v === given)) return
+  throw new Error(`"${discriminator}" ${JSON.stringify(given)} is none of the options of this item: ${known.map(v => JSON.stringify(v)).join(', ')}. Give one of them, or add the item without a value and choose its option with setFieldValue on its $oneOf.`)
 }
 
 /**
@@ -60,6 +86,8 @@ export function execute (statefulLayout, args, variantsMemo) {
   let index
 
   if (args.action === 'add') {
+    assertNoStructuralKey(args.value, 'value')
+    assertKnownVariant(statefulLayout, node, args.value)
     index = args.index !== undefined ? args.index : currentData.length
     // splice() would silently clamp an out of bounds index, but the reported index and the
     // item activated below would then designate an item that does not exist
@@ -112,7 +140,7 @@ export function execute (statefulLayout, args, variantsMemo) {
   if (args.action === 'add') {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
-      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo)
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo, undefined, true)
     }
   }
 

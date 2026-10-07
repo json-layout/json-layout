@@ -54,3 +54,57 @@ describe('agent guide of a schema', () => {
     assert.ok(prompt.includes('Social links take an identifier, not a URL.'), 'the sub-agent prompt carries the guide')
   })
 })
+
+describe('report of the form sub-agent', () => {
+  it('asks for a plain report of what the tools confirmed, for the lead', async () => {
+    // judged runs: a sub-agent reported « scroll infini » for a block it had left without
+    // pagination, and wrote emoji and bold headings, or prose addressed to the person
+    const compiled = compile(guidedSchema, { locale: 'en' })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const webmcp = new WebMCP(layout, { dataTitle: 'portal configuration', prefixName: 'portalConfig_', includeSubAgent: true, includeFillFormSkill: true })
+    const tools = webmcp.getTools()
+    const subAgent = /** @type {any} */(tools.find((t) => t.name === 'subagent_portalConfig_form'))
+    const { prompt } = JSON.parse((await subAgent.execute({ task: 'x' })).content[0].text)
+    assert.match(prompt, /## Your report/)
+    assert.match(prompt, /only what the tool results confirmed/)
+    assert.match(prompt, /no emoji/)
+    // a run asked to link a page that was not offered linked another one and called it valid
+    assert.match(prompt, /never put another value in its place/)
+    // judged runs: a sub-agent told « ne modifie rien » added and removed a menu row, which
+    // left a draft to validate; and three said which tab was open, which no tool shows
+    assert.match(prompt, /call no tool that writes/)
+    assert.match(prompt, /You do not see the screen/)
+    // the skill published to the lead is not a sub-agent: it gets no reporting rules
+    const skillTool = /** @type {any} */(tools.find((t) => t.name === 'portalConfig_fillFormSkill'))
+    assert.doesNotMatch((await skillTool.execute({})).content[0].text, /## Your report/)
+  })
+})
+
+describe('a sub-agent that only reads', () => {
+  it('gets no tool that writes when its task is declared read-only', async () => {
+    // judged runs: a sub-agent told « ne modifie rien » added and removed a menu row anyway,
+    // twice, which left a draft to validate; a rule in its prompt did not stop it
+    const compiled = compile(guidedSchema, { locale: 'en' })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const tools = new WebMCP(layout, { dataTitle: 'portal configuration', prefixName: 'portalConfig_', includeSubAgent: true }).getTools()
+    const subAgent = /** @type {any} */(tools.find((t) => t.name === 'subagent_portalConfig_form'))
+    assert.ok(subAgent.inputSchema.properties.readOnly, 'the delegating agent can declare it')
+    const readOnly = JSON.parse((await subAgent.execute({ task: 'x', readOnly: true })).content[0].text)
+    for (const name of ['portalConfig_setData', 'portalConfig_setFieldValue', 'portalConfig_editArray']) {
+      assert.ok(!readOnly.tools.includes(name), `${name} withheld`)
+    }
+    assert.ok(readOnly.tools.includes('portalConfig_describeState'))
+    const full = JSON.parse((await subAgent.execute({ task: 'x' })).content[0].text)
+    assert.ok(full.tools.includes('portalConfig_setFieldValue'))
+  })
+
+  it('is offered as read-only by the description of the tool that delegates to it', () => {
+    // judged runs: the assistant asked the sub-agent four times to describe the menu, never
+    // with readOnly, and twice the sub-agent wrote to the form anyway
+    const compiled = compile(guidedSchema, { locale: 'en' })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+    const tools = new WebMCP(layout, { dataTitle: 'portal configuration', prefixName: 'portalConfig_', includeSubAgent: true }).getTools()
+    const subAgent = /** @type {any} */(tools.find((t) => t.name === 'subagent_portalConfig_form'))
+    assert.match(subAgent.description, /readOnly: true/)
+  })
+})

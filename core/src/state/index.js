@@ -54,6 +54,28 @@ const logSelectItems = debug('jl:select-items')
 const logGetItems = debug('jl:get-items')
 const logActivatedItems = debug('jl:activated-items')
 
+/**
+ * The containers that show one child at a time. Expansion panels can open several at once and
+ * are left to their component.
+ */
+export const SECTION_CONTAINERS = ['tabs', 'vertical-tabs', 'stepper']
+
+/**
+ * The open child of a section container: the one chosen if it is still visible, else the one
+ * preselected by layout.props.modelValue, else the first visible one (what the components show).
+ * @param {import('./types.js').StateNode} node
+ * @param {Record<string, number>} activeSections
+ * @returns {number | undefined}
+ */
+export const activeChildIndex = (node, activeSections) => {
+  const visible = (node.children ?? []).flatMap((child, index) => child.layout.comp === 'none' ? [] : [index])
+  const chosen = activeSections[node.fullKey]
+  if (chosen !== undefined && visible.includes(chosen)) return chosen
+  const preselected = /** @type {Record<string, unknown> | undefined} */(node.props)?.modelValue
+  if (typeof preselected === 'number' && visible.includes(preselected)) return preselected
+  return visible[0]
+}
+
 export class StatefulLayout {
   /**
    * @private
@@ -147,10 +169,43 @@ export class StatefulLayout {
   }
 
   /**
+   * Replace the whole data as an edit: unlike the data setter, which syncs data owned by
+   * the application, it counts in editCount.
+   * @param {unknown} data
+   */
+  inputData (data) {
+    logDataBinding('apply main data input', data)
+    this._editCount += 1
+    this.data = data
+  }
+
+  /**
    * @private
    * @type {unknown}
    */
   _previousData
+
+  /**
+   * @private
+   * @type {number}
+   */
+  _editCount = 0
+
+  /**
+   * Set while the form fills a list from its fetched items: that input is not an edit.
+   * @private
+   * @type {boolean}
+   */
+  _autoFill = false
+
+  /**
+   * How many edits were applied to the data: a person's input once it reaches the data
+   * (after debounce), or inputData (form tools). What the form produces by itself (defaults,
+   * items fetched for a list, data set from outside) does not count, so an application
+   * saving drafts can save only when this moved.
+   * @returns {number}
+   */
+  get editCount () { return this._editCount }
 
   /**
    * @private
@@ -361,7 +416,15 @@ export class StatefulLayout {
         const replaceData = isList && Array.isArray(listActions) && !listActions.includes('edit') && listEditMode !== 'inline'
         const data = produceListData(rawData, existingItems, items, preserveOrder, replaceData)
         logGetItems(node.fullKey, 'automatic get items, input produced data', data)
-        this.input(node, data)
+        // the form fills the list itself, this is not an edit (editCount). An edit still
+        // waiting for its debounce is applied first, so that it is counted.
+        this.applyDebouncedInput()
+        this._autoFill = true
+        try {
+          this.input(node, data)
+        } finally {
+          this._autoFill = false
+        }
       }, err => console.error('error fetching items', node.fullKey, err))
     }
   }
@@ -481,6 +544,8 @@ export class StatefulLayout {
     }
     if (node.parentFullKey === null) {
       logDataBinding('update root state after input')
+      // counted once per input, where it reaches the root data
+      if (!this._autoFill) this._editCount += 1
       this._data = data
       this.updateState()
       return
@@ -755,6 +820,80 @@ export class StatefulLayout {
    * @type {boolean}
    */
   _reResolveActivatedItems = false
+
+  /**
+   * The open child of each section container that was chosen, by the person or by revealNode,
+   * by the container's full key. Kept out of the state tree: opening a tab changes no node.
+   * @type {Record<string, number>}
+   */
+  activeSections = {}
+
+  /**
+   * @param {StateNode} node a tabs, vertical-tabs or stepper node
+   * @returns {number | undefined}
+   */
+  activeSectionIndex (node) {
+    return activeChildIndex(node, this.activeSections)
+  }
+
+  /**
+   * @param {StateNode} node a tabs, vertical-tabs or stepper node
+   * @param {number} index the index of the child to open in node.children
+   */
+  activateSection (node, index) {
+    if (this.activeSections[node.fullKey] === index) return
+    this.activeSections = { ...this.activeSections, [node.fullKey]: index }
+    this.options.onSections(this.activeSections)
+  }
+
+  /**
+   * The section containers above a node, outermost first, with the child of each that leads to it.
+   * @private
+   * @param {string} fullKey
+   * @returns {Array<{ container: StateNode, index: number, child: StateNode }>}
+   */
+  _sectionsAbove (fullKey) {
+    const nodesMap = this._lastCreateStateTreeContext.nodesMap
+    /** @type {Array<{ container: StateNode, index: number, child: StateNode }>} */
+    const chain = []
+    let node = nodesMap.get(fullKey)
+    while (node && node.parentFullKey != null) {
+      const parent = nodesMap.get(node.parentFullKey)
+      if (!parent) break
+      if (SECTION_CONTAINERS.includes(parent.layout.comp)) {
+        const nodeFullKey = node.fullKey
+        const index = (parent.children ?? []).findIndex(child => child.fullKey === nodeFullKey)
+        if (index !== -1) chain.unshift({ container: parent, index, child: node })
+      }
+      node = parent
+    }
+    return chain
+  }
+
+  /**
+   * The titles of the sections a node sits in, outermost first.
+   * @param {string} fullKey
+   * @returns {string[]}
+   */
+  sectionTitles (fullKey) {
+    return this._sectionsAbove(fullKey).map(({ child }) => String(child.layout.title ?? child.key))
+  }
+
+  /**
+   * Open every section that contains a node, so that it is on screen.
+   * @param {string} fullKey
+   * @returns {string[]} the titles of the sections it opened, outermost first
+   */
+  revealNode (fullKey) {
+    /** @type {string[]} */
+    const opened = []
+    for (const { container, index, child } of this._sectionsAbove(fullKey)) {
+      if (this.activeSectionIndex(container) === index) continue
+      this.activateSection(container, index)
+      opened.push(String(child.layout.title ?? child.key))
+    }
+    return opened
+  }
 
   /**
    * @param {StateNode} node

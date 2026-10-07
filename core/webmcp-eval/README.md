@@ -124,11 +124,11 @@ procedure):
    how this harness answers whether the protocol leans on a large model or carries the work
    itself — a question it should measure rather than presume.
 
-4. **Variants.** `--variant overview` runs a case with the static form structure map
-   appended to the runner's guide, same tools and same server as the control, so the two
-   differ only in what the agent was told before it started. The machinery lives in
-   `session.js` (`VARIANTS`, `applyVariant`, `evidenceName`); variant evidence lands beside
-   the control as `webmcp-eval-<case>--<variant>.json` and the report prints both.
+4. **Variants.** `--variant no-guide` runs a case with its schema's `x-agent-guide` removed,
+   same tools and same server as the control, so the two differ only in that guide. The
+   machinery lives in `session.js` (`VARIANTS`, `applyVariant`, `evidenceName`); variant
+   evidence lands beside the control as `webmcp-eval-<case>--<variant>.json` and the report
+   prints both.
 
    **Isolation.** The run happens from a temporary directory outside this repository,
    with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from

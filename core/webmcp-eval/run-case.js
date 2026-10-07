@@ -60,6 +60,7 @@ export const TOOL_NAMES = [
   'getData',
   'setData',
   'describeState',
+  'openSection',
   'setFieldValue',
   'getFieldSuggestions',
   'editArray'
@@ -135,6 +136,8 @@ export function buildLaunchArgs (evalCase, options = {}) {
  * @property {number|null} costUsd - total cost reported by the subprocess, in US dollars
  * @property {number|null} turns - number of turns the subprocess took
  * @property {unknown[]} denials - non-empty means the allow-list and tool set have drifted
+ * @property {string|null} [answer] - the runner's final reply: the output itself for a case
+ *   that asks a question rather than for a change to the form
  * @property {number} exitCode - the subprocess exit code, or -1 when it never launched
  * @property {string} [error] - present when the run failed or must not be judged
  */
@@ -224,7 +227,7 @@ export async function runCase (evalCase, options = {}) {
   // Compiling here costs a second or two but is what lets the runner be handed the same
   // guide and the same tool list the server will register — the pair a page's subagent
   // tool returns. A mismatch would grant a tool the guide never mentions, or the reverse.
-  const session = options.session ?? new EvalSession(variantCase, { variant })
+  const session = options.session ?? new EvalSession(variantCase)
   const args = buildLaunchArgs(variantCase, {
     model: requestedModel,
     skill: session.skill,
@@ -307,6 +310,7 @@ export async function runCase (evalCase, options = {}) {
   record.costUsd = result.total_cost_usd ?? null
   record.turns = result.num_turns ?? null
   record.denials = result.permission_denials ?? []
+  record.answer = typeof result.result === 'string' ? result.result : null
   // A denied tool means the run measured a crippled agent, so it is not judgeable
   // even though the process succeeded.
   record.ok = !result.is_error && record.denials.length === 0

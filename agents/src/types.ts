@@ -49,9 +49,6 @@ export interface SessionSpec {
   includeFillFormSkill?: boolean
   // include core's sub-agent entry tool (default false)
   includeSubAgent?: boolean
-  // add the static form structure map to the guide (default false); costs prompt bytes,
-  // so enable it where a measurement has shown it pays
-  includeFormOverview?: boolean
 }
 
 // the part of a session spec the layout cache needs

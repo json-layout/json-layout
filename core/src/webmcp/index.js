@@ -6,22 +6,56 @@
 import debug from 'debug'
 
 import * as describeState from './tools/describe-state.js'
+import * as openSection from './tools/open-section.js'
 import * as setFieldValue from './tools/set-field-value.js'
 import * as setData from './tools/set-data.js'
 import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { generateFormOverview } from './form-overview.js'
 import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource } from './project.js'
 import { resolveNode } from './resolve.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
 
-export { generateFormOverview }
 // public: a host that serves the form tools elsewhere (an MCP server's editor groups) needs
 // the same guide text the in-page sub-agent gets
 export const generateSkill = fillFormSkill.generateSkill
+
+// The sub-agent answers another agent, which relays to the person: judged runs had it claim a
+// setting it never applied (« scroll infini »), link another page than the one asked for,
+// and write emoji, bold headings or prose addressed to the person. Others edited the form
+// under a describe-only task, and said which tab was open, which no tool shows.
+const SUB_AGENT_REPORT = `
+## Your report
+
+If the task asks you only to describe or read the form, call no tool that writes: an edit undone is still a change of the form, and the person would have a draft to validate.
+
+You do not see the screen: of what is visible, say only which section describeState marks (open), or which one a write reports as now on screen — never what a card or a preview shows.
+
+If a value the task asks for is not accepted or not offered (a page missing from a field's suggestions, say), never put another value in its place: leave that field, and say in your report what could not be done and what the tools answered.
+
+End with a short report for the agent that delegated this task: what you changed, field by field with the values written, and whether the form is valid. Report only what the tool results confirmed, never a setting you did not write. Plain text, no emoji or headings, and do not address the person: the delegating agent talks to them.
+`
+
+/**
+ * Open the sections that contain what a tool just wrote, so that the person sees it, and say
+ * so: the delegating agent can then tell the person where to look. Only the tools do this, a
+ * person's own edit never moves them to another tab.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path
+ * @returns {string}
+ */
+function revealWritten (statefulLayout, path) {
+  const node = resolveNode(statefulLayout.stateTree.root, path)
+  if (!node) return ''
+  if (!statefulLayout.revealNode(node.fullKey).length) return ''
+  return `\nnow on screen: ${statefulLayout.sectionTitles(node.fullKey).map(title => `« ${title} »`).join(' > ')}`
+}
+
+const READ_ONLY_TASK = `
+This task is read-only: you have no tool that writes, describe what the form holds and can hold.
+`
 
 /** @typedef {import('@mcp-b/webmcp-types').ToolDescriptor} ToolDescriptor */
 
@@ -53,9 +87,8 @@ function parseIfJsonString (value) {
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
  * @property {boolean} [includeFillFormSkill] - Include the fillFormSkill tool (default: false)
  * @property {boolean} [includeSubAgent] - Include a subagent_ tool wrapping all form tools (default: false)
- * @property {boolean} [includeFormOverview] - Add the static form structure map to the guide
- *   (default: false). It costs prompt bytes on every turn, so it is opt-in and meant to be
- *   enabled where an eval has shown it pays.
+ * @property {boolean} [screen] - The form is on a person's screen (default: true). Without one
+ * (a server-side session) there is no open tab to tell, open or reveal, and no openSection tool
  */
 
 /**
@@ -92,11 +125,8 @@ export class WebMCP {
    */
   _includeSubAgent = false
 
-  /**
-   * @readonly
-   * @type {boolean}
-   */
-  _includeFormOverview = false
+  /** @private */
+  _screen = true
 
   /**
    * @type {string[]}
@@ -128,7 +158,7 @@ export class WebMCP {
     this._dataTitle = options.dataTitle || 'form'
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
-    this._includeFormOverview = options.includeFormOverview || false
+    this._screen = options.screen ?? true
   }
 
   /**
@@ -144,16 +174,13 @@ export class WebMCP {
    */
   getTools () {
     const dataTitle = this._dataTitle
-    const overview = this._includeFormOverview
-      ? generateFormOverview(this._statefulLayout.compiledLayout)
-      : undefined
     const guide = this._statefulLayout.compiledLayout.agentGuide
 
     /** @type {ToolDescriptor[]} */
     const tools = []
 
     if (this._includeFillFormSkill) {
-      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { overview, guide })
+      const skill = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen })
       tools.push({
         name: this._toolName('fillFormSkill'),
         description: fillFormSkill.getDescription(dataTitle),
@@ -238,11 +265,33 @@ export class WebMCP {
       },
       {
         name: this._toolName('describeState'),
-        description: describeState.getDescription(dataTitle),
+        description: describeState.getDescription(dataTitle, this._screen),
         inputSchema: describeState.inputSchema,
         execute: async (args) => {
           try {
-            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo)
+            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo, this._screen)
+            return {
+              content: [{ type: 'text', text }]
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            return {
+              content: [{ type: 'text', text: `Error: ${message}` }],
+              isError: true
+            }
+          }
+        }
+      },
+      {
+        name: this._toolName('openSection'),
+        description: openSection.getDescription(dataTitle),
+        inputSchema: openSection.inputSchema,
+        execute: async (args) => {
+          try {
+            if (!args?.path) {
+              throw new Error('path is required')
+            }
+            const text = openSection.execute(this._statefulLayout, /** @type {{ path: string }} */(args))
             return {
               content: [{ type: 'text', text }]
             }
@@ -285,6 +334,7 @@ export class WebMCP {
             if (result.activatedMarkdown) {
               fieldInfo += `\nFields of the activated variant:\n${result.activatedMarkdown}`
             }
+            if (this._screen) fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
             }
@@ -355,6 +405,7 @@ export class WebMCP {
             if (result.itemMarkdown) {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }
+            if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
               content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
             }
@@ -369,20 +420,31 @@ export class WebMCP {
       }
     )
 
+    // with no screen there is no tab to open
+    if (!this._screen) tools.splice(tools.findIndex(t => t.name === this._toolName('openSection')), 1)
+
     if (this._includeSubAgent) {
       const toolNames = tools.map(t => t.name)
-      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { overview, guide })
+      const prompt = fillFormSkill.generateSkill(dataTitle, this._prefixName, { guide, screen: this._screen }) + SUB_AGENT_REPORT
       tools.push({
         name: `subagent_${this._toolName('form')}`,
-        description: `Delegate a form-filling task for "${dataTitle}" to a specialized sub-agent`,
+        description: `Delegate a task on the "${dataTitle}" form to a specialized sub-agent: filling it, or describing it. For a task that only describes or explains the form (its fields, the options of a choice, what is on screen), pass readOnly: true, so that it cannot change the form.`,
         inputSchema: {
           type: 'object',
           properties: {
-            task: { type: 'string', description: 'The task to delegate to this sub-agent' }
+            task: { type: 'string', description: 'The task to delegate to this sub-agent' },
+            readOnly: { type: 'boolean', description: 'true when the task only reads or describes the form: the sub-agent then gets no tool that writes, so it cannot change the form by accident.' }
           },
           required: ['task']
         },
-        execute: async () => {
+        execute: async (args) => {
+          // A rule in the prompt did not stop sub-agents told « ne modifie rien » from adding and
+          // removing a menu row, which left a draft to validate: a read-only task gets no writes.
+          if (args?.readOnly) {
+            const writing = ['setData', 'setFieldValue', 'editArray'].map(name => this._toolName(name))
+            const config = { prompt: prompt + READ_ONLY_TASK, tools: toolNames.filter(name => !writing.includes(name)) }
+            return { content: [{ type: 'text', text: JSON.stringify(config) }] }
+          }
           const config = { prompt, tools: toolNames }
           return {
             content: [{ type: 'text', text: JSON.stringify(config) }]

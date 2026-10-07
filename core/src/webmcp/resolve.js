@@ -83,7 +83,23 @@ function isStructural (node) {
  */
 export function resolveNode (root, path) {
   if (!path || path === '/') return root
-  return resolveLayoutPath(root, path) ?? resolveDataPath(root, path)
+  return resolveLayoutPath(root, path) ?? resolveDataPath(root, path) ?? resolveMixedPath(root, path)
+}
+
+/**
+ * A data path followed by structural segments, as an agent writes it after reading the
+ * selector describeState lists under an item: /menu/children/2/$oneOf. The data path part
+ * resolves to its node, the rest is followed as a layout path from there.
+ * @param {import('../state/types.js').StateNode} root
+ * @param {string} path
+ * @returns {import('../state/types.js').StateNode|undefined}
+ */
+function resolveMixedPath (root, path) {
+  const segments = path.replace(/^\//, '').split('/')
+  const first = segments.findIndex((segment) => segment.startsWith('$'))
+  if (first <= 0) return undefined
+  const base = resolveDataPath(root, '/' + segments.slice(0, first).join('/'))
+  return base && resolveLayoutPath(base, segments.slice(first).join('/'))
 }
 
 /**
@@ -146,7 +162,7 @@ export function nodeNotFoundError (statefulLayout, path) {
     return `/${child.key}${title ? ` ("${title}")` : ''}`
   })
   const hint = top.length ? ` The form starts with ${top.join(', ')}.` : ''
-  return new Error(`node not found at path: ${path}.${hint} Use a path listed by describeState, or the data path of a value as getData shows it.`)
+  return new Error(`node not found at path: ${path}.${hint} Use a path listed by describeState, or the data path of a value as getData shows it. What does not exist yet — an option not chosen, an item not added — is described by describeState at that same path.`)
 }
 
 /**
@@ -169,4 +185,43 @@ export function visibleChildren (node) {
     }
   }
   return children
+}
+
+/**
+ * The first key of a value that is a path segment of the form rather than a data key. A
+ * judged run added an item as { "$oneOf": 22 }: the key went into the data, the form still
+ * said valid, and the API refused the whole draft.
+ * @param {unknown} value
+ * @param {string} [at]
+ * @returns {string|undefined} where the key is, as a path inside the value
+ */
+export function findStructuralKey (value, at = '') {
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const found = findStructuralKey(value[i], `${at}/${i}`)
+      if (found) return found
+    }
+    return undefined
+  }
+  if (value === null || typeof value !== 'object') return undefined
+  for (const [key, child] of Object.entries(value)) {
+    if (/^\$(oneOf|comp-\d+|slot-\d+)$/.test(key)) return `${at}/${key}`
+    const found = findStructuralKey(child, `${at}/${key}`)
+    if (found) return found
+  }
+  return undefined
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} what - how the value was given, for the message
+ */
+export function assertNoStructuralKey (value, what) {
+  const found = findStructuralKey(value)
+  if (!found) return
+  const key = found.split('/').pop()
+  throw new Error(`${what} contains "${key}" (at ${found || '/'}): it is a path segment of the form, not a data key; nothing was written. ` +
+    (key === '$oneOf'
+      ? 'To choose the variant of an item, add the item first, then call setFieldValue on its path followed by /$oneOf with the variant number describeState lists.'
+      : 'Write the data itself; such segments only belong in a path.'))
 }

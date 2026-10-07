@@ -11,6 +11,8 @@ export interface StateOptionsMessages {
   confirm: string
   edit: string
   close: string
+  /** the menu of a list item's actions (edit, duplicate, delete…) */
+  actions: string
   duplicate: string
   insertAfter: string
   copy: string

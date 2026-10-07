@@ -271,7 +271,99 @@ const portalConfigEdit = {
   }
 }
 
-export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit]
+/**
+ * The portal context the menu cases share: free pages and one single event page, which makes
+ * « Page d'événements » (a link to ONE event) look plausible for an agenda — it is not.
+ */
+const menuContext = {
+  owner: { type: 'organization', id: 'test_org1' },
+  pages: {
+    generic: [
+      { slug: 'jeunesse', title: 'Nos actions pour la jeunesse', titleBackOffice: 'Nos actions pour la jeunesse' },
+      { slug: 'contact-presse', title: 'Contact presse', titleBackOffice: 'Contact presse' }
+    ],
+    event: [{ slug: 'fete-de-la-musique', title: 'Fête de la musique 2026' }],
+    news: []
+  }
+}
+
+/**
+ * Choosing among options none of which is chosen yet: what describeState's account of a form's
+ * potential is for.
+ *
+ * An agenda that lists every event is the « Catalogue d'événements » page type of a « Page
+ * standard » item — one of 14 values of a field that only exists once that option is chosen.
+ * The tempting wrong answers are the « Page d'événements » option (a link to one event, and
+ * the context has one) and « Page libre ». Judged portal simulations got this wrong when the
+ * agent could only read the option already chosen.
+ * @type {EvalCase}
+ */
+const portalMenuCatalog = {
+  name: 'portal-menu-catalog',
+  title: 'portal configuration',
+  goal: 'Our portal has an agenda page that automatically lists all the events we publish. Add it to the portal menu, labelled "Agenda".',
+  schema: loadSchema('portal-config.json'),
+  data: loadData('portal-config-edit.json'),
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  context: menuContext
+}
+
+/**
+ * Describing what a form can hold, without changing it: the answer is the output.
+ *
+ * What a sub-agent is asked when the assistant guides a person click by click. A correct
+ * answer names the six kinds of menu entry and what each requires; reading only the live
+ * form, an agent sees the two entries that exist and the option each one chose. The runner's
+ * final reply is recorded in the sidecar (`answer`); the data must come back unchanged.
+ * @type {EvalCase}
+ */
+const portalMenuExplain = {
+  name: 'portal-menu-explain',
+  title: 'portal configuration',
+  goal: 'Without changing anything yet: which kinds of entries can I put in the portal menu, and what does each kind ask me to fill in?',
+  schema: loadSchema('portal-config.json'),
+  data: loadData('portal-config-edit.json'),
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  context: menuContext
+}
+
+/**
+ * Two options that look alike until their fields are compared.
+ *
+ * « Liste de jeux de données » shows a few datasets; « Catalogue de données » lists every
+ * dataset published and offers filters, among which a search field. Only the fields of the
+ * options tell them apart, and a judged run picked the list. The page starts with three
+ * blocks, so the new one goes after them.
+ * @type {EvalCase}
+ */
+const portalPageCatalog = {
+  name: 'portal-page-catalog',
+  title: 'page configuration',
+  goal: 'Under the existing blocks, add a block listing every dataset published on the portal, with a search field so that visitors can find one.',
+  schema: loadSchema('portal-page.json'),
+  data: loadData('portal-page-edit.json'),
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
+}
+
+/**
+ * Switching a configured chart to another type, keeping what it shows.
+ *
+ * The pie chart option has its own fields and its own data configuration choices; knowing
+ * them before switching tells what can be carried over from the bar chart (the grouping per
+ * commune, the average of the values) and what has to be set anew.
+ * @type {EvalCase}
+ */
+const chartsPie = {
+  name: 'charts-pie',
+  title: 'chart configuration',
+  goal: 'Turn this bar chart into a pie chart that still shows the average of the values per commune.',
+  schema: v2compat(loadSchema('app-charts.json'), undefined, 'fr'),
+  data: loadData('charts-edit.json'),
+  compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
+  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
+}
+
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie]
 
 /**
  * @param {string} name
