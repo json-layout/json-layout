@@ -70,6 +70,7 @@
     "webmcp-eval:report": "node webmcp-eval/report.js",
     "webmcp-eval:run": "node webmcp-eval/run-case.js",
     "build": "rm -rf ./types && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
     "watch:build": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "watch:test": "node --test --watch test/*.spec.js"
   },
