@@ -22,7 +22,7 @@ export const inputSchema = {
       description: 'Index to insert at (for add, defaults to end) or remove from (for remove, defaults to last)'
     },
     value: {
-      description: 'Value for the new item (for add action). For an item that is a choice between options, its discriminator must name one of them (describeState lists them); or omit the value and choose the option afterwards.'
+      description: 'Value for the new item (for add action). For an item that is a choice between options, choose its option by the discriminator value describeState lists for it, e.g. { "type": "..." }: "$oneOf" is a path segment, not a data key. Or omit the value and choose the option afterwards with setFieldValue on the item\'s $oneOf.'
     }
   },
   required: ['path', 'action']

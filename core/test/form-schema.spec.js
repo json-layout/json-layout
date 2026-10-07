@@ -253,6 +253,17 @@ describe('what describeState says the form can hold', () => {
     assert.match(text, /variant 0: Standard — \{ .*subtype: select \["t0" \(Type 0\), .*"t13" \(Type 13\)\]/)
   })
 
+  it('says in its description how to choose the option of an item it adds', () => {
+    // judged portal runs: the sub-agent's first add of a page block was
+    // { "$oneOf": 1 }, refused, in both runs of a case
+    const compiled = compile(menuSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { title: 'Portail', menu: [] })
+    const editArray = /** @type {any} */(new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_' }).getTools().find(t => t.name === 'p_editArray'))
+    const valueDescription = editArray.inputSchema.properties.value.description
+    assert.match(valueDescription, /"\$oneOf" is a path segment, not a data key/)
+    assert.match(valueDescription, /\{ "type": "\.\.\." \}/)
+  })
+
   it('refuses to add an item whose type is none of the options, and names them', async () => {
     // judged portal runs: the sub-agent added menu rows as { type: 'free' } and
     // { type: 'free-page' }, left an item in error and an incomplete form, then chose the option
