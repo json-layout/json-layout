@@ -647,7 +647,172 @@ const dataFairLine = {
   ]
 }
 
-export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie, dataFairLine]
+/**
+ * The pages of the portal the nested-document cases run in, as the portals manager gives
+ * them to its editors; the starting documents link to some of them.
+ */
+const portalPages = loadData('portal-pages.json')
+
+const pageCompileOptions = { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
+
+/**
+ * A free page of eleven top-level blocks: a title, an introduction, an alert, a two-column
+ * section (a title, a list and a button on the left; a card and a paragraph on the right), a
+ * divider, a grid of five cards, an accordion of four questions, a second two-column section
+ * and a closing paragraph. Built through the form by build-start.js, like the configuration
+ * below, so it is the document the form holds once loaded.
+ */
+const richPage = loadData('portal-page-rich.json')
+
+/**
+ * @param {number} index
+ * @returns {any}
+ */
+const richBlock = (index) => /** @type {any[]} */ (richPage.elements)[index]
+
+/**
+ * Changing one value deep inside a long page: what a person asks of a page editor most often,
+ * and where reading the whole document to find one card costs the most.
+ *
+ * The card is the third of five in a grid, so its index is neither the first nor the last,
+ * and every card of the grid has the same shape.
+ * @type {EvalCase}
+ */
+const portalPageListEdit = {
+  name: 'portal-page-list-edit',
+  title: 'page configuration',
+  goal: 'Dans la grille « Thématiques à la une », renomme la boite « Budget et finances » en « Budget et fiscalité ».',
+  schema: loadSchema('portal-page.json'),
+  data: richPage,
+  compileOptions: pageCompileOptions,
+  context: { pages: portalPages },
+  saveMode: 'auto',
+  checks: [
+    { unchangedExcept: ['/elements/6/children/2/title'], label: 'nothing changed but the title of the card' },
+    { path: '/elements/6/children/2/title', equals: 'Budget et fiscalité', label: 'the card « Budget et finances » is titled « Budget et fiscalité »' }
+  ]
+}
+
+/**
+ * The positions after the reorder: the alert first, the divider added before the
+ * « Questions fréquentes » title, every other top-level block shifted accordingly.
+ * [start index, final index, label] of each top-level block the goal does not touch.
+ * @type {[number, number, string][]}
+ */
+const reorderKept = [
+  [0, 1, 'the page title'],
+  [1, 2, 'the introduction'],
+  [4, 4, 'the first divider'],
+  [5, 5, 'the title « Thématiques à la une »'],
+  [6, 6, 'the grid of themes'],
+  [7, 8, 'the title « Questions fréquentes »'],
+  [8, 9, 'the questions'],
+  [9, 10, 'the section « Jeunesse » / « Presse »'],
+  [10, 11, 'the closing paragraph']
+]
+
+/**
+ * Three structural edits in one request: a block inserted at a stated place, one moved, one
+ * removed from inside a column. editArray has no move, so a move is a removal and an insertion
+ * of the same block, and every index after the first change has shifted.
+ *
+ * The checks name each block's final place: an insertion at the wrong index, a block lost in
+ * the move or the wrong one removed each fail a check of their own, and a top-level block the
+ * goal does not name must come out where the shifts put it, whole.
+ * @type {EvalCase}
+ */
+const portalPageReorder = {
+  name: 'portal-page-reorder',
+  title: 'page configuration',
+  goal: 'Sur cette page, remonte l\'encadré « Nouveau » sur la qualité de l\'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».',
+  schema: loadSchema('portal-page.json'),
+  data: richPage,
+  compileOptions: pageCompileOptions,
+  context: { pages: portalPages },
+  saveMode: 'auto',
+  checks: [
+    { unchangedExcept: ['/elements'], label: 'nothing changed outside the blocks' },
+    { path: '/elements/0/type', equals: 'alert', label: 'the first block is the alert « Nouveau »' },
+    { path: '/elements/0/content', equals: richBlock(2).content, label: 'the alert moved to the top keeps its text' },
+    { path: '/elements/7/type', equals: 'divider', label: 'a divider is just before the title « Questions fréquentes »' },
+    { path: '/elements/3/children', length: 2, label: 'the column « Nos engagements » has lost one block' },
+    { path: '/elements/3/children/0', equals: richBlock(3).children[0], label: 'the column « Nos engagements » keeps its title' },
+    { path: '/elements/3/children/1', equals: richBlock(3).children[1], label: 'the column « Nos engagements » keeps its list' },
+    { path: '/elements/3/children2', equals: richBlock(3).children2, label: 'the right column of « Nos engagements » is unchanged' },
+    { path: '/elements', length: 12, label: 'the page has one top-level block more' },
+    ...reorderKept.map(([from, to, label]) => ({ path: `/elements/${to}`, equals: richBlock(from), label: `${label} is unchanged, at its shifted place` }))
+  ]
+}
+
+/**
+ * A block that becomes another kind of block, keeping its text: a paragraph turned into an
+ * information alert, inside the right column of a two-column section.
+ *
+ * Switching an option of a discriminated union inside a nested list: the text belongs to
+ * both options, the paragraph's own setting (`centered`) belongs to the old one only and must
+ * not survive the switch.
+ * @type {EvalCase}
+ */
+const portalPageSwitch = {
+  name: 'portal-page-switch',
+  title: 'page configuration',
+  goal: 'Dans la colonne de droite de la section « Nos engagements », transforme le paragraphe qui commence par « Besoin d\'aide ? » en encadré d\'information, en gardant exactement le même texte.',
+  schema: loadSchema('portal-page.json'),
+  data: richPage,
+  compileOptions: pageCompileOptions,
+  context: { pages: portalPages },
+  saveMode: 'auto',
+  checks: [
+    { unchangedExcept: ['/elements/3/children2/1'], label: 'nothing changed but the paragraph « Besoin d\'aide ? »' },
+    { path: '/elements/3/children2/1/type', equals: 'alert', label: 'the paragraph « Besoin d\'aide ? » is now an alert' },
+    { path: '/elements/3/children2/1/alertType', equals: 'info', label: 'the alert is an information' },
+    { path: '/elements/3/children2/1/content', equals: richBlock(3).children2[1].content, label: 'the alert keeps exactly the text of the paragraph' },
+    { path: '/elements/3/children2/1/centered', absent: true, label: 'the paragraph\'s own setting is gone' }
+  ]
+}
+
+const richConfig = loadData('portal-config-rich.json')
+
+/** @type {any[]} */
+const footerLinks = /** @type {any} */ (richConfig).footer.links
+
+/**
+ * Four changes in four distant parts of a site configuration, asked in one breath: the
+ * dataset cards (« Jeux de données » tab), the sharing networks (general settings), the
+ * breadcrumb (navigation) and a footer link to a free page picked among the portal's pages.
+ *
+ * Each is easy alone; together they measure whether an agent finds each place without
+ * rereading the whole configuration every time, and touches nothing on the way. The
+ * breadcrumb's options appear once it is shown, with their defaults, so the whole
+ * /breadcrumb object is free to change.
+ * @type {EvalCase}
+ */
+const portalConfigMulti = {
+  name: 'portal-config-multi',
+  title: 'portal configuration',
+  goal: 'A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.',
+  schema: loadSchema('portal-config.json'),
+  data: richConfig,
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  context: { owner: { type: 'organization', id: 'test_org1' }, pages: portalPages },
+  lookups: ['list_portal_pages'],
+  saveMode: 'auto',
+  checks: [
+    {
+      unchangedExcept: ['/datasets/card/showDepartment', '/socialShares', '/breadcrumb', '/footer/links'],
+      label: 'nothing changed but the four settings asked for'
+    },
+    { path: '/datasets/card/showDepartment', equals: false, label: 'the dataset cards no longer show the department' },
+    { path: '/socialShares', values: ['bluesky', 'linkedin', 'facebook'], label: 'sharing is offered on Bluesky, LinkedIn and Facebook only' },
+    { path: '/breadcrumb/position', equals: 'above-footer', label: 'the breadcrumb is shown above the footer' },
+    { path: '/footer/links', contains: { type: 'generic', pageRef: { slug: 'contact-presse' } }, label: 'the footer links the page "Contact presse"' },
+    // where the new link goes is not stated, so the links it had are found wherever they are
+    ...footerLinks.map((/** @type {any} */ link) => ({ path: '/footer/links', contains: link, label: `the footer keeps its link "${link.title}"` })),
+    { path: '/footer/links', length: footerLinks.length + 1, label: 'the footer has one link more' }
+  ]
+}
+
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie, dataFairLine, portalPageListEdit, portalPageReorder, portalPageSwitch, portalConfigMulti]
 
 /**
  * @param {string} name

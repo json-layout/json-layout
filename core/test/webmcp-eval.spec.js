@@ -462,7 +462,7 @@ describe('webmcp eval no-guide variant', () => {
 
 describe('webmcp eval save modes', () => {
   it('should save the app configurations by themselves, and the contact and the line on demand', async () => {
-    for (const name of ['calendar', 'charts-edit', 'portal-config-edit']) {
+    for (const name of ['calendar', 'charts-edit', 'portal-config-edit', 'portal-page-list-edit', 'portal-page-reorder', 'portal-page-switch', 'portal-config-multi']) {
       assert.equal(getCase(name).saveMode, 'auto', name)
       const arm = await createArm(getCase(name), 'session')
       assert.equal(arm.runnable, false, `${name} is not runnable on the session arm until FormSession auto-saves`)
@@ -471,5 +471,188 @@ describe('webmcp eval save modes', () => {
       assert.notEqual(getCase(name).saveMode, 'auto', name)
       assert.equal((await createArm(getCase(name), 'session')).runnable, true, name)
     }
+  })
+})
+
+describe('webmcp eval nested-document cases', () => {
+  const nested = ['portal-page-list-edit', 'portal-page-reorder', 'portal-page-switch', 'portal-config-multi']
+
+  /**
+   * The labels of a case's checks that fail on the data an arm ended with.
+   * @param {string} name
+   * @param {unknown} data
+   * @param {unknown} start
+   * @returns {string[]}
+   */
+  const failed = (name, data, start) => runChecks(getCase(name).checks ?? [], data, start).filter((r) => !r.ok).map((r) => r.label)
+
+  /**
+   * A form session on the case, and a way to call its tools that fails on any refused call.
+   * @param {string} name
+   */
+  const form = (name) => {
+    const session = new EvalSession(getCase(name))
+    /**
+     * @param {string} tool
+     * @param {Record<string, unknown>} args
+     */
+    const call = async (tool, args) => {
+      const result = await session.call(tool, args)
+      assert.ok(!result.isError, `${tool} ${JSON.stringify(args)}: ${session.calls.at(-1)?.response}`)
+      return result
+    }
+    return { session, call }
+  }
+
+  /**
+   * The plain API takes the edited document as the form left it: both arms validate alike.
+   * @param {string} name
+   * @param {unknown} data
+   */
+  const plainAccepts = async (name, data) => {
+    const plain = new PlainApiSession(getCase(name))
+    const result = await plain.call('writeDocument', { document: data })
+    assert.ok(!result.isError, result.content[0].text)
+    assert.deepEqual(failed(name, plain.data, getCase(name).data), [])
+  }
+
+  for (const name of nested) {
+    it(`should start ${name} from a large document the form accepts as it is`, () => {
+      const evalCase = getCase(name)
+      assert.equal(evalCase.saveMode, 'auto', 'a portal page or configuration is a draft saved as it changes')
+      const { session } = form(name)
+      assert.equal(session.valid, true, 'the starting document must be valid in the form')
+      // stored as the form normalizes it, so every arm starts from the same document
+      assert.deepEqual(session.start, evalCase.data)
+      assert.ok(JSON.stringify(evalCase.data).length > 6000, 'reading or resending the document is not free')
+      assert.ok(failed(name, evalCase.data, evalCase.data).length > 0, 'doing nothing must not pass')
+    })
+  }
+
+  it('should start the page cases from a page with nested blocks', () => {
+    const page = /** @type {any} */ (getCase('portal-page-list-edit').data)
+    assert.ok(page.elements.length >= 8)
+    assert.ok(page.elements.some((/** @type {any} */ e) => e.type === 'two-columns' && e.children.length && e.children2.length))
+    for (const name of ['portal-page-reorder', 'portal-page-switch']) assert.deepEqual(getCase(name).data, page, name)
+  })
+
+  it('should check the rename of a block in the middle of a nested list', async () => {
+    const name = 'portal-page-list-edit'
+    const { session, call } = form(name)
+    assert.equal(/** @type {any} */ (session.start).elements[6].children[2].title, 'Budget et finances')
+    await call('setFieldValue', { path: '/elements/6/children/2/title', value: 'Budget et fiscalité' })
+    assert.equal(session.valid, true)
+    assert.deepEqual(failed(name, session.data, session.start), [])
+    await plainAccepts(name, session.data)
+
+    const wrongCard = structuredClone(/** @type {any} */ (session.start))
+    wrongCard.elements[6].children[1].title = 'Budget et fiscalité'
+    assert.equal(failed(name, wrongCard, session.start).length, 2, 'the wrong card renamed, the right one not')
+    const collateral = structuredClone(/** @type {any} */ (session.data))
+    collateral.elements[6].children[2].children[0].content = 'Le budget.'
+    assert.equal(failed(name, collateral, session.start).length, 1)
+  })
+
+  it('should check an insertion, a move and a removal on the same page', async () => {
+    const name = 'portal-page-reorder'
+    const { session, call } = form(name)
+    const start = /** @type {any} */ (session.start)
+    assert.equal(start.elements[2].type, 'alert')
+    assert.equal(start.elements[7].content, 'Questions fréquentes')
+    assert.equal(start.elements[3].children[2].link.title, 'Voir tout le catalogue')
+    const alert = start.elements[2]
+    await call('editArray', { path: '/elements', action: 'remove', index: 2 })
+    await call('editArray', { path: '/elements', action: 'add', index: 0, value: alert })
+    await call('editArray', { path: '/elements', action: 'add', index: 7, value: { type: 'divider' } })
+    await call('editArray', { path: '/elements/3/children', action: 'remove', index: 2 })
+    assert.equal(session.valid, true)
+    assert.deepEqual(failed(name, session.data, session.start), [])
+    await plainAccepts(name, session.data)
+
+    // the alert removed but never put back
+    const lost = structuredClone(/** @type {any} */ (session.data))
+    lost.elements.splice(0, 1)
+    assert.ok(failed(name, lost, session.start).length > 3)
+    // the divider after the title instead of before it
+    const after = structuredClone(/** @type {any} */ (session.data))
+    after.elements.splice(7, 2, after.elements[8], after.elements[7])
+    assert.ok(failed(name, after, session.start).length >= 2)
+    // the wrong block removed from the column
+    const wrongRemoval = structuredClone(/** @type {any} */ (session.start))
+    wrongRemoval.elements[3].children.splice(1, 1)
+    const wrongData = structuredClone(/** @type {any} */ (session.data))
+    wrongData.elements[3].children = wrongRemoval.elements[3].children
+    assert.ok(failed(name, wrongData, session.start).length >= 1)
+    // a block the goal does not name changed on the way
+    const collateral = structuredClone(/** @type {any} */ (session.data))
+    collateral.elements[9].panels[1].title = 'Licence'
+    assert.equal(failed(name, collateral, session.start).length, 1)
+  })
+
+  it('should check a block switched to another type, its text kept and its old fields gone', async () => {
+    const name = 'portal-page-switch'
+    const { session, call } = form(name)
+    const start = /** @type {any} */ (session.start)
+    const paragraph = start.elements[3].children2[1]
+    assert.equal(paragraph.type, 'text')
+    assert.ok(paragraph.content.startsWith('Besoin d\'aide ?'))
+    assert.ok('centered' in paragraph)
+    // Switching with the item's option selector carries `centered` over into the alert, which
+    // refuses it: the form is invalid with no error on any node. Replacing the block is the
+    // path that ends valid, and the `absent` check is what tells the two apart.
+    await call('editArray', { path: '/elements/3/children2', action: 'remove', index: 1 })
+    await call('editArray', { path: '/elements/3/children2', action: 'add', index: 1, value: { uuid: paragraph.uuid, type: 'alert', alertType: 'info', content: paragraph.content } })
+    assert.equal(session.valid, true)
+    assert.deepEqual(failed(name, session.data, session.start), [])
+    await plainAccepts(name, session.data)
+
+    const kept = structuredClone(/** @type {any} */ (session.data))
+    kept.elements[3].children2[1].centered = false
+    assert.equal(failed(name, kept, session.start).length, 1, 'the paragraph\'s own field must be gone')
+    const rewritten = structuredClone(/** @type {any} */ (session.data))
+    rewritten.elements[3].children2[1].content = 'Besoin d\'aide ? Écrivez-nous.'
+    assert.equal(failed(name, rewritten, session.start).length, 1)
+    const warning = structuredClone(/** @type {any} */ (session.data))
+    warning.elements[3].children2[1].alertType = 'warning'
+    assert.equal(failed(name, warning, session.start).length, 1)
+  })
+
+  it('should check four scattered changes of the portal configuration', async () => {
+    const name = 'portal-config-multi'
+    const evalCase = getCase(name)
+    assert.deepEqual(evalCase.lookups, ['list_portal_pages'])
+    const { session, call } = form(name)
+    const start = /** @type {any} */ (session.start)
+    assert.equal(start.datasets.card.showDepartment, true)
+    assert.equal(start.breadcrumb.position, 'none')
+    await call('setFieldValue', { path: '/datasets/card/showDepartment', value: false })
+    await call('setFieldValue', { path: '/socialShares', value: ['bluesky', 'linkedin', 'facebook'] })
+    await call('setFieldValue', { path: '/breadcrumb/position', value: 'above-footer' })
+    const links = start.footer.links.length
+    await call('editArray', { path: '/footer/links', action: 'add', value: { type: 'generic' } })
+    await call('getFieldSuggestions', { path: `/footer/links/${links}/pageRef`, query: 'presse' })
+    const index = /^- \[(\d+)\] .*contact-presse/m.exec(session.calls.at(-1)?.response ?? '')?.[1]
+    assert.ok(index !== undefined, session.calls.at(-1)?.response)
+    await call('setFieldValue', { path: `/footer/links/${links}/pageRef`, suggestionIndex: Number(index) })
+    assert.equal(session.valid, true)
+    assert.deepEqual(failed(name, session.data, session.start), [])
+    await plainAccepts(name, session.data)
+
+    const missed = structuredClone(/** @type {any} */ (session.data))
+    missed.datasets.card.showDepartment = true
+    assert.equal(failed(name, missed, session.start).length, 1)
+    const extraShare = structuredClone(/** @type {any} */ (session.data))
+    extraShare.socialShares.push('x')
+    assert.equal(failed(name, extraShare, session.start).length, 1)
+    const lostLink = structuredClone(/** @type {any} */ (session.data))
+    lostLink.footer.links.splice(0, 1)
+    assert.deepEqual(failed(name, lostLink, session.start), ['the footer keeps its link "Plan du site"', 'the footer has one link more'])
+    // where the new link goes is not stated
+    const first = structuredClone(/** @type {any} */ (session.data))
+    first.footer.links.unshift(first.footer.links.pop())
+    assert.deepEqual(failed(name, first, session.start), [])
+    const collateral = structuredClone(/** @type {any} */ (session.data))
+    collateral.applications.card.showDepartment = false
+    assert.equal(failed(name, collateral, session.start).length, 1)
   })
 })

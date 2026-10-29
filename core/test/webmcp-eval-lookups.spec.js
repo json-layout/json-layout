@@ -57,7 +57,11 @@ describe('lookup tools', () => {
       'portal-page': [],
       'portal-page-edit': [],
       'portal-page-catalog': [],
-      'data-fair-line': ['get_field_values']
+      'data-fair-line': ['get_field_values'],
+      'portal-page-list-edit': [],
+      'portal-page-reorder': [],
+      'portal-page-switch': [],
+      'portal-config-multi': ['list_portal_pages']
     }
     for (const evalCase of cases) {
       assert.deepEqual(evalCase.lookups ?? [], expected[evalCase.name] ?? [], evalCase.name)

@@ -1,0 +1,9 @@
+{
+  "generic": [
+    { "slug": "jeunesse", "title": "Nos actions pour la jeunesse", "titleBackOffice": "Nos actions pour la jeunesse" },
+    { "slug": "contact-presse", "title": "Contact presse", "titleBackOffice": "Contact presse" },
+    { "slug": "reutilisations", "title": "Ils réutilisent nos données", "titleBackOffice": "Réutilisations" }
+  ],
+  "event": [{ "slug": "fete-de-la-musique", "title": "Fête de la musique 2026" }],
+  "news": []
+}

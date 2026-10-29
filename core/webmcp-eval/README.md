@@ -29,6 +29,10 @@ itself states; they are scored beside the verdict, never instead of it.
 | `portal-page-catalog` | portals page editor | 285874 | 814 | a page of three elements |
 | `charts-pie` | app-charts | 57330 | 286 | a configured chart |
 | `data-fair-line` | data-fair REST dataset line schema (about 15 columns) | — | — | empty |
+| `portal-page-list-edit` | portals page editor | 285874 | 814 | a page of eleven blocks, nested |
+| `portal-page-reorder` | portals page editor | 285874 | 814 | a page of eleven blocks, nested |
+| `portal-page-switch` | portals page editor | 285874 | 814 | a page of eleven blocks, nested |
+| `portal-config-multi` | portal editor | 125813 | 600 | a filled-in portal draft |
 
 The four build cases measure construction; the edit cases measure the other half, which
 is what a configuration editor mostly does. `portal-menu-catalog`, `portal-menu-explain`,
@@ -40,6 +44,18 @@ into a register, with a commune picked from a referential. The edit cases start 
 through these tools** and we kept — a starting document written by hand is a guess about what
 the form accepts, and one that is subtly invalid measures the harness rather than the
 protocol. They are also the only cases that reach `editArray`'s `remove`.
+
+The nested-document cases are the edits the form tools are meant for: long pages and site
+configurations where the value to change sits deep in nested lists. `portal-page-list-edit`
+renames a card in the middle of a grid, `portal-page-reorder` inserts, moves and removes blocks
+in one request, `portal-page-switch` turns a paragraph inside a column into an alert keeping
+its text, and `portal-config-multi` makes four changes in four distant parts of a portal
+configuration. Their starting documents (`cases/data/portal-page-rich.json`,
+`cases/data/portal-config-rich.json`) are built through the form by `build-start.js`, a one-off
+script run by hand (`node core/webmcp-eval/build-start.js`) that feeds the content with
+`setData`, `editArray` and `setFieldValue` and keeps a document only when the form reports it
+valid and reloads it unchanged. The pages they link to are `cases/data/portal-pages.json`,
+the cases' `context.pages`.
 
 The model is pinned by `JL_WEBMCP_EVAL_MODEL` (`opus`, `sonnet`, `haiku`) and recorded per
 run, so runs are comparable across time and across tiers. **The default is `haiku`, the
@@ -245,7 +261,7 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 - **`session`** is what a server exposes (openapi-mcp editor groups): the record only
   exists once saved, so the checks score the last saved document, or the starting one when
   nothing was saved. A case whose resource auto-saves (`saveMode: 'auto'`, today
-  the application configurations `calendar` and `charts-edit`, and `portal-config-edit`) is `not runnable` on this arm until `FormSession` announces an
+  the application configurations `calendar` and `charts-edit`, `portal-config-edit` and the four nested-document cases) is `not runnable` on this arm until `FormSession` announces an
   auto mode (`SAVE_MODES`): the run is not faked, the sidecar records `notRunnable` and the
   reason, and the report prints it without failing.
 - **`plain`** is the baseline the form tools claim to beat (`core/src/webmcp/README.md`
@@ -280,6 +296,8 @@ are the same on every arm whatever path the agent took:
 | `{ path, equals }` | the value at the JSON pointer equals it (an expected string also matches the number with that rendering) |
 | `{ path, values, separator? }` | the value, a list or a string joined with the separator, holds exactly these values, in any order and spelling |
 | `{ path, contains }` | an item of the array at the pointer includes this partial object |
+| `{ path, absent: true }` | nothing is at the pointer |
+| `{ path, length }` | the array at the pointer has this many items |
 | `{ unchangedExcept: [pointers] }` | the data equals the starting data once those pointers are removed from both |
 
 Checks pin facts the goal states, not style: the commune code, the digits of a SIRET, a
