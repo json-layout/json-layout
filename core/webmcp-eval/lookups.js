@@ -94,23 +94,6 @@ function withOwnerFilter (evalCase, params) {
 }
 
 /**
- * The columns of a dataset schema as describe_dataset reports them: calculated ones left out
- * (the pickers ask `calculated=false`), the title as data-fair labels a column.
- * @param {any[]} schema
- * @returns {Record<string, unknown>[]}
- */
-function columnsOf (schema) {
-  return schema.filter((c) => !c['x-calculated']).map((c) => {
-    /** @type {Record<string, unknown>} */
-    const column = { key: c.key, type: c.type }
-    if (c.format) column.format = c.format
-    column.title = c.title || c.label || c['x-originalName'] || c.key
-    if (c['x-refersTo']) column['x-refersTo'] = c['x-refersTo']
-    return column
-  })
-}
-
-/**
  * The referential datasets the case's columns pick from: a column whose `x-master` names
  * `dataset:<id>` and whose suggestions come from `x-fromUrl`.
  * @param {EvalCase} evalCase
@@ -172,7 +155,7 @@ function catalogue (evalCase, get) {
     },
     describe_dataset: {
       name: 'describe_dataset',
-      description: 'Describe a dataset: its `id`, `title`, `href` (its URL in the API) and `isRest` (true for an editable dataset), and its `columns`, each with its `key`, `type`, `format` when it has one, `title`, and `x-refersTo` (the URI of the concept the column holds, e.g. a label, a start date) when it has one. Calculated columns are left out. An unknown id answers 404 Not Found.',
+      description: 'Describe a dataset: its `id`, `title`, `href` (its URL in the API) and `isRest` (true for an editable dataset), and its `schema`, the list of its columns as the API describes them: each with its `key`, `type`, and when it has them its `format`, `title`, `x-originalName`, `x-refersTo` (the URI of the concept the column holds, e.g. a label, a start date), `x-concept`, `enum` and other annotations. Calculated columns are left out. An unknown id answers 404 Not Found.',
       inputSchema: { type: 'object', properties: { datasetId }, required: ['datasetId'] },
       execute: (args) => attempt(async () => {
         const id = args?.datasetId
@@ -183,7 +166,8 @@ function catalogue (evalCase, get) {
           title: dataset.title,
           href: dataset.href,
           isRest: dataset.isRest === true,
-          columns: columnsOf(Array.isArray(dataset.schema) ? dataset.schema : [])
+          // the columns whole, as the pickers store them, calculated ones left out as their `calculated=false` does
+          schema: (Array.isArray(dataset.schema) ? dataset.schema : []).filter((/** @type {any} */ c) => !c['x-calculated'])
         }
       })
     },
@@ -222,17 +206,15 @@ function catalogue (evalCase, get) {
     },
     list_portal_pages: {
       name: 'list_portal_pages',
-      description: `List the pages of the portal. Answers \`{ count, results }\`, each result a page with its \`type\` (${Object.keys(pages ?? {}).join(', ') || 'none'}), its \`slug\`, its \`title\` and, when it has one, its \`titleBackOffice\` (the title the back-office shows). Pass \`type\` to list the pages of one type only.`,
+      description: `List the pages of the portal, grouped by type: answers an object with one list per type (${Object.keys(pages ?? {}).join(', ') || 'none'}), each page with its \`slug\`, its \`title\` and, when it has one, its \`titleBackOffice\` (the title the back-office shows). Pass \`type\` to list the pages of one type only.`,
       inputSchema: {
         type: 'object',
         properties: { type: { type: 'string', description: 'Keep the pages of this type only.' } }
       },
       execute: (args) => attempt(async () => {
         const type = typeof args?.type === 'string' && args.type ? args.type : undefined
-        const results = Object.entries(pages ?? {})
-          .filter(([pageType]) => type === undefined || pageType === type)
-          .flatMap(([pageType, list]) => (list ?? []).map((page) => ({ type: pageType, ...page })))
-        return { count: results.length, results }
+        return Object.fromEntries(Object.entries(structuredClone(pages ?? {}))
+          .filter(([pageType]) => type === undefined || pageType === type))
       })
     }
   }
