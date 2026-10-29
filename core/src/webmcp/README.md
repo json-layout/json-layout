@@ -154,7 +154,8 @@ root 95,798 → 15,958 bytes, `/elements` 92,173 → 15,441, the portal configur
 
 **Paths mean what the agent read.** A path may mix the layout's (`/$oneOf/2`, a tab) and the
 data's, and a key under a choice needs no index: `/menu/0/title` finds the option that holds
-`title`. A path that leads nowhere says where it stops and what is there. `describeState` with
+`title`. A form segment written without its `$` (`/comp-2/…`) reads as `/$comp-2/…` unless the
+data holds a key of that name. A path that leads nowhere says where it stops and what is there. `describeState` with
 `query` lists the fields whose name, title or description holds the words, with their paths,
 so a field is found without knowing which tab holds it. Switching a variant removes every key
 of the one it leaves, and an invalid form always says which node is invalid.

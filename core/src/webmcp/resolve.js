@@ -112,13 +112,27 @@ function resolveMixedPath (root, path) {
   return base && resolveLayoutPath(base, segments.slice(first).join('/'))
 }
 
+/** A form segment written without its `$` (`comp-2` for `$comp-2`), as six round 3 calls did. */
+const STRUCTURAL_WITHOUT_DOLLAR = /^(oneOf|comp-\d+|slot-\d+|allOf-\d+)$/
+
+/**
+ * @param {unknown} data
+ * @param {string} key
+ * @returns {boolean}
+ */
+function hasOwnDataKey (data, key) {
+  return !!data && typeof data === 'object' && !Array.isArray(data) && Object.prototype.hasOwnProperty.call(data, key)
+}
+
 /**
  * A path whose segments are layout or data ones, in any order: /$comp-2/elements/6/children/2/title,
  * where the item at children/2 is a union and title lives under its active variant. Each
  * segment is a layout child of the node reached so far or else, when none has that key, the
  * data key of a node below it, searched through the structural levels (`$comp-N`, the active
  * variant of a `$oneOf`) and nowhere else: a key of a variant that is not active does not
- * resolve, so nothing is written to a node the form does not show.
+ * resolve, so nothing is written to a node the form does not show. A form segment written
+ * without its `$` (`comp-2`, `oneOf`, `slot-1`, `allOf-1`) is read as that segment when the
+ * node has no data key of that name: the data key, when there is one, wins.
  * @param {import('../state/types.js').StateNode} root
  * @param {string} path
  * @returns {import('../state/types.js').StateNode|undefined}
@@ -130,6 +144,9 @@ function resolveWalkedPath (root, path) {
     /** @type {import('../state/types.js').StateNode|undefined} */
     let next = current.children ? findChild(current.children, key) : undefined
     if (!next && !segment.startsWith('$')) next = findByDataPath(current, `${current.dataPath}/${segment}`)
+    if (!next && current.children && STRUCTURAL_WITHOUT_DOLLAR.test(segment) && !hasOwnDataKey(current.data, segment)) {
+      next = findChild(current.children, '$' + segment)
+    }
     if (!next) return undefined
     current = next
   }

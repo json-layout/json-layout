@@ -225,6 +225,42 @@ describe('webmcp data paths on a tabbed form', () => {
     assert.equal(/** @type {any} */(layout.data).menu[0].type, 'generic')
   })
 
+  it('reads a structural segment written without its $ as the layout segment', () => {
+    // round 3: the $ of /$comp-2 was dropped six times, each costing a not-found answer
+    const layout = makeLayout()
+    const byLayout = resolveNode(layout.stateTree.root, '/$comp-1/theme/primary')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(layout.stateTree.root, '/comp-1/theme/primary'), byLayout)
+    setFieldValue.execute(layout, { path: '/comp-1/theme/primary', value: '#1b5e20' })
+    assert.deepEqual(layout.data, { theme: { primary: '#1b5e20' }, menu: [{ title: 'a' }] })
+    // only names of form segments: any other unknown key still resolves to nothing
+    assert.equal(resolveNode(layout.stateTree.root, '/comps-1/theme/primary'), undefined)
+  })
+
+  it('keeps a data key named like a structural segment', () => {
+    const compiled = compile({
+      type: 'object',
+      layout: { comp: 'tabs', children: [{ title: 'A', children: ['comp-1'] }] },
+      properties: { 'comp-1': { type: 'object', properties: { primary: { type: 'string' } } } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { 'comp-1': { primary: 'x' } })
+    const node = resolveNode(layout.stateTree.root, '/comp-1/primary')
+    assert.equal(node?.dataPath, '/comp-1/primary')
+    setFieldValue.execute(layout, { path: '/comp-1/primary', value: 'y' })
+    assert.deepEqual(layout.data, { 'comp-1': { primary: 'y' } })
+  })
+
+  it('reads a union item path whose $ were dropped on the portal page', () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, structuredClone(evalCase.data))
+    const root = layout.stateTree.root
+    const byLayout = resolveNode(root, '/$comp-2/elements/6/$oneOf')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(root, '/comp-2/elements/6/$oneOf'), byLayout)
+    assert.equal(resolveNode(root, '/comp-2/elements/6/oneOf'), byLayout)
+  })
+
   it('points to the paths describeState lists when nothing matches', () => {
     const layout = makeLayout()
     assert.throws(() => setFieldValue.execute(layout, { path: '/navBar/items', value: 'x' }), (err) => {
