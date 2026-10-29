@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0066724900000000005,
+  "turns": 13,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 3467,
+    "cacheRead": 63459,
+    "cacheWrite": 21517
+  },
+  "answer": "All four changes are made and the portal accepted the write. I read each value back to confirm it.\n\n- **Dataset cards:** the department is hidden (`datasets.card.showDepartment` is now `false`). I left the department on the dataset page and on the visualisation cards and pages, since you only mentioned dataset cards.\n- **Sharing:** only Bluesky, Facebook and LinkedIn are offered (`socialShares`). X, Reddit, SMS and WhatsApp are removed.\n- **Breadcrumb:** set to show above the footer (`breadcrumb.position` is `above-footer`). It was previously hidden.\n- **Footer links:** I added \"Contact presse\" as a \"Page libre\" link pointing to the existing `contact-presse` page. It sits after \"Site de l'agglomération\".\n\nI didn't touch the theme, so the colours and fonts are unchanged. Nothing was left incomplete."
+}

@@ -1,0 +1,14 @@
+{
+  "case": "charts-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document and the relevant schema parts (valueCalc metric list, legendPosition list), then sent a patch replacing chart whole and legendPosition with the other top-level keys resent unchanged, so no sibling data was lost. It verified with two path reads that metric is max and legendPosition is bottom. The goal was reached without guessing, in 7 calls.",
+  "friction": [
+    {
+      "call": 5,
+      "tool": "patchDocument",
+      "observed": "200 OK stored 8 top-level key(s), after the agent resent every top-level key including the 4.7KB datasets array",
+      "inferred": "The agent re-sent the whole document to be safe since patch replaces keys whole; wasteful but harmless",
+      "severity": "low"
+    }
+  ]
+}

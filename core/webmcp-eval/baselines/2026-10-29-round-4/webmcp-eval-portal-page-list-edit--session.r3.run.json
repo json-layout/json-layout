@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-list-edit",
+  "arm": "session",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0037216500000000004,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 544,
+    "cacheRead": 42645,
+    "cacheWrite": 15112
+  },
+  "answer": "J'ai renommé la boîte « Budget et finances » en « Budget et fiscalité » dans la grille « Thématiques à la une ». Le formulaire est valide et la modification est enregistrée.\n\nLe reste de la boîte n'a pas été touché : son texte de description et son lien sont inchangés."
+}

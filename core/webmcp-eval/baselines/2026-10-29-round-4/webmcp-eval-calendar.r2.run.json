@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "form",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00369779,
+  "turns": 13,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 18,
+    "output": 1502,
+    "cacheRead": 80419,
+    "cacheWrite": 10704
+  },
+  "answer": "The calendar is set up on the \"Agenda-manifestations\" dataset, with the event name as the label and crowd sourcing turned on. The form is valid.\n\n- **Jeu de données:** Agenda-manifestations.\n- **Champ de libellé:** \"Nom de l'évenement\" (`nomevenement`). This is the only event-name column; there is also a separate \"Nom\" column, which I did not use.\n- **Activer le crowd sourcing:** on.\n\nCrowd sourcing also shows a field I left empty: **Jeu de données des contributions externes**. This is where visitors' proposed events would be stored. It is not marked required, so the form validates without it. The suggestions include \"Agenda-manifestations\" itself (the same dataset, which would mix proposals with published events), and several other calendar datasets. Tell me which one to use, or whether to leave it empty.\n\nThe other crowd-sourcing options are at their defaults: \"Supprimer les contributions après validation\" is off and the contribution colour is `#7AA95C`."
+}

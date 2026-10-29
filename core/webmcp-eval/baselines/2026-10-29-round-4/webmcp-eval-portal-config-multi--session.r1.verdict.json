@@ -1,0 +1,21 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "All four requested changes were made and saved: dataset card showDepartment set to false (the page metadata and application card flags left untouched), socialShares reduced to bluesky/linkedin/facebook, breadcrumb position set to above-footer, and a generic footer link to the page Contact presse appended with the slug taken from a suggestion list (not invented). Every write reported saved; final getData confirmed the breadcrumb and the final form is valid. 13 calls, direct path through the outline, with the new link added via editArray then resolved via getFieldSuggestions. Only minor friction: the field is labelled owner (Afficher le propriétaire) while the goal says department, resolved by the showDepartment path name; and the agent passed a JSON-quoted string for the select which the tool silently coerced.",
+  "friction": [
+    {
+      "call": 6,
+      "tool": "setFieldValue",
+      "observed": "/-8/datasets/-1/card/-1/showDepartment (switch) = false ... saved (field label seen at call 2: \"Afficher le propriétaire\")",
+      "inferred": "The agent matched the goal word department to the owner-labelled switch through the path name alone; nothing in the label confirmed it.",
+      "severity": "low"
+    },
+    {
+      "call": 8,
+      "tool": "setFieldValue",
+      "observed": "coerced: /$comp-5/breadcrumb/position quoted text → text",
+      "inferred": "The agent sent the value as a JSON-quoted string; the tool corrected it silently and the write succeeded, so no recovery was needed.",
+      "severity": "low"
+    }
+  ]
+}

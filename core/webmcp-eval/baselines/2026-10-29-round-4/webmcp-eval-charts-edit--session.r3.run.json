@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "session",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00214078,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 577,
+    "cacheRead": 20468,
+    "cacheWrite": 8235
+  },
+  "answer": "The chart now shows the maximum instead of the average, and the legend is at the bottom. The form is valid and both changes are saved.\n\n- **Metric:** The value calculation was \"Moyenne\" (avg) on the `valeur` column. It is now \"Valeur maximale\" (max), so each commune shows its highest pollutant value.\n- **Legend:** The position was \"Droite\" (right). It is now \"Bas\" (bottom).\n\nI didn't change anything else. The grouping is still by `nom_com`, showing the top 10 communes sorted by label in ascending order. Sorting is by label, not by the computed value, so the bars are not ordered by maximum. Tell me if you want them sorted by value instead."
+}

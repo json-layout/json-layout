@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "form",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00680349,
+  "turns": 15,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 14,
+    "output": 2232,
+    "cacheRead": 105489,
+    "cacheWrite": 23156
+  },
+  "answer": "All four changes are in the form and it validates. I did not save or publish anything.\n\n- **Dataset cards:** \"Afficher le propriétaire\" is now off (`/$comp-8/datasets/$comp-1/card/$comp-1/showDepartment` = false). I took \"department\" to mean this switch, since the form has no separate department field. The form's label says \"owner\", so tell me if you meant something else.\n- **Sharing:** the shared networks are now Bluesky, Facebook and LinkedIn. I removed X, Reddit, SMS and WhatsApp.\n- **Breadcrumb:** the position is now \"Au-dessus du pied de page\" (above the footer). The breadcrumb options that became available are still at their defaults.\n- **Footer links:** I added a \"Page libre\" link to the existing page \"Contact presse\" (slug `contact-presse`), labelled \"Contact presse\". It is the fifth footer link, after \"Site de l'agglomération\". I didn't set an icon or open it in a new tab."
+}

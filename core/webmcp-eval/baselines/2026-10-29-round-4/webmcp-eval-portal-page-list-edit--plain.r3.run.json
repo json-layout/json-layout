@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-list-edit",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00445304,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 3806,
+    "cacheRead": 16744,
+    "cacheWrite": 11910
+  },
+  "answer": "J'ai renommé la boîte « Budget et finances » en « Budget et fiscalité » dans la grille « Thématiques à la une ». Le document a été accepté (200 OK).\n\nSeul le titre de la carte a changé. Son texte descriptif et le reste de la page sont inchangés."
+}

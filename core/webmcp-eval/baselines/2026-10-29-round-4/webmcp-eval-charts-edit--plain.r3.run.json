@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00346253,
+  "turns": 6,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 2629,
+    "cacheRead": 25943,
+    "cacheWrite": 9439
+  },
+  "answer": "The chart now shows the maximum of `valeur` per commune instead of the average, and the legend is at the bottom. The write returned `200 OK`.\n\n- `chart.config.valueCalc.metric`: `avg` → `max`\n- `legendPosition`: `right` → `bottom`\n\nNothing else in the document changed."
+}

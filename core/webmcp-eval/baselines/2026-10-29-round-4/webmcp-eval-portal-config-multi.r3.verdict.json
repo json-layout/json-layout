@@ -1,0 +1,28 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "The agent made all four changes: showDepartment=false on the dataset card, breadcrumb above-footer, socialShares reduced to bluesky/facebook/linkedin, and a generic footer link to Contact presse with the slug from a suggestion search. The form was valid at the end and the agent confirmed two of the writes with getData. The new footer item was added without a value, which produced a transient invalid state and a variant-selector detour. 15 calls for 4 edits.",
+  "friction": [
+    {
+      "call": 9,
+      "tool": "getFieldSuggestions",
+      "observed": "5 suggestion(s) ... [0] Page standard ... [1] Page libre ... [4] Lien",
+      "inferred": "Listed the variants of a selector already described in the outline; no new information.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "editArray",
+      "observed": "added item at index 4 ... (section, required, error) — tag \"type\" must be string ... form is invalid",
+      "inferred": "Empty new item is invalid; the agent had to pick the variant with a separate setFieldValue (call 11).",
+      "severity": "medium"
+    },
+    {
+      "call": 2,
+      "tool": "describeState",
+      "observed": "/$comp-8/datasets/$comp-1/card/$comp-1/showDepartment (switch) label=\"Afficher le propriétaire\" value=true",
+      "inferred": "The goal says department; the label says owner. Agent matched on the property name and applied it, which is right but not confirmed by the label.",
+      "severity": "low"
+    }
+  ]
+}

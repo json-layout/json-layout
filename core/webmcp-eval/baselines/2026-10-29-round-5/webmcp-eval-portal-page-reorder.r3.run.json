@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-reorder",
+  "arm": "form",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00557748,
+  "turns": 6,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 1427,
+    "cacheRead": 60958,
+    "cacheWrite": 21267
+  },
+  "answer": "Les trois modifications sont faites et le formulaire est valide.\n\n1. **Encadré « Nouveau »** (texte accentué sur la qualité de l'air) : déplacé en première position, au-dessus du titre « Les données ouvertes du Val de Loue ».\n2. **Séparateur horizontal** : ajouté juste avant le titre « Questions fréquentes ». Je l'ai laissé avec les valeurs par défaut (sans couleur ni texte).\n3. **Bouton « Voir tout le catalogue »** : retiré de la colonne « Nos engagements ». Il reste le titre et le texte des engagements dans cette colonne.\n\nRien n'est resté en suspens. Le titre principal de la page est inchangé."
+}

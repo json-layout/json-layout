@@ -1,0 +1,21 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "All four changes were applied and saved: dataset card showDepartment false (page and application flags untouched), socialShares set to bluesky/facebook/linkedin, breadcrumb above-footer, and a generic footer link to the suggested page Contact presse (slug from the suggestion list). Each write answered saved and the final form is valid. 13 calls with no wrong paths or refused writes. The only waste was two exploratory describeState calls on the variants of an existing link (calls 6 and 7) to learn the shape of a link, which the editArray response then repeated.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "describeState",
+      "observed": "Fields of the existing standard-link variant (subtype, title, target, icon) of /links/0/$oneOf/0",
+      "inferred": "The agent inspected an existing standard link to learn how a link is built, then went on to add a generic one; the call bought little because the variant list of call 6 and the editArray response already gave the shape.",
+      "severity": "low"
+    },
+    {
+      "call": 2,
+      "tool": "describeState",
+      "observed": "label=\"Afficher le propriétaire\" for showDepartment",
+      "inferred": "The goal says department, the label says owner; the agent matched on the path name.",
+      "severity": "low"
+    }
+  ]
+}

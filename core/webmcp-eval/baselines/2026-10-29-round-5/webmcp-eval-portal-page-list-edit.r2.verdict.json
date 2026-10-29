@@ -1,0 +1,21 @@
+{
+  "case": "portal-page-list-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent located the heading Thématiques à la une, inspected the element, then searched for the box title (single match) and inspected the following grid element, which listed its 5 boxes with titles and confirmed the third was Budget et finances before writing. The final data shows only that title changed in the correct grid box; the write was confirmed valid. The path used came from the tool output, not a guess.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "describeState",
+      "observed": "Describing the heading element returns the full field list of a title element (titleSize, titleTag, color, icon...), 40-option hint",
+      "inferred": "Agent only wanted to confirm the heading position, got a large unrelated dump",
+      "severity": "low"
+    },
+    {
+      "call": 4,
+      "tool": "describeState",
+      "observed": "Response lists all 40 variants of the element before the grid children list",
+      "inferred": "Agent skimmed past the variant list to the children summary, which did contain the needed confirmation",
+      "severity": "low"
+    }
+  ]
+}

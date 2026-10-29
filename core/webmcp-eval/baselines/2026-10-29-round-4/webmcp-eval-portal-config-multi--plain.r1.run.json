@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.005966750000000001,
+  "turns": 12,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 2605,
+    "cacheRead": 62125,
+    "cacheWrite": 20210
+  },
+  "answer": "All four changes are saved and the API accepted the write. I read the four changed values back to confirm them.\n\n- **Dataset cards:** `datasets.card.showDepartment` is now `false`. The department is still shown on dataset pages, since I only changed the card setting.\n- **Sharing:** `socialShares` is now `[\"bluesky\", \"linkedin\", \"facebook\"]`, in the order you gave. X, Reddit, SMS and WhatsApp are removed.\n- **Breadcrumb:** `breadcrumb.position` is now `above-footer` (\"Au-dessus du pied de page\"). The other breadcrumb options keep their defaults.\n- **Footer:** I added a \"Contact presse\" link at the end of the footer links. It points to the existing free page `contact-presse`, with the label \"Contact presse\".\n\nNothing was left undone. I did not change the menu, the theme or the other footer links."
+}

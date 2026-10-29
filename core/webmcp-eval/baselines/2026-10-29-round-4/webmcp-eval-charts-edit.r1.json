@@ -1,0 +1,683 @@
+{
+  "case": "charts-edit",
+  "goal": "This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.",
+  "arm": "form",
+  "startedAt": "2026-10-29T16:54:17.379Z",
+  "start": {
+    "qsFilter": "",
+    "chart": {
+      "type": "bar",
+      "categorizable": "true",
+      "yAxisStartsZero": true,
+      "config": {
+        "type": "aggsBased",
+        "groupBy": {
+          "type": "value",
+          "interval": "",
+          "field": "nom_com"
+        },
+        "size": 10,
+        "valueCalc": {
+          "type": "metric",
+          "metric": "avg",
+          "dynamicMetric": false,
+          "field": "valeur"
+        },
+        "missingLabel": "",
+        "sortBy": "label",
+        "sortOrder": "asc",
+        "dynamicSort": false,
+        "color": {
+          "type": "theme",
+          "strValue": "primary"
+        }
+      }
+    },
+    "disableTooltip": false,
+    "labelsMaxWidth": 30,
+    "divider": 1,
+    "legendPosition": "right",
+    "datasets": [
+      {
+        "schema": [
+          {
+            "key": "gml_id",
+            "x-originalName": "gml_id",
+            "type": "string",
+            "x-cardinality": 4681,
+            "description": ""
+          },
+          {
+            "key": "nom_dept",
+            "x-originalName": "nom_dept",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "VIENNE"
+            ]
+          },
+          {
+            "key": "nom_com",
+            "x-originalName": "nom_com",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "Poitiers"
+            ]
+          },
+          {
+            "key": "insee_com",
+            "x-originalName": "insee_com",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "x-refersTo": "http://rdf.insee.fr/def/geo#codeCommune",
+            "x-concept": {
+              "id": "codeCommune",
+              "title": "Code commune",
+              "primary": true
+            },
+            "enum": [
+              "86194"
+            ]
+          },
+          {
+            "key": "nom_station",
+            "x-originalName": "nom_station",
+            "type": "string",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              "Poitiers - centre",
+              "Poitiers - Couronneries",
+              "Poitiers - Le Nain"
+            ]
+          },
+          {
+            "key": "code_station",
+            "x-originalName": "code_station",
+            "type": "string",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              "FR09404",
+              "FR09015",
+              "FR09403"
+            ]
+          },
+          {
+            "key": "typologie",
+            "x-originalName": "typologie",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "Urbaine"
+            ]
+          },
+          {
+            "key": "influence",
+            "x-originalName": "influence",
+            "type": "string",
+            "x-cardinality": 2,
+            "description": "",
+            "enum": [
+              "Fond",
+              "Trafic"
+            ]
+          },
+          {
+            "key": "nom_poll",
+            "x-originalName": "nom_poll",
+            "type": "string",
+            "x-cardinality": 6,
+            "description": "",
+            "enum": [
+              "Dioxyde d'azote",
+              "Oxydes d'azote",
+              "Particules PM10",
+              "Ozone",
+              "Monoxyde de carbone",
+              "Particules fines PM2,5"
+            ]
+          },
+          {
+            "key": "id_poll_ue",
+            "x-originalName": "id_poll_ue",
+            "type": "integer",
+            "x-cardinality": 6,
+            "description": "",
+            "enum": [
+              5,
+              8,
+              9,
+              7,
+              10,
+              6001
+            ]
+          },
+          {
+            "key": "valeur",
+            "x-originalName": "valeur",
+            "type": "integer",
+            "x-cardinality": 150,
+            "description": ""
+          },
+          {
+            "key": "unite",
+            "x-originalName": "unite",
+            "type": "string",
+            "x-cardinality": 2,
+            "description": "",
+            "enum": [
+              "ug.m-3",
+              "mg.m-3"
+            ]
+          },
+          {
+            "key": "metrique",
+            "x-originalName": "metrique",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "moyenne journaliere"
+            ]
+          },
+          {
+            "key": "date_debut",
+            "x-originalName": "date_debut",
+            "type": "string",
+            "format": "date",
+            "x-cardinality": 364,
+            "description": ""
+          },
+          {
+            "key": "date_fin",
+            "x-originalName": "date_fin",
+            "type": "string",
+            "format": "date",
+            "x-cardinality": 363,
+            "description": ""
+          },
+          {
+            "key": "statut_valid",
+            "x-originalName": "statut_valid",
+            "type": "boolean",
+            "x-cardinality": 2,
+            "description": "",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          {
+            "key": "x_wgs84",
+            "x-originalName": "x_wgs84",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              0.345555990934372,
+              0.358583003282547,
+              0.340400010347367
+            ]
+          },
+          {
+            "key": "y_wgs84",
+            "x-originalName": "y_wgs84",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              46.5839004516601,
+              46.5868988037109,
+              46.5909004211425
+            ]
+          },
+          {
+            "key": "x_reglementaire",
+            "x-originalName": "x_reglementaire",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              496782.855285348,
+              497790.932537566,
+              496414.455556695
+            ]
+          },
+          {
+            "key": "y_reglementaire",
+            "x-originalName": "y_reglementaire",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              6612733.73391975,
+              6613033.09264063,
+              6613523.9735215
+            ]
+          },
+          {
+            "key": "geo_point",
+            "x-originalName": "geo_point",
+            "type": "string",
+            "x-cardinality": 3,
+            "description": "",
+            "x-refersTo": "http://www.w3.org/2003/01/geo/wgs84_pos#lat_long",
+            "x-concept": {
+              "id": "latLon",
+              "title": "Latitude / Longitude",
+              "primary": true
+            },
+            "enum": [
+              "46.5839004516601, 0.345555990934372",
+              "46.5868988037109, 0.358583003282547",
+              "46.5909004211425, 0.340400010347367"
+            ]
+          },
+          {
+            "x-calculated": true,
+            "key": "_geopoint",
+            "type": "string",
+            "title": "Coordonnée géographique",
+            "description": "Centroïde au format \"lat,lon\""
+          },
+          {
+            "x-calculated": true,
+            "key": "_id",
+            "type": "string",
+            "format": "uri-reference",
+            "title": "Identifiant",
+            "description": "Identifiant unique parmi toutes les lignes du jeu de données"
+          },
+          {
+            "x-calculated": true,
+            "key": "_i",
+            "type": "integer",
+            "title": "Numéro de ligne",
+            "description": "Indice de la ligne dans le fichier d'origine"
+          },
+          {
+            "x-calculated": true,
+            "key": "_rand",
+            "type": "integer",
+            "title": "Nombre aléatoire",
+            "description": "Un nombre aléatoire associé à la ligne qui permet d'obtenir un tri aléatoire par exemple"
+          }
+        ],
+        "id": "concentrations-horaires-de-polluants-dans-lair-ambiant-issues-du-reseau-permanen",
+        "title": "Concentrations horaires de polluants dans l'air ambiant issues du réseau permanent de mesures automatiques - Poitiers",
+        "href": "https://koumoul.com/data-fair/api/v1/datasets/concentrations-horaires-de-polluants-dans-lair-ambiant-issues-du-reseau-permanen"
+      }
+    ],
+    "title": "Pollution by commune"
+  },
+  "calls": [
+    {
+      "tool": "describeState",
+      "args": {},
+      "response": "valid: true, no errors\n\nFields:\n- / (section, required)\n  - /$allOf-0 (section) title=\"Source de données\"\n    - /$allOf-0/datasets (section)\n      - /$allOf-0/datasets/0 (autocomplete, suggestions) label=\"Jeu de données\" value=<object, 4213 chars — call getData with this path to read it> help=\"Ce jeu doit contenir au moins une colonne avec valeur numérique\"\n    - /$allOf-0/staticFilters (array) title=\"Filtres prédéfinis\" value=undefined\n  - /$allOf-1 (section) title=\"Type de visualisation\"\n    - /$allOf-1/chart (section)\n      - /$allOf-1/chart/$oneOf (variant-selector)\n        - variant 0: Courbe (type=\"line\") — { tension: slider, area: boolean, yAxisStartsZero: boolean, hidePoints: boolean, config: { $oneOf: variant selector (3 variants) } }\n        - variant 1: Histogramme (type=\"bar\") (active) — { hideYAxis: boolean, yAxisStartsZero: boolean, horizontal: boolean, config: { $oneOf: variant selector (3 variants) } }\n        - variant 2: Plusieurs courbes (type=\"multi-line\") — { tension: slider, stacked: boolean, percentage: boolean, disableDynamicStack: boolean, yAxisStartsZero: boolean, hidePoints: boolean, +1 more }\n        - variant 3: Histogramme multivalué (type=\"multi-bar\") — { hideYAxis: boolean, yAxisStartsZero: boolean, horizontal: boolean, stacked: boolean, percentage: boolean, disableDynamicStack: boolean, +1 more }\n        - variant 4: Radar (type=\"radar\") — { tension: slider, config: { $oneOf: variant selector (4 variants) } }\n        - variant 5: Camembert (type=\"pie\") — { cutout: slider, rotation: slider, display: select [\"label\" (Libellé uniquement), \"values\" (Valeurs), \"percentages\" (Pourcentages), \"both\" (Valeurs et pourcentages)], sumInTitle: boolean, config: { $oneOf: variant selector (3 variants) } }\n        - variant 6: Paire d'histogrammes (type=\"paired-histogram\") — { config: { $oneOf: variant selector (4 variants) } }\n        - /$allOf-1/chart/$oneOf/1 (section, required) title=\"Histogramme\"\n          - /$allOf-1/chart/$oneOf/1/hideYAxis (boolean) label=\"Cacher l'axe Y\" value=undefined help=\"Les valeurs apparaitront au au dessus ou à droite des barres. Cache l'axe des X en affichage horizontal\"\n          - /$allOf-1/chart/$oneOf/1/yAxisStartsZero (boolean) label=\"Commencer à partir de 0 pour l'axe des ordonnées\" value=true\n          - /$allOf-1/chart/$oneOf/1/horizontal (boolean) label=\"Affichage horizontal\" value=undefined\n          - /$allOf-1/chart/$oneOf/1/config (section) title=\"Préparation des données\"\n            - /$allOf-1/chart/$oneOf/1/config/$oneOf (variant-selector)\n              - variant 0: Lire les lignes une par une, couleur unique (type=\"rowsBased\") — { labelsField*: select, size*: number, valuesField*: select, sortBy*: select [\"row\" (Ligne), \"value\" (Valeur), \"label\" (Libellé)], sortOrder*: select [\"asc\" (Ascendant), \"desc\" (Descendant)], dynamicSort: boolean, +1 more }\n              - variant 1: Lire les lignes une par une, plusieurs couleurs (type=\"rowsBasedCategories\") — { labelsField*: select, size*: number, valuesField*: select, sortBy*: select [\"row\" (Ligne), \"value\" (Valeur), \"label\" (Libellé)], sortOrder*: select [\"asc\" (Ascendant), \"desc\" (Descendant)], categoriesField: select, +2 more }\n              - variant 2: Grouper les lignes (type=\"aggsBased\") (active) — { groupBy*: { $oneOf: variant selector (3 variants) }, size*: number, valueCalc*: { $oneOf: variant selector (2 variants) }, sortBy*: select [\"value\" (Valeur calculée), \"label\" (Libellé)], sortOrder*: select [\"asc\" (Ascendant), \"desc\" (Descendant)], missingLabel: text, +2 more }\n              - /$allOf-1/chart/$oneOf/1/config/$oneOf/2 (section, required) title=\"Grouper les lignes\"\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/groupBy (section, required)\n                  - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/groupBy/$oneOf (variant-selector) label=\"Grouper par\"\n                    - variant 0: Valeurs exactes d'une colonne (type=\"value\") (active) — { field: select }\n                    - variant 1: Intervalles d'une colonne de type date (type=\"date\") — { field*: select, interval*: select [\"hour\" (Heure), \"day\" (Jour), \"week\" (Semaine), \"month\" (Mois), \"year\" (Année)] }\n                    - variant 2: Intervalles d'une colonne numérique (type=\"number\") — { field*: select, interval*: number }\n                    - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/groupBy/$oneOf/0 (section, required) title=\"Valeurs exactes d'une colonne\"\n                      - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/groupBy/$oneOf/0/field (select, suggestions) label=\"Grouper en fonction de cette colonne\" value=\"nom_com\"\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/size (number, required, min=1, max=200, step=1, precision=0) label=\"Nombre maximal d'élements\" value=10\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc (section, required) title=\"Calcul de la valeur\"\n                  - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf (variant-selector)\n                    - variant 0: Nombre de lignes (type=\"count\") — object\n                    - variant 1: Calcul depuis les valeurs d'une colonne (type=\"metric\") (active) — { field*: select, metric*: select [\"avg\" (Moyenne), \"min\" (Valeur minimale), \"max\" (Valeur maximale), \"sum\" (Somme)], dynamicMetric: boolean }\n                    - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1 (section, required) title=\"Calcul depuis les valeurs d'une colonne\"\n                      - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/field (select, required, suggestions) label=\"Colonne\" value=\"valeur\"\n                      - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/metric (select, required, values=[\"avg\" (Moyenne), \"min\" (Valeur minimale), \"max\" (Valeur maximale), \"sum\" (Somme)]) label=\"Type de calcul\" value=\"avg\"\n                      - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/dynamicMetric (boolean) label=\"Choix dynamique de la métrique\" value=false\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/missingLabel (text) label=\"Groupe pour les éléments non renseignés\" value=\"\"\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/sortBy (select, required, values=[\"value\" (Valeur calculée), \"label\" (Libellé)]) label=\"Trier par\" value=\"label\"\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/sortOrder (select, required, values=[\"asc\" (Ascendant), \"desc\" (Descendant)]) label=\"Ordre\" value=\"asc\"\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/dynamicSort (boolean) label=\"Trier dynamiquement\" value=false help=\"Si cette option est activée, l'utilisateur pourra choisir la colonne de tri et l'ordre de tri dans le formulaire de filtres interactifs.\"\n                - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/color (section) title=\"Couleur\"\n                  - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/color/$oneOf (variant-selector)\n                    - variant 0: Thème (type=\"theme\") (active) — { strValue: select [\"primary\" (Primaire), \"secondary\" (Secondaire)] }\n                    - variant 1: Personnalisée (type=\"custom\") — { hexValue: color-picker }\n                    - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/color/$oneOf/0 (section, required) title=\"Thème\"\n                      - /$allOf-1/chart/$oneOf/1/config/$oneOf/2/color/$oneOf/0/strValue (select, values=[\"primary\" (Primaire), \"secondary\" (Secondaire)]) label=\"Couleur\" value=\"primary\"\n  - /$allOf-2 (section) title=\"Options\"\n    - /$allOf-2/title (text) label=\"Titre du graphique\" value=\"Pollution by commune\"\n    - /$allOf-2/xTitle (text) label=\"Titre des abscisses\" value=undefined\n    - /$allOf-2/yTitle (text) label=\"Titre des ordonnées\" value=undefined\n    - /$allOf-2/disableTooltip (boolean) label=\"Désactiver l'infobulle\" value=false\n    - /$allOf-2/labelsMaxWidth (slider, min=20, max=60, step=1) label=\"Longueur maximum des libellés\" value=30\n    - /$allOf-2/unit (text) label=\"Unité\" value=undefined\n    - /$allOf-2/divider (number) label=\"Diviseur\" value=1\n    - /$allOf-2/legendPosition (select, values=[\"top\" (Haut), \"bottom\" (Bas), \"left\" (Gauche), \"right\" (Droite)]) label=\"Position de la légende\" value=\"right\"",
+      "outputBytes": 8260,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/metric",
+        "value": "max"
+      },
+      "response": "/$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/metric (select) = \"max\"\nno error here\nform is valid",
+      "outputBytes": 111,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$allOf-2/legendPosition",
+        "value": "bottom"
+      },
+      "response": "/$allOf-2/legendPosition (select) = \"bottom\"\nno error here\nform is valid",
+      "outputBytes": 72,
+      "isError": false
+    }
+  ],
+  "data": {
+    "qsFilter": "",
+    "chart": {
+      "type": "bar",
+      "categorizable": "true",
+      "yAxisStartsZero": true,
+      "config": {
+        "type": "aggsBased",
+        "groupBy": {
+          "type": "value",
+          "interval": "",
+          "field": "nom_com"
+        },
+        "size": 10,
+        "valueCalc": {
+          "type": "metric",
+          "metric": "max",
+          "dynamicMetric": false,
+          "field": "valeur"
+        },
+        "missingLabel": "",
+        "sortBy": "label",
+        "sortOrder": "asc",
+        "dynamicSort": false,
+        "color": {
+          "type": "theme",
+          "strValue": "primary"
+        }
+      }
+    },
+    "disableTooltip": false,
+    "labelsMaxWidth": 30,
+    "divider": 1,
+    "legendPosition": "bottom",
+    "datasets": [
+      {
+        "schema": [
+          {
+            "key": "gml_id",
+            "x-originalName": "gml_id",
+            "type": "string",
+            "x-cardinality": 4681,
+            "description": ""
+          },
+          {
+            "key": "nom_dept",
+            "x-originalName": "nom_dept",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "VIENNE"
+            ]
+          },
+          {
+            "key": "nom_com",
+            "x-originalName": "nom_com",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "Poitiers"
+            ]
+          },
+          {
+            "key": "insee_com",
+            "x-originalName": "insee_com",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "x-refersTo": "http://rdf.insee.fr/def/geo#codeCommune",
+            "x-concept": {
+              "id": "codeCommune",
+              "title": "Code commune",
+              "primary": true
+            },
+            "enum": [
+              "86194"
+            ]
+          },
+          {
+            "key": "nom_station",
+            "x-originalName": "nom_station",
+            "type": "string",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              "Poitiers - centre",
+              "Poitiers - Couronneries",
+              "Poitiers - Le Nain"
+            ]
+          },
+          {
+            "key": "code_station",
+            "x-originalName": "code_station",
+            "type": "string",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              "FR09404",
+              "FR09015",
+              "FR09403"
+            ]
+          },
+          {
+            "key": "typologie",
+            "x-originalName": "typologie",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "Urbaine"
+            ]
+          },
+          {
+            "key": "influence",
+            "x-originalName": "influence",
+            "type": "string",
+            "x-cardinality": 2,
+            "description": "",
+            "enum": [
+              "Fond",
+              "Trafic"
+            ]
+          },
+          {
+            "key": "nom_poll",
+            "x-originalName": "nom_poll",
+            "type": "string",
+            "x-cardinality": 6,
+            "description": "",
+            "enum": [
+              "Dioxyde d'azote",
+              "Oxydes d'azote",
+              "Particules PM10",
+              "Ozone",
+              "Monoxyde de carbone",
+              "Particules fines PM2,5"
+            ]
+          },
+          {
+            "key": "id_poll_ue",
+            "x-originalName": "id_poll_ue",
+            "type": "integer",
+            "x-cardinality": 6,
+            "description": "",
+            "enum": [
+              5,
+              8,
+              9,
+              7,
+              10,
+              6001
+            ]
+          },
+          {
+            "key": "valeur",
+            "x-originalName": "valeur",
+            "type": "integer",
+            "x-cardinality": 150,
+            "description": ""
+          },
+          {
+            "key": "unite",
+            "x-originalName": "unite",
+            "type": "string",
+            "x-cardinality": 2,
+            "description": "",
+            "enum": [
+              "ug.m-3",
+              "mg.m-3"
+            ]
+          },
+          {
+            "key": "metrique",
+            "x-originalName": "metrique",
+            "type": "string",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "moyenne journaliere"
+            ]
+          },
+          {
+            "key": "date_debut",
+            "x-originalName": "date_debut",
+            "type": "string",
+            "format": "date",
+            "x-cardinality": 364,
+            "description": ""
+          },
+          {
+            "key": "date_fin",
+            "x-originalName": "date_fin",
+            "type": "string",
+            "format": "date",
+            "x-cardinality": 363,
+            "description": ""
+          },
+          {
+            "key": "statut_valid",
+            "x-originalName": "statut_valid",
+            "type": "boolean",
+            "x-cardinality": 2,
+            "description": "",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          {
+            "key": "x_wgs84",
+            "x-originalName": "x_wgs84",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              0.345555990934372,
+              0.358583003282547,
+              0.340400010347367
+            ]
+          },
+          {
+            "key": "y_wgs84",
+            "x-originalName": "y_wgs84",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              46.5839004516601,
+              46.5868988037109,
+              46.5909004211425
+            ]
+          },
+          {
+            "key": "x_reglementaire",
+            "x-originalName": "x_reglementaire",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              496782.855285348,
+              497790.932537566,
+              496414.455556695
+            ]
+          },
+          {
+            "key": "y_reglementaire",
+            "x-originalName": "y_reglementaire",
+            "type": "number",
+            "x-cardinality": 3,
+            "description": "",
+            "enum": [
+              6612733.73391975,
+              6613033.09264063,
+              6613523.9735215
+            ]
+          },
+          {
+            "key": "geo_point",
+            "x-originalName": "geo_point",
+            "type": "string",
+            "x-cardinality": 3,
+            "description": "",
+            "x-refersTo": "http://www.w3.org/2003/01/geo/wgs84_pos#lat_long",
+            "x-concept": {
+              "id": "latLon",
+              "title": "Latitude / Longitude",
+              "primary": true
+            },
+            "enum": [
+              "46.5839004516601, 0.345555990934372",
+              "46.5868988037109, 0.358583003282547",
+              "46.5909004211425, 0.340400010347367"
+            ]
+          },
+          {
+            "x-calculated": true,
+            "key": "_geopoint",
+            "type": "string",
+            "title": "Coordonnée géographique",
+            "description": "Centroïde au format \"lat,lon\""
+          },
+          {
+            "x-calculated": true,
+            "key": "_id",
+            "type": "string",
+            "format": "uri-reference",
+            "title": "Identifiant",
+            "description": "Identifiant unique parmi toutes les lignes du jeu de données"
+          },
+          {
+            "x-calculated": true,
+            "key": "_i",
+            "type": "integer",
+            "title": "Numéro de ligne",
+            "description": "Indice de la ligne dans le fichier d'origine"
+          },
+          {
+            "x-calculated": true,
+            "key": "_rand",
+            "type": "integer",
+            "title": "Nombre aléatoire",
+            "description": "Un nombre aléatoire associé à la ligne qui permet d'obtenir un tri aléatoire par exemple"
+          }
+        ],
+        "id": "concentrations-horaires-de-polluants-dans-lair-ambiant-issues-du-reseau-permanen",
+        "title": "Concentrations horaires de polluants dans l'air ambiant issues du réseau permanent de mesures automatiques - Poitiers",
+        "href": "https://koumoul.com/data-fair/api/v1/datasets/concentrations-horaires-de-polluants-dans-lair-ambiant-issues-du-reseau-permanen"
+      }
+    ],
+    "title": "Pollution by commune"
+  },
+  "checks": [
+    {
+      "label": "unchanged except /chart/config/valueCalc/metric, /legendPosition",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the chart shows the maximum",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the legend is at the bottom",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 3,
+    "outputBytes": 8443
+  }
+}

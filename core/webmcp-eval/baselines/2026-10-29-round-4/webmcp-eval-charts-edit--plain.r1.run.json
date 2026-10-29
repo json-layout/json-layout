@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00470139,
+  "turns": 11,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 18,
+    "output": 2583,
+    "cacheRead": 83649,
+    "cacheWrite": 12858
+  },
+  "answer": "The chart now shows the maximum of `valeur` per commune instead of the average, and the legend sits at the bottom. The write was accepted (200 OK), and a read-back confirms both changes.\n\n- **Metric:** `chart.config.valueCalc.metric` changed from `avg` to `max`. The field is still `valeur`.\n- **Legend:** `legendPosition` changed from `right` to `bottom`.\n\nEverything else is unchanged. My first two attempts at this patch failed on malformed input, and a third was refused with a 400 because I had put top-level options inside `chart`. The final write matched the original structure."
+}

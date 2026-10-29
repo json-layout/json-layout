@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected Agenda-manifestations, searched label columns with the query nom (which surfaced Nom de l'évenement at index 2), applied it, then enabled crowdSourcing. Every write was valid and saved, and the final data holds the dataset, labelField nomevenement and crowdSourcing true. The value came from the tool listing, not memory. One wasted query and two verification reads only.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.",
+      "inferred": "A redundant query (event) after the earlier nom query had already surfaced the right column; no harm done.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "[0] Nom (nom) [1] Prénom (prenom) [2] Nom de l'évenement (nomevenement)",
+      "inferred": "A name query returned three plausible columns; the agent had to choose the event name one by label, which was clear enough.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "describeState",
+      "observed": "crowdSourcing value=true ... valid",
+      "inferred": "Redundant verification of a write already confirmed by call 9, as was call 11.",
+      "severity": "low"
+    }
+  ]
+}

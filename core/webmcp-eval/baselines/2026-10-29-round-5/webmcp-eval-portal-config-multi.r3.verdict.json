@@ -1,0 +1,6 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "Efficient, correct session in 13 calls: it read the outline and the relevant closed lists, set showDepartment false on the dataset card, narrowed socialShares to the three requested networks, set breadcrumb above-footer, read the footer link variants, added a generic link with the type given up front, found Contact presse by searching \"presse\" and set pageRef and title. The final form was valid and no values were invented.",
+  "friction": []
+}

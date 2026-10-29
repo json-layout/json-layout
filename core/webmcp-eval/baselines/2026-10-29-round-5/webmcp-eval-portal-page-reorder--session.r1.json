@@ -1,0 +1,945 @@
+{
+  "case": "portal-page-reorder",
+  "goal": "Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».",
+  "arm": "session",
+  "startedAt": "2026-10-29T17:09:18.040Z",
+  "start": {
+    "title": "Découvrir nos données",
+    "description": "Le portail open data du Val de Loue : jeux de données, visualisations et réutilisations de l'agglomération, librement réutilisables.",
+    "showBreadcrumbs": true,
+    "fluid": false,
+    "elements": [
+      {
+        "uuid": "3f2a9c01",
+        "type": "title",
+        "content": "Les données ouvertes du Val de Loue",
+        "titleSize": "h1",
+        "centered": true,
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c02",
+        "type": "text",
+        "content": "Depuis 2019, la Communauté d'agglomération du Val de Loue publie ses données en open data. Transports, environnement, budget, équipements publics : **plus de 180 jeux de données** sont librement réutilisables sous Licence Ouverte 2.0.\n\nCe portail vous permet de les explorer, de les visualiser sous forme de cartes et de graphiques, et de les télécharger dans les formats les plus courants.",
+        "centered": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c03",
+        "type": "alert",
+        "alertType": "info",
+        "title": "Nouveau",
+        "content": "Les mesures de qualité de l'air de nos six stations sont désormais publiées chaque jour avant 9 h, avec l'historique complet depuis 2015.",
+        "variant": "default",
+        "closable": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c04",
+        "type": "two-columns",
+        "disposition": "left",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c05",
+            "type": "title",
+            "content": "Nos engagements",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c06",
+            "type": "text",
+            "content": "- **Ouvrir par défaut** : toute donnée publique non personnelle a vocation à être publiée.\n- **Mettre à jour** : chaque jeu de données indique sa fréquence de mise à jour et la respecte.\n- **Documenter** : chaque colonne est décrite, chaque source est citée.\n- **Écouter** : vos demandes de publication reçoivent une réponse sous quinze jours.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c07",
+            "type": "button",
+            "link": {
+              "type": "standard",
+              "subtype": "datasets",
+              "title": "Voir tout le catalogue"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c08",
+            "type": "card",
+            "title": "Un jeu de données vous manque ?",
+            "children": [
+              {
+                "uuid": "3f2a9c09",
+                "type": "text",
+                "content": "Dites-nous quelles données vous seraient utiles et pour quel usage : nous étudions chaque demande avec les services concernés.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [
+              {
+                "type": "standard",
+                "subtype": "contact",
+                "title": "Nous écrire"
+              }
+            ],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c0a",
+            "type": "text",
+            "content": "Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr.",
+            "centered": false,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c0b",
+        "type": "divider",
+        "rounded": true,
+        "opacity": 0.1,
+        "thickness": 1
+      },
+      {
+        "uuid": "3f2a9c0c",
+        "type": "title",
+        "content": "Thématiques à la une",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c0d",
+        "type": "responsive-grid",
+        "columns": 3,
+        "children": [
+          {
+            "uuid": "3f2a9c0e",
+            "type": "card",
+            "title": "Mobilité",
+            "children": [
+              {
+                "uuid": "3f2a9c0f",
+                "type": "text",
+                "content": "Horaires et arrêts du réseau de bus Loue'Bus, stations de vélos en libre-service, comptages routiers et places de stationnement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c10",
+            "type": "card",
+            "title": "Environnement",
+            "children": [
+              {
+                "uuid": "3f2a9c11",
+                "type": "text",
+                "content": "Qualité de l'air, points d'apport volontaire, collecte des déchets, espaces verts et arbres d'alignement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c12",
+            "type": "card",
+            "title": "Budget et finances",
+            "children": [
+              {
+                "uuid": "3f2a9c13",
+                "type": "text",
+                "content": "Budget primitif et compte administratif depuis 2016, subventions versées aux associations, marchés publics attribués.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c14",
+            "type": "card",
+            "title": "Culture et patrimoine",
+            "children": [
+              {
+                "uuid": "3f2a9c15",
+                "type": "text",
+                "content": "Équipements culturels, fréquentation des médiathèques, monuments protégés et programmation des saisons culturelles.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c16",
+            "type": "card",
+            "title": "Équipements sportifs",
+            "children": [
+              {
+                "uuid": "3f2a9c17",
+                "type": "text",
+                "content": "Gymnases, piscines, stades et terrains de proximité, avec leurs horaires d'ouverture et leurs équipements.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          }
+        ],
+        "gutter": "dense",
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c18",
+        "type": "title",
+        "content": "Questions fréquentes",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c19",
+        "type": "expansion-panels",
+        "panels": [
+          {
+            "title": "Sous quelle licence les données sont-elles publiées ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1a",
+                "type": "text",
+                "content": "Toutes les données de ce portail sont publiées sous Licence Ouverte 2.0 (Etalab) : vous pouvez les réutiliser librement, y compris à des fins commerciales, en citant la source.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "À quelle fréquence sont-elles mises à jour ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1b",
+                "type": "text",
+                "content": "Chaque jeu de données indique sa fréquence de mise à jour : quotidienne pour la qualité de l'air et les vélos, mensuelle pour les comptages routiers, annuelle pour le budget.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment utiliser l'API ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1c",
+                "type": "text",
+                "content": "Chaque jeu de données dispose d'une API documentée, accessible sans clé pour les données publiques. La documentation interactive est disponible depuis la page de chaque jeu de données.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment signaler une erreur ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1d",
+                "type": "text",
+                "content": "Utilisez le bouton « Signaler un problème » de la page du jeu de données, ou écrivez-nous : chaque signalement est transmis au service producteur de la donnée.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          }
+        ],
+        "mb": 0,
+        "multiple": true
+      },
+      {
+        "uuid": "3f2a9c1e",
+        "type": "two-columns",
+        "disposition": "equal",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c1f",
+            "type": "title",
+            "content": "Jeunesse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c20",
+            "type": "text",
+            "content": "Accueils de loisirs, conseil des jeunes, aides au permis de conduire et au BAFA : découvrez les actions de l'agglomération pour les 11-25 ans.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c21",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "jeunesse",
+                "title": "Nos actions pour la jeunesse"
+              },
+              "title": "Voir les actions jeunesse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c22",
+            "type": "title",
+            "content": "Presse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c23",
+            "type": "text",
+            "content": "Journalistes : retrouvez nos communiqués, nos visuels et les contacts du service communication.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c24",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "contact-presse",
+                "title": "Contact presse"
+              },
+              "title": "Contacter le service presse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c25",
+        "type": "text",
+        "content": "Les données de ce portail sont mises à disposition par la Communauté d'agglomération du Val de Loue, 2 place de la Mairie, 25290 Ornans. Pour toute question : opendata@valdeloue.fr.",
+        "centered": false,
+        "mb": 0
+      }
+    ]
+  },
+  "calls": [
+    {
+      "tool": "describeState",
+      "args": {},
+      "response": "valid: true, no errors\n\nFields (outline):\n- / (section, required)\n  - /$comp-1 (section, required) label=\"Métadonnées\"\n    - /$comp-1/title (text, required) label=\"Titre\" value=\"Découvrir nos données\"\n    - /$comp-1/description (textarea) label=\"Description\" value=\"Le portail open data du Val de Loue : jeux de données, visu…\"\n    - /$comp-1/thumbnail (slot) not set\n    - /$comp-1/showBreadcrumbs (switch) label=\"Afficher le fil d'Ariane\" value=true\n    - /$comp-1/fluid (switch) label=\"Page pleine largeur\" value=false\n  - /$comp-2 (section, required) label=\"Contenu\"\n    - /$comp-2/elements (list, 11 items, required)\n      - options of each item, chosen at /$comp-2/elements/<index>/$oneOf (describeState on /$comp-2/elements/<index>/$oneOf/<option> to see what an option holds):\n        - variant 0: Titre (type=\"title\")\n        - variant 1: Texte (type=\"text\")\n        - variant 2: Texte accentué (type=\"alert\")\n        - variant 3: Image (type=\"image\")\n        - variant 4: IFrame (type=\"iframe\")\n        - variant 5: Icône (type=\"icon\")\n        - variant 6: Diagramme Mermaid (Bêta) (type=\"mermaid\")\n        - variant 7: Bouton de navigation (type=\"button\")\n        - variant 8: Menu de navigation (type=\"menu\")\n        - variant 9: Fil d'Ariane (type=\"breadcrumbs\")\n        - variant 10: Séparateur horizontal (type=\"divider\")\n        - variant 11: Section sur fond coloré (type=\"banner\")\n        - variant 12: Boite (type=\"card\")\n        - variant 13: Deux colonnes (type=\"two-columns\")\n        - variant 14: Grille responsive (type=\"responsive-grid\")\n        - variant 15: Onglets (type=\"tabs\")\n        - variant 16: Accordéons (type=\"expansion-panels\")\n        - variant 17: Barre de recherche (type=\"search\")\n        - variant 18: Liste de thématiques (type=\"topics\")\n        - variant 19: Chiffres clés (déprécié) (type=\"metrics\")\n        - variant 20: Formulaire de contact (type=\"contact\")\n        - variant 21: Assistant IA personnalisé (bêta) (type=\"custom-agent\")\n        - variant 22: Catalogue de données (type=\"datasets-catalog\")\n        - variant 23: Liste de jeux de données (type=\"datasets-list\")\n        - variant 24: Vignette d'un jeu de données (type=\"dataset-card\")\n        - variant 25: Tableau d'un jeu de données (type=\"dataset-table\")\n        - variant 26: Formulaire d'un jeu de données (type=\"dataset-form\")\n        - variant 27: Téléchargement d'un jeu de données (type=\"dataset-download\")\n        - variant 28: Catalogue de visualisations (type=\"applications-catalog\")\n        - variant 29: Liste de visualisations (type=\"applications-list\")\n        - variant 30: Visualisation (type=\"application\")\n        - variant 31: Catalogue de réutilisations (type=\"reuses-catalog\")\n        - variant 32: Liste de réutilisations (type=\"reuses-list\")\n        - variant 33: Vignette de réutilisation (type=\"reuse-card\")\n        - variant 34: Catalogue d'événements (type=\"event-catalog\")\n        - variant 35: Liste d'événements (type=\"event-list\")\n        - variant 36: Vignette d'événement (type=\"event-card\")\n        - variant 37: Catalogue d'actualités (type=\"news-catalog\")\n        - variant 38: Liste d'actualités (type=\"news-list\")\n        - variant 39: Vignette d'actualité (type=\"news-card\")\n      - /$comp-2/elements/0: Titre — \"Les données ouvertes du Val de Loue\"\n        - /$comp-2/elements/0/$oneOf/0/content (text) label=\"Contenu\" value=\"Les données ouvertes du Val de Loue\"\n        - /$comp-2/elements/0/$oneOf/0/titleSize (select, required) label=\"Taille du titre\" value=\"h1\"\n        - /$comp-2/elements/0/$oneOf/0/titleTag (select) label=\"Balise\" not set\n        - /$comp-2/elements/0/$oneOf/0/color (select) label=\"Couleur\" not set\n        - /$comp-2/elements/0/$oneOf/0/centered (boolean) label=\"Centrer le titre\" value=true\n        - /$comp-2/elements/0/$oneOf/0/bold (boolean) label=\"Texte en gras\" not set\n        - /$comp-2/elements/0/$oneOf/0/icon (card) label=\"Configuration de l'icône\"\n          - /$comp-2/elements/0/$oneOf/0/icon/mdi (autocomplete) label=\"Icône MDI\" not set\n          - /$comp-2/elements/0/$oneOf/0/icon/custom (text) label=\"Icône personnalisée\" not set\n          - /$comp-2/elements/0/$oneOf/0/icon/color (select) label=\"Couleur\" not set\n        - /$comp-2/elements/0/$oneOf/0/line (card) label=\"Configuration du trait\"\n          - /$comp-2/elements/0/$oneOf/0/line/position (select) label=\"Afficher un trait\" value=\"none\"\n          - /$comp-2/elements/0/$oneOf/0/line/color (select) label=\"Couleur du trait\" not set\n        - /$comp-2/elements/0/$oneOf/0/link (card) label=\"Configuration du lien\"\n          - /$comp-2/elements/0/$oneOf/0/link/$oneOf (variant-selector) label=\"Type de page\"\n            - variant 0: Page standard (Accueil, Contact,...) (type=\"standard\")\n            - variant 1: Page libre (type=\"generic\")\n            - variant 2: Page d'événements (type=\"event\")\n            - variant 3: Page d'actualités (type=\"news\")\n            - variant 4: Lien (type=\"external\")\n            - variant 5: Aucun lien (type=\"none\")\n        - /$comp-2/elements/0/$oneOf/0/anchor (card) label=\"Ancre & Sommaire\"\n          - /$comp-2/elements/0/$oneOf/0/anchor/enabled (switch) label=\"Activer l'ancre\" not set\n      - /$comp-2/elements/1: Texte — \"Depuis 2019, la Communauté d'agglomération du Val de Loue p…\"\n        - /$comp-2/elements/1/$oneOf/1/content (text) label=\"Contenu\" value=\"Depuis 2019, la Communauté d'agglomération du Val de Loue p…\"\n        - /$comp-2/elements/1/$oneOf/1/centered (boolean) label=\"Centrer le contenu\" value=false\n        - /$comp-2/elements/1/$oneOf/1/mb (slider) label=\"Espacement inférieur\" value=0\n      - /$comp-2/elements/2: Texte accentué — \"Nouveau\"\n        - /$comp-2/elements/2/$oneOf/2/alertType (select, required) label=\"Type prédéfini\" value=\"info\"\n        - /$comp-2/elements/2/$oneOf/2/variant (select) label=\"Variante\" value=\"default\"\n        - /$comp-2/elements/2/$oneOf/2/title (text) label=\"Titre\" value=\"Nouveau\"\n        - /$comp-2/elements/2/$oneOf/2/content (text) label=\"Contenu\" value=\"Les mesures de qualité de l'air de nos six stations sont dé…\"\n        - /$comp-2/elements/2/$oneOf/2/closable (boolean) label=\"Afficher un bouton de fermeture\" value=false\n        - /$comp-2/elements/2/$oneOf/2/mb (slider) label=\"Espacement inférieur\" value=0\n      - /$comp-2/elements/3: Deux colonnes — \"Nos engagements\"\n        - /$comp-2/elements/3/$oneOf/13/disposition (select, required) label=\"Disposition\" value=\"left\"\n        - /$comp-2/elements/3/$oneOf/13/align (section) label=\"Alignement des éléments\"\n          - /$comp-2/elements/3/$oneOf/13/align/left (select) label=\"Colonne 1\" not set\n          - /$comp-2/elements/3/$oneOf/13/align/right (select) label=\"Colonne 2\" not set\n        - /$comp-2/elements/3/$oneOf/13/gutter (select, required) label=\"Espacement entre les colonnes\" value=\"default\"\n        - /$comp-2/elements/3/$oneOf/13/children (list, 3 items, required) label=\"Contenu\"\n          - each item is one of the 40 options listed under /$comp-2/elements\n          - /$comp-2/elements/3/$oneOf/13/children/0: Titre — \"Nos engagements\"\n          - /$comp-2/elements/3/$oneOf/13/children/1: Texte — \"- **Ouvrir par défaut** : toute donnée publique non personn…\"\n          - /$comp-2/elements/3/$oneOf/13/children/2: Bouton de navigation — \"Voir tout le catalogue\"\n        - /$comp-2/elements/3/$oneOf/13/children2 (list, 2 items, required) label=\"Deuxième contenu\"\n          - each item is one of the 40 options listed under /$comp-2/elements\n          - /$comp-2/elements/3/$oneOf/13/children2/0: Boite — \"Un jeu de données vous manque ?\"\n          - /$comp-2/elements/3/$oneOf/13/children2/1: Texte — \"Besoin d'aide ? Notre équipe open data répond à vos questio…\"\n        - /$comp-2/elements/3/$oneOf/13/mb (slider) label=\"Espacement inférieur\" value=0\n      - /$comp-2/elements/4: Séparateur horizontal\n        - /$comp-2/elements/4/$oneOf/10/color (select) label=\"Couleur\" not set\n        - /$comp-2/elements/4/$oneOf/10/content (text) label=\"Contenu\" not set\n        - /$comp-2/elements/4/$oneOf/10/inset (boolean) label=\"Ajouter une indentation\" not set\n        - /$comp-2/elements/4/$oneOf/10/rounded (boolean) label=\"Bords arrondis\" value=true\n        - /$comp-2/elements/4/$oneOf/10/opacity (slider, required) label=\"Opacité\" value=0.1\n        - /$comp-2/elements/4/$oneOf/10/thickness (slider, required) label=\"Épaisseur\" value=1\n      - /$comp-2/elements/5: Titre — \"Thématiques à la une\"\n        - /$comp-2/elements/5/$oneOf/0/content (text) label=\"Contenu\" value=\"Thématiques à la une\"\n        - /$comp-2/elements/5/$oneOf/0/titleSize (select, required) label=\"Taille du titre\" value=\"h2\"\n        - /$comp-2/elements/5/$oneOf/0/titleTag (select) label=\"Balise\" not set\n        - /$comp-2/elements/5/$oneOf/0/color (select) label=\"Couleur\" not set\n        - /$comp-2/elements/5/$oneOf/0/centered (boolean) label=\"Centrer le titre\" not set\n        - /$comp-2/elements/5/$oneOf/0/bold (boolean) label=\"Texte en gras\" not set\n        - /$comp-2/elements/5/$oneOf/0/icon (card) label=\"Configuration de l'icône\"\n          - /$comp-2/elements/5/$oneOf/0/icon/mdi (autocomplete) label=\"Icône MDI\" not set\n          - /$comp-2/elements/5/$oneOf/0/icon/custom (text) label=\"Icône personnalisée\" not set\n          - /$comp-2/elements/5/$oneOf/0/icon/color (select) label=\"Couleur\" not set\n        - /$comp-2/elements/5/$oneOf/0/line (card) label=\"Configuration du trait\"\n          - /$comp-2/elements/5/$oneOf/0/line/position (select) label=\"Afficher un trait\" value=\"none\"\n          - /$comp-2/elements/5/$oneOf/0/line/color (select) label=\"Couleur du trait\" not set\n        - /$comp-2/elements/5/$oneOf/0/link (card) label=\"Configuration du lien\"\n          - /$comp-2/elements/5/$oneOf/0/link/$oneOf (variant-selector) label=\"Type de page\"\n            - one of the 6 options listed under /$comp-2/elements/0/$oneOf/0/link/$oneOf\n        - /$comp-2/elements/5/$oneOf/0/anchor (card) label=\"Ancre & Sommaire\"\n          - /$comp-2/elements/5/$oneOf/0/anchor/enabled (switch) label=\"Activer l'ancre\" not set\n      - /$comp-2/elements/6: Grille responsive — \"Mobilité\"\n        - /$comp-2/elements/6/$oneOf/14/columns (select) label=\"Nombre de colonnes\" value=3\n        - /$comp-2/elements/6/$oneOf/14/gutter (select) label=\"Espacement entre les blocs\" value=\"dense\"\n        - /$comp-2/elements/6/$oneOf/14/align (select) label=\"Alignement vertical des blocs\" not set\n        - /$comp-2/elements/6/$oneOf/14/centered (boolean) label=\"Centrer les blocs sur les lignes incomplètes\" not set\n        - /$comp-2/elements/6/$oneOf/14/children (list, 5 items, required) label=\"Contenu\"\n          - each item is one of the 40 options listed under /$comp-2/elements\n          - /$comp-2/elements/6/$oneOf/14/children/0: Boite — \"Mobilité\"\n          - /$comp-2/elements/6/$oneOf/14/children/1: Boite — \"Environnement\"\n          - /$comp-2/elements/6/$oneOf/14/children/2: Boite — \"Budget et finances\"\n          - /$comp-2/elements/6/$oneOf/14/children/3: Boite — \"Culture et patrimoine\"\n          - /$comp-2/elements/6/$oneOf/14/children/4: Boite — \"Équipements sportifs\"\n        - /$comp-2/elements/6/$oneOf/14/mb (slider) label=\"Espacement inférieur\" value=0\n      - /$comp-2/elements/7: Titre — \"Questions fréquentes\"\n        - /$comp-2/elements/7/$oneOf/0/content (text) label=\"Contenu\" value=\"Questions fréquentes\"\n        - /$comp-2/elements/7/$oneOf/0/titleSize (select, required) label=\"Taille du titre\" value=\"h2\"\n        - /$comp-2/elements/7/$oneOf/0/titleTag (select) label=\"Balise\" not set\n        - /$comp-2/elements/7/$oneOf/0/color (select) label=\"Couleur\" not set\n        - /$comp-2/elements/7/$oneOf/0/centered (boolean) label=\"Centrer le titre\" not set\n        - /$comp-2/elements/7/$oneOf/0/bold (boolean) label=\"Texte en gras\" not set\n        - /$comp-2/elements/7/$oneOf/0/icon (card) label=\"Configuration de l'icône\" — 3 part(s), describeState on this path to see them\n        - /$comp-2/elements/7/$oneOf/0/line (card) label=\"Configuration du trait\" — 2 part(s), describeState on this path to see them\n        - /$comp-2/elements/7/$oneOf/0/link (card) label=\"Configuration du lien\"\n          - /$comp-2/elements/7/$oneOf/0/link/$oneOf (variant-selector) label=\"Type de page\"\n            - one of the 6 options listed under /$comp-2/elements/0/$oneOf/0/link/$oneOf\n        - /$comp-2/elements/7/$oneOf/0/anchor (card) label=\"Ancre & Sommaire\"\n          - /$comp-2/elements/7/$oneOf/0/anchor/enabled (switch) label=\"Activer l'ancre\" not set\n      - /$comp-2/elements/8: Accordéons — \"Sous quelle licence les données sont-elles publiées ?\"\n        - /$comp-2/elements/8/$oneOf/16/elevation (select) label=\"Élévation\" not set\n        - /$comp-2/elements/8/$oneOf/16/rounded (select) label=\"Arrondi\" not set\n        - /$comp-2/elements/8/$oneOf/16/keepTextSize (boolean) label=\"Conserver la taille de texte du portail\" not set\n        - /$comp-2/elements/8/$oneOf/16/multiple (boolean) label=\"Permettre l'ouverture multiple\" value=true\n        - /$comp-2/elements/8/$oneOf/16/openFirst (boolean) label=\"Ouvrir le premier panneau par défaut\" not set\n        - /$comp-2/elements/8/$oneOf/16/openAll (boolean) label=\"Ouvrir tous les panneaux par défaut\" not set\n        - /$comp-2/elements/8/$oneOf/16/titleBackgroundColor (select) label=\"Couleur de fond des titres\" not set\n        - /$comp-2/elements/8/$oneOf/16/textBackgroundColor (select) label=\"Couleur de fond du contenu\" not set\n        - /$comp-2/elements/8/$oneOf/16/panels (list, 4 items, required) label=\"Panneaux\" — describeState on this path to see its items\n        - /$comp-2/elements/8/$oneOf/16/mb (slider) label=\"Espacement inférieur\" value=0\n      - /$comp-2/elements/9: Deux colonnes — \"Accueils de loisirs, conseil des jeunes, aides au permis de…\"\n        - /$comp-2/elements/9/$oneOf/13/disposition (select, required) label=\"Disposition\" value=\"equal\"\n        - /$comp-2/elements/9/$oneOf/13/align (section) label=\"Alignement des éléments\" — 2 part(s), describeState on this path to see them\n        - /$comp-2/elements/9/$oneOf/13/gutter (select, required) label=\"Espacement entre les colonnes\" value=\"default\"\n        - /$comp-2/elements/9/$oneOf/13/children (list, 3 items, required) label=\"Contenu\" — describeState on this path to see its items\n        - /$comp-2/elements/9/$oneOf/13/children2 (list, 3 items, required) label=\"Deuxième contenu\" — describeState on this path to see its items\n        - /$comp-2/elements/9/$oneOf/13/mb (slider) label=\"Espacement inférieur\" value=0\n      - /$comp-2/elements/10: Texte — \"Les données de ce portail sont mises à disposition par la C…\"\n        - /$comp-2/elements/10/$oneOf/1/content (text) label=\"Contenu\" value=\"Les données de ce portail sont mises à disposition par la C…\"\n        - /$comp-2/elements/10/$oneOf/1/centered (boolean) label=\"Centrer le contenu\" value=false\n        - /$comp-2/elements/10/$oneOf/1/mb (slider) label=\"Espacement inférieur\" value=0\n(an outline, 4 level(s) deep with values cut short, the full description being over 16000 bytes — call describeState with the path of a part to see it in full)",
+      "outputBytes": 15267,
+      "isError": false
+    },
+    {
+      "tool": "editArray",
+      "args": {
+        "path": "/$comp-2/elements/3/$oneOf/13/children",
+        "action": "remove",
+        "index": 2
+      },
+      "response": "removed item at index 2, 2 remaining\nno error here\nform is valid\nThe list now:\n- /$comp-2/elements/3/$oneOf/13/children/0: Titre — \"Nos engagements\"\n- /$comp-2/elements/3/$oneOf/13/children/1: Texte — \"- **Ouvrir par défaut** : toute donnée publique non personn…\"\nsaved",
+      "outputBytes": 277,
+      "isError": false
+    },
+    {
+      "tool": "editArray",
+      "args": {
+        "path": "/$comp-2/elements",
+        "action": "move",
+        "from": 2,
+        "to": 0
+      },
+      "response": "moved item from 2 to 0, 11 total\nno error here\nform is valid\nThe list now:\n- /$comp-2/elements/0: Texte accentué — \"Nouveau\"\n- /$comp-2/elements/1: Titre — \"Les données ouvertes du Val de Loue\"\n- /$comp-2/elements/2: Texte — \"Depuis 2019, la Communauté d'agglomération du Val de Loue p…\"\n- /$comp-2/elements/3: Deux colonnes — \"Nos engagements\"\n- /$comp-2/elements/4: Séparateur horizontal\n- /$comp-2/elements/5: Titre — \"Thématiques à la une\"\n- /$comp-2/elements/6: Grille responsive — \"Mobilité\"\n- /$comp-2/elements/7: Titre — \"Questions fréquentes\"\n- /$comp-2/elements/8: Accordéons — \"Sous quelle licence les données sont-elles publiées ?\"\n- /$comp-2/elements/9: Deux colonnes — \"Accueils de loisirs, conseil des jeunes, aides au permis de…\"\n- /$comp-2/elements/10: Texte — \"Les données de ce portail sont mises à disposition par la C…\"\nsaved",
+      "outputBytes": 886,
+      "isError": false
+    },
+    {
+      "tool": "editArray",
+      "args": {
+        "path": "/$comp-2/elements",
+        "action": "add",
+        "index": 7,
+        "value": {
+          "type": "divider"
+        }
+      },
+      "response": "added item at index 7, 12 total\nFields of the new item (activated for edition):\n- /$comp-2/elements/7 (section, required) title=\"Page element\"\n  - /$comp-2/elements/7/$oneOf (variant-selector) label=\"Type d'élément\"\n    - variant 10: Séparateur horizontal (active), one of the 40 options listed under /$comp-2/elements\n    - /$comp-2/elements/7/$oneOf/10 (section, required) title=\"Séparateur horizontal\"\n      - /$comp-2/elements/7/$oneOf/10/color (select, values=[\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement), \"surface\" (Couleur des surfaces), \"surface-inverse\" (Couleur inversée des surfaces), \"background\" (Couleur du fond de page)]) label=\"Couleur\" value=undefined\n      - /$comp-2/elements/7/$oneOf/10/content (text) label=\"Contenu\" value=undefined help=\"Texte affiché au centre du séparateur\"\n      - /$comp-2/elements/7/$oneOf/10/inset (boolean) label=\"Ajouter une indentation\" value=undefined\n      - /$comp-2/elements/7/$oneOf/10/rounded (boolean) label=\"Bords arrondis\" value=true\n      - /$comp-2/elements/7/$oneOf/10/opacity (slider, required, min=0.1, max=1) label=\"Opacité\" value=0.1\n      - /$comp-2/elements/7/$oneOf/10/thickness (slider, required, min=1, max=10, step=1) label=\"Épaisseur\" value=1\nno error here\nform is valid\nThe list now:\n- /$comp-2/elements/0: Texte accentué — \"Nouveau\"\n- /$comp-2/elements/1: Titre — \"Les données ouvertes du Val de Loue\"\n- /$comp-2/elements/2: Texte — \"Depuis 2019, la Communauté d'agglomération du Val de Loue p…\"\n- /$comp-2/elements/3: Deux colonnes — \"Nos engagements\"\n- /$comp-2/elements/4: Séparateur horizontal\n- /$comp-2/elements/5: Titre — \"Thématiques à la une\"\n- /$comp-2/elements/6: Grille responsive — \"Mobilité\"\n- /$comp-2/elements/7: Séparateur horizontal\n- /$comp-2/elements/8: Titre — \"Questions fréquentes\"\n- /$comp-2/elements/9: Accordéons — \"Sous quelle licence les données sont-elles publiées ?\"\n- /$comp-2/elements/10: Deux colonnes — \"Accueils de loisirs, conseil des jeunes, aides au permis de…\"\n- /$comp-2/elements/11: Texte — \"Les données de ce portail sont mises à disposition par la C…\"\nsaved",
+      "outputBytes": 2237,
+      "isError": false
+    }
+  ],
+  "data": {
+    "title": "Découvrir nos données",
+    "description": "Le portail open data du Val de Loue : jeux de données, visualisations et réutilisations de l'agglomération, librement réutilisables.",
+    "showBreadcrumbs": true,
+    "fluid": false,
+    "elements": [
+      {
+        "uuid": "3f2a9c03",
+        "type": "alert",
+        "alertType": "info",
+        "title": "Nouveau",
+        "content": "Les mesures de qualité de l'air de nos six stations sont désormais publiées chaque jour avant 9 h, avec l'historique complet depuis 2015.",
+        "variant": "default",
+        "closable": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c01",
+        "type": "title",
+        "content": "Les données ouvertes du Val de Loue",
+        "titleSize": "h1",
+        "centered": true,
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c02",
+        "type": "text",
+        "content": "Depuis 2019, la Communauté d'agglomération du Val de Loue publie ses données en open data. Transports, environnement, budget, équipements publics : **plus de 180 jeux de données** sont librement réutilisables sous Licence Ouverte 2.0.\n\nCe portail vous permet de les explorer, de les visualiser sous forme de cartes et de graphiques, et de les télécharger dans les formats les plus courants.",
+        "centered": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c04",
+        "type": "two-columns",
+        "disposition": "left",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c05",
+            "type": "title",
+            "content": "Nos engagements",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c06",
+            "type": "text",
+            "content": "- **Ouvrir par défaut** : toute donnée publique non personnelle a vocation à être publiée.\n- **Mettre à jour** : chaque jeu de données indique sa fréquence de mise à jour et la respecte.\n- **Documenter** : chaque colonne est décrite, chaque source est citée.\n- **Écouter** : vos demandes de publication reçoivent une réponse sous quinze jours.",
+            "centered": false,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c08",
+            "type": "card",
+            "title": "Un jeu de données vous manque ?",
+            "children": [
+              {
+                "uuid": "3f2a9c09",
+                "type": "text",
+                "content": "Dites-nous quelles données vous seraient utiles et pour quel usage : nous étudions chaque demande avec les services concernés.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [
+              {
+                "type": "standard",
+                "subtype": "contact",
+                "title": "Nous écrire"
+              }
+            ],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c0a",
+            "type": "text",
+            "content": "Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr.",
+            "centered": false,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c0b",
+        "type": "divider",
+        "rounded": true,
+        "opacity": 0.1,
+        "thickness": 1
+      },
+      {
+        "uuid": "3f2a9c0c",
+        "type": "title",
+        "content": "Thématiques à la une",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c0d",
+        "type": "responsive-grid",
+        "columns": 3,
+        "children": [
+          {
+            "uuid": "3f2a9c0e",
+            "type": "card",
+            "title": "Mobilité",
+            "children": [
+              {
+                "uuid": "3f2a9c0f",
+                "type": "text",
+                "content": "Horaires et arrêts du réseau de bus Loue'Bus, stations de vélos en libre-service, comptages routiers et places de stationnement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c10",
+            "type": "card",
+            "title": "Environnement",
+            "children": [
+              {
+                "uuid": "3f2a9c11",
+                "type": "text",
+                "content": "Qualité de l'air, points d'apport volontaire, collecte des déchets, espaces verts et arbres d'alignement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c12",
+            "type": "card",
+            "title": "Budget et finances",
+            "children": [
+              {
+                "uuid": "3f2a9c13",
+                "type": "text",
+                "content": "Budget primitif et compte administratif depuis 2016, subventions versées aux associations, marchés publics attribués.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c14",
+            "type": "card",
+            "title": "Culture et patrimoine",
+            "children": [
+              {
+                "uuid": "3f2a9c15",
+                "type": "text",
+                "content": "Équipements culturels, fréquentation des médiathèques, monuments protégés et programmation des saisons culturelles.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c16",
+            "type": "card",
+            "title": "Équipements sportifs",
+            "children": [
+              {
+                "uuid": "3f2a9c17",
+                "type": "text",
+                "content": "Gymnases, piscines, stades et terrains de proximité, avec leurs horaires d'ouverture et leurs équipements.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          }
+        ],
+        "gutter": "dense",
+        "mb": 0
+      },
+      {
+        "type": "divider",
+        "rounded": true,
+        "opacity": 0.1,
+        "thickness": 1
+      },
+      {
+        "uuid": "3f2a9c18",
+        "type": "title",
+        "content": "Questions fréquentes",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c19",
+        "type": "expansion-panels",
+        "panels": [
+          {
+            "title": "Sous quelle licence les données sont-elles publiées ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1a",
+                "type": "text",
+                "content": "Toutes les données de ce portail sont publiées sous Licence Ouverte 2.0 (Etalab) : vous pouvez les réutiliser librement, y compris à des fins commerciales, en citant la source.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "À quelle fréquence sont-elles mises à jour ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1b",
+                "type": "text",
+                "content": "Chaque jeu de données indique sa fréquence de mise à jour : quotidienne pour la qualité de l'air et les vélos, mensuelle pour les comptages routiers, annuelle pour le budget.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment utiliser l'API ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1c",
+                "type": "text",
+                "content": "Chaque jeu de données dispose d'une API documentée, accessible sans clé pour les données publiques. La documentation interactive est disponible depuis la page de chaque jeu de données.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment signaler une erreur ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1d",
+                "type": "text",
+                "content": "Utilisez le bouton « Signaler un problème » de la page du jeu de données, ou écrivez-nous : chaque signalement est transmis au service producteur de la donnée.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          }
+        ],
+        "mb": 0,
+        "multiple": true
+      },
+      {
+        "uuid": "3f2a9c1e",
+        "type": "two-columns",
+        "disposition": "equal",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c1f",
+            "type": "title",
+            "content": "Jeunesse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c20",
+            "type": "text",
+            "content": "Accueils de loisirs, conseil des jeunes, aides au permis de conduire et au BAFA : découvrez les actions de l'agglomération pour les 11-25 ans.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c21",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "jeunesse",
+                "title": "Nos actions pour la jeunesse"
+              },
+              "title": "Voir les actions jeunesse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c22",
+            "type": "title",
+            "content": "Presse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c23",
+            "type": "text",
+            "content": "Journalistes : retrouvez nos communiqués, nos visuels et les contacts du service communication.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c24",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "contact-presse",
+                "title": "Contact presse"
+              },
+              "title": "Contacter le service presse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c25",
+        "type": "text",
+        "content": "Les données de ce portail sont mises à disposition par la Communauté d'agglomération du Val de Loue, 2 place de la Mairie, 25290 Ornans. Pour toute question : opendata@valdeloue.fr.",
+        "centered": false,
+        "mb": 0
+      }
+    ]
+  },
+  "checks": [
+    {
+      "label": "nothing changed outside the blocks",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the first block is the alert « Nouveau »",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the alert moved to the top keeps its text",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "a divider is just before the title « Questions fréquentes »",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the column « Nos engagements » has lost one block",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the column « Nos engagements » keeps its title",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the column « Nos engagements » keeps its list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the right column of « Nos engagements » is unchanged",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the page has one top-level block more",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the page title is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the introduction is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the first divider is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the title « Thématiques à la une » is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the grid of themes is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the title « Questions fréquentes » is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the questions is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the section « Jeunesse » / « Presse » is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the closing paragraph is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 4,
+    "outputBytes": 18667
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "form",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00212298,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 532,
+    "cacheRead": 20838,
+    "cacheWrite": 8240
+  },
+  "answer": "Both changes are in, and the form is valid.\n\n- **Calculation:** the \"Type de calcul\" metric in the value calculation (column `valeur`, grouped by `nom_com`) is now **Valeur maximale (max)** instead of Moyenne (avg). The chart now shows the maximum pollutant value per commune.\n- **Legend:** \"Position de la légende\" is now **Bas (bottom)**, changed from Droite.\n\nI didn't change anything else."
+}

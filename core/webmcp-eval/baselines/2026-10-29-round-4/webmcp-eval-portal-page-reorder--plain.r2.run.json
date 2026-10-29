@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-reorder",
+  "arm": "plain",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0046902,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 4178,
+    "cacheRead": 16880,
+    "cacheWrite": 12159
+  },
+  "answer": "Les trois modifications sont faites et le document a été accepté (200 OK) :\n\n1. **Encadré « Nouveau »** (qualité de l'air) : déplacé tout en haut de la page, au-dessus du titre « Les données ouvertes du Val de Loue ».\n2. **Séparateur** : ajouté juste avant le titre « Questions fréquentes », dans le même style que le séparateur existant (arrondi, opacité 0,1, épaisseur 1).\n3. **Bouton « Voir tout le catalogue »** : retiré de la colonne « Nos engagements ». Le titre et la liste des engagements sont conservés.\n\nLe reste de la page n'a pas été modifié. J'ai choisi l'identifiant du nouveau séparateur (`3f2a9c26`) moi-même, car il n'était pas fourni."
+}

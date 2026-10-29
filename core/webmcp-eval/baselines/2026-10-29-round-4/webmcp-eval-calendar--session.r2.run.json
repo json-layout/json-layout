@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "session",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0031808500000000003,
+  "turns": 12,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 16,
+    "output": 1249,
+    "cacheRead": 66795,
+    "cacheWrite": 9434
+  },
+  "answer": "The calendar is set up on the \"Agenda-manifestations\" dataset, with the event name as the label and crowd sourcing turned on. The form is valid and saved.\n\n- **Dataset:** \"Agenda-manifestations\" is selected as the data source.\n- **Label field:** \"Nom de l'évenement\" (`nomevenement`) is the label shown on each event.\n- **Crowd sourcing:** enabled, so visitors can propose new events.\n\nThe crowd sourcing setting revealed a few more fields that I left alone because you didn't mention them:\n- **Contributions dataset** (\"Jeu de données des contributions externes\"): empty. Proposals may need a dataset to be stored in, so you may want to pick one.\n- **Delete contributions after validation:** off.\n- **Contribution colour:** `#7AA95C`, the default."
+}
