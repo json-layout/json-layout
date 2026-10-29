@@ -112,12 +112,32 @@ measured with it.
 - **Live data**: a case with a check on a value that comes from a remote list runs on offline
   fixtures (line-form, the coherence case). Cases without such checks may stay on koumoul.com.
 
+## Session variant of the form arm (user, after the builder check)
+
+Persistence differs by consumer, and the eval must measure it:
+
+- **Page tools** (core, vjsf in data-fair's back office or the portals manager): no save; the page
+  persists by data binding (a draft saved on valid data or on each edit).
+- **Server sessions** (`@json-layout/agents` `FormSession`, openapi-mcp editor groups): the save
+  mode is the resource's. *Explicit* for records like dataset lines (several changes, then a
+  save, as in the line UI: `saveForm`, plus the per-call `save` option of the follow-up design).
+  *Auto* for documents bound to a server-side draft like an application configuration (each
+  write persisted to the draft, no `saveForm`), mirroring what the page does.
+
+So the form arm has a **session variant**, run against the plain arm like the page variant:
+- an explicit-save session on **line-form**, over an in-memory document (load/save functions of
+  the eval), where the plain arm's write is the persisting call;
+- an auto-save session on an **application configuration** case (an existing app-config case, or
+  a new one, builder's choice), where every plain-arm write persists too.
+The variant uses whatever save modes `FormSession` has when it runs: until the follow-up adds the
+`save` option and the auto mode, the explicit variant measures today's `saveForm` and the auto
+variant is reported as not runnable rather than faked.
+
 ## Non-goals
 
 - Changing the form tools. Their changes are the follow-up design and are measured afterwards
-  with this eval; this branch only adds the arm, the cases and the checks.
-- Multi-record or batch tasks, sessions with `saveForm` (data-fair's server sessions): this eval
-  runs the page tools on one document.
+  with this eval; this branch only adds the arm, the variants, the cases and the checks.
+- Multi-record or batch tasks.
 - data-fair's own line-edition simulation: a one-off on the data-fair side, not persisted.
 - The conversation eval (`feat-conversation-eval`, unmerged): untouched.
 
