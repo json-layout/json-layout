@@ -77,6 +77,9 @@ describe('coerceForNode', () => {
     assert.deepEqual(coerceForNode(node(), '"c"', { type: 'string', enum: ['a', 'b'] }), { value: '"c"' })
     assert.deepEqual(coerceForNode(node(), '"a"', { type: 'string' }), { value: '"a"' })
     assert.deepEqual(coerceForNode(node(), '"a"', { type: 'string', examples: ['a'] }), { value: '"a"' })
+    // a combobox lists suggestions and takes any text: its items are not a closed set
+    assert.deepEqual(coerceForNode(node({ comp: 'combobox', items: [{ key: 'a', title: 'A', value: 'a' }] }), '"a"', { type: 'string' }), { value: '"a"' })
+    assert.deepEqual(coerceForNode(node({ comp: 'number-combobox', items: [{ key: 'a', title: 'A', value: 'a' }] }), '"a"', { type: 'string' }), { value: '"a"' })
     // items fetched or computed are not a set known when the value is written
     assert.deepEqual(coerceForNode(node({ getItems: { url: 'x' } }), '"a"', { type: 'string' }), { value: '"a"' })
   })

@@ -15,7 +15,7 @@ import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
 import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH, OUTLINE_BUDGET_BYTES } from '../src/webmcp/project.js'
-import { resolveNode } from '../src/webmcp/resolve.js'
+import { resolveNode, findStructuralKey } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
 import { getCase } from '../webmcp-eval/cases/index.js'
@@ -1154,7 +1154,9 @@ describe('webmcp editArray answers with the list as it now stands', () => {
     const { tool } = pageTools()
     const removed = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'remove', index: 4 }))
     assert.equal(itemLines(removed).length, 10, removed)
-    assert.ok(!removed.includes('Séparateur'), removed)
+    // the removed item is named in the first line, and no more in the list
+    assert.match(removed, /^removed item at index 4 \(Séparateur horizontal\)/)
+    assert.ok(!itemLines(removed).some((l) => l.includes('Séparateur')), removed)
     const added = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'add', index: 0, value: { type: 'divider' } }))
     assert.match(added, /Fields of the new item/)
     assert.match(itemLines(added)[0], /^- \/\$comp-2\/elements\/0: Séparateur/)
@@ -2289,7 +2291,7 @@ describe('webmcp tuple entry requiredness', () => {
       .filter((/** @type {string} */ l) => l.includes('/datasets/'))
     assert.equal(lines.length, 2, `both entries must be rendered: ${lines.join(' | ')}`)
     for (const line of lines) {
-      assert.ok(line.includes('value=undefined'), `precondition, the entry is empty: ${line}`)
+      assert.ok(line.includes(' not set'), `precondition, the entry is empty: ${line}`)
       assert.ok(!line.includes('required'), `required and empty while valid: ${line}`)
     }
   })
@@ -2627,7 +2629,7 @@ describe('webmcp validation constraints in the state', () => {
     const compiled = compile({ type: 'object', properties: { free: { type: 'string', title: 'Free' } } })
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
     const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/free ')) ?? ''
-    assert.equal(line.trim(), '- /free (text) label="Free" value=undefined', `got: ${line}`)
+    assert.equal(line.trim(), '- /free (text) label="Free" not set', `got: ${line}`)
   })
 })
 
@@ -2893,20 +2895,99 @@ describe('webmcp describeState of a field hidden by a condition', () => {
   it('says a condition hides it, which field drives it, and its current value', () => {
     const markdown = describeState.toMarkdown(portalLayout(), { path: '/theme/colors' })
     assert.ok(!markdown.includes('not in the form yet'), markdown)
-    assert.match(markdown, /hidden by a condition/)
-    assert.match(markdown, /!data\.assistedMode/)
+    assert.match(markdown, /hidden until !data\.assistedMode/)
     assert.match(markdown, /\/\$comp-2\/\$comp-2\/theme\/assistedMode[^\n]*= true/, markdown)
     assert.match(markdown, /"primary":"#1976D2"/)
   })
 
   it('gives the value of a field under the hidden part', () => {
     const markdown = describeState.toMarkdown(portalLayout(), { path: '/theme/colors/primary' })
-    assert.match(markdown, /hidden by a condition/)
+    assert.match(markdown, /hidden until/)
     assert.match(markdown, /value="#1976D2"/)
+  })
+
+  it('says a condition on the context cannot be changed from the form', () => {
+    const compiled = compile({ type: 'object', properties: { secret: { type: 'string', layout: { if: 'context.adminMode' } } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: {} }, { secret: 'x' })
+    const markdown = describeState.toMarkdown(layout, { path: '/secret' })
+    assert.match(markdown, /hidden until context\.adminMode[^\n]*cannot be changed from the form/, markdown)
   })
 
   it('still describes what an option not chosen would hold', () => {
     assert.match(describeState.toMarkdown(portalLayout(), { path: '/menu/children/0/$oneOf/1' }), /not in the form yet/)
+  })
+})
+
+// Review of rounds 4-6 and leads of the round 6 judges.
+describe('webmcp review of rounds 4-6', () => {
+  it('searches a hidden recursive part without overflowing', () => {
+    const compiled = compile({
+      type: 'object',
+      $defs: { node: { type: 'object', properties: { name: { type: 'string', title: 'Name' }, sub: { $ref: '#/$defs/node' } } } },
+      properties: { show: { type: 'boolean' }, tree: { $ref: '#/$defs/node', layout: { if: 'parent.data.show' } } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { show: false })
+    assert.match(describeState.toMarkdown(layout, { query: 'name' }), /^\+2 hidden until parent\.data\.show under \/tree$/m)
+  })
+
+  it('collapses the hidden matches of a section into a count, visible ones first', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        show: { type: 'boolean', title: 'Show colors' },
+        colors: {
+          type: 'object',
+          layout: { if: 'parent.data.show' },
+          properties: { primary: { type: 'string', title: 'Primary color' }, secondary: { type: 'string', title: 'Secondary color' } }
+        },
+        accent: { type: 'string', title: 'Accent color' }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { show: false })
+    const markdown = describeState.toMarkdown(layout, { query: 'color' })
+    const lines = markdown.split('\n').slice(1)
+    assert.match(lines[0], /^\/show /)
+    assert.match(lines[1], /^\/accent /)
+    assert.equal(lines[2], '+3 hidden until parent.data.show under /colors', markdown)
+    assert.equal(lines.length, 3)
+  })
+
+  it('refuses a $allOf-N segment written as a data key', () => {
+    assert.equal(findStructuralKey({ a: { $allOf: 1, '$allOf-1': {} } }), '/a/$allOf-1')
+  })
+
+  it('does not read a key the schema declares as a form segment written without its $', () => {
+    /** @type {any} */
+    const selector = { key: '$oneOf', fullKey: '/$oneOf', dataPath: '', layout: { comp: 'one-of-select' }, options: {}, children: [] }
+    /** @type {any} */
+    const root = { key: '', fullKey: '', dataPath: '', data: {}, layout: { comp: 'section' }, options: {}, skeleton: { children: ['_jl#/properties/oneOf', '_jl#/oneOf'] }, children: [selector] }
+    assert.equal(resolveNode(root, '/oneOf'), undefined)
+    root.skeleton.children = ['_jl#/oneOf']
+    assert.equal(resolveNode(root, '/oneOf'), selector)
+  })
+
+  it('names the item an editArray remove took out', async () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    const text = textOf(await /** @type {any} */(tools.find((t) => t.name === 'editArray')).execute({ path: '/$comp-2/elements', action: 'remove', index: 5 }))
+    assert.match(text, /^removed item at index 5 \(Titre — "Thématiques à la une"\), 10 remaining/, text)
+  })
+
+  it('says an editArray add holds options an earlier answer listed', async () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    /**
+     * @param {string} name
+     * @param {any} args
+     */
+    const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
+    await run('describeState', { path: '/$comp-2/elements' })
+    const added = await run('editArray', { path: '/$comp-2/elements', action: 'add', value: { type: 'title', content: 'x' } })
+    assert.match(added, /one of the 40 options already listed under \/\$comp-2\/elements \(describeState \/\$comp-2\/elements\/11\/\$oneOf to list them again\)/, added)
   })
 })
 

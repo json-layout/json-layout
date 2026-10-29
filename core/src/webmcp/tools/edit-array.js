@@ -2,7 +2,8 @@
  * @file editArray tool
  */
 
-import { collectScopedErrors, projectNodeToMarkdown, projectListItems } from '../project.js'
+import { collectScopedErrors, projectNodeToMarkdown, projectListItems, describeListItem } from '../project.js'
+import { VariantsMemo } from '../variants-memo.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
@@ -78,7 +79,7 @@ function assertKnownVariant (statefulLayout, listNode, value) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, items?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -96,6 +97,8 @@ export function execute (statefulLayout, args, variantsMemo) {
   let index
   /** @type {string[]|undefined} */
   let coerced
+  /** @type {string|undefined} */
+  let removed
 
   if (args.action === 'add') {
     assertNoStructuralKey(args.value, 'value')
@@ -123,6 +126,8 @@ export function execute (statefulLayout, args, variantsMemo) {
     if (!Number.isInteger(index) || index < 0 || index >= currentData.length) {
       throw new Error(`index ${index} out of bounds (array length: ${currentData.length})`)
     }
+    // named before it goes: what the item held, for the agent to check it was the right one
+    removed = describeListItem(node, index)
     currentData.splice(index, 1)
   } else if (args.action === 'move') {
     const last = currentData.length - 1
@@ -170,7 +175,7 @@ export function execute (statefulLayout, args, variantsMemo) {
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
   const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, items?: string[], coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
+  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
@@ -180,13 +185,17 @@ export function execute (statefulLayout, args, variantsMemo) {
     errors,
     otherErrors,
     ...(elsewhere ? { elsewhere } : {}),
-    ...(coerced ? { coerced } : {})
+    ...(coerced ? { coerced } : {}),
+    ...(removed ? { removed } : {})
   }
 
   if (args.action === 'add') {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
-      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo, undefined, true)
+      // what earlier answers listed is referred to, with the selector that lists it again
+      const memo = VariantsMemo.seededFrom(variantsMemo)
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, memo, undefined, true)
+      variantsMemo?.merge(memo)
     }
   }
 

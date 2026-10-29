@@ -720,7 +720,7 @@ export class WebMCP {
               actionInfo = result.moved
                 ? `item ${args.from} is already at ${args.to}, nothing moved, ${result.itemCount} total`
                 : `moved item from ${args.from} to ${args.to}, ${result.itemCount} total`
-            } else actionInfo = `removed item at index ${result.index}, ${result.itemCount} remaining`
+            } else actionInfo = `removed item at index ${result.index}${result.removed ? ` (${result.removed})` : ''}, ${result.itemCount} remaining`
             if (result.itemMarkdown) {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }

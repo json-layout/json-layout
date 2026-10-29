@@ -50,6 +50,9 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
 
   if (args.path) {
     const node = resolveNodeForEdit(statefulLayout, args.path)
+    // a field hidden by its own condition resolves to its hidden node
+    const hiddenNode = node?.layout.comp === 'none' ? projectHiddenField(statefulLayout, args.path) : undefined
+    if (hiddenNode) return hiddenNode
     if (!node) {
       // a part hidden by a condition holds it: say so, and what it holds now
       const hidden = projectHiddenField(statefulLayout, args.path)

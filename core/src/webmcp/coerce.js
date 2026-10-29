@@ -55,6 +55,8 @@ function closedValues (node, schema) {
     }
   }
   const items = /** @type {any} */(node.layout)?.items
+  // a combobox suggests its items and takes any text: they are not a closed set
+  if (['combobox', 'number-combobox'].includes(/** @type {any} */(node.layout)?.comp)) return undefined
   if (Array.isArray(items) && items.length) return items.map((/** @type {any} */ item) => item && typeof item === 'object' && 'value' in item ? item.value : item)
   return undefined
 }

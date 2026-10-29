@@ -611,7 +611,8 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 
   // value for leaf nodes (no children or empty children)
   if (children.length === 0) {
-    line += ` value=${abbreviateValue(multiValued ? multiValuedData(node) : node.data)}`
+    const value = abbreviateValue(multiValued ? multiValuedData(node) : node.data)
+    line += value === undefined ? ' not set' : ` value=${value}`
   }
 
   // Help is the guidance a model cannot infer — that a negative height means automatic
@@ -889,8 +890,12 @@ export function projectQueryMatches (root, statefulLayout, query) {
   const words = searchWords(query)
   /** @type {string[]} */
   const lines = []
-  /** @type {string[]} */
-  const hiddenLines = []
+  /**
+   * matches under each part a condition hides: one line when it is alone, else a count
+   * (round 6: a hidden admin copy of the theme filled the 30 lines of a query)
+   * @type {Array<{ path: string, reveal: string, lines: string[] }>}
+   */
+  const hiddenParts = []
   let total = 0
   if (!words.length) return { lines, total }
   /** @param {string} text */
@@ -924,7 +929,10 @@ export function projectQueryMatches (root, statefulLayout, query) {
     for (const child of node.children ?? []) {
       if (child.layout.comp !== 'none') continue
       const condition = hidingCondition(child, node, statefulLayout)
-      if (condition) visitHidden(child.skeleton.pointer, child.fullKey, `hidden until ${condition.length > QUERY_VALUE_MAX_LENGTH ? `${condition.slice(0, QUERY_VALUE_MAX_LENGTH - 1)}…` : condition}`)
+      if (!condition) continue
+      const part = { path: child.fullKey, reveal: `hidden until ${condition.length > QUERY_VALUE_MAX_LENGTH ? `${condition.slice(0, QUERY_VALUE_MAX_LENGTH - 1)}…` : condition}`, lines: [] }
+      hiddenParts.push(part)
+      visitHidden(child.skeleton.pointer, child.fullKey, part, new Set())
     }
     for (const child of children) visit(child)
   }
@@ -932,9 +940,11 @@ export function projectQueryMatches (root, statefulLayout, query) {
    * A hidden node has no state below it: its fields are read from the compiled skeleton.
    * @param {string} pointer
    * @param {string} path
-   * @param {string} reveal
+   * @param {{ reveal: string, lines: string[] }} part
+   * @param {Set<string>} ancestors - pointers above, a recursive schema reaching itself again
    */
-  const visitHidden = (pointer, path, reveal) => {
+  const visitHidden = (pointer, path, part, ancestors) => {
+    if (ancestors.has(pointer)) return
     const compiled = statefulLayout.compiledLayout
     const skeleton = compiled.skeletonNodes[pointer]
     const normalized = /** @type {any} */(compiled.normalizedLayouts[pointer])
@@ -946,15 +956,18 @@ export function projectQueryMatches (root, statefulLayout, query) {
       const help = typeof layout.help === 'string' && layout.help ? helpToText(layout.help) : ''
       if (matches(`${named ? skeleton.key : ''} ${titled ?? ''} ${help}`)) {
         total++
-        hiddenLines.push(`${path} (${compToType[layout.comp] || layout.comp})${titled ? ` — ${titled}` : ''} — ${reveal}`)
+        part.lines.push(`${path} (${compToType[layout.comp] || layout.comp})${titled ? ` — ${titled}` : ''} — ${part.reveal}`)
       }
     }
+    const below = new Set([...ancestors, pointer])
     for (const child of skeleton.children ?? []) {
       const key = compiled.skeletonNodes[child]?.key
-      if (key !== undefined) visitHidden(child, `${path}/${key}`, reveal)
+      if (key !== undefined) visitHidden(child, `${path}/${key}`, part, below)
     }
   }
   visit(root)
+  const hiddenLines = hiddenParts.filter((part) => part.lines.length)
+    .map((part) => part.lines.length === 1 ? part.lines[0] : `+${part.lines.length} ${part.reveal} under ${part.path}`)
   return { lines: [...lines, ...hiddenLines].slice(0, QUERY_MATCHES_MAX), total }
 }
 
@@ -1061,12 +1074,14 @@ export function projectHiddenField (statefulLayout, path) {
   const { dataPath, condition, driver, driverPath } = holder
   const reads = driver
     ? `, which reads ${driver.fullKey} (${compToType[driver.layout.comp] || driver.layout.comp}) = ${outlineValue(driver.data)}. It can be edited once that field changes; the form may show another field in its place meanwhile`
-    : driverPath ? `, which reads ${driverPath}` : ''
+    : driverPath
+      ? `, which reads ${driverPath}`
+      : /\bcontext\b/.test(condition) ? ', which reads the context the form is used in: it cannot be changed from the form' : ''
   /** @type {any} */
   let value = statefulLayout.data
   for (const key of dataPath.split('/').filter(Boolean)) value = value && typeof value === 'object' ? value[key] : undefined
   const current = value === undefined ? 'not set' : `value=${abbreviateValue(value)}`
-  return `${dataPath} is not shown: the part of the form that holds it is hidden by a condition, shown when ${condition}${reads}.\ncurrent ${current}`
+  return `${dataPath} is not shown: the part of the form that holds it is hidden until ${condition}${reads}.\ncurrent ${current}`
 }
 
 /** keys of identifiers, which tell an item apart for a program but not for a person */
@@ -1186,6 +1201,20 @@ function outlineItemLine (item, indent, errorsByPath) {
  */
 function outlineMoreItems (count, path, indent) {
   return `${indent}- and ${count - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`
+}
+
+/**
+ * What an item holds, as its outline line names it: the option and its label.
+ * @param {import('../state/types.js').StateNode} listNode
+ * @param {number} index
+ * @returns {string | undefined}
+ */
+export function describeListItem (listNode, index) {
+  const item = visibleChildren(listNode).find((child) => child.key === index)
+  if (!item) return undefined
+  const selector = itemSelector(item)
+  const variant = selector && activeVariant(selector)
+  return [variant?.title, itemLabel(item, selector)].filter(Boolean).join(' — ') || undefined
 }
 
 /**

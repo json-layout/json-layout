@@ -125,6 +125,16 @@ function hasOwnDataKey (data, key) {
 }
 
 /**
+ * Whether the schema at a node declares a property of that name, set in the data or not.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {string} key
+ * @returns {boolean}
+ */
+function declaresKey (node, key) {
+  return !!node.skeleton?.children?.some((pointer) => pointer.endsWith(`/properties/${key}`))
+}
+
+/**
  * A path whose segments are layout or data ones, in any order: /$comp-2/elements/6/children/2/title,
  * where the item at children/2 is a union and title lives under its active variant. Each
  * segment is a layout child of the node reached so far or else, when none has that key, the
@@ -132,7 +142,7 @@ function hasOwnDataKey (data, key) {
  * variant of a `$oneOf`) and nowhere else: a key of a variant that is not active does not
  * resolve, so nothing is written to a node the form does not show. A form segment written
  * without its `$` (`comp-2`, `oneOf`, `slot-1`, `allOf-1`) is read as that segment when the
- * node has no data key of that name: the data key, when there is one, wins.
+ * node has no data key of that name, set or declared by its schema: the data key wins.
  * @param {import('../state/types.js').StateNode} root
  * @param {string} path
  * @returns {import('../state/types.js').StateNode|undefined}
@@ -144,7 +154,7 @@ function resolveWalkedPath (root, path) {
     /** @type {import('../state/types.js').StateNode|undefined} */
     let next = current.children ? findChild(current.children, key) : undefined
     if (!next && !segment.startsWith('$')) next = findByDataPath(current, `${current.dataPath}/${segment}`)
-    if (!next && current.children && STRUCTURAL_WITHOUT_DOLLAR.test(segment) && !hasOwnDataKey(current.data, segment)) {
+    if (!next && current.children && STRUCTURAL_WITHOUT_DOLLAR.test(segment) && !hasOwnDataKey(current.data, segment) && !declaresKey(current, segment)) {
       next = findChild(current.children, '$' + segment)
     }
     if (!next) return undefined
@@ -366,7 +376,7 @@ export function findStructuralKey (value, at = '') {
   }
   if (value === null || typeof value !== 'object') return undefined
   for (const [key, child] of Object.entries(value)) {
-    if (/^\$(oneOf|comp-\d+|slot-\d+)$/.test(key)) return `${at}/${key}`
+    if (/^\$(oneOf|comp-\d+|slot-\d+|allOf-\d+)$/.test(key)) return `${at}/${key}`
     const found = findStructuralKey(child, `${at}/${key}`)
     if (found) return found
   }
