@@ -505,10 +505,7 @@ describe('webmcp eval expected arms', () => {
   const name = 'report-spec-expected'
   const ev = (/** @type {string} */ arm) => ({ case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: 1, outputBytes: 1 }, valid: true, checks: [] })
   const verdict = { case: name, verdict: 'satisfactory', reasoning: 'ok', friction: [] }
-  /**
-   * @param {string[]} labels @param {() => void} fn
-   * @param fn
-   */
+  // runs fn with evidence and verdict files for the given labels, then removes them
   const withFiles = (/** @type {string[]} */ labels, /** @type {() => void} */ fn) => {
     mkdirSync(tmpDir, { recursive: true })
     const files = []
