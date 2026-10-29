@@ -143,12 +143,9 @@ describe('the tool that opens a section', () => {
 describe('the guide of the form tools', () => {
   it('says how the tabs and steps on screen are told and opened', () => {
     const layout = makeLayout()
-    const tools = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_', includeFillFormSkill: true }).getTools()
-    const skill = /** @type {any} */(tools.find(t => t.name === 'p_fillFormSkill'))
-    return skill.execute({}).then((/** @type {any} */result) => {
-      assert.match(result.content[0].text, /p_openSection/)
-      assert.match(result.content[0].text, /\(open\)/)
-    })
+    const { body } = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_' }).getSkill()
+    assert.match(body, /p_openSection/)
+    assert.match(body, /\(open\)/)
   })
 })
 

@@ -208,8 +208,6 @@ the protocol" — and the second does not show up in unit tests.
   a suggestion is worth, and whether the value offered is the value accepted
 - error projection in `core/src/webmcp/project.js` — an agent that cannot locate its
   mistake retries blind
-- `getComplexity` in `core/src/webmcp/index.js` — it drives the skill's advice and the
-  declared sub-agent step budget
 
 Two layers, and you need both:
 
