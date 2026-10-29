@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "plain",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.005011660000000001,
+  "turns": 5,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 454,
+    "cacheRead": 49866,
+    "cacheWrite": 21426
+  },
+  "answer": "I made both changes and the API accepted the write (200 OK). I re-read the document to confirm the stored values.\n\n- **Aggregation:** the value calculation changed from average (`avg`) to maximum (`max`), still applied to the `valeur` column.\n- **Legend:** the position changed from right to bottom.\n\nThe chart still groups by commune (`nom_com`), so each bar now shows the highest `valeur` in that commune. Nothing else in the document changed."
+}

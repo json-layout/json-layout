@@ -1,0 +1,19 @@
+{
+  "case": "contact",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0010713900000000002,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 331,
+    "cacheRead": 13249,
+    "cacheWrite": 3864
+  },
+  "answer": "The contact form is filled in and the API accepted it (200 OK). The stored document is:\n\n- **name:** Ada Lovelace\n- **birthYear:** 1815\n- **email:** ada@analytical.org\n- **contactMethod:** email\n\nThe document was empty before, so nothing was overwritten. I didn't need to use the suggestion lists, and every field you gave is in the schema."
+}

@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.005044549999999999,
+  "turns": 5,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 495,
+    "cacheRead": 49865,
+    "cacheWrite": 21488
+  },
+  "answer": "I made both changes and the API accepted the write (200 OK). I read the document back to confirm.\n\n- **Aggregation:** the value calculation is now `max` (maximum) instead of `avg` (average) on the `valeur` column. The chart still groups by `nom_com`.\n- **Legend:** `legendPosition` is now `bottom`, down from `right`.\n\nNothing else in the chart changed."
+}

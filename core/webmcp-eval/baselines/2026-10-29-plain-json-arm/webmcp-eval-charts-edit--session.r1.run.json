@@ -1,0 +1,14 @@
+{
+  "case": "charts-edit",
+  "arm": "session",
+  "run": 1,
+  "ok": false,
+  "model": null,
+  "requestedModel": "haiku",
+  "costUsd": null,
+  "turns": null,
+  "denials": [],
+  "exitCode": 0,
+  "notRunnable": true,
+  "error": "FormSession has no auto-save mode yet"
+}

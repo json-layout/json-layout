@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "plain",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.01440003,
+  "turns": 12,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 18,
+    "output": 11455,
+    "cacheRead": 150933,
+    "cacheWrite": 35807
+  },
+  "answer": "The calendar is set up on \"Agenda-manifestations\" and saved. The API accepted the write, and I read the document back to confirm.\n\n- **Dataset:** `datasets[0]` points to Agenda-manifestations (`https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-`). I copied its full schema, title, time period and permissions from the dataset listing.\n- **Label:** `labelField` is set to the `nomevenement` column (\"Nom de l'évenement\"). The schema types this field as an object, not a column name, so I stored the column's schema entry in the shape the picker returns. The API accepted it, but I could not confirm this is the exact shape the calendar expects.\n- **Crowd sourcing:** `crowdSourcing` is `true`, so visitors can propose new events.\n\nCrowd sourcing still needs a contributions dataset. The schema lets you pick one under \"Jeu de données des contributions externes\", and I did not set one because you did not name it. Without one, proposed events have nowhere to go. Tell me which dataset should receive the contributions and I'll add it."
+}

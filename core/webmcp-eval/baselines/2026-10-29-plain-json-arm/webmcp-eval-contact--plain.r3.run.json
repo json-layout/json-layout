@@ -1,0 +1,19 @@
+{
+  "case": "contact",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00103565,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 275,
+    "cacheRead": 13235,
+    "cacheWrite": 3826
+  },
+  "answer": "I filled in the contact form for Ada Lovelace and the API accepted it (200 OK). The stored document is:\n\n- **name:** Ada Lovelace\n- **birthYear:** 1815\n- **email:** ada@analytical.org\n- **contactMethod:** email\n\nThe document was empty before, so nothing was overwritten."
+}

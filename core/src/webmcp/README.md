@@ -9,7 +9,9 @@ been validated.
 This is the first question anyone asks, and for a small form it is the right instinct —
 `contact` is a 368-character schema with five fields, and a model would fill it blind.
 The suite exists because real configuration forms are not that, and four properties break
-the blind approach:
+the blind approach. Under each, what the first comparison against a plain JSON API measured
+([baseline 2026-10-29](../../webmcp-eval/baselines/2026-10-29-plain-json-arm/README.md): haiku only, 3 runs per arm, every run of every arm correct, so
+these are differences in effort and cost, not in outcome):
 
 **1. Half the schema does not apply until you have chosen something.** `charts` is five
 levels of nested `oneOf`: which fields are legal depends on the chart type, then on the
@@ -17,24 +19,51 @@ data-preparation mode, then on the grouping kind. `calendar` hides a whole secti
 `x-if: datasets.0.isRest` — the crowd-sourcing settings do not exist as valid keys until a
 REST dataset is picked. A model emitting a document in one shot has to guess which branch's
 fields are legal; the tools let it activate a branch and be told what that branch contains.
+*Measured: tie.* With the raw schema the plain arm wrote `calendar`'s `x-if` field together
+with the value that opens it, and a valid discriminated menu item on `portal-config-edit`, in
+every run; no case asked for a branch the document did not already make obvious.
 
 **2. The accepted values are not in the schema at all.** `calendar`'s label field takes its
 options from `${rootData.datasets[0].href}/schema?calculated=false` — an HTTP request whose
 URL is built from another field's current value. No amount of schema reading yields
-`nomevenement`. `getFieldSuggestions` performs that lookup; nothing else can.
+`nomevenement`. `getFieldSuggestions` performs that lookup.
+*Measured: tie, and "nothing else can" did not hold.* Given the URL templates in the raw
+schema and an HTTP GET, the plain arm built the lookups itself in 9 of 9 runs (communes,
+dataset listing, column listing, portal pages) and picked the same values.
 
 **3. The values can be far larger than the answer.** A picked data-fair dataset is a 12,486-
 character object of column definitions. The agent never handles it: it applies suggestion
 index 0 and the form stores the object. Emitting that document by hand would mean
 reproducing 12 KB of column metadata verbatim.
+*Measured: partly.* The API accepted a three-key dataset reference, so two plain runs out of
+three never reproduced the object; the third copied it and was the suite's most expensive run.
+The plain documents differ from what the form stores, and whether the application renders
+from them is not checked.
 
 **4. The schema is bigger than the whole conversation.** `portal-page` is 285,874 characters,
 814 layout nodes. A complete `portal-page` session costs about 7.4 KB of tool output. Sending
 the schema once would cost roughly forty times the entire interaction.
+*Measured on `portal-config-edit` only (128 KB raw schema): tie* on outcome and input tokens,
+9 calls against 10–12. The figure above was not reproduced because the client did not let the
+schema into the conversation: token counts show neither arm's largest response (128 KB
+`readSchema`, 62 KB `describeState`) reached the model whole. On a small edit the form side
+is cheaper: `charts-edit` took about half the plain arm's input tokens in every run.
 
 There is a fifth reason that matters in production: the form is *live*. Writes land in the
 state a user is looking at, validation runs on every one, and the errors come back scoped to
 what just changed. The agent is editing a form, not drafting a file.
+*Measured: mixed.* Scoped errors and "N field(s) became available" did steer recoveries; but
+one whole-document 400 was as useful to the plain arm, and the plain arm's only real miss —
+a write that cut a dataset's column list, accepted by the schema — is a value the form's
+suggestion would have stored whole; the agent caught it itself.
+
+The comparison also showed what is not among these reasons. **On a flat record built from
+loose text, the plain arm wins clearly**: `data-fair-line` (15 columns, a remote referential)
+took 4 calls and ~30k input tokens in all three plain runs, against 15–18 calls and 46–57k
+for the page tools and 8–19 calls and 63–79k for `FormSession`. Two form-tool defects caused
+most of the difference: a 14-digit SIRET reached `setFieldValue` as a JSON number in all six
+page-tool and session runs and was refused, the quoted retry stored the quotes, and only `setData` fixed it;
+and memorised suggestions were dropped by a `setData` that did not touch the field.
 
 ## The tools
 
@@ -128,8 +157,22 @@ they derive from is set. None of them bit.
 - **One MCP client.** Everything ran through Claude Code. The `structuredContent` episode is
   the standing reminder that client behaviour can silently invalidate a whole line of work.
 - **The judge is not independent** — it is the same model family reading its own transcripts.
-- **n=1 per case per model**, against run-to-run variance that has reached 3× on cost for
-  identical code. Single-run comparisons are noise; only repeated, large effects are signal.
+  In the 2026-10-29 comparison it also saw the check results in the evidence file (told to
+  ignore them).
+- **n=1 per case per model** for the tier table above, against run-to-run variance that has
+  reached 3× on cost for identical code. Single-run comparisons are noise; only repeated,
+  large effects are signal. The plain-JSON comparison has n=3 per arm, on haiku only: two
+  differences are repeated and large (`data-fair-line` for the plain arm, `charts-edit` for
+  the form), the rest are ties within the spread.
+- **What the model actually read.** Responses above some size between 29 KB and 62 KB did not
+  reach the model whole in the 2026-10-29 runs (inferred from cache-write token counts; the
+  mechanism is the client's). Byte counts are what the tools answered, not what was read.
+- **The server session's auto-save** is not measured: `FormSession` has no auto mode yet, so
+  its arm is not runnable on application configurations (`calendar`, `charts-edit`,
+  `portal-config-edit`).
+- **No branch-choice case.** Every `oneOf` in the comparison was either already chosen in the
+  starting document or a discriminated union; reason 1 is untested where the right branch
+  depends on reasoning.
 - **`setData` with `merge: false`** has unit tests and no behavioural evidence — no agent has
   ever called it.
 - Open findings are recorded per baseline in `core/webmcp-eval/baselines/`. All current ones

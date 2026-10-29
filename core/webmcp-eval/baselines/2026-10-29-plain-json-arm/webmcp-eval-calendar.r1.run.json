@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "form",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00396982,
+  "turns": 10,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 16,
+    "output": 1477,
+    "cacheRead": 61992,
+    "cacheWrite": 13049
+  },
+  "answer": "The calendar is set up on the Agenda-manifestations dataset, with the event name as the label and crowd sourcing turned on. The form is valid.\n\n- **Dataset:** \"Agenda-manifestations\" (the only matching suggestion).\n- **Champ de libellé:** \"Nom de l'évenement\" (`nomevenement`).\n- **Activer le crowd sourcing:** on.\n\nI left **Jeu de données des contributions externes** empty. The form doesn't require it, but proposed events need a dataset to be stored in. Agenda-manifestations is the likely choice, since proposals are new events for that agenda. Tell me which dataset to use and I'll set it. Without it, visitors may not be able to submit proposals.\n\nI didn't change the other settings (colours, description and extra fields, form style, validated-contribution options)."
+}

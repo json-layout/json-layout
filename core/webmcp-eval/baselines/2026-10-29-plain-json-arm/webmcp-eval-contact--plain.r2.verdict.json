@@ -1,0 +1,1 @@
+{"case":"contact","verdict":"satisfactory","reasoning":"The agent read the empty document, read the schema, and wrote all four fields (name, birthYear 1815 within 1800-2100, email, contactMethod 'email' from the enum) in a single write that was accepted. Every value came from the goal or the schema, nothing was guessed, and there were no wasted calls.","friction":[]}

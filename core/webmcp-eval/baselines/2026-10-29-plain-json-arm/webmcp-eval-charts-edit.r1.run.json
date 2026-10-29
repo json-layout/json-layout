@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "form",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00260053,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 482,
+    "cacheRead": 17193,
+    "cacheWrite": 10935
+  },
+  "answer": "I made both changes and the form is valid.\n\n- **Aggregation:** The metric in \"Calcul de la valeur\" is now \"Valeur maximale\" (`max`), replacing \"Moyenne\". The chart still groups by `nom_com` (commune) and computes from the `valeur` column.\n- **Legend:** \"Position de la légende\" is now \"Bas\" (`bottom`), replacing \"Droite\".\n\nI didn't change anything else, so the chart's title, sorting, size limit and colour are as they were."
+}

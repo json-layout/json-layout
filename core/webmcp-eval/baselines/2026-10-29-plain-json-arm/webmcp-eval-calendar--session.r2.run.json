@@ -1,0 +1,14 @@
+{
+  "case": "calendar",
+  "arm": "session",
+  "run": 2,
+  "ok": false,
+  "model": null,
+  "requestedModel": "haiku",
+  "costUsd": null,
+  "turns": null,
+  "denials": [],
+  "exitCode": 0,
+  "notRunnable": true,
+  "error": "FormSession has no auto-save mode yet"
+}

@@ -1,0 +1,19 @@
+{
+  "case": "contact",
+  "arm": "session",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0012657800000000002,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 284,
+    "cacheRead": 23498,
+    "cacheWrite": 4440
+  },
+  "answer": "I filled in and saved the contact form:\n\n- **Full name:** Ada Lovelace\n- **Year of birth:** 1815\n- **Email:** ada@analytical.org\n- **Preferred contact method:** email\n\nThe form validated with no errors before saving, and the save succeeded."
+}
