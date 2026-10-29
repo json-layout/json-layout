@@ -39,6 +39,42 @@ function allowedValues (items) {
 }
 
 /**
+ * The closed set of values a scalar field allows, when it is known as the value is written:
+ * its enum, a oneOf/anyOf of constants, or the items its layout lists. Items fetched or
+ * computed from the data are not such a set.
+ * @param {StateNode} node
+ * @param {Record<string, any>} schema
+ * @returns {unknown[]|undefined}
+ */
+function closedValues (node, schema) {
+  if (Array.isArray(schema.enum)) return schema.enum
+  for (const keyword of ['oneOf', 'anyOf']) {
+    const options = schema[keyword]
+    if (Array.isArray(options) && options.length && options.every((/** @type {any} */ item) => item && typeof item === 'object' && 'const' in item)) {
+      return options.map((/** @type {any} */ item) => item.const)
+    }
+  }
+  const items = /** @type {any} */(node.layout)?.items
+  if (Array.isArray(items) && items.length) return items.map((/** @type {any} */ item) => item && typeof item === 'object' && 'value' in item ? item.value : item)
+  return undefined
+}
+
+/**
+ * The text inside a JSON-quoted string (`"\"a\""` → `a`), or undefined.
+ * @param {string} value
+ * @returns {string|undefined}
+ */
+function unquoted (value) {
+  if (value.length < 2 || value[0] !== '"' || value[value.length - 1] !== '"') return undefined
+  try {
+    const parsed = JSON.parse(value)
+    return typeof parsed === 'string' ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * A number as the text a string field holds. An unsafe integer or an exponent spelling
  * would store something else than what was meant, so those stay refused.
  * @param {unknown} value
@@ -64,6 +100,8 @@ function separatorOf (node, schema) {
  * Read the value an agent meant for a field.
  * Rules, only for a node whose schema has a single type, outside a variant selector:
  * - a number for `type: 'string'` becomes its text;
+ * - a JSON-quoted text for a field with a closed set of allowed values becomes the text it
+ *   quotes, when that text is allowed and the quoted one is not (never on an open field);
  * - a scalar for an `array` of scalars becomes a one-item list, split and trimmed when it is
  *   a string holding the field's `separator`; the numbers of a list of texts become texts.
  * Never `""` to a number, never an object.
@@ -77,7 +115,13 @@ export function coerceForNode (node, value, schema) {
   if (typeof schema.type !== 'string' || isChoiceBetweenSchemas(schema)) return { value }
 
   if (schema.type === 'string') {
-    return isTextableNumber(value) ? { value: String(value), coerced: 'number → string' } : { value }
+    if (isTextableNumber(value)) return { value: String(value), coerced: 'number → string' }
+    if (typeof value === 'string') {
+      const text = unquoted(value)
+      const allowed = text === undefined ? undefined : closedValues(node, schema)
+      if (allowed && allowed.includes(text) && !allowed.includes(value)) return { value: text, coerced: 'quoted text → text' }
+    }
+    return { value }
   }
 
   if (schema.type === 'array') {

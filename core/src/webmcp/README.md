@@ -162,8 +162,10 @@ of the one it leaves, and an invalid form always says which node is invalid.
 **Input is read as it was meant.** A tool call is JSON, and a model writes a SIRET as a number or
 one choice for a multi-valued field. A number for a text field becomes its text, a single value
 for a list becomes a one-item list, a text for a list of a closed set is split on commas, or on
-the field's `separator`, unless an allowed value itself holds it. The answer says what was
-read. These are a few explicit rules in `coerce.js`, not ajv `coerceTypes`, which also bends
+the field's `separator`, unless an allowed value itself holds it. A JSON-quoted text
+(`"\"above-footer\""`) for a field with a closed set of values loses its quotes when only the
+unquoted text is allowed; an open text field keeps whatever it is given. The answer says what
+was read. These are a few explicit rules in `coerce.js`, not ajv `coerceTypes`, which also bends
 values inside choices and turns `""` into 0.
 
 **One representation, one home per fact.** The suggestion protocol was once stated four times

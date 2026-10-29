@@ -65,6 +65,21 @@ describe('coerceForNode', () => {
     assert.deepEqual(coerceForNode(node(), 'a, b', schema), { value: ['a, b'], coerced: 'single value → list' })
     assert.deepEqual(coerceForNode(node({ separator: ',' }), 'a, b', schema), { value: ['a, b'], coerced: 'single value → list' })
   })
+  it('unquotes a JSON-quoted text whose unquoted form is an allowed value', () => {
+    const position = { type: 'string', oneOf: [{ const: 'none' }, { const: 'above-footer' }] }
+    assert.deepEqual(coerceForNode(node(), '"above-footer"', position), { value: 'above-footer', coerced: 'quoted text → text' })
+    assert.deepEqual(coerceForNode(node(), '"b"', { type: 'string', enum: ['a', 'b'] }), { value: 'b', coerced: 'quoted text → text' })
+    // a select whose items the layout lists
+    const select = node({ items: [{ key: 'a', title: 'A', value: 'a' }, { key: 'b', title: 'B', value: 'b' }] })
+    assert.deepEqual(coerceForNode(select, '"a"', { type: 'string' }), { value: 'a', coerced: 'quoted text → text' })
+    // the quoted text is itself allowed, the unquoted one is not, or the set is open: untouched
+    assert.deepEqual(coerceForNode(node(), '"b"', { type: 'string', enum: ['"b"', 'b'] }), { value: '"b"' })
+    assert.deepEqual(coerceForNode(node(), '"c"', { type: 'string', enum: ['a', 'b'] }), { value: '"c"' })
+    assert.deepEqual(coerceForNode(node(), '"a"', { type: 'string' }), { value: '"a"' })
+    assert.deepEqual(coerceForNode(node(), '"a"', { type: 'string', examples: ['a'] }), { value: '"a"' })
+    // items fetched or computed are not a set known when the value is written
+    assert.deepEqual(coerceForNode(node({ getItems: { url: 'x' } }), '"a"', { type: 'string' }), { value: '"a"' })
+  })
   it('turns the numbers of a list of texts into texts', () => {
     assert.deepEqual(coerceForNode(node(), [1, 'b'], { type: 'array', items: { type: 'string' } }), { value: ['1', 'b'], coerced: 'number → string' })
   })
@@ -97,6 +112,13 @@ describe('tolerant write tools', () => {
     assert.deepEqual(/** @type {any} */(layout.data).activites, ['football', 'judo'])
     assert.deepEqual(result.coerced, ['/activites text → list'])
     assert.equal(result.errors.filter(e => e.path === '/activites').length, 0)
+  })
+  it('setFieldValue unquotes the breadcrumb position of the portal configuration', () => {
+    const compiled = compile(getCase('portal-config-multi').schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, structuredClone(getCase('portal-config-multi').data))
+    const result = setFieldValue.execute(layout, { path: '/$comp-5/breadcrumb/position', value: '"above-footer"' })
+    assert.equal(/** @type {any} */(layout.data).breadcrumb.position, 'above-footer')
+    assert.deepEqual(result.coerced, ['/$comp-5/breadcrumb/position quoted text → text'])
   })
   it('setFieldValue reports nothing when nothing was coerced', () => {
     const layout = setup()
