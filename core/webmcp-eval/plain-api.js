@@ -101,6 +101,19 @@ const pathInput = (/** @type {string} */ description) => ({
   properties: { path: { type: 'string', description } }
 })
 
+/**
+ * One line of a 400 answer. ajv's message alone does not say which property is unknown
+ * or which values an enum allows; a real API's error names them, so the line does too.
+ * @param {import('ajv').ErrorObject} error
+ * @returns {string}
+ */
+function errorLine (error) {
+  let line = `${error.instancePath || '(root)'} ${error.message}`
+  if (error.params?.additionalProperty !== undefined) line += `: ${error.params.additionalProperty}`
+  if (Array.isArray(error.params?.allowedValues)) line += `: ${error.params.allowedValues.map((v) => JSON.stringify(v)).join(', ')}`
+  return line
+}
+
 export const API_TOOL_NAMES = ['readDocument', 'readSchema', 'writeDocument', 'patchDocument', 'httpGet']
 
 /**
@@ -257,7 +270,7 @@ export class PlainApiSession {
   _store (candidate) {
     const document = this._case.apiAccepts ? this._case.apiAccepts(candidate) : candidate
     if (!this._validate(document)) {
-      const errors = (this._validate.errors ?? []).map((e) => `${e.instancePath || '(root)'} ${e.message}`)
+      const errors = (this._validate.errors ?? []).map(errorLine)
       return answer(['400 Bad Request', ...errors].join('\n'), true)
     }
     this._data = document

@@ -70,6 +70,26 @@ describe('PlainApiSession', () => {
     assert.equal(session.valid, true)
   })
 
+  it('names the unknown property in an additionalProperties refusal', async () => {
+    const session = new PlainApiSession(makeCase({
+      schema: { type: 'object', additionalProperties: false, properties: { a: { type: 'string' } } },
+      data: {}
+    }))
+    const result = await session.call('writeDocument', { document: { a: 'x', zz: 1 } })
+    assert.equal(result.isError, true)
+    assert.ok(text(result).split('\n').includes('(root) must NOT have additional properties: zz'), text(result))
+  })
+
+  it('lists the allowed values in an enum refusal', async () => {
+    const session = new PlainApiSession(makeCase({
+      schema: { type: 'object', properties: { color: { type: 'string', enum: ['red', 'blue'] } } },
+      data: {}
+    }))
+    const result = await session.call('patchDocument', { patch: { color: 'green' } })
+    assert.equal(result.isError, true)
+    assert.ok(text(result).split('\n').includes('/color must be equal to one of the allowed values: "red", "blue"'), text(result))
+  })
+
   it('stores a valid write, given as an object or as a JSON string', async () => {
     const session = new PlainApiSession(makeCase())
     const result = await session.call('writeDocument', { document: '{"a": "y"}' })
