@@ -333,14 +333,20 @@ describe('webmcp eval arms', () => {
     assert.equal(optionValue(buildLaunchArgs(getCase('contact'), options), '--append-system-prompt'), RUNNER_PROMPT)
   })
 
-  it('should launch a plain arm with exactly its five tools and no form-tool name', async () => {
+  it('should launch a plain arm with exactly its four document tools and no form-tool name', async () => {
     const arm = await createArm(getCase('contact'), 'plain')
     const args = buildLaunchArgs(getCase('contact'), { ...options, arm: 'plain', prompt: arm.prompt, toolNames: arm.toolNames })
     const allowed = optionValue(args, '--allowedTools').split(',')
     assert.deepEqual(allowed, API_TOOL_NAMES.map((t) => `mcp__document-api__${t}`))
-    assert.equal(allowed.length, 5)
+    assert.equal(allowed.length, 4)
     const prompt = optionValue(args, '--append-system-prompt')
     for (const tool of TOOL_NAMES) assert.ok(!prompt.includes(tool), `prompt names form tool ${tool}`)
+  })
+
+  it('should allow a plain arm its case\'s lookups too', async () => {
+    const arm = await createArm(getCase('data-fair-line'), 'plain')
+    const args = buildLaunchArgs(getCase('data-fair-line'), { ...options, arm: 'plain', prompt: arm.prompt, toolNames: arm.toolNames })
+    assert.deepEqual(optionValue(args, '--allowedTools').split(','), [...API_TOOL_NAMES, 'get_field_values'].map((t) => `mcp__document-api__${t}`))
   })
 
   it('should serve each arm under its own server name, in the config and every allowed tool', async () => {

@@ -2,14 +2,15 @@
  * @file A plain JSON API over one eval case, the baseline the form tools are compared with.
  *
  * Same case, same starting document, same recording as EvalSession: only the tools and
- * the prompt differ. The tools are what a well-made JSON API offers — read, replace,
- * merge-patch, GET — described as completely as a careful API user needs, and writes are
- * validated by the very ajv function the form compiles from the case, so neither arm
- * validates more strictly than the other.
+ * the prompt differ. The tools are what a well-made JSON API offers — read, replace, patch
+ * top-level keys — plus the targeted lookups a real server offers for the case's remote
+ * lists (lookups.js), never a generic HTTP client. They are described as completely as a
+ * careful API user needs, and writes are validated by the very ajv function the form
+ * compiles from the case, so neither arm validates more strictly than the other.
  */
 
 import { compile } from '../src/compile/index.js'
-import { caseFetch } from './remote.js'
+import { createLookupTools } from './lookups.js'
 import { DEFAULT_DATA_FAIR_URL } from './session.js'
 import { runChecks } from './checks.js'
 import { PLAIN_RUNNER_PROMPT } from './prompts.js'
@@ -75,22 +76,20 @@ export function resolvePointer (root, pointer) {
 }
 
 /**
- * RFC 7396 JSON merge patch. Keys are defined, not assigned, so a `__proto__` key in a
- * patch is stored as data rather than replacing the result's prototype.
+ * A single-level patch, as data-fair's own APIs patch a resource: each top-level key of
+ * `patch` replaces the document's key entirely, objects and arrays included, and `null`
+ * deletes it. Keys are defined, not assigned, so a `__proto__` key in a patch is stored as
+ * data rather than replacing the result's prototype.
  * @param {unknown} target
- * @param {unknown} patch
- * @returns {unknown}
+ * @param {Record<string, unknown>} patch
+ * @returns {Record<string, unknown>}
  */
-export function mergePatch (target, patch) {
-  if (!isObject(patch)) return structuredClone(patch)
+export function patchTopLevel (target, patch) {
   /** @type {Record<string, unknown>} */
   const result = isObject(target) ? { ...target } : {}
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete result[key]
-    else {
-      const merged = mergePatch(Object.hasOwn(result, key) ? result[key] : undefined, value)
-      Object.defineProperty(result, key, { value: merged, enumerable: true, writable: true, configurable: true })
-    }
+    else Object.defineProperty(result, key, { value: structuredClone(value), enumerable: true, writable: true, configurable: true })
   }
   return result
 }
@@ -172,24 +171,29 @@ export function errorLines (errors) {
   return [...new Set(lines)]
 }
 
-export const API_TOOL_NAMES = ['readDocument', 'readSchema', 'writeDocument', 'patchDocument', 'httpGet']
+/** The document tools every case has; its lookups come after them. */
+export const API_TOOL_NAMES = ['readDocument', 'readSchema', 'writeDocument', 'patchDocument']
 
 /**
  * The API's description in the runner's prompt: what an API's reference page would say
  * before its endpoints. No procedure, no hint about the goal.
+ * @param {string[]} lookups - the case's lookup tools, named as the service offers them
+ * @returns {string}
  */
-const API_DESCRIPTION = `## The API
+function apiDescription (lookups) {
+  const others = lookups.length
+    ? `\n\nThe same service also offers ${lookups.length === 1 ? 'a tool' : 'tools'} to look up the other resources the document refers to: ${lookups.join(', ')}.`
+    : ''
+  return `## The API
 
-The document is stored by an API that offers five tools: readDocument and readSchema read
-the document and the JSON schema it must follow, writeDocument replaces the document,
-patchDocument changes part of it with a JSON merge patch, and httpGet fetches other
-resources of the same service, such as the lists of values some schema annotations point
-to. The resource at the URL \`context\` (httpGet) holds the values the schema refers to as
-\`context\`.
+The document is stored by an API that offers four tools: readDocument and readSchema read
+the document and the JSON schema it must follow, writeDocument replaces the document, and
+patchDocument replaces some of its top-level keys.${others}
 
 Every write is validated against the JSON schema and refused with the validation errors
 when the document would be invalid. Annotations in the schema meant for editing
 interfaces (layout, display conditions, suggestion lists) are not enforced by the API.`
+}
 
 export class PlainApiSession {
   /** @type {EvalCase} */
@@ -218,24 +222,20 @@ export class PlainApiSession {
     this._validate = compiled.validates[compiled.skeletonTrees[compiled.mainTree].refPointer]
     this.start = structuredClone(evalCase.data)
     this._data = structuredClone(evalCase.data)
-    const fixtureOrInjected = caseFetch(evalCase, options)
     const baseURL = options.dataFairURL ?? process.env.JL_WEBMCP_EVAL_DATA_FAIR ?? DEFAULT_DATA_FAIR_URL
-    this._tools = this._makeTools(fixtureOrInjected, baseURL)
+    const lookups = createLookupTools(evalCase, { fetch: options.fetch, baseURL })
+    this._tools = [...this._makeTools(), ...lookups]
     // the guide compile hands the form arm, so both read the same domain text
     const guide = compiled.agentGuide?.trim()
     this._prompt = [
       PLAIN_RUNNER_PROMPT,
-      API_DESCRIPTION,
+      apiDescription(lookups.map((t) => t.name)),
       ...(guide ? [`## About this ${evalCase.title}\n\n${guide}`] : [])
     ].join('\n\n')
   }
 
-  /**
-   * @param {((url: string) => Promise<any>) | undefined} fixtureOrInjected
-   * @param {string} baseURL - the data-fair base, for cases without a fixture
-   * @returns {ApiTool[]}
-   */
-  _makeTools (fixtureOrInjected, baseURL) {
+  /** @returns {ApiTool[]} */
+  _makeTools () {
     return [
       {
         name: 'readDocument',
@@ -245,9 +245,7 @@ export class PlainApiSession {
       },
       {
         name: 'readSchema',
-        // the URL templates are quoted as the schema spells them
-        // eslint-disable-next-line no-template-curly-in-string
-        description: 'Read the JSON schema the API validates the document against, as JSON. Pass `path`, a JSON pointer into the schema (e.g. "/properties" or "/$defs/address"), to read only that part; omit it for the whole schema, which can be long. Besides standard JSON schema keywords, the schema may carry annotations meant for editing interfaces: layout hints, display conditions, URLs listing suggested values (possibly with `${...}` templates reading the `context` resource). The API does not enforce them when validating; the URLs can be fetched with httpGet.',
+        description: 'Read the JSON schema the API validates the document against, as JSON. Pass `path`, a JSON pointer into the schema (e.g. "/properties" or "/$defs/address"), to read only that part; omit it for the whole schema, which can be long. Besides standard JSON schema keywords, the schema may carry annotations meant for editing interfaces: layout hints, display conditions, URLs listing suggested values. The API does not enforce them when validating.',
         inputSchema: pathInput('JSON pointer into the schema. Omit for the whole schema.'),
         execute: async (args) => this._read(this._case.schema, args?.path)
       },
@@ -267,44 +265,16 @@ export class PlainApiSession {
       },
       {
         name: 'patchDocument',
-        description: 'Change part of the document with a JSON merge patch (RFC 7396). `patch` is a JSON object: each key given replaces that key\'s value, nested objects are merged recursively, `null` deletes the key, and an array replaces the existing array whole (to change one item, send the whole array). Keys left out are kept. The patched document is validated like writeDocument: `200 OK` when stored, `400 Bad Request` with one line per error otherwise, the stored document then left unchanged.',
+        description: 'Change some top-level keys of the document. `patch` is a JSON object: each key given replaces that key\'s current value, `null` removes the key, and keys left out are kept. Array and object fields replace the current value entirely: read it first (readDocument with its path) and send the complete new value. The patched document is validated like writeDocument: `200 OK` when stored, `400 Bad Request` with one line per error otherwise, the stored document then left unchanged.',
         inputSchema: {
           type: 'object',
-          properties: { patch: { type: 'object', description: 'The JSON merge patch.' } },
+          properties: { patch: { type: 'object', description: 'The top-level keys to replace, with their complete new values.' } },
           required: ['patch']
         },
         execute: async (args) => {
           const patch = parseIfJsonString(args?.patch)
-          if (!isObject(patch)) return answer('400 Bad Request\npatch must be a JSON object (RFC 7396 merge patch)', true)
-          return this._store(mergePatch(this._data, patch))
-        }
-      },
-      {
-        name: 'httpGet',
-        // the URL templates are quoted as the schema spells them
-        // eslint-disable-next-line no-template-curly-in-string
-        description: 'Send an HTTP GET request to the service and answer the JSON body. `url` is relative to the service\'s base URL, like the URLs found in the schema (e.g. "api/v1/datasets?q=bike"); fill in any `${...}` template yourself before sending. The special URL `context` answers the request context: the values the schema\'s templates and conditions refer to as `context`. A failed request answers its HTTP status.',
-        inputSchema: {
-          type: 'object',
-          properties: { url: { type: 'string', description: 'URL relative to the service, or `context`.' } },
-          required: ['url']
-        },
-        execute: async (args) => {
-          const url = args?.url
-          if (typeof url !== 'string' || !url) return answer('400 Bad Request\nurl is required', true)
-          if (url === 'context') return answer(JSON.stringify(this._case.context ?? {}))
-          try {
-            // a fixture resolves the URL itself: handing it the agent's own spelling keeps
-            // the fixture base out of the error texts the agent reads
-            if (this._case.remote && fixtureOrInjected) return answer(JSON.stringify(await fixtureOrInjected(url)))
-            const absolute = new URL(url, baseURL).href
-            if (fixtureOrInjected) return answer(JSON.stringify(await fixtureOrInjected(absolute)))
-            const res = await fetch(absolute)
-            if (!res.ok) return answer(`${res.status} ${res.statusText}: ${url}`, true)
-            return answer(JSON.stringify(await res.json()))
-          } catch (err) {
-            return answer(err instanceof Error ? err.message : String(err), true)
-          }
+          if (!isObject(patch)) return answer('400 Bad Request\npatch must be a JSON object', true)
+          return this._store(patchTopLevel(this._data, patch))
         }
       }
     ]

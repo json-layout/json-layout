@@ -226,6 +226,7 @@ const calendar = {
   data: {},
   context: grandPoitiersContext,
   remote: calendarRemote,
+  lookups: ['list_account_datasets', 'describe_dataset'],
   // an application configuration is a draft the app's editor saves as it changes
   saveMode: 'auto',
   checks: [
@@ -251,7 +252,8 @@ const charts = {
   goal: 'Make a bar chart of the average measured value per commune from the dataset of hourly air pollutant concentrations in Poitiers, title it "Pollution by commune" and put the legend on the right.',
   schema: loadSchema('app-charts.json'),
   data: {},
-  context: grandPoitiersContext
+  context: grandPoitiersContext,
+  lookups: ['list_account_datasets', 'describe_dataset']
 }
 
 /**
@@ -300,6 +302,7 @@ const chartsEdit = {
   data: loadData('charts-edit.json'),
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
   context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
+  lookups: ['list_account_datasets', 'describe_dataset'],
   // an application configuration is a draft the app's editor saves as it changes
   saveMode: 'auto',
   // the goal changes the metric and the legend position; everything else stays
@@ -383,7 +386,8 @@ const choropleth = {
   schema: loadSchema('app-choropleth.json'),
   data: loadData('choropleth.json'),
   compileOptions: { locale: 'fr' },
-  context: { datasetFilter: '' }
+  context: { datasetFilter: '' },
+  lookups: ['list_account_datasets', 'describe_dataset']
 }
 
 /** @type {EvalCase[]} */
@@ -422,6 +426,7 @@ const portalConfigEdit = {
       news: []
     }
   },
+  lookups: ['list_portal_pages'],
   // a portal configuration is a draft the editor saves as it changes
   saveMode: 'auto',
   checks: [
@@ -470,7 +475,8 @@ const portalMenuCatalog = {
   schema: loadSchema('portal-config.json'),
   data: loadData('portal-config-edit.json'),
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
-  context: menuContext
+  context: menuContext,
+  lookups: ['list_portal_pages']
 }
 
 /**
@@ -489,7 +495,8 @@ const portalMenuExplain = {
   schema: loadSchema('portal-config.json'),
   data: loadData('portal-config-edit.json'),
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
-  context: menuContext
+  context: menuContext,
+  lookups: ['list_portal_pages']
 }
 
 /**
@@ -525,7 +532,8 @@ const chartsPie = {
   schema: v2compat(loadSchema('app-charts.json'), undefined, 'fr'),
   data: loadData('charts-edit.json'),
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
-  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
+  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
+  lookups: ['list_account_datasets', 'describe_dataset']
 }
 
 /**
@@ -626,6 +634,7 @@ const dataFairLine = {
   schema: lineEditorSchema(lineSchema),
   data: {},
   remote: communesRemote,
+  lookups: ['get_field_values'],
   apiAccepts: lineApiAccepts,
   saveMode: 'explicit',
   checks: [

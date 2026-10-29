@@ -1,9 +1,9 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { mergePatch, PlainApiSession } from '../webmcp-eval/plain-api.js'
+import { patchTopLevel, PlainApiSession } from '../webmcp-eval/plain-api.js'
 import { getCase } from '../webmcp-eval/cases/index.js'
-import { fixturePath, FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
+import { FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
 
 /** @typedef {import('../webmcp-eval/cases/types.js').EvalCase} EvalCase */
 
@@ -35,9 +35,10 @@ const makeCase = (overrides = {}) => ({
 const text = (result) => result.content.map((/** @type {any} */ p) => p.text).join('')
 
 describe('PlainApiSession', () => {
-  it('exposes the five API tools and nothing else', () => {
+  it('exposes the four API tools and nothing else, no generic HTTP client', () => {
     const session = new PlainApiSession(makeCase())
-    assert.deepEqual(session.toolNames, ['readDocument', 'readSchema', 'writeDocument', 'patchDocument', 'httpGet'])
+    assert.deepEqual(session.toolNames, ['readDocument', 'readSchema', 'writeDocument', 'patchDocument'])
+    assert.ok(!session.toolNames.includes('httpGet'))
     for (const tool of session.tools) {
       assert.ok(tool.description.length > 40, `${tool.name} needs a real description`)
       assert.equal(tool.inputSchema.type, 'object')
@@ -100,11 +101,24 @@ describe('PlainApiSession', () => {
     assert.deepEqual(session.start, { a: 'x', b: 1 }, 'the starting document is a copy')
   })
 
-  it('applies a merge patch, null deleting a key', async () => {
+  it('applies a single-level patch, null deleting a key', async () => {
     const session = new PlainApiSession(makeCase())
     const result = await session.call('patchDocument', { patch: { a: null, tags: ['t'] } })
     assert.equal(result.isError, false, text(result))
     assert.deepEqual(session.data, { b: 1, tags: ['t'] })
+  })
+
+  it('replaces a nested object whole rather than merging into it', async () => {
+    const session = new PlainApiSession(makeCase({
+      schema: { type: 'object', properties: { address: { type: 'object' }, b: { type: 'number' } } },
+      data: { address: { city: 'Nantes', street: '1 rue X' }, b: 1 }
+    }))
+    const result = await session.call('patchDocument', { patch: { address: { city: 'Rennes', zip: null } } })
+    assert.equal(result.isError, false, text(result))
+    assert.deepEqual(session.data, { address: { city: 'Rennes', zip: null }, b: 1 })
+    const description = session.tools.find((t) => t.name === 'patchDocument')?.description ?? ''
+    assert.match(description, /Array and object fields replace the current value entirely: read it first/)
+    assert.ok(!/merge patch|7396|recursive/i.test(description), description)
   })
 
   it('refuses a patch that is not an object', async () => {
@@ -115,32 +129,29 @@ describe('PlainApiSession', () => {
     assert.deepEqual(session.data, { a: 'x', b: 1 })
   })
 
-  it('answers the context resource', async () => {
-    const session = new PlainApiSession(makeCase())
-    const result = await session.call('httpGet', { url: 'context' })
-    assert.deepEqual(JSON.parse(text(result)), { owner: 'org1' })
-  })
-
-  it('answers fixture URLs and a 404 for unknown ones', async () => {
-    const session = new PlainApiSession(makeCase({
-      remote: (url) => fixturePath(url) === '/api/items' ? { results: [url.searchParams.get('q')] } : undefined
-    }))
-    assert.deepEqual(JSON.parse(text(await session.call('httpGet', { url: 'api/items?q=z' }))), { results: ['z'] })
-    const unknown = await session.call('httpGet', { url: 'unknown' })
+  it('adds the case\'s lookups to its tools, served from the case fixture and recorded', async () => {
+    const session = new PlainApiSession(getCase('data-fair-line'), { fetch: async () => { throw new Error('the network must not be reached') } })
+    assert.deepEqual(session.toolNames, ['readDocument', 'readSchema', 'writeDocument', 'patchDocument', 'get_field_values'])
+    const result = await session.call('get_field_values', { datasetId: 'communes', fieldKey: 'nom', q: 'Sébastien' })
+    assert.equal(result.isError, false, text(result))
+    assert.ok(JSON.parse(text(result)).results.some((/** @type {any} */ c) => c.code === '44190'), text(result))
+    assert.equal(session.calls[0].tool, 'get_field_values')
+    const unknown = await new PlainApiSession({ ...getCase('data-fair-line'), remote: () => undefined })
+      .call('get_field_values', { datasetId: 'communes', fieldKey: 'nom', q: 'Nantes' })
     assert.equal(unknown.isError, true)
     assert.match(text(unknown), /404/)
     assert.ok(!text(unknown).includes(FIXTURE_BASE_URL), 'the fixture base stays out of what the runner reads')
   })
 
-  it('fetches against the data-fair base when the case has no fixture', async () => {
+  it('looks up against the data-fair base when the case has no fixture', async () => {
     /** @type {string[]} */
     const urls = []
-    const session = new PlainApiSession(makeCase(), {
+    const session = new PlainApiSession(getCase('charts'), {
       dataFairURL: 'https://df.test/data-fair/',
-      fetch: async (/** @type {string} */ url) => { urls.push(url); return { ok: 1 } }
+      fetch: async (/** @type {string} */ url) => { urls.push(url); return { count: 0, results: [] } }
     })
-    assert.deepEqual(JSON.parse(text(await session.call('httpGet', { url: 'api/v1/datasets' }))), { ok: 1 })
-    assert.deepEqual(urls, ['https://df.test/data-fair/api/v1/datasets'])
+    assert.deepEqual(JSON.parse(text(await session.call('list_account_datasets', {}))), { count: 0, results: [] })
+    assert.ok(urls[0].startsWith('https://df.test/data-fair/api/v1/datasets?'), urls[0])
   })
 
   it('applies the case\'s input tolerance before validating', async () => {
@@ -181,17 +192,19 @@ describe('PlainApiSession', () => {
     assert.ok(!lines.some((line) => /must be equal to constant|exactly one schema|chose one/.test(line)), lines.join('\n'))
   })
 
-  it('stores a __proto__ key of a merge patch as data', () => {
-    const merged = /** @type {any} */ (mergePatch({ a: 1 }, JSON.parse('{"__proto__": {"polluted": true}, "b": {"__proto__": {"x": 1}}}')))
+  it('stores a __proto__ key of a patch as data', () => {
+    const merged = /** @type {any} */ (patchTopLevel({ a: 1 }, JSON.parse('{"__proto__": {"polluted": true}, "b": {"__proto__": {"x": 1}}}')))
     assert.equal(Object.getPrototypeOf(merged), Object.prototype)
     assert.equal(merged.polluted, undefined)
     assert.ok(Object.hasOwn(merged, '__proto__'))
     assert.deepEqual(Object.keys(merged), ['a', '__proto__', 'b'])
+    assert.ok(Object.hasOwn(merged.b, '__proto__'), 'a nested value keeps its own __proto__ key as data')
+    assert.equal(merged.b.x, undefined)
     assert.equal(/** @type {any} */ ({}).polluted, undefined)
   })
 
   it('hands the input tolerance a copy, so a refused write leaves the stored document as it was', async () => {
-    // a merge patch copies the top level only: the stored array is shared with the candidate
+    // a patch copies the top level only: the stored array is shared with the candidate
     const evalCase = makeCase({
       data: { a: 'x', b: 1, tags: ['t'] },
       apiAccepts: (doc) => {
@@ -210,14 +223,25 @@ describe('PlainApiSession', () => {
   it('prompts with the API and the schema guide, never the form tools', () => {
     const session = new PlainApiSession(makeCase())
     assert.ok(session.prompt.includes('Records hold a short code and a list of tags.'))
-    for (const name of ['readDocument', 'readSchema', 'writeDocument', 'patchDocument', 'httpGet', 'context']) {
+    for (const name of ['readDocument', 'readSchema', 'writeDocument', 'patchDocument']) {
       assert.ok(session.prompt.includes(name), `prompt should name ${name}`)
     }
-    for (const forbidden of ['describeState', 'setFieldValue', 'getFieldSuggestions', 'eval', 'plain']) {
+    for (const forbidden of ['describeState', 'setFieldValue', 'getFieldSuggestions', 'eval', 'plain', 'httpGet', 'context', 'merge patch', 'lookup']) {
       assert.ok(!session.prompt.toLowerCase().includes(forbidden.toLowerCase()), `prompt must not mention ${forbidden}`)
     }
     for (const tool of session.tools) {
       assert.ok(!/eval|plain/i.test(tool.description), `${tool.name} description must not mention the harness`)
+    }
+  })
+
+  it('names the case\'s lookups in its prompt, and only those', () => {
+    const line = new PlainApiSession(getCase('data-fair-line')).prompt
+    assert.ok(line.includes('get_field_values'))
+    for (const absent of ['list_account_datasets', 'describe_dataset', 'list_portal_pages', 'httpGet']) assert.ok(!line.includes(absent), absent)
+    const calendar = new PlainApiSession(getCase('calendar')).prompt
+    assert.ok(calendar.includes('list_account_datasets') && calendar.includes('describe_dataset'))
+    for (const tool of new PlainApiSession(getCase('calendar')).tools) {
+      assert.ok(!/eval|plain|httpGet/i.test(tool.description), `${tool.name} description must not mention the harness or a removed tool`)
     }
   })
 

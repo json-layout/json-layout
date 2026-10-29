@@ -238,7 +238,7 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 |---|---|---|
 | `form` | the WebMCP page tools: `getData`, `setData`, `describeState`, `openSection`, `setFieldValue`, `getFieldSuggestions`, `editArray` | the form runner's, then the form-filling guide |
 | `session` | the same tools served by `@json-layout/agents` `FormSession` (no `openSection`), plus `saveForm` and `reloadForm` | the session runner's, then the session's own skill |
-| `plain` | a JSON API: `readDocument`, `readSchema` (both by JSON pointer), `writeDocument`, `patchDocument` (RFC 7396 merge patch), `httpGet` | the plain runner's, a neutral description of the API, then the schema's `x-agent-guide` |
+| `plain` | a JSON API: `readDocument`, `readSchema` (both by JSON pointer), `writeDocument`, `patchDocument` (single level: each top-level key replaced whole), plus the case's `lookups` | the plain runner's, a neutral description of the API, then the schema's `x-agent-guide` |
 
 - **`form`** is what a page exposes: no save, the page persists by data binding. What the
   checks score is the form's data at the end.
@@ -254,10 +254,16 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
   (`x-if`, `x-fromUrl`, switch layouts), and interprets them itself. Every write is
   validated with the same ajv function the form's root node uses and refused with one line
   per error, `400 Bad Request` as an API would. Display conditions and suggestion lists are
-  not enforced, as an API would not. `httpGet` fetches the lists from the same base as the
-  form's `getItems` (or the case's fixture), and the special URL `context` answers the
-  case's expression `context`, because without it a case like `charts` cannot be done on
-  this arm. A case may declare `apiAccepts`, the input tolerance of the real API:
+  not enforced, as an API would not. There is no generic HTTP client, as a real agent never
+  gets one: a case declares `lookups`, the targeted tools a real MCP server would offer for
+  its remote lists, from the catalogue of `lookups.js` (loosely modelled on data-fair/mcp):
+  `list_account_datasets` and `describe_dataset` (the app cases' dataset and column
+  pickers), `get_field_values` (a referential a line column picks from, `data-fair-line`)
+  and `list_portal_pages` (the portal cases' `context.pages`). Each builds its own request
+  and reads what the form's pickers read: the case's fixture, else the data-fair base under
+  the case's `context.datasetFilter`. A remote list with no plausible targeted tool gets
+  none. `patchDocument` patches one level, as data-fair's own APIs do: an object or array
+  value replaces the current one entirely. A case may declare `apiAccepts`, the input tolerance of the real API:
   `data-fair-line` mirrors data-fair's line API, which takes a multi-valued column as a
   joined string and a number for a string column. The schema's `x-agent-guide` is domain
   text, the schema author's and not the tools', so the plain arm gets it verbatim; the

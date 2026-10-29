@@ -9,6 +9,7 @@ import { EvalSession } from '../webmcp-eval/session.js'
 import { PlainApiSession } from '../webmcp-eval/plain-api.js'
 import { runChecks } from '../webmcp-eval/checks.js'
 import { createArm } from '../webmcp-eval/arms.js'
+import { caseFetch } from '../webmcp-eval/remote.js'
 
 /**
  * @param {import('../src/state/index.js').StateNode} node
@@ -284,23 +285,16 @@ describe('webmcp eval coherence and large-document checks', () => {
     assert.match(session.calls[3].response, /nomevenement/)
   })
 
-  it('should answer the calendar URLs an agent writes by hand, whatever the order of their parameters', async () => {
-    const session = new PlainApiSession(getCase('calendar'))
-    const listing = await session.call('httpGet', { url: 'api/v1/datasets?size=100&short-concept=date,startDate,endDate&owner=organization:p6Qg1z-aq&select=title,isRest,schema,timePeriod,attachmentsAsImage,userPermissions&q=&status=finalized' })
-    assert.equal(listing.isError, false, listing.content[0].text)
-    assert.match(listing.content[0].text, /Agenda-manifestations/)
-    const href = JSON.parse(listing.content[0].text).results.find((/** @type {any} */ d) => d.title === 'Agenda-manifestations').href
+  it('should answer the calendar URLs whatever the order of their parameters', async () => {
+    const get = /** @type {(url: string) => Promise<any>} */ (caseFetch(getCase('calendar')))
+    const listing = await get('api/v1/datasets?size=100&short-concept=date,startDate,endDate&owner=organization:p6Qg1z-aq&select=title,isRest,schema,timePeriod,attachmentsAsImage,userPermissions&q=&status=finalized')
+    const href = listing.results.find((/** @type {any} */ d) => d.title === 'Agenda-manifestations').href
     for (const url of [`${href}/schema?calculated=false`, `${href}/schema`, `${new URL(href).pathname.replace('/data-fair/', '')}/schema?calculated=false`]) {
-      const schema = await session.call('httpGet', { url })
-      assert.equal(schema.isError, false, `${url}: ${schema.content[0].text}`)
+      assert.ok((await get(url)).length > 10, url)
     }
     // a search that matches nothing is an empty listing, as on a real API
-    const none = await session.call('httpGet', { url: 'api/v1/datasets?q=nothing-captured' })
-    assert.equal(none.isError, false, none.content[0].text)
-    assert.deepEqual(JSON.parse(none.content[0].text), { count: 0, results: [] })
-    const unknown = await session.call('httpGet', { url: 'api/v1/applications' })
-    assert.equal(unknown.isError, true)
-    assert.match(unknown.content[0].text, /404/)
+    assert.deepEqual(await get('api/v1/datasets?q=nothing-captured'), { count: 0, results: [] })
+    await assert.rejects(get('api/v1/applications'), /404/)
   })
 
   it('should find the calendar dataset from the words a person types, in the form', async () => {
@@ -313,12 +307,7 @@ describe('webmcp eval coherence and large-document checks', () => {
   })
 
   it('should answer the calendar dataset search on the path, whatever the projection parameters', async () => {
-    const session = new PlainApiSession(getCase('calendar'))
-    const body = async (/** @type {string} */ url) => {
-      const result = await session.call('httpGet', { url })
-      assert.equal(result.isError, false, `${url}: ${result.content[0].text}`)
-      return JSON.parse(result.content[0].text)
-    }
+    const body = /** @type {(url: string) => Promise<any>} */ (caseFetch(getCase('calendar')))
     const titles = (/** @type {any} */ listing) => listing.results.map((/** @type {any} */ d) => d.title)
     const found = await body('api/v1/datasets?q=Agenda-manifestations&owner=organization:p6Qg1z-aq')
     assert.deepEqual(titles(found), ['Agenda-manifestations'])
@@ -349,9 +338,7 @@ describe('webmcp eval coherence and large-document checks', () => {
     assert.equal((await body(`https://koumoul.com/data-fair/api/v1/datasets/${id}`)).title, 'Agenda-manifestations')
     // what was never captured stays a 404
     for (const url of ['api/v1/datasets/unknown-id/schema', `api/v1/datasets/${id}/lines`, 'api/v1/applications']) {
-      const result = await session.call('httpGet', { url })
-      assert.equal(result.isError, true, url)
-      assert.match(result.content[0].text, /^404 Not Found/)
+      await assert.rejects(body(url), /^Error: 404 Not Found/, url)
     }
   })
 
@@ -359,14 +346,14 @@ describe('webmcp eval coherence and large-document checks', () => {
     // Every remote a 404: the error texts the runner reads are where the fixture's host shows.
     const failing = (/** @type {string} */ name) => ({ ...getCase(name), saveMode: /** @type {const} */ ('explicit'), remote: () => undefined })
     const attempts = {
-      calendar: { path: '/$allOf-0/datasets/0', url: 'api/v1/datasets?q=agenda' },
-      'data-fair-line': { path: '/commune', url: 'communes?q=nantes' }
+      calendar: { path: '/$allOf-0/datasets/0', lookup: 'list_account_datasets', args: { q: 'agenda' } },
+      'data-fair-line': { path: '/commune', lookup: 'get_field_values', args: { datasetId: 'communes', fieldKey: 'nom', q: 'nantes' } }
     }
     for (const [name, attempt] of Object.entries(attempts)) {
       for (const arm of ['form', 'session', 'plain']) {
         const session = await createArm(failing(name), arm)
         const result = arm === 'plain'
-          ? await session.call('httpGet', { url: attempt.url })
+          ? await session.call(attempt.lookup, attempt.args)
           : await session.call('getFieldSuggestions', { path: attempt.path, query: 'agenda' })
         const text = result.content.map((/** @type {any} */ p) => p.text).join('')
         assert.equal(result.isError, true, `${name} ${arm}: ${text}`)

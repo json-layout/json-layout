@@ -7,6 +7,9 @@ export type EvalCheck =
   | { path: string, contains: Record<string, unknown>, label?: string }
   | { unchangedExcept: string[], label?: string }
 
+/** The targeted lookup tools of the plain API's catalogue (webmcp-eval/lookups.js). */
+export type LookupName = 'list_account_datasets' | 'describe_dataset' | 'get_field_values' | 'list_portal_pages'
+
 export type EvalCase = {
   name: string
   /** Passed to WebMCP as dataTitle, so it appears in the tool descriptions. */
@@ -53,6 +56,12 @@ export type EvalCase = {
    * API has one (data-fair's line API accepts a joined string for a multi-valued column).
    */
   apiAccepts?: (doc: unknown) => unknown
+  /**
+   * The targeted lookups the plain API offers for this case's remote lists, as a real MCP
+   * server would (webmcp-eval/lookups.js): the plain arm has no generic HTTP client. A remote
+   * list with no plausible targeted tool gets none.
+   */
+  lookups?: LookupName[]
   /**
    * When the edited document persists: on an explicit save call (default) or by itself
    * after each change. Only the server form session arm distinguishes them.
