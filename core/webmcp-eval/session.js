@@ -96,6 +96,33 @@ export function evidenceName (name, variant, arm, run) {
 }
 
 /**
+ * The exact inverse of `evidenceName` for one case: the variant, arm and run it was built
+ * from, or null when the label belongs to another case.
+ * @param {string} label
+ * @param {string} name
+ * @returns {{ variant: string|undefined, arm: string, run: number|undefined }|null}
+ */
+export function parseEvidenceName (label, name) {
+  if (label !== name && !label.startsWith(`${name}--`) && !label.startsWith(`${name}.r`)) return null
+  let rest = label.slice(name.length)
+  let run
+  const runMatch = /\.r(\d+)$/.exec(rest)
+  if (runMatch) {
+    run = Number(runMatch[1])
+    rest = rest.slice(0, runMatch.index)
+  }
+  let arm = 'form'
+  const armMatch = /--(session|plain)$/.exec(rest)
+  if (armMatch) {
+    arm = armMatch[1]
+    rest = rest.slice(0, armMatch.index)
+  }
+  if (rest && !rest.startsWith('--')) return null
+  const variant = rest ? rest.slice(2) : undefined
+  return { variant, arm, run }
+}
+
+/**
  * @typedef {object} EvalSessionOptions
  * @property {string} [dataFairURL] - base for the schemas' relative API URLs; defaults to
  *   `JL_WEBMCP_EVAL_DATA_FAIR` or the public koumoul.com instance

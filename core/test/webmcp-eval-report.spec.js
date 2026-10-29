@@ -6,6 +6,7 @@ import { describe, it } from 'node:test'
 
 import { summarise, loadRuns } from '../webmcp-eval/report.js'
 import { sidecarPath } from '../webmcp-eval/run-case.js'
+import { parseEvidenceName, evidenceName } from '../webmcp-eval/session.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmpDir = join(here, '..', 'tmp')
@@ -404,5 +405,106 @@ describe('webmcp eval run provenance', () => {
     // Transcripts predating this change carry no provenance; they must still report.
     const { failed } = summarise([run('contact', 'satisfactory')])
     assert.equal(failed, false)
+  })
+})
+
+/**
+ * @param {string} name
+ * @param {string} arm
+ * @param {number} runIndex
+ * @param {{ verdict?: string|null, calls?: number, bytes?: number, input?: number, cost?: number, checks?: object[] }} [o]
+ * @param o.verdict
+ * @param o.calls
+ * @param o.bytes
+ * @param o.input
+ * @param o.cost
+ * @param o.checks
+ * @returns {any}
+ */
+const armRun = (name, arm, runIndex, { verdict = 'satisfactory', calls = 10, bytes = 1000, input = 100, cost = 0.1, checks = [{ label: 'a', ok: true, detail: '' }] } = {}) => ({
+  name,
+  arm,
+  runIndex,
+  evidence: { case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: calls, outputBytes: bytes }, valid: true, checks },
+  verdict: verdict ? { case: name, verdict, reasoning: 'because', friction: [] } : null,
+  run: { case: name, ok: true, model: 'm', costUsd: cost, tokens: { input, output: 5, cacheRead: 10, cacheWrite: 1 } }
+})
+
+describe('webmcp eval arm comparison', () => {
+  it('should print one row per arm with ranges over its runs', () => {
+    const { lines, failed } = summarise([
+      armRun('c', 'form', 1, { calls: 10, bytes: 1000, input: 100, cost: 0.1 }),
+      armRun('c', 'form', 2, { calls: 14, bytes: 1000, input: 200, cost: 0.3, verdict: 'unsatisfactory' }),
+      armRun('c', 'plain', 1, { calls: 5, bytes: 400, input: 50, cost: 0.05 }),
+      armRun('c', 'plain', 2, { calls: 5, bytes: 600, input: 50, cost: 0.05 })
+    ])
+    const text = lines.join('\n')
+    assert.equal(failed, true)
+    const form = lines.find((l) => /^\s*form\b/.test(l)) ?? ''
+    const plain = lines.find((l) => /^\s*plain\b/.test(l)) ?? ''
+    assert.ok(form.includes('2 runs') && form.includes('10–14 calls'), form)
+    assert.ok(form.includes('1000 bytes') && !form.includes('1000–1000'), form)
+    assert.ok(form.includes('111–211 input tokens'), form)
+    assert.ok(form.includes('$0.100–$0.300'), form)
+    assert.ok(form.includes('checks 1/1, 1/1'), form)
+    assert.ok(form.includes('1s/1u'), form)
+    assert.ok(plain.includes('5 calls') && plain.includes('400–600 bytes') && plain.includes('2s/0u'), plain)
+    assert.ok(text.includes('input tokens = '), 'the legend must say what input tokens count')
+  })
+
+  it('should fail a satisfactory run with a failed check and say which', () => {
+    const { lines, failed } = summarise([armRun('c', 'plain', 1, { checks: [{ label: 'saved', ok: false, detail: 'name was empty' }] })])
+    assert.equal(failed, true)
+    assert.ok(lines.join('\n').includes('SATISFACTORY, CHECK FAILED: saved — name was empty'))
+  })
+
+  it('should not fail on a not runnable arm', () => {
+    const { lines, failed } = summarise([
+      armRun('c', 'form', 1),
+      { name: 'c', arm: 'session', evidence: null, verdict: null, run: { case: 'c', ok: false, notRunnable: true, error: 'auto-save form' } }
+    ])
+    assert.equal(failed, false)
+    assert.ok(lines.join('\n').includes('c (session): not runnable — auto-save form'))
+  })
+
+  it('should still fail a missing run', () => {
+    assert.equal(summarise([armRun('c', 'form', 1), { name: 'c', arm: 'plain', evidence: null, verdict: null }]).failed, true)
+  })
+})
+
+describe('webmcp eval evidence name parsing', () => {
+  it('should invert evidenceName', () => {
+    for (const [variant, arm, run] of [[undefined, undefined, undefined], ['no-guide', undefined, undefined], [undefined, 'plain', 2], ['no-guide', 'session', 3], [undefined, 'form', 1]]) {
+      const parsed = parseEvidenceName(evidenceName('some-case', variant, arm, run), 'some-case')
+      assert.deepEqual(parsed, { variant, arm: arm ?? 'form', run })
+    }
+    assert.equal(parseEvidenceName('other-case', 'some-case'), null)
+    assert.equal(parseEvidenceName('some-case-2', 'some-case'), null)
+  })
+})
+
+describe('webmcp eval arm discovery', () => {
+  it('should find every arm and run of a case, and a not runnable sidecar', () => {
+    const name = 'report-spec-arms'
+    mkdirSync(tmpDir, { recursive: true })
+    const files = []
+    /**
+     * @param {string} f @param {object} o
+     * @param o
+     */
+    const put = (f, o) => { const p = join(tmpDir, f); writeFileSync(p, JSON.stringify(o)); files.push(p) }
+    const ev = (/** @type {string} */ arm) => ({ case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: 1, outputBytes: 1 }, valid: true, checks: [] })
+    put(`webmcp-eval-${name}.r1.json`, ev('form'))
+    put(`webmcp-eval-${name}.r2.json`, ev('form'))
+    put(`webmcp-eval-${name}--plain.r1.json`, ev('plain'))
+    put(`webmcp-eval-${name}--session.r1.run.json`, { case: name, ok: false, notRunnable: true, error: 'nope' })
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs.length, 4)
+      assert.deepEqual(runs.map((r) => `${r.arm}:${r.runIndex}`).sort(), ['form:1', 'form:2', 'plain:1', 'session:1'])
+      assert.equal(runs.find((r) => r.arm === 'session')?.evidence, null)
+    } finally {
+      for (const f of files) rmSync(f, { force: true })
+    }
   })
 })
