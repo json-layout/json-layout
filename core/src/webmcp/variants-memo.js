@@ -25,6 +25,12 @@ export class VariantsMemo {
   _listedAt = new Map()
 
   /**
+   * pointers whose list was printed under a list, once for all its items
+   * @type {Set<string>}
+   */
+  _underList = new Set()
+
+  /**
    * @param {string} pointer - skeleton pointer of the one-of-select node
    * @returns {string | undefined} the path it was first listed at, or undefined if never
    */
@@ -34,20 +40,32 @@ export class VariantsMemo {
 
   /**
    * @param {string} pointer
-   * @param {string} path
+   * @returns {boolean} whether the list was printed under a list, the path being the list's
    */
-  record (pointer, path) {
-    if (!this._listedAt.has(pointer)) this._listedAt.set(pointer, path)
+  listedUnderList (pointer) {
+    return this._underList.has(pointer)
+  }
+
+  /**
+   * @param {string} pointer
+   * @param {string} path
+   * @param {boolean} [underList] - the path is a list's, the options being those of each item
+   */
+  record (pointer, path, underList = false) {
+    if (this._listedAt.has(pointer)) return
+    this._listedAt.set(pointer, path)
+    if (underList) this._underList.add(pointer)
   }
 
   /**
    * @param {VariantsMemo} other
    */
   merge (other) {
-    for (const [pointer, path] of other._listedAt) this.record(pointer, path)
+    for (const [pointer, path] of other._listedAt) this.record(pointer, path, other._underList.has(pointer))
   }
 
   clear () {
     this._listedAt.clear()
+    this._underList.clear()
   }
 }

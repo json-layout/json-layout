@@ -2,7 +2,7 @@
  * @file describeState tool
  */
 
-import { collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult } from '../project.js'
+import { collectScopedErrors, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
 import { resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 import { describeFormSchema, resolveSchemaPath } from '../form-schema.js'
@@ -26,7 +26,7 @@ export function getDescription (dataTitle, screen = true) {
   const sections = screen ? ' Of tabs or steps, the one on screen is marked (open); writing a field opens the one that holds it.' : ''
   // what the form can hold beyond its state, so that a choice can be named before it is made
   const potentialText = ' Each option of a choice is listed with the fields it brings, and a path to an option not chosen (".../$oneOf/2") or to an item of a list still empty describes what it would hold.'
-  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form.${sections}${potentialText}`
+  return `Describe the "${dataTitle}" form: every field with its path, type, constraints, current value and errors. Pass "path" to describe one subtree instead of the whole form; what is too large to describe whole is answered as an outline.${sections}${potentialText}`
 }
 
 /**
@@ -54,16 +54,23 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
       throw nodeNotFoundError(statefulLayout, args.path)
     }
     const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, node)
-    const markdown = formatMutationResult(statefulLayout.valid, errors,
-      projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen, true),
-      otherErrors,
-      elsewhere
-    )
-    variantsMemo?.merge(listed)
-    return markdown
+    /** @param {string} description */
+    const answer = (description) => formatMutationResult(statefulLayout.valid, errors, description, otherErrors, elsewhere)
+    const markdown = answer(projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen, true))
+    if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
+      variantsMemo?.merge(listed)
+      return markdown
+    }
+    // a part too large is shown shallower rather than cut, as the whole form is
+    return outlineThatFits(node, statefulLayout, variantsMemo ?? new VariantsMemo(), screen,
+      (outline, depth) => `${answer(outline)}\n${outlineFooter(depth)}`)
   }
 
   const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed, screen, true)
-  variantsMemo?.merge(listed)
-  return markdown
+  if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
+    variantsMemo?.merge(listed)
+    return markdown
+  }
+  // round 2 answered 95 KB for a 7.5 KB page, and the agent never saw it whole
+  return projectStateTreeOutline(statefulLayout.stateTree, statefulLayout, variantsMemo ?? new VariantsMemo(), screen)
 }

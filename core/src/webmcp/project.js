@@ -3,11 +3,12 @@
  */
 
 import { SECTION_CONTAINERS } from '../state/index.js'
-import { variantShapes } from './form-schema.js'
+import { variantShapes, deepestThatFits } from './form-schema.js'
 import { isItemsLayout } from '@json-layout/vocabulary'
 
 import { visibleChildren, resolveNode } from './resolve.js'
-import { projectDeclaredFields } from './schema.js'
+import { projectDeclaredFields, resolveNodeSchema } from './schema.js'
+import { VariantsMemo } from './variants-memo.js'
 
 /**
  * Suggestion values can be arbitrarily large objects (a whole dataset definition for example),
@@ -29,6 +30,14 @@ export const SUGGESTION_VALUE_MAX_LENGTH = 100
  * to handle.
  */
 export const DISPLAYED_VALUE_MAX_LENGTH = 1000
+
+/**
+ * Largest describeState answer given in full, in bytes; past it the answer is an outline. Round 2
+ * answered 95 KB for the root of a 7.5 KB portal page, and the eval's MCP client cut it before
+ * the model read it. The same value as the plain arm's OUTLINE_BUDGET_BYTES (webmcp-eval), so
+ * neither arm gets a cheaper first read than the other: about 4k tokens, twice that page.
+ */
+export const OUTLINE_BUDGET_BYTES = 16_000
 
 /** Most revealed or hidden paths named before the list is summarised instead. */
 export const REVEALED_PATHS_MAX = 10
@@ -421,6 +430,74 @@ export function projectFieldResult (node, statefulLayout) {
   return out
 }
 
+/** @type {Record<string, string>} */
+const schemaTypeToType = { string: 'text', number: 'number', integer: 'integer', boolean: 'boolean' }
+
+/**
+ * Whether a field holds several values in one component: an array of scalars, a select
+ * with `multiple`, a string joined by a `separator`. The normalization sets `multiple` on
+ * all three. Shown as a select with its values, round 2's agents wrote one scalar to
+ * « Activités » and « Publics » and got "must be array" (data-fair-line r1, r2 #12–#13).
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {boolean}
+ */
+function isMultiValued (node) {
+  return /** @type {any} */(node.layout).multiple === true && node.layout.comp !== 'list'
+}
+
+/**
+ * The type of each value of a multi-valued field.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {string}
+ */
+function multiValuedItemType (node, statefulLayout) {
+  if (node.layout.comp === 'number-combobox') return 'number'
+  const schema = /** @type {any} */(resolveNodeSchema(node, statefulLayout))
+  const type = schema?.type === 'array' ? schema.items?.type : schema?.type
+  return (typeof type === 'string' && schemaTypeToType[type]) || 'text'
+}
+
+/**
+ * The value of a multi-valued field as the list it is: an unset one is an empty list. A
+ * separator-joined string stays as stored, the schema wants a string.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {unknown}
+ */
+function multiValuedData (node) {
+  return node.data === undefined ? [] : node.data
+}
+
+/**
+ * The variant selector that tells an item of a list apart: the item itself, or one of its
+ * direct fields (a portal page element is a section holding a `$oneOf`).
+ * @param {import('../state/types.js').StateNode} item
+ * @returns {import('../state/types.js').StateNode | undefined}
+ */
+function itemSelector (item) {
+  if (item.layout.comp === 'one-of-select') return item
+  return visibleChildren(item).find((child) => child.layout.comp === 'one-of-select')
+}
+
+/**
+ * @param {import('../state/types.js').StateNode} selector
+ * @returns {Array<{ key: number, title: string }>}
+ */
+function variantsOf (selector) {
+  const oneOfItems = /** @type {any} */(selector.layout).oneOfItems
+  return Array.isArray(oneOfItems) ? oneOfItems.filter((item) => !item.header) : []
+}
+
+/**
+ * The option a selector has active: its first child is the activated branch.
+ * @param {import('../state/types.js').StateNode} selector
+ * @returns {{ key: number, title: string } | undefined}
+ */
+function activeVariant (selector) {
+  const activeKey = selector.children?.[0]?.key
+  return variantsOf(selector).find((v) => v.key === activeKey)
+}
+
 /**
  * Format a projected node as a markdown line for LLM-readable output.
  * @param {import('../state/types.js').StateNode} node
@@ -435,7 +512,8 @@ export function projectFieldResult (node, statefulLayout) {
  */
 export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root), variantsMemo, screen = true, potential = false) {
   const indent = '  '.repeat(depth)
-  const type = compToType[node.layout.comp] || node.layout.comp
+  const multiValued = isMultiValued(node)
+  const type = multiValued ? `list of ${multiValuedItemType(node, statefulLayout)}` : (compToType[node.layout.comp] || node.layout.comp)
   const layout = /** @type {Record<string, unknown>} */(node.layout)
 
   // build metadata tags
@@ -491,7 +569,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 
   // value for leaf nodes (no children or empty children)
   if (children.length === 0) {
-    line += ` value=${abbreviateValue(node.data)}`
+    line += ` value=${abbreviateValue(multiValued ? multiValuedData(node) : node.data)}`
   }
 
   // Help is the guidance a model cannot infer — that a negative height means automatic
@@ -519,11 +597,14 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     const listedAt = variantsMemo?.listedAt(node.skeleton.pointer)
     if (listedAt === undefined) {
       variantsMemo?.record(node.skeleton.pointer, path)
-      const shapes = potential ? variantShapes(statefulLayout.compiledLayout, node.skeleton.pointer) : {}
-      for (const v of variants) {
-        const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
-        lines.push(`${indent}  - variant ${v.key}: ${variantTitle(node, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}${shape}`)
-      }
+      lines.push(...variantLines(node, statefulLayout, `${indent}  `, potential, activeKey))
+    } else if (variantsMemo?.listedUnderList(node.skeleton.pointer)) {
+      // every item of a list holds the same union: its options are given once, under the
+      // list, and an item only says which one it holds (round 2: 91 KB for 11 page blocks)
+      const active = variants.find((v) => v.key === activeKey)
+      lines.push(active
+        ? `${indent}  - variant ${active.key}: ${active.title} (active), one of the ${variants.length} options listed under ${listedAt}`
+        : `${indent}  - no option chosen yet, one of the ${variants.length} options listed under ${listedAt}`)
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
       // so name where it was given rather than repeat it — but which branch is active is
@@ -533,6 +614,8 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
       lines.push(`${indent}  - ${variants.length} variants${activeLabel}, the same list already given for ${listedAt} — call describeState on ${path} to see them again`)
     }
   }
+
+  if (node.layout.comp === 'list' && variantsMemo) lines.push(...listOptionsLines(node, statefulLayout, `${indent}  `, variantsMemo, children, potential))
 
   // recurse children; in a container that shows one section at a time, say which one is open:
   // the sub-agent told people a tab was open that was not, having no way to know
@@ -564,6 +647,51 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 }
 
 /**
+ * One line per option of a variant selector, with the fields each brings when asked.
+ * @param {import('../state/types.js').StateNode} selector
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} indent
+ * @param {boolean} potential
+ * @param {unknown} [activeKey]
+ * @returns {string[]}
+ */
+function variantLines (selector, statefulLayout, indent, potential, activeKey) {
+  const shapes = potential ? variantShapes(statefulLayout.compiledLayout, selector.skeleton.pointer) : {}
+  return variantsOf(selector).map((v) => {
+    const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
+    return `${indent}- variant ${v.key}: ${variantTitle(selector, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}${shape}`
+  })
+}
+
+/**
+ * The options of the union every item of a list holds, given once under the list. Each item's
+ * selector then names only the option it holds. Nothing when the items hold no union, or when
+ * the same union was already listed (a nested list of the same elements).
+ * @param {import('../state/types.js').StateNode} list
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} indent
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
+ * @param {import('../state/types.js').StateNode[]} items
+ * @param {boolean} potential
+ * @returns {string[]}
+ */
+function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, potential) {
+  for (const item of items) {
+    const selector = itemSelector(item)
+    if (!selector) continue
+    if (variantsMemo.listedAt(selector.skeleton.pointer) !== undefined) return []
+    const path = list.fullKey || '/'
+    variantsMemo.record(selector.skeleton.pointer, path, true)
+    const at = `${path}/<index>${selector.fullKey.slice(item.fullKey.length)}`
+    return [
+      `${indent}- options of each item, chosen at ${at} (describeState on ${at}/<option> to see what an option holds):`,
+      ...variantLines(selector, statefulLayout, `${indent}  `, potential)
+    ]
+  }
+  return []
+}
+
+/**
  * Format a state tree as markdown for LLM-readable output.
  * @param {import('../state/types.js').StateTree} stateTree
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -573,6 +701,20 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @returns {string}
  */
 export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsMemo, screen = true, potential = false) {
+  return [
+    ...stateHeaderLines(stateTree, statefulLayout),
+    'Fields:',
+    projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen, potential)
+  ].join('\n')
+}
+
+/**
+ * Validity and errors of the whole form, the head of a description of its whole state.
+ * @param {import('../state/types.js').StateTree} stateTree
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {string[]}
+ */
+function stateHeaderLines (stateTree, statefulLayout) {
   const errors = collectErrors(statefulLayout)
   const validLine = stateTree.valid
     ? 'valid: true, no errors'
@@ -587,11 +729,246 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsM
     }
     lines.push('')
   }
+  return lines
+}
 
-  lines.push('Fields:')
-  lines.push(projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen, potential))
+/** Levels of nested sections an outline expands at most, fewer when that does not fit. */
+export const OUTLINE_MAX_DEPTH = 6
 
+/** Longest value or label kept on an outline line. */
+const OUTLINE_TEXT_MAX_LENGTH = 60
+
+/** Items of a list named one per line in an outline before the rest are counted. */
+const OUTLINE_ITEMS_MAX = 50
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function shortText (text) {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  return flat.length > OUTLINE_TEXT_MAX_LENGTH ? `${flat.slice(0, OUTLINE_TEXT_MAX_LENGTH - 1)}…` : flat
+}
+
+/**
+ * A value as an outline shows it: whole when short, a string cut, anything else named.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function outlineValue (value) {
+  const json = JSON.stringify(value)
+  if (json === undefined) return 'undefined'
+  if (json.length <= OUTLINE_TEXT_MAX_LENGTH) return json
+  if (typeof value === 'string') return JSON.stringify(shortText(value))
+  if (Array.isArray(value)) return `<array of ${value.length} items>`
+  if (value !== null && typeof value === 'object') return `<object, ${json.length} chars>`
+  return `<${typeof value}, ${json.length} chars>`
+}
+
+/** keys of identifiers, which tell an item apart for a program but not for a person */
+const ID_KEY = /^_|^(id|uuid|key|ID|UUID)$|_(id|uuid|key)$|[a-z]Id$/
+
+/** how deep into an item its label is looked for: a two-column block's first title */
+const ITEM_LABEL_DEPTH = 3
+
+/**
+ * What tells an item of a list apart from its siblings for a person: its title, label or
+ * name, or else its first text with words in it, looked for in what it holds when it has
+ * none of its own. A uuid tells nothing, nor a discriminator the option already says.
+ * @param {import('../state/types.js').StateNode} item
+ * @param {import('../state/types.js').StateNode | undefined} selector
+ * @returns {string | undefined}
+ */
+function itemLabel (item, selector) {
+  const data = item.data
+  if (data === undefined || data === null) return undefined
+  if (typeof data !== 'object') return outlineValue(data)
+  const discriminator = selector?.skeleton.discriminator
+  /**
+   * @param {unknown} value
+   * @param {number} depth
+   * @returns {string | undefined}
+   */
+  const find = (value, depth) => {
+    if (typeof value === 'string') return /\S\s+\S/.test(value) ? value : undefined
+    if (!value || typeof value !== 'object' || depth > ITEM_LABEL_DEPTH) return undefined
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        const found = find(entry, depth + 1)
+        if (found) return found
+      }
+      return undefined
+    }
+    const record = /** @type {Record<string, unknown>} */(value)
+    for (const key of ['title', 'label', 'name']) {
+      if (typeof record[key] === 'string' && record[key].trim()) return record[key]
+    }
+    for (const [key, entry] of Object.entries(record)) {
+      if (key === discriminator || ID_KEY.test(key)) continue
+      const found = find(entry, depth + 1)
+      if (found) return found
+    }
+    return undefined
+  }
+  const found = find(data, 0)
+  return found === undefined ? undefined : JSON.stringify(shortText(found))
+}
+
+/**
+ * The live state of a node, shallower: sections and their direct fields with values cut
+ * short, each list as its item count and one line per item naming the option it holds, the
+ * options of the items once under the list. For a form whose full description would not
+ * reach the agent whole — round 2's MCP client cut 95 KB for a 7.5 KB page. Not a static
+ * overview of the form (removed in 3942850): the values, the open section and the errors
+ * are the live ones.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {number} maxDepth - levels of nested nodes expanded, deeper sections are only named
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
+ * @param {boolean} [screen]
+ * @returns {string}
+ */
+export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo, screen = true) {
+  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
+  /** @type {string[]} */
+  const lines = []
+
+  /**
+   * @param {import('../state/types.js').StateNode} node
+   * @param {number} depth
+   * @param {string} [suffix]
+   */
+  const walk = (node, depth, suffix = '') => {
+    // a slot bound to its parent's data is a preview: its "value" is the whole section again
+    if (node.layout.comp === 'slot' && node.dataPath === node.parentDataPath) return
+    const indent = '  '.repeat(depth)
+    const path = node.fullKey || '/'
+    const layout = /** @type {Record<string, unknown>} */(node.layout)
+    const children = visibleChildren(node)
+    const multiValued = isMultiValued(node)
+    const isList = node.layout.comp === 'list'
+    /** @type {string[]} */
+    const meta = []
+    if (multiValued) meta.push(`list of ${multiValuedItemType(node, statefulLayout)}`)
+    else if (isList) meta.push('list', `${Array.isArray(node.data) ? node.data.length : children.length} items`)
+    else meta.push(compToType[node.layout.comp] || node.layout.comp)
+    if (node.skeleton.required) meta.push('required')
+    if (isReadOnly(node, statefulLayout)) meta.push('readOnly')
+    if (nodeError(node, errorsByPath)) meta.push('error')
+    const label = typeof layout.label === 'string' && layout.label.trim()
+      ? layout.label
+      : (typeof layout.title === 'string' && layout.title.trim() ? layout.title : undefined)
+    const head = `${indent}- ${path} (${meta.join(', ')})${label ? ` label="${shortText(label)}"` : ''}${suffix}`
+
+    if (isList) {
+      if (depth >= maxDepth) {
+        lines.push(`${head} — describeState on this path to see its items`)
+        return
+      }
+      lines.push(head)
+      for (const item of children.slice(0, OUTLINE_ITEMS_MAX)) {
+        const selector = itemSelector(item)
+        const variant = selector && activeVariant(selector)
+        const label = itemLabel(item, selector)
+        const what = [variant?.title, label].filter(Boolean).join(' — ')
+        lines.push(`${indent}  - ${item.fullKey}${what ? `: ${what}` : ''}${nodeError(item, errorsByPath) ? ' (error)' : ''}`)
+      }
+      if (children.length > OUTLINE_ITEMS_MAX) {
+        lines.push(`${indent}  - and ${children.length - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`)
+      }
+      const options = listOptionsLines(node, statefulLayout, `${indent}  `, variantsMemo, children, false)
+      if (options.length) lines.push(...options)
+      else {
+        const selector = children.map(itemSelector).find(Boolean)
+        const listedAt = selector && variantsMemo.listedAt(selector.skeleton.pointer)
+        if (selector && listedAt !== undefined) lines.push(`${indent}  - each item is one of the ${variantsOf(selector).length} options listed under ${listedAt}`)
+      }
+      return
+    }
+
+    if (node.layout.comp === 'one-of-select') {
+      const active = activeVariant(node)
+      lines.push(`${head}${active ? ` — variant ${active.key}: ${active.title} (active)` : ''}`)
+      const pointer = node.skeleton.pointer
+      const listedAt = variantsMemo.listedAt(pointer)
+      if (listedAt === undefined) {
+        variantsMemo.record(pointer, path)
+        lines.push(...variantLines(node, statefulLayout, `${indent}  `, false))
+      } else {
+        lines.push(`${indent}  - one of the ${variantsOf(node).length} options listed under ${listedAt}`)
+      }
+      if (depth < maxDepth) for (const child of children) walk(child, depth + 1)
+      return
+    }
+
+    if (children.length) {
+      if (depth >= maxDepth) {
+        lines.push(`${head} — ${children.length} part(s), describeState on this path to see them`)
+        return
+      }
+      lines.push(head)
+      const openIndex = screen && SECTION_CONTAINERS.includes(node.layout.comp) ? statefulLayout.activeSectionIndex(node) : undefined
+      const openKey = openIndex !== undefined ? node.children?.[openIndex]?.fullKey : undefined
+      for (const child of children) walk(child, depth + 1, child.fullKey === openKey ? ' (open)' : '')
+      return
+    }
+
+    lines.push(`${head} value=${outlineValue(multiValued ? multiValuedData(node) : node.data)}`)
+  }
+
+  walk(node, 0)
   return lines.join('\n')
+}
+
+/**
+ * The end of an outline: what was left out, and how to read it.
+ * @param {number} depth
+ * @returns {string}
+ */
+export function outlineFooter (depth) {
+  return `(an outline, ${depth + 1} level(s) deep with values cut short, the full description being over ${OUTLINE_BUDGET_BYTES} bytes — call describeState with the path of a part to see it in full)`
+}
+
+/**
+ * Size of a text as it is sent, in bytes. Not Buffer: core runs in browsers too.
+ * @param {string} text
+ * @returns {number}
+ */
+export function byteLength (text) {
+  return new TextEncoder().encode(text).length
+}
+
+/**
+ * The whole form as an outline, at the deepest level that fits the budget.
+ * @param {import('../state/types.js').StateTree} stateTree
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
+ * @param {boolean} [screen]
+ * @returns {string}
+ */
+export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo, screen = true) {
+  const header = stateHeaderLines(stateTree, statefulLayout)
+  return outlineThatFits(stateTree.root, statefulLayout, variantsMemo, screen,
+    (outline, depth) => [...header, 'Fields (outline):', outline, outlineFooter(depth)].join('\n'))
+}
+
+/**
+ * The deepest outline of a node that fits the budget once wrapped into the answer.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo - the options listed are recorded in it
+ * @param {boolean} screen
+ * @param {(outline: string, depth: number) => string} wrap - the whole answer around the outline
+ * @returns {string}
+ */
+export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wrap) {
+  const { text, memo } = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => {
+    const memo = new VariantsMemo()
+    const text = wrap(projectNodeOutline(node, statefulLayout, maxDepth, memo, screen), maxDepth)
+    return { text, memo, fits: byteLength(text) <= OUTLINE_BUDGET_BYTES }
+  })
+  variantsMemo.merge(memo)
+  return text
 }
 
 /**
@@ -661,7 +1038,7 @@ export function formatMutationResult (valid, errors, prefix, otherErrors, elsewh
 export function projectSuggestions (items, baseIndex = 0) {
   return items.map((item, index) => {
     /** @type {ProjectedSuggestion} */
-    const out = { index: baseIndex + index, title: item.title }
+    const out = { index: baseIndex + index, title: suggestionTitle(item) }
     // only a plain key identifies anything: an object key (a page reference picked whole)
     // printed as "[object Object]" next to its title
     const key = /** @type {unknown} */(item.key)
@@ -680,6 +1057,24 @@ export function projectSuggestions (items, baseIndex = 0) {
     }
     return out
   })
+}
+
+/** Longest JSON of an object value standing in for a suggestion's missing title. */
+const SUGGESTION_JSON_TITLE_MAX_LENGTH = 80
+
+/**
+ * The title of a suggestion as a person would read it: its own when it has one, else the value,
+ * an object as a short JSON — never "[object Object]".
+ * @param {{value: unknown, title: string}} item
+ * @returns {string}
+ */
+function suggestionTitle (item) {
+  if (typeof item.title === 'string' && item.title && !/^\[object \w+\]$/.test(item.title)) return item.title
+  if (typeof item.title === 'number') return String(item.title)
+  const value = item.value
+  if (value === null || typeof value !== 'object') return String(value)
+  const json = JSON.stringify(value)
+  return json.length > SUGGESTION_JSON_TITLE_MAX_LENGTH ? `${json.slice(0, SUGGESTION_JSON_TITLE_MAX_LENGTH - 1)}…` : json
 }
 
 /**

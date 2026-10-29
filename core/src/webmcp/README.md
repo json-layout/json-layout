@@ -106,7 +106,7 @@ prompt via `includeSubAgent`.
 
 | tool | what it is for |
 |---|---|
-| `describeState` | every field with path, type, constraints, current value, errors. The starting point and the only way to see the form. |
+| `describeState` | every field with path, type, constraints, current value, errors; an outline past 16 KB. The starting point and the only way to see the form. |
 | `setFieldValue` | write one field; switch a variant by writing its index. |
 | `setData` | write the whole document at once, for when the goal already contains every value. |
 | `editArray` | add or remove an item; an added item is activated and its fields returned. |
@@ -123,6 +123,16 @@ by reading the runner's own transcript, where an agent can be seen receiving
 `{"path":"/contactMethod","type":"select","getSuggestions":true}` with no values. Five
 finished pieces of work were inert. Removing the structured half took what the model receives
 for one `describeState` from 91,197 bytes to 2,212.
+
+**A large form is answered as an outline, a list's options once.** Round 2's `describeState`
+answered 95 KB for the root of a 7.5 KB portal page and 91 KB for its `/elements`, and the
+eval's MCP client cut both before the model read them. Past `OUTLINE_BUDGET_BYTES` (16 KB, the
+plain arm's value) the answer is the live state shallower — sections and their fields with
+values cut short, each list as its item count and one line per item with the option it holds
+and a label — at the deepest level that fits, as `describeFormSchema` already did. The union
+every item of a list holds is listed once, under the list, in full descriptions too. Measured:
+root 95,798 → 4,308 bytes, `/elements` 92,173 → 3,538, the portal configuration's root
+62,571 → 8,183.
 
 **One representation, one home per fact.** The suggestion protocol was once stated four times
 — in two tool descriptions, a parameter, and the guide. Copies drift: a stale duplicate of

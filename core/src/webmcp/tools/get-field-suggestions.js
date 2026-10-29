@@ -67,12 +67,16 @@ export async function execute (statefulLayout, args, store) {
   const items = rawItems
     .filter((item) => !item.header)
     .map((item) => {
+      // An item with no key of its own gets its value stringified as key, and that key as
+      // title: an object value made "[object Object]" of both (portal-config-edit, a page
+      // reference picked whole, every run of rounds 1 and 2).
+      const stringified = (/** @type {unknown} */ text) => item.value !== null && typeof item.value === 'object' && text === String(item.value)
       /** @type {{value: unknown, title: string, key?: string}} */
       const result = {
         value: item.value,
-        title: item.title
+        title: stringified(item.title) ? '' : item.title
       }
-      if (/** @type {unknown} */(item.key) !== item.title) {
+      if (/** @type {unknown} */(item.key) !== item.title && !stringified(item.key)) {
         result.key = /** @type {string} */(item.key)
       }
       return result

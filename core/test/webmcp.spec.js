@@ -14,10 +14,11 @@ import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH, OUTLINE_BUDGET_BYTES } from '../src/webmcp/project.js'
 import { resolveNode } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
+import { getCase } from '../webmcp-eval/cases/index.js'
 
 /**
  * The text of a tool result. Since the structured path was removed this is the whole
@@ -2221,8 +2222,9 @@ describe('webmcp repeated variant lists', () => {
     await run(tools, 'editArray', { path: '/elements', action: 'add', index: 1 })
 
     const read = await run(tools, 'describeState', {})
-    assert.equal(read.match(/- variant 0: Text/g)?.length, 1, `listed once, not per item: ${read}`)
-    assert.equal(read.match(/the same list already given/g)?.length, 1)
+    assert.equal(read.match(/- variant 0: Text(?! \(active\), one of)/g)?.length, 1, `listed once, not per item: ${read}`)
+    // once under the list, each item naming only the option it holds
+    assert.equal(read.match(/one of the 2 options listed under \/elements/g)?.length, 2)
   })
 
   it('should keep listing every union when no memo is passed', () => {
@@ -2753,5 +2755,95 @@ describe('webmcp suggestion keys', () => {
     assert.equal(object.key, undefined)
     assert.ok(!formatSuggestions([object]).includes('[object Object]'))
     assert.equal(scalar.key, '75056')
+  })
+})
+
+// Round 2 of the webmcp eval (baselines/2026-10-29-round-2): the root describeState of a 7.5 KB
+// portal page answered 95 KB and `/elements` 91 KB, cut before the model read them.
+describe('webmcp outline of a large form', () => {
+  /**
+   * @param {string} name
+   */
+  const caseLayout = (name) => {
+    const evalCase = getCase(name)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+    return layout
+  }
+
+  it('answers the root of a large page as an outline within the budget', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), {})
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES, `${Buffer.byteLength(markdown)} bytes`)
+    assert.equal(OUTLINE_BUDGET_BYTES, 16_000)
+    assert.match(markdown, /\/elements \(list, 11 items/)
+    // each item with the option it holds, the options once
+    assert.match(markdown, /\/elements\/6: Grille responsive/)
+    assert.equal(markdown.match(/- variant 14: Grille responsive/g)?.length, 1)
+    assert.match(markdown.trim().split('\n').at(-1) ?? '', /describeState with the path/)
+  })
+
+  it('answers a large list shallower, naming the option each item holds', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { path: '/elements' })
+    assert.ok(Buffer.byteLength(markdown) <= 91_000 / 5, `${Buffer.byteLength(markdown)} bytes`)
+    const types = ['Titre', 'Texte', 'Texte accentué', 'Deux colonnes', 'Séparateur horizontal', 'Titre', 'Grille responsive', 'Titre', 'Accordéons', 'Deux colonnes', 'Texte']
+    types.forEach((title, i) => assert.match(markdown, new RegExp(`/elements/${i}: ${title}( —|\\n)`), `item ${i}`))
+  })
+
+  it('answers a part that fits in full', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { path: '/elements/6/$oneOf/14/children/2' })
+    assert.match(markdown, /\/children\/2\/\$oneOf\/12\/title \(text\)[^\n]* value="Budget et finances"/)
+  })
+
+  it('lists the options of a union once under a list rather than per item', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        elements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            oneOf: [
+              { title: 'Text', properties: { type: { const: 'text' }, content: { type: 'string' } } },
+              { title: 'Image', properties: { type: { const: 'image' }, src: { type: 'string' } } }
+            ]
+          }
+        }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { elements: [{ type: 'text', content: 'a' }, { type: 'image', src: 'b' }, { type: 'text', content: 'c' }] })
+    const markdown = describeState.toMarkdown(layout, { path: '/elements' })
+    assert.equal(markdown.match(/- variant 0: Text(?! \(active\), one of)/g)?.length, 1, markdown)
+    assert.ok(markdown.indexOf('- variant 0: Text') < markdown.indexOf('/elements/0'), 'under the list, before its items')
+    assert.match(markdown, /\/elements\/1\/\$oneOf[^\n]*\n\s*- variant 1: Image \(active\), one of the 2 options listed under \/elements\n/)
+    // the fields of a branch still say what the option brings
+    assert.match(markdown, /- variant 1: Image[^\n]*— \{[^\n]*src/)
+  })
+
+  it('shows a multi-valued field as a list', () => {
+    const markdown = describeState.toMarkdown(caseLayout('data-fair-line'), {})
+    assert.match(markdown, /\/activites \(list of text, values=\[[^\n]*value=\[\]/)
+    const layout = caseLayout('data-fair-line')
+    setData.execute(layout, { data: { activites: ['judo', 'yoga'] } })
+    assert.match(describeState.toMarkdown(layout, { path: '/activites' }), /list of text[^\n]*value=\["judo","yoga"\]/)
+  })
+
+  it('never shows an object suggestion as [object Object]', async () => {
+    const layout = caseLayout('portal-config-edit')
+    const tools = new WebMCP(layout, { dataTitle: 'portal' }).getTools()
+    /**
+     * @param {string} name
+     * @param {any} args
+     */
+    const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
+    await run('editArray', { path: '/menu/children', action: 'add' })
+    const index = /** @type {any} */(layout.data).menu.children.length - 1
+    await run('setFieldValue', { path: `/menu/children/${index}/$oneOf`, value: 1 })
+    const text = await run('getFieldSuggestions', { path: `/menu/children/${index}/$oneOf/1/pageRef`, query: 'jeunesse' })
+    assert.match(text, /Nos actions pour la jeunesse/)
+    assert.ok(!text.includes('[object Object]'), text)
+    // no title at all: a short JSON of the value, still not [object Object]
+    const [untitled] = projectSuggestions([{ title: /** @type {any} */(undefined), value: { slug: 'presse' } }])
+    assert.equal(untitled.title, '{"slug":"presse"}')
   })
 })
