@@ -220,6 +220,8 @@ export function nodeNotFoundError (statefulLayout, path) {
       break
     }
   }
+  const option = reached ? inactiveOption(deepest, segments[reached], path) : undefined
+  if (option) return new Error(`node not found at path: ${path}. ${option}`)
   if (reached) return new Error(`node not found at path: ${path}. The path leads as far as /${segments.slice(0, reached).join('/')}, which holds ${childrenList(deepest)}.${variantHint(statefulLayout, deepest, segments[reached])} Use one of those, a path listed by describeState, or the data path of a value as getData shows it.`)
   const top = visibleChildren(root).slice(0, 12).map((child) => {
     const title = child.layout.label ?? child.layout.title
@@ -249,6 +251,51 @@ function childrenList (node) {
   if (!children.length) return 'no field'
   const listed = children.slice(0, MAX_LISTED_CHILDREN).map((child) => child.fullKey).join(', ')
   return children.length > MAX_LISTED_CHILDREN ? `${listed} and ${children.length - MAX_LISTED_CHILDREN} more` : listed
+}
+
+/**
+ * A path through an option of a choice that is not the chosen one, as describeState lists it
+ * for every option (`…/links/0/$oneOf/1/pageRef` while option 0 is active): listing the
+ * fields of the active option sent four runs of rounds 3-5 looking for pageRef there.
+ * @param {import('../state/types.js').StateNode} selector - the deepest node reached
+ * @param {string | undefined} segment - the first segment that did not resolve
+ * @param {string} path
+ * @returns {string | undefined}
+ */
+function inactiveOption (selector, segment, path) {
+  if (selector.key !== '$oneOf' || !segment || !/^\d+$/.test(segment)) return undefined
+  const items = /** @type {any[] | undefined} */(selector.layout.oneOfItems)
+  const option = items?.find((item) => !item.header && item.key === Number(segment))
+  if (!option) return undefined
+  const activeKey = selector.children?.find((child) => typeof child.key === 'number')?.key
+  const active = activeKey === undefined ? 'no option is chosen yet' : `the chosen one is ${activeKey}${titleOf(items, activeKey)}`
+  return `It belongs to option ${option.key}${titleOf(items, option.key)} of the choice at ${selector.fullKey}, not the chosen one: ${active}. Switch first with setFieldValue on ${selector.fullKey} (value = ${option.key}), then use ${path}.`
+}
+
+/**
+ * The note of a path through an option that is not the chosen one, for describeState, which
+ * still describes what that option would hold.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path
+ * @returns {string | undefined}
+ */
+export function inactiveOptionNote (statefulLayout, path) {
+  const segments = path.replace(/^\//, '').split('/').filter(Boolean)
+  for (let i = segments.length - 1; i > 0; i--) {
+    const found = resolveNode(statefulLayout.stateTree.root, '/' + segments.slice(0, i).join('/'))
+    if (found) return inactiveOption(found, segments[i], path)
+  }
+  return undefined
+}
+
+/**
+ * @param {any[] | undefined} items
+ * @param {number | string} key
+ * @returns {string}
+ */
+function titleOf (items, key) {
+  const title = items?.find((item) => !item.header && item.key === key)?.title
+  return title ? ` (${title})` : ''
 }
 
 /**

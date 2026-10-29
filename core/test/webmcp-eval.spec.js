@@ -598,6 +598,27 @@ describe('webmcp eval nested-document cases', () => {
     assert.match(other.content[0].text, /\/\$oneOf\/1\/pageRef/)
   })
 
+  it('should say a path under an option not chosen belongs to that option', async () => {
+    // rounds 3-5, portal-config-multi session: getFieldSuggestions on …/$oneOf/1/pageRef
+    // while option 0 is active answered with the fields of option 0 only, 4 runs out of 6
+    const { session } = form('portal-config-multi')
+    for (const tool of ['getFieldSuggestions', 'setFieldValue', 'describeState']) {
+      const path = '/$comp-6/footer/$comp-6/links/0/$oneOf/1/pageRef'
+      const args = tool === 'setFieldValue' ? { path, value: 'x' } : tool === 'getFieldSuggestions' ? { path, query: 'presse' } : { path }
+      const result = await session.call(tool, args)
+      const text = result.content[0].text
+      if (tool === 'describeState') {
+        // describeState describes what the option would hold, and says how to choose it
+        assert.match(text, /option 1 \(Page libre\)/, text)
+        continue
+      }
+      assert.equal(result.isError, true)
+      assert.match(text, /belongs to option 1 \(Page libre\)[^.]*not the chosen one: the chosen one is 0 \(/, text)
+      assert.match(text, /setFieldValue on \/\$comp-6\/footer\/\$comp-6\/links\/0\/\$oneOf \(value = 1\)/, text)
+      assert.ok(!text.includes('$oneOf/0/subtype'), 'not the fields of the active option')
+    }
+  })
+
   it('should check an insertion, a move and a removal on the same page', async () => {
     const name = 'portal-page-reorder'
     const { session, call } = form(name)

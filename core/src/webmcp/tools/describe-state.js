@@ -3,7 +3,7 @@
  */
 
 import { collectScopedErrors, recordItemOptionsUnderList, projectQueryMatches, QUERY_MATCHES_MAX, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
-import { resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
+import { resolveNodeForEdit, nodeNotFoundError, inactiveOptionNote } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 import { describeFormSchema, resolveSchemaPath } from '../form-schema.js'
 
@@ -55,6 +55,8 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
       try { resolved = resolveSchemaPath(statefulLayout, args.path) } catch { resolved = undefined }
       if (resolved) {
         const { pointer, path, variant } = resolved
+        const option = inactiveOptionNote(statefulLayout, args.path)
+        if (option) return `not in the form yet. ${option} What it would hold:\n${describeFormSchema(statefulLayout.compiledLayout, { pointer, path, variant })}`
         return `not in the form yet — what it would hold, writable once chosen or added:\n${describeFormSchema(statefulLayout.compiledLayout, { pointer, path, variant })}`
       }
       throw nodeNotFoundError(statefulLayout, args.path)
