@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 
 import { cases } from './cases/index.js'
 import { evidenceName, parseEvidenceName } from './session.js'
-import { ARMS } from './arms.js'
+import { ARMS, callKind, TRUNCATION_BYTES } from './arms.js'
 import { parseVerdict } from './verdict.js'
 import { sidecarPath } from './run-case.js'
 
@@ -139,6 +139,32 @@ function range (values, fmt = String) {
   return lo === hi ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`
 }
 
+const KINDS = ['read-state', 'read-schema', 'write', 'lookup', 'other']
+
+/**
+ * Per kind of call, over the runs of one arm: calls, output bytes and failed calls, then
+ * the count of oversized answers. Kinds no run called are left out.
+ * @param {string} arm
+ * @param {any[]} evs
+ * @returns {string[]}
+ */
+function breakdown (arm, evs) {
+  const perRun = evs.map((e) => /** @type {any[]} */(Array.isArray(e.calls) ? e.calls : []))
+  /** @type {string[]} */
+  const out = []
+  for (const kind of KINDS) {
+    const mine = perRun.map((calls) => calls.filter((c) => callKind(arm, c.tool) === kind))
+    if (!mine.some((c) => c.length)) continue
+    out.push(`    ${kind}: ${range(mine.map((c) => c.length))} calls, ` +
+      `${range(mine.map((c) => c.reduce((n, x) => n + (x.outputBytes ?? 0), 0)))} bytes, ` +
+      `${range(mine.map((c) => c.filter((x) => x.isError).length))} failed`)
+  }
+  if (perRun.some((calls) => calls.length)) {
+    out.push(`    oversized: ${range(perRun.map((calls) => calls.filter((c) => (c.outputBytes ?? 0) > TRUNCATION_BYTES).length))}`)
+  }
+  return out
+}
+
 /**
  * Side-by-side rows, one per arm of each case, over the runs that left a transcript.
  * Context only: nothing here decides the report.
@@ -176,7 +202,15 @@ function compare (runs) {
         `checks ${checks.join(', ')}, ` +
         `${verdicts.filter((v) => v === 'satisfactory').length}s/${verdicts.filter((v) => v === 'unsatisfactory').length}u` +
         (unjudged ? `, ${unjudged} unjudged` : ''))
+      const armName = group[0].arm ?? evs[0].arm ?? 'form'
+      const tk = (/** @type {string} */ f) => range(recs.filter((r) => r.tokens).map((r) => r.tokens[f] ?? 0))
+      if (recs.some((r) => r.tokens)) {
+        out.push(`    uncached input ${tk('input')}, cache reads ${tk('cacheRead')}, cache writes ${tk('cacheWrite')}`)
+      }
+      out.push(...breakdown(armName, evs))
     }
+    out.push('  cost is priced with caching; parallel runs share a cache, so a run\'s cost depends on which ran first')
+    out.push(`  oversized = calls answering more than ${TRUNCATION_BYTES} bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)`)
     out.push('  input tokens = input + cacheRead + cacheWrite (what the model actually read)')
   }
   return out

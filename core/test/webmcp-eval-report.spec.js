@@ -7,6 +7,7 @@ import { describe, it } from 'node:test'
 import { summarise, loadRuns } from '../webmcp-eval/report.js'
 import { sidecarPath } from '../webmcp-eval/run-case.js'
 import { parseEvidenceName, evidenceName } from '../webmcp-eval/session.js'
+import { callKind } from '../webmcp-eval/arms.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmpDir = join(here, '..', 'tmp')
@@ -542,5 +543,75 @@ describe('webmcp eval expected arms', () => {
       assert.equal(failed, true)
       assert.ok(lines.join('\n').includes(`${name} (plain): not run`))
     })
+  })
+})
+
+describe('webmcp eval call kinds', () => {
+  it('should classify form and session tools', () => {
+    for (const arm of ['form', 'session']) {
+      assert.equal(callKind(arm, 'describeState'), 'read-state')
+      assert.equal(callKind(arm, 'getData'), 'read-state')
+      for (const t of ['setData', 'setFieldValue', 'editArray', 'saveForm']) assert.equal(callKind(arm, t), 'write', t)
+      assert.equal(callKind(arm, 'getFieldSuggestions'), 'lookup')
+      assert.equal(callKind(arm, 'openSection'), 'other')
+      assert.equal(callKind(arm, 'reloadForm'), 'other')
+    }
+  })
+
+  it('should classify plain tools', () => {
+    assert.equal(callKind('plain', 'readDocument'), 'read-state')
+    assert.equal(callKind('plain', 'readSchema'), 'read-schema')
+    assert.equal(callKind('plain', 'writeDocument'), 'write')
+    assert.equal(callKind('plain', 'patchDocument'), 'write')
+    for (const t of ['list_account_datasets', 'describe_dataset', 'get_field_values', 'list_portal_pages']) assert.equal(callKind('plain', t), 'lookup', t)
+    assert.equal(callKind('plain', 'whatever'), 'other')
+  })
+})
+
+describe('webmcp eval cost breakdown', () => {
+  const call = (/** @type {string} */ tool, /** @type {number} */ outputBytes, isError = false) => ({ tool, args: {}, response: '', outputBytes, isError })
+  const withCalls = (/** @type {string} */ arm, /** @type {number} */ i, /** @type {any[]} */ calls, /** @type {any} */ tokens) => {
+    const r = armRun('c', arm, i)
+    r.evidence.calls = calls
+    if (tokens) r.run.tokens = tokens
+    return r
+  }
+
+  it('should print calls, bytes and failures per kind with ranges over runs', () => {
+    const { lines } = summarise([
+      withCalls('plain', 1, [call('readDocument', 100), call('readDocument', 50, true), call('writeDocument', 10)]),
+      withCalls('plain', 2, [call('readDocument', 300), call('readSchema', 20)])
+    ])
+    const text = lines.join('\n')
+    assert.ok(/read-state: 1–2 calls, 150–300 bytes, 0–1 failed/.test(text), text)
+    assert.ok(/write: 0–1 calls, 0–10 bytes, 0 failed/.test(text), text)
+    assert.ok(/read-schema: 0–1 calls, 0–20 bytes, 0 failed/.test(text), text)
+    assert.ok(!/lookup:/.test(text), 'kinds nobody called are not printed')
+  })
+
+  it('should count oversized calls per run and not fail on them', () => {
+    const { lines, failed } = summarise([
+      withCalls('form', 1, [call('getData', 100_001), call('getData', 100_000)]),
+      withCalls('form', 2, [call('getData', 5)])
+    ])
+    const text = lines.join('\n')
+    assert.equal(failed, false)
+    assert.ok(text.includes('oversized: 0–1'), text)
+    assert.ok(text.includes('100000 bytes'), 'legend names the threshold')
+  })
+
+  it('should print uncached input, cache reads and cache writes apart, with a legend', () => {
+    const { lines } = summarise([
+      withCalls('plain', 1, [], { input: 10, output: 1, cacheRead: 1000, cacheWrite: 50 }),
+      withCalls('plain', 2, [], { input: 30, output: 1, cacheRead: 1000, cacheWrite: 70 }),
+      withCalls('form', 1, [], { output: 1 })
+    ])
+    const text = lines.join('\n')
+    assert.ok(text.includes('uncached input 10–30'), text)
+    assert.ok(text.includes('cache reads 1000'), text)
+    assert.ok(!text.includes('cache reads 1000–1000'))
+    assert.ok(text.includes('cache writes 50–70'), text)
+    assert.ok(text.includes('uncached input 0, cache reads 0, cache writes 0'), 'missing fields count as 0')
+    assert.ok(/priced with caching/.test(text) && /share a cache/.test(text), text)
   })
 })
