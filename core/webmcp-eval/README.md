@@ -55,7 +55,14 @@ configuration. Their starting documents (`cases/data/portal-page-rich.json`,
 script run by hand (`node core/webmcp-eval/build-start.js`) that feeds the content with
 `setData`, `editArray` and `setFieldValue` and keeps a document only when the form reports it
 valid and reloads it unchanged. The pages they link to are `cases/data/portal-pages.json`,
-the cases' `context.pages`.
+the cases' `context.pages`. All four are auto-save, so the `session` arm cannot run them yet.
+`portal-page-reorder` carries many collateral checks (one per untouched top-level block, plus
+the three edits), so its pass ratio is not comparable with another case's: a few failed checks
+there are a few misplaced blocks, not a mostly failed run. `portal-page-switch` ends with an
+`absent` check on the paragraph's own `centered` setting; the form's natural switch path
+(`setFieldValue` on the `$oneOf` selector) currently leaves the old option's field behind and
+the form reports itself invalid with no node error, a library defect, so a failed check on the
+`form` arm reads as that.
 
 The model is pinned by `JL_WEBMCP_EVAL_MODEL` (`opus`, `sonnet`, `haiku`) and recorded per
 run, so runs are comparable across time and across tiers. **The default is `haiku`, the
@@ -228,12 +235,14 @@ procedure):
    from different models are never compared silently.
 6. A `webmcp-eval-judge` subagent reads the goal, the schema as the case builds it (the
    skill writes it to `core/tmp/webmcp-eval-<name>.schema.json`, since most cases
-   transform their vendored file), the recorded transcript and
+   transform their vendored file), the recorded transcript without its `checks` field (the
+   skill writes that copy to `core/tmp/webmcp-eval-<name>.judge.json`; the report ignores
+   it) and
    the arm's name and tool list, and returns a verdict — `satisfactory` or
    `unsatisfactory` — with reasoning and a list of friction points, each anchored to the
    call number that caused it. The skill dispatches one judge per run file and writes each
    verdict to `core/tmp/webmcp-eval-<name>.verdict.json`. **The judge is not told the
-   result of the checks**: a verdict that knew the data was wrong would be read backwards
+   result of the checks**, and the transcript it reads has none: a verdict that knew the data was wrong would be read backwards
    from the outcome, and the case where a transcript reads well but the data is wrong is
    precisely the one worth seeing as a disagreement.
 
@@ -261,8 +270,9 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 - **`session`** is what a server exposes (openapi-mcp editor groups): the record only
   exists once saved, so the checks score the last saved document, or the starting one when
   nothing was saved. A case whose resource auto-saves (`saveMode: 'auto'`, today
-  the application configurations `calendar` and `charts-edit`, `portal-config-edit` and the four nested-document cases) is `not runnable` on this arm until `FormSession` announces an
-  auto mode (`SAVE_MODES`): the run is not faked, the sidecar records `notRunnable` and the
+  the application configurations `calendar` and `charts-edit`, `portal-config-edit` and the four nested-document cases `portal-page-list-edit`,
+  `portal-page-reorder`, `portal-page-switch` and `portal-config-multi`) is `not runnable`
+  on this arm until `FormSession` announces an auto mode (`SAVE_MODES`): the run is not faked, the sidecar records `notRunnable` and the
   reason, and the report prints it without failing.
 - **`plain`** is the baseline the form tools claim to beat (`core/src/webmcp/README.md`
   opens on that claim): what a well-made JSON API offers, honestly described and not
@@ -308,6 +318,9 @@ tools present it (the form after loading, with its defaults and dropped hidden b
 the raw file for `plain`), so what the form normalizes on load is a fact about the library,
 not an agent failure.
 
+`absent` and `length` were added for the nested cases: a setting that must be gone after a
+switch, an array that must have gained or lost items.
+
 Checks and verdicts are separate measures. A failed check fails the report whatever the
 verdict, and a `satisfactory` verdict with `CHECK FAILED` is printed as such: that
 combination is the finding, a session that read well and ended with wrong data.
@@ -330,9 +343,17 @@ with a high call count on a genuinely large form can still be satisfactory.
 After the runs of a case comes a side-by-side block, `<case> — comparison`, one row per arm
 (and variant): number of runs, ranges over them of calls, output bytes, input tokens
 (input plus cache reads and writes, what the model actually read) and cost, checks passed
-per run, and verdict counts. A single run per arm is noise, so compare with `--runs 3` or
+per run, and verdict counts. Under each row the cache is split apart (uncached input, cache reads, cache
+writes), then the calls are broken down per kind with ranges over the runs: `read-state`,
+`read-schema`, `write`, `lookup` and `other` (kinds no run called are left out), each with
+its calls, output bytes and failed calls, and finally `oversized`, the number of calls that
+answered more than 100 000 bytes (`TRUNCATION_BYTES`; Claude Code caps MCP output near 25k
+tokens, so the agent probably saw a cut answer). Which tool is which kind is `callKind` in
+`arms.js`. Cost is priced with caching and parallel runs share a cache, so one run's cost
+depends on which ran first. A single run per arm is noise, so compare with `--runs 3` or
 more, and read a difference as a finding only when it repeats and is large. Delete
-`core/tmp/webmcp-eval-*` before a comparison, or the block mixes in leftovers.
+`core/tmp/webmcp-eval-*` before a comparison, or the block mixes in leftovers. The report
+skips `*.verdict.json`, `*.schema.json` and `*.judge.json` files when it looks for runs.
 
 The report — and its exit code — fails whenever any run is `unsatisfactory`, invalid,
 unjudged, missing, or has a failed check:

@@ -165,6 +165,25 @@ describe('webmcp eval run loading', () => {
     }
   })
 
+  it('should ignore the judge copy of a transcript', () => {
+    // The skill writes <name>.judge.json, the transcript without its checks, for the
+    // judge to read. It is not a run: reported as one it would be a phantom, unjudged case.
+    const name = 'report-spec-judge-copy'
+    const { evidencePath } = writeRunFiles(name, evidenceFor(name))
+    // a variant's copy is the one a naive parse would read as a variant named `no-guide.judge`
+    const judgePath = join(tmpDir, `webmcp-eval-${name}--no-guide.judge.json`)
+    writeFileSync(judgePath, JSON.stringify(evidenceFor(name)))
+
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs.length, 1, 'the judge copy must not be reported as a run')
+      assert.equal(runs[0].variant, undefined)
+    } finally {
+      rmSync(evidencePath, { force: true })
+      rmSync(judgePath, { force: true })
+    }
+  })
+
   it('should treat a verdict file that is valid JSON but not a valid verdict as unjudged, not throw', () => {
     // A raw JSON.parse would accept {} and produce a run with no friction and no
     // verdict field — the silent "no problems found" that parseVerdict exists to

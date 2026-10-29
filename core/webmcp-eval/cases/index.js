@@ -681,7 +681,7 @@ const richBlock = (index) => /** @type {any[]} */ (richPage.elements)[index]
 const portalPageListEdit = {
   name: 'portal-page-list-edit',
   title: 'page configuration',
-  goal: 'Dans la grille « Thématiques à la une », renomme la boite « Budget et finances » en « Budget et fiscalité ».',
+  goal: 'Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».',
   schema: loadSchema('portal-page.json'),
   data: richPage,
   compileOptions: pageCompileOptions,
@@ -751,6 +751,11 @@ const portalPageReorder = {
  * Switching an option of a discriminated union inside a nested list: the text belongs to
  * both options, the paragraph's own setting (`centered`) belongs to the old one only and must
  * not survive the switch.
+ *
+ * Known library defect, so a failed `absent` check on the form arm reads as such: the form's
+ * natural switch path, `setFieldValue` on the `$oneOf` selector, leaves the old option's
+ * `centered` field in the data, and the form then reports itself invalid with no node error
+ * to say why. The agent cannot see the leftover, only the check can.
  * @type {EvalCase}
  */
 const portalPageSwitch = {

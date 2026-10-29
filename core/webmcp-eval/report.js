@@ -231,7 +231,7 @@ function combinationsOf (name) {
   /** @type {Map<string, { variant: string|undefined, arm: string, run: number|undefined }>} */
   const found = new Map()
   for (const file of readdirSync(dir)) {
-    if (!file.startsWith(prefix) || file.endsWith('.verdict.json') || file.endsWith('.schema.json')) continue
+    if (!file.startsWith(prefix) || file.endsWith('.verdict.json') || file.endsWith('.schema.json') || file.endsWith('.judge.json')) continue
     const label = file.endsWith('.run.json')
       ? file.slice('webmcp-eval-'.length, -'.run.json'.length)
       : file.endsWith('.json') ? file.slice('webmcp-eval-'.length, -'.json'.length) : null

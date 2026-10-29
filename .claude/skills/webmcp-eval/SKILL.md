@@ -11,7 +11,7 @@ tool return the right shape"; this answers "can a model use it".
 
 A case can run under three arms: `form` (the page tools, the default), `session` (the same
 tools served by `@json-layout/agents` `FormSession`, with an explicit save) and `plain` (a
-JSON API: `readDocument`, `readSchema`, `writeDocument`, `patchDocument`, `httpGet`). The
+JSON API: `readDocument`, `readSchema`, `writeDocument`, `patchDocument`, plus the case's targeted lookups). The
 point of running more than one is the comparison between them.
 
 Each run is its own `claude -p` subprocess, launched from a directory outside this
@@ -55,8 +55,10 @@ run any number of times and always reflects the current `core/src` and case regi
    `.run.json` sidecar, is a separate run to judge.
 
    An arm that cannot take a case writes only a sidecar with `notRunnable` and the reason
-   (today the `session` arm on the cases that auto-save, `calendar`, `charts-edit` and
-   `portal-config-edit`, until `FormSession` has that mode). Nothing was launched, so there is nothing to judge: **do not dispatch a
+   (today the `session` arm on the cases that auto-save: `calendar`, `charts-edit`,
+   `portal-config-edit` and the four nested-document cases `portal-page-list-edit`,
+   `portal-page-reorder`, `portal-page-switch` and `portal-config-multi`, until
+   `FormSession` has that mode). Nothing was launched, so there is nothing to judge: **do not dispatch a
    judge for it**. The report prints it as `not runnable` and does not fail on it.
 
    At most 6 subprocesses run at once; the rest queue.
@@ -87,16 +89,26 @@ run any number of times and always reflects the current `core/src` and case regi
 
    - the case name and its goal
    - the arm the run used and that arm's tool list — the judge judges a run against what
-     its arm could do. `plain`: `readDocument`, `readSchema`, `writeDocument`,
-     `patchDocument`, `httpGet`. `form` (the lists depend on the case, so print them):
+     its arm could do. `plain` and `form` both depend on the case (the plain arm adds the
+     case's `lookups`), so print them:
      `cd core && node --input-type=module -e "const {createArm}=await import('./webmcp-eval/arms.js');const {cases}=await import('./webmcp-eval/cases/index.js');console.log((await createArm(cases.find(c=>c.name==='<case>'),'<arm>')).toolNames.join(', '))"`
      — e.g. `getData, setData, describeState, openSection, setFieldValue,
-     getFieldSuggestions, editArray` for `form`, and for `session` the same without
-     `openSection` plus `saveForm` and `reloadForm`. The runner saw them under a server named after
+     getFieldSuggestions, editArray` for `form`, for `session` the same without
+     `openSection` plus `saveForm` and `reloadForm`, and for `plain` `readDocument,
+     readSchema, writeDocument, patchDocument` followed by the case's lookups
+     (`list_account_datasets`, `describe_dataset`, `get_field_values`, `list_portal_pages`);
+     `patchDocument` is single level, each top-level key replaced whole. The runner saw them under a server named after
      its arm (`mcp__page-form__*` for `form`, `mcp__record-form__*` for `session`,
      `mcp__document-api__*` for `plain`)
-   - the transcript path, `core/tmp/webmcp-eval-<label>.json`, where `<label>` is the run's
-     evidence name
+   - the transcript path, **`core/tmp/webmcp-eval-<label>.judge.json`**, where `<label>` is
+     the run's evidence name: a copy of `core/tmp/webmcp-eval-<label>.json` without its
+     `checks` field, which holds the check labels, results and details. Never the raw
+     transcript, which the judge would read. Write the copy first with the line below, from
+     the repository root (the report ignores `*.judge.json` files):
+
+     ```bash
+     node -e "const fs=require('fs');const l=process.argv[1];const {checks,...t}=JSON.parse(fs.readFileSync('core/tmp/webmcp-eval-'+l+'.json','utf8'));fs.writeFileSync('core/tmp/webmcp-eval-'+l+'.judge.json',JSON.stringify(t,null,2))" <label>
+     ```
    - never the case's checks or whether they passed: verdicts stay blind to them
    - the schema **as the runner saw it**, `core/tmp/webmcp-eval-<label>.schema.json`,
      written first with the line below (`<variant>` empty for the control). Never the raw
@@ -126,11 +138,21 @@ run any number of times and always reflects the current `core/src` and case regi
 
    Relay the summary, including the `<case> — comparison` block: one row per arm with the
    ranges over its runs (calls, bytes, input tokens, cost), checks passed, and verdict
-   counts. It is context, not a verdict; a difference counts only if it repeats across
+   counts. Under each row, a cache line (uncached input, cache reads, cache writes) and a
+   breakdown per kind of call (`read-state`, `read-schema`, `write`, `lookup`, `other`:
+   calls, bytes, failed), ending with `oversized`, the calls that answered more than
+   100 000 bytes, which Claude Code probably cut for the agent. It is context, not a verdict; a difference counts only if it repeats across
    runs and is large. Exit code is non-zero if any run was unsatisfactory, invalid, not
    judged, never ran, or failed a check. A `satisfactory` verdict printed with
    `CHECK FAILED` is the finding the checks exist for: a run that read well and ended with
    wrong data (an invented code, a value in the wrong spelling).
+
+   Two cautions when reading checks. `portal-page-reorder` carries many collateral checks
+   (one per untouched top-level block), so its pass ratio is not comparable with other
+   cases'. And on `portal-page-switch`, a failed `absent` check on the form arm
+   (`/elements/3/children2/1/centered`) is a known library defect, not an agent failure: the
+   form's natural switch path, `setFieldValue` on the `$oneOf` selector, leaves the old
+   option's `centered` field and the form reports invalid with no node error.
 
 ## If something goes wrong
 

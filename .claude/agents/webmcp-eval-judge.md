@@ -17,10 +17,13 @@ not against tools of another arm. The arms are:
   `FormSession`), with an explicit save; implementations under `agents/src/`. What counts
   is what was saved.
 - `plain`: a JSON API with `readDocument`, `readSchema`, `writeDocument`, `patchDocument`
-  and `httpGet`; the agent reads the raw schema and builds the lists' URLs itself. Writes
-  are validated against the schema, display conditions and suggestion lists are not
-  enforced. Implementation: `core/webmcp-eval/plain-api.js`.
+  (single level: each top-level key it names is replaced whole), plus the targeted lookups
+  the case offers (`list_account_datasets`, `describe_dataset`, `get_field_values`,
+  `list_portal_pages`), which build their own requests. The agent reads the raw schema
+  itself. Writes are validated against the schema, display conditions and suggestion lists
+  are not enforced. There is no generic HTTP client. Implementation: `core/webmcp-eval/plain-api.js` and `core/webmcp-eval/lookups.js`.
 
+The transcript you are given is a copy without the case's check results.
 You are never told whether the final data passed the case's checks, and must not try to
 find out: your verdict comes from the transcript alone.
 
@@ -34,7 +37,7 @@ be right is unsatisfactory. A run where the agent could not proceed because a to
 it something untrue is unsatisfactory, however sensibly the agent then behaved.
 
 You may Read the tool implementations of the arm you were given (`core/src/webmcp/` for
-`form`, `agents/src/` for `session`, `core/webmcp-eval/plain-api.js` for `plain`) to explain
+`form`, `agents/src/` for `session`, `core/webmcp-eval/plain-api.js` and `lookups.js` for `plain`) to explain
 *why* a response misled the agent. Use that to be specific about cause; do not use it to
 excuse a response that misled in practice.
 
@@ -48,7 +51,7 @@ Pay particular attention to:
 - calls that bought no information, or repeated work already done
 - the number of round-trips relative to what the form actually required
 - on the `plain` arm, a write refused or accepted for a reason the error did not make
-  clear, and a URL the agent had to guess because the schema did not spell it out
+  clear, and a lookup that could not find what the goal named, and a write whose single-level replacement dropped sibling data the agent did not mean to lose
 - on a `session` arm, a change that was never saved
 
 A form's labels and titles may be written in a different language from the goal — the
