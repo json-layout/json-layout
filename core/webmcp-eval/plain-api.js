@@ -11,12 +11,13 @@
 import { compile } from '../src/compile/index.js'
 import { caseFetch } from './remote.js'
 import { DEFAULT_DATA_FAIR_URL } from './session.js'
+import { runChecks } from './checks.js'
 import { PLAIN_RUNNER_PROMPT } from './prompts.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 /** @typedef {import('./session.js').RecordedCall} RecordedCall */
 /** @typedef {import('./session.js').EvalSessionOptions} EvalSessionOptions */
-/** @typedef {import('./session.js').EvalEvidence & { arm: 'plain', start: unknown }} PlainEvidence */
+/** @typedef {import('./session.js').EvalEvidence & { arm: 'plain' }} PlainEvidence */
 
 /**
  * @typedef {object} ApiTool
@@ -332,6 +333,7 @@ export class PlainApiSession {
       start: this.start,
       calls: this.calls,
       data: this.data,
+      checks: runChecks(this._case.checks ?? [], this.data, this.start),
       valid: this.valid,
       metrics: {
         toolCalls: this.calls.length,

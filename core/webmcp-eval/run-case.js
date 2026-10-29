@@ -8,7 +8,7 @@
  * it was when the session opened — the very edit that motivates the run is the thing it
  * cannot see. A fresh process gets clean state and a fresh module graph from the OS.
  *
- * Usage: npm run webmcp-eval:run -w core [case ...]
+ * Usage: npm run webmcp-eval:run -w core [case ...] [--variant v] [--arm form|session|plain|all] [--runs n]
  */
 
 import { spawn as nodeSpawn } from 'node:child_process'
@@ -18,7 +18,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from './cases/index.js'
-import { EvalSession, applyVariant, evidenceName } from './session.js'
+import { applyVariant, evidenceName } from './session.js'
+import { RUNNER_PROMPT } from './prompts.js'
+import { ARMS, createArm } from './arms.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
@@ -66,25 +68,13 @@ export const TOOL_NAMES = [
   'editArray'
 ]
 
-/**
- * The runner's whole system prompt. It describes an ordinary page visit: no mention of
- * evaluation, no tool names, no goal — the goal arrives as the prompt.
- */
-export const RUNNER_PROMPT = `You are assisting a user with a form on the page they are currently viewing.
-
-Use the tools available to you to inspect the form and fill it in according to what the
-user asks for. Work carefully: read the form's structure before writing to it, and check
-that the values you write were accepted.
-
-If you cannot determine a value from what the tools tell you, say so in your final
-answer rather than guessing. When you are done, summarise what you filled in and
-anything you could not complete.`
+export { RUNNER_PROMPT }
 
 /**
  * @typedef {object} LaunchOptions
  * @property {string} [serverPath] - absolute path to the stdio server
  * @property {string} [model] - model alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
- * @property {string} [skill] - the form-filling guide, appended to the runner's prompt
+ * @property {string} [prompt] - the arm's full system prompt; defaults to the form runner's bare prompt
  * @property {string[]} [toolNames] - the tools the session registers, which the variant decides
  */
 
@@ -116,9 +106,9 @@ export function buildLaunchArgs (evalCase, options = {}) {
     // directory outside this repository it also drops auto-memory, whose index names
     // this eval and would otherwise tell the runner what it is taking part in.
     '--setting-sources=',
-    // The guide is injected, not fetched: production pages hand it to a runner as its
+    // The arm's prompt (task and guide) is injected, not fetched: production pages hand it to a runner as its
     // prompt through the subagent tool, and a clean agent never calls a tool to get it.
-    '--append-system-prompt', options.skill ? `${RUNNER_PROMPT}\n\n${options.skill}` : RUNNER_PROMPT,
+    '--append-system-prompt', options.prompt ?? RUNNER_PROMPT,
     '--model', options.model ?? process.env.JL_WEBMCP_EVAL_MODEL ?? DEFAULT_MODEL,
     // Nothing may block on a prompt nobody can answer; a denial is recorded instead.
     '--permission-prompts', 'none',
@@ -138,6 +128,7 @@ export function buildLaunchArgs (evalCase, options = {}) {
  * @property {unknown[]} denials - non-empty means the allow-list and tool set have drifted
  * @property {string|null} [answer] - the runner's final reply: the output itself for a case
  *   that asks a question rather than for a change to the form
+ * @property {boolean} [notRunnable] - the arm cannot take this case, so nothing was launched
  * @property {number} exitCode - the subprocess exit code, or -1 when it never launched
  * @property {string} [error] - present when the run failed or must not be judged
  */
@@ -185,7 +176,9 @@ function defaultSpawn (command, args, opts) {
  * @property {string} [cwd] - defaults to a fresh directory outside this repository
  * @property {string} [model] - alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
  * @property {string} [variant] - tool configuration to run under, see VARIANTS
- * @property {any} [session] - prebuilt session, so a test need not compile a schema
+ * @property {string} [arm] - tool surface to run under, see ARMS; defaults to `form`
+ * @property {number} [run] - repeat index; names the evidence `.r<run>` so repeats never collide
+ * @property {any} [session] - prebuilt arm, so a test need not compile a schema
  * @property {string} [sidecarDir] - where to write the run's sidecar; defaults to this
  *   package's own `tmp/`. Tests must pass a fresh `mkdtempSync` directory here, or a unit
  *   run corrupts the sidecar of a real, already-judged eval run.
@@ -217,7 +210,8 @@ export async function runCase (evalCase, options = {}) {
   const variantCase = applyVariant(evalCase, variant)
   // Computed once and handed to every exit: a variant run that wrote its provenance
   // under the plain name would overwrite the control it exists to be compared against.
-  const evidenceLabel = evidenceName(evalCase.name, variant)
+  const arm = options.arm ?? 'form'
+  const evidenceLabel = evidenceName(evalCase.name, variant, arm, options.run)
   const requestedModel = options.model ?? process.env.JL_WEBMCP_EVAL_MODEL ?? DEFAULT_MODEL
   // Outside the repository on purpose: auto-memory is keyed to the project directory,
   // and its index names this eval.
@@ -227,12 +221,7 @@ export async function runCase (evalCase, options = {}) {
   // Compiling here costs a second or two but is what lets the runner be handed the same
   // guide and the same tool list the server will register — the pair a page's subagent
   // tool returns. A mismatch would grant a tool the guide never mentions, or the reverse.
-  const session = options.session ?? new EvalSession(variantCase)
-  const args = buildLaunchArgs(variantCase, {
-    model: requestedModel,
-    skill: session.skill,
-    toolNames: session.toolNames
-  })
+  const session = options.session ?? await createArm(variantCase, arm)
 
   /** @type {RunRecord} */
   const record = {
@@ -246,6 +235,19 @@ export async function runCase (evalCase, options = {}) {
     exitCode: 0
   }
 
+  // An arm that cannot take this case has nothing to measure: record why and spawn nothing.
+  if (session.runnable === false) {
+    record.notRunnable = true
+    record.error = session.notRunnableReason ?? 'this arm cannot run this case'
+    return finish(evidenceLabel, record, sidecarDir)
+  }
+
+  const args = buildLaunchArgs(variantCase, {
+    model: requestedModel,
+    prompt: session.prompt,
+    toolNames: session.toolNames
+  })
+
   /** @type {{ code: number, stdout: string, stderr: string }} */
   let spawnResult
   try {
@@ -254,7 +256,9 @@ export async function runCase (evalCase, options = {}) {
       env: {
         ...process.env,
         JL_WEBMCP_EVAL_CASE: evalCase.name,
-        ...(variant ? { JL_WEBMCP_EVAL_VARIANT: variant } : {})
+        ...(variant ? { JL_WEBMCP_EVAL_VARIANT: variant } : {}),
+        ...(arm !== 'form' ? { JL_WEBMCP_EVAL_ARM: arm } : {}),
+        ...(options.run !== undefined ? { JL_WEBMCP_EVAL_RUN: String(options.run) } : {})
       }
     })
   } catch (/** @type {any} */err) {
@@ -327,32 +331,103 @@ export async function runCase (evalCase, options = {}) {
   return finish(evidenceLabel, record, sidecarDir)
 }
 
+/**
+ * Most runner subprocesses alive at once. Each is a full `claude` process with its own
+ * server; more than this trips rate limits and starves the machine, and the cases are
+ * independent so a queue costs only wall-clock time. Fixed, not configurable.
+ */
+export const MAX_CONCURRENT_RUNS = 6
+
+/**
+ * Run tasks with at most `limit` in flight, settling like Promise.allSettled and
+ * preserving the order of `tasks` in the result.
+ * @template T
+ * @param {Array<() => Promise<T>>} tasks
+ * @param {number} limit
+ * @returns {Promise<PromiseSettledResult<T>[]>}
+ */
+export async function runPool (tasks, limit) {
+  /** @type {PromiseSettledResult<T>[]} */
+  const results = new Array(tasks.length)
+  let next = 0
+  const worker = async () => {
+    while (next < tasks.length) {
+      const i = next++
+      try {
+        results[i] = { status: 'fulfilled', value: await tasks[i]() }
+      } catch (reason) {
+        results[i] = { status: 'rejected', reason }
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker))
+  return results
+}
+
+/**
+ * @param {string[]} argv
+ * @returns {{ variant?: string, arms: string[], runs: number, names: string[] }}
+ */
+export function parseCliArgs (argv) {
+  /** @type {Record<string, string>} */
+  const values = {}
+  /** @type {string[]} */
+  const names = []
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (['--variant', '--arm', '--runs'].includes(a)) {
+      if (!argv[i + 1]) throw new Error(`${a} needs a value`)
+      values[a] = argv[++i]
+    } else if (!a.startsWith('--')) names.push(a)
+  }
+  const armValue = values['--arm'] ?? 'form'
+  const arms = armValue === 'all' ? [...ARMS] : [armValue]
+  for (const a of arms) {
+    if (!ARMS.includes(a)) throw new Error(`unknown arm "${a}", available: ${ARMS.join(', ')}, all`)
+  }
+  const runs = values['--runs'] === undefined ? 1 : Number(values['--runs'])
+  if (!Number.isInteger(runs) || runs < 1) throw new Error('--runs needs a positive integer')
+  return { variant: values['--variant'], arms, runs, names }
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const argv = process.argv.slice(2)
-  const variantIndex = argv.indexOf('--variant')
-  if (variantIndex !== -1 && !argv[variantIndex + 1]) throw new Error('--variant needs a name')
-  const variant = variantIndex === -1 ? undefined : argv[variantIndex + 1]
-  const wanted = argv.filter((a, i) => !a.startsWith('--') && (variantIndex === -1 || i !== variantIndex + 1))
-  const selected = wanted.length ? wanted.map(getCase) : cases
+  const { variant, arms, runs, names } = parseCliArgs(process.argv.slice(2))
+  const selected = names.length ? names.map(getCase) : cases
+  /** @type {Array<{ label: string, task: () => Promise<RunRecord> }>} */
+  const jobs = []
+  for (const evalCase of selected) {
+    for (const arm of arms) {
+      for (let r = 1; r <= runs; r++) {
+        const run = runs > 1 ? r : undefined
+        jobs.push({
+          label: evidenceName(evalCase.name, variant, arm, run),
+          task: () => runCase(evalCase, { variant, arm, run })
+        })
+      }
+    }
+  }
   // Each run is its own process with its own server and working directory, so nothing
-  // is shared and the cases can go at once. allSettled rather than all: each case's
-  // sidecar is already on disk by the time its promise resolves, so one case rejecting
-  // outright (an mkdtempSync EACCES, say) must not discard the printed summary for
-  // every other case that did complete.
-  const settled = await Promise.allSettled(selected.map((evalCase) => runCase(evalCase, { variant })))
+  // is shared and the runs can go at once, up to the cap. Settled rather than all: each
+  // sidecar is already on disk by the time its promise resolves, so one run rejecting
+  // outright (an mkdtempSync EACCES, say) must not discard the summary of the others.
+  const settled = await runPool(jobs.map((j) => j.task), MAX_CONCURRENT_RUNS)
   let allOk = true
   settled.forEach((outcome, i) => {
     if (outcome.status === 'fulfilled') {
       const record = outcome.value
+      if (record.notRunnable) {
+        console.log(`${jobs[i].label}: not runnable — ${record.error}`)
+        return
+      }
       allOk = allOk && record.ok
       const parts = [record.ok ? 'ran' : 'FAILED']
       if (record.model) parts.push(record.model)
       if (record.costUsd != null) parts.push(`$${record.costUsd.toFixed(3)}`)
       if (record.error) parts.push(record.error)
-      console.log(`${record.case}: ${parts.join(' — ')}`)
+      console.log(`${jobs[i].label}: ${parts.join(' — ')}`)
     } else {
       allOk = false
-      console.log(`${selected[i].name}: FAILED — ${outcome.reason?.message ?? outcome.reason}`)
+      console.log(`${jobs[i].label}: FAILED — ${outcome.reason?.message ?? outcome.reason}`)
     }
   })
   process.exit(allOk ? 0 : 1)

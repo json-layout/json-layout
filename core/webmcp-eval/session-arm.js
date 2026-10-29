@@ -10,12 +10,13 @@ import { compile } from '../src/compile/index.js'
 import * as agents from '../../agents/src/index.js'
 import { caseFetch, FIXTURE_BASE_URL } from './remote.js'
 import { DEFAULT_DATA_FAIR_URL } from './session.js'
+import { runChecks } from './checks.js'
 import { SESSION_RUNNER_PROMPT } from './prompts.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 /** @typedef {import('./session.js').RecordedCall} RecordedCall */
 /** @typedef {import('./session.js').EvalSessionOptions} EvalSessionOptions */
-/** @typedef {import('./session.js').EvalEvidence & { arm: 'session', start: unknown }} SessionEvidence */
+/** @typedef {import('./session.js').EvalEvidence & { arm: 'session' }} SessionEvidence */
 
 const NO_AUTO_SAVE = 'FormSession has no auto-save mode yet'
 
@@ -162,6 +163,7 @@ export class FormSessionArm {
       start: this.start,
       calls: this.calls,
       data: this.data,
+      checks: runChecks(this._case.checks ?? [], this.data, this.start),
       valid: this.valid,
       metrics: {
         toolCalls: this.calls.length,

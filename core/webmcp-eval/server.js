@@ -25,7 +25,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { getCase } from './cases/index.js'
-import { EvalSession, applyVariant, evidenceName } from './session.js'
+import { applyVariant } from './session.js'
+import { createArm, evidenceName } from './arms.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const caseName = process.env.JL_WEBMCP_EVAL_CASE
@@ -39,12 +40,21 @@ if (!caseName) {
 }
 const variant = process.env.JL_WEBMCP_EVAL_VARIANT
 const evalCase = applyVariant(getCase(caseName), variant)
-const session = new EvalSession(evalCase)
+const arm = process.env.JL_WEBMCP_EVAL_ARM || 'form'
+const run = process.env.JL_WEBMCP_EVAL_RUN ? Number(process.env.JL_WEBMCP_EVAL_RUN) : undefined
 
-const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${evidenceName(caseName, variant)}.json`)
+// Building an arm is async (a form session opens before it has tools), so requests wait
+// on this promise: the queue below holds every message until the arm is ready.
+const ready = createArm(evalCase, arm)
+/** @type {any} */
+let session
+ready.then((s) => { session = s }, (/** @type {any} */err) => process.stderr.write(`failed to build arm: ${err.message}\n`))
+
+const transcriptPath = join(here, '..', 'tmp', `webmcp-eval-${evidenceName(caseName, variant, arm, run)}.json`)
 
 /** Write the run so far to the evidence file the judge agent reads. */
 function persist () {
+  if (!session) return
   try {
     mkdirSync(dirname(transcriptPath), { recursive: true })
     writeFileSync(transcriptPath, JSON.stringify(session.evidence(), null, 2))
@@ -76,6 +86,7 @@ function respondError (id, code, message) {
  * @param {any} msg
  */
 async function handle (msg) {
+  await ready
   const { id, method, params } = msg
 
   if (method === 'initialize') {
@@ -150,6 +161,6 @@ rl.on('line', (line) => {
   }
   queue = queue.then(() => handle(msg).catch((err) => respondError(msg?.id ?? null, -32603, err.message)))
 })
-rl.on('close', persist)
+rl.on('close', () => { queue = queue.then(persist) })
 
 process.stderr.write(`json-layout webmcp eval server ready — case "${caseName}": ${evalCase.goal}\n`)

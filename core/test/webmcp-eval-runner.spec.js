@@ -6,8 +6,10 @@ import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase, sidecarPath } from '../webmcp-eval/run-case.js'
-import { applyVariant, evidenceName } from '../webmcp-eval/session.js'
+import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, MAX_CONCURRENT_RUNS, runCase, runPool, parseCliArgs, sidecarPath } from '../webmcp-eval/run-case.js'
+import { ARMS, createArm } from '../webmcp-eval/arms.js'
+import { API_TOOL_NAMES } from '../webmcp-eval/plain-api.js'
+import { applyVariant, evidenceName, EvalSession } from '../webmcp-eval/session.js'
 
 /**
  * A fresh directory per test, so a stubbed run never writes into this package's own
@@ -303,5 +305,105 @@ describe('webmcp eval case selection', () => {
     for (const evalCase of cases) {
       assert.throws(() => getCase('does-not-exist'), new RegExp(evalCase.name), 'error must name the available cases')
     }
+  })
+})
+
+describe('webmcp eval arms', () => {
+  it('should name evidence by variant, then arm, then run', () => {
+    assert.equal(evidenceName('c'), 'c')
+    assert.equal(evidenceName('c', undefined, 'form'), 'c')
+    assert.equal(evidenceName('c', 'no-guide'), 'c--no-guide')
+    assert.equal(evidenceName('c', undefined, 'plain', 2), 'c--plain.r2')
+    assert.equal(evidenceName('c', 'no-guide', 'session', 1), 'c--no-guide--session.r1')
+    assert.equal(evidenceName('c', undefined, 'form', 3), 'c.r3')
+  })
+
+  it('should refuse an unknown arm and list the arms', async () => {
+    await assert.rejects(() => createArm(getCase('contact'), 'nope'), new RegExp(ARMS.join(', ')))
+  })
+
+  it('should keep the form arm prompt byte-identical to the old construction', async () => {
+    for (const evalCase of cases) {
+      const session = new EvalSession(evalCase)
+      const old = session.skill ? `${RUNNER_PROMPT}\n\n${session.skill}` : RUNNER_PROMPT
+      assert.equal(session.prompt, old)
+      const args = buildLaunchArgs(evalCase, { ...options, prompt: session.prompt, toolNames: session.toolNames })
+      assert.equal(optionValue(args, '--append-system-prompt'), old)
+    }
+    assert.equal(optionValue(buildLaunchArgs(getCase('contact'), options), '--append-system-prompt'), RUNNER_PROMPT)
+  })
+
+  it('should launch a plain arm with exactly its five tools and no form-tool name', async () => {
+    const arm = await createArm(getCase('contact'), 'plain')
+    const args = buildLaunchArgs(getCase('contact'), { ...options, prompt: arm.prompt, toolNames: arm.toolNames })
+    const allowed = optionValue(args, '--allowedTools').split(',')
+    assert.deepEqual(allowed, API_TOOL_NAMES.map((t) => `mcp__${MCP_SERVER_NAME}__${t}`))
+    assert.equal(allowed.length, 5)
+    const prompt = optionValue(args, '--append-system-prompt')
+    for (const tool of TOOL_NAMES) assert.ok(!prompt.includes(tool), `prompt names form tool ${tool}`)
+  })
+
+  it('should pass the arm and run by environment only when they are not the defaults', async () => {
+    /** @type {any[]} */
+    const seen = []
+    const spawn = async (/** @type {string} */ _c, /** @type {string[]} */ _a, /** @type {any} */ opts) => {
+      seen.push(opts.env)
+      return { code: 0, stdout: claudeOutput(), stderr: '' }
+    }
+    const sidecarDir = tmpSidecarDir()
+    await runCase(getCase('contact'), { spawn, sidecarDir })
+    await runCase(getCase('contact'), { spawn, sidecarDir, arm: 'plain', run: 2 })
+    assert.ok(!('JL_WEBMCP_EVAL_ARM' in seen[0]) || seen[0].JL_WEBMCP_EVAL_ARM === process.env.JL_WEBMCP_EVAL_ARM)
+    assert.equal(seen[0].JL_WEBMCP_EVAL_RUN, process.env.JL_WEBMCP_EVAL_RUN)
+    assert.equal(seen[1].JL_WEBMCP_EVAL_ARM, 'plain')
+    assert.equal(seen[1].JL_WEBMCP_EVAL_RUN, '2')
+    const written = JSON.parse(readFileSync(sidecarPath('contact--plain.r2', sidecarDir), 'utf8'))
+    assert.equal(written.ok, true)
+  })
+
+  it('should record a non-runnable arm and spawn nothing', async () => {
+    let spawned = 0
+    const spawn = async () => { spawned++; return { code: 0, stdout: claudeOutput(), stderr: '' } }
+    const sidecarDir = tmpSidecarDir()
+    const record = await runCase({ ...getCase('contact'), saveMode: 'auto' }, { spawn, sidecarDir, arm: 'session' })
+    assert.equal(spawned, 0)
+    assert.equal(record.ok, false)
+    assert.equal(record.notRunnable, true)
+    assert.ok(record.error)
+    const written = JSON.parse(readFileSync(sidecarPath('contact--session', sidecarDir), 'utf8'))
+    assert.equal(written.notRunnable, true)
+  })
+
+  it('should carry arm, start and checks in every arm evidence', async () => {
+    const evalCase = { ...getCase('contact'), checks: [{ path: '/name', equals: 'Ada' }] }
+    for (const arm of ['form', 'plain', 'session']) {
+      const session = await createArm(evalCase, arm)
+      const evidence = session.evidence()
+      assert.equal(evidence.arm, arm)
+      assert.deepEqual(evidence.start, {})
+      assert.equal(evidence.checks.length, 1)
+      assert.equal(evidence.checks[0].ok, false)
+    }
+  })
+
+  it('should cap concurrent runs and parse arm and runs flags', async () => {
+    assert.equal(MAX_CONCURRENT_RUNS, 6)
+    let active = 0
+    let peak = 0
+    const tasks = Array.from({ length: 10 }, (_, i) => async () => {
+      active++
+      peak = Math.max(peak, active)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      active--
+      return i
+    })
+    const results = await runPool(tasks, 3)
+    assert.equal(peak, 3)
+    assert.deepEqual(results.map((r) => r.status === 'fulfilled' && r.value), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    assert.deepEqual(parseCliArgs(['contact', '--arm', 'all', '--runs', '3', '--variant', 'no-guide']),
+      { variant: 'no-guide', arms: ARMS, runs: 3, names: ['contact'] })
+    assert.deepEqual(parseCliArgs([]).arms, ['form'])
+    assert.throws(() => parseCliArgs(['--arm', 'x']), /unknown arm/)
+    assert.throws(() => parseCliArgs(['--runs', '0']), /positive integer/)
   })
 })
