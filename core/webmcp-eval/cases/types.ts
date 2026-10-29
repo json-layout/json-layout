@@ -1,5 +1,12 @@
 export type ComplexityBand = 'small' | 'medium' | 'large'
 
+/** A check on a run's final data; see webmcp-eval/checks.js for the semantics. */
+export type EvalCheck =
+  | { path: string, equals: unknown, label?: string }
+  | { path: string, values: string[], separator?: string, label?: string }
+  | { path: string, contains: Record<string, unknown>, label?: string }
+  | { unchangedExcept: string[], label?: string }
+
 export type EvalCase = {
   name: string
   /** Passed to WebMCP as dataTitle, so it appears in the tool descriptions. */
@@ -36,4 +43,6 @@ export type EvalCase = {
    * large by node count while its schema still fits under SCHEMA_MAX_LENGTH.
    */
   expectedSchemaFits: boolean
+  /** Checks run on the final data of each arm, whatever path the agent took. */
+  checks?: EvalCheck[]
 }
