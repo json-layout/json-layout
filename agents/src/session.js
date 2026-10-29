@@ -280,7 +280,7 @@ export class FormSession {
    * The fill-form skill of this session's form: the core guide to the tools, the "About
    * this …" section of the schema's agent guide, and how a session persists its document.
    * A server publishes it next to the tools (openapi-mcp serves it as the MCP skill of an
-   * editor group), since a session has no sub-agent tool to hand it over itself.
+   * editor group), as a page publishes its form's skill beside its tools.
    * @returns {string}
    */
   getSkill () {
@@ -373,8 +373,6 @@ Your edits stay in this session until you call ${prefix}saveForm, which persists
       this._webmcp = new WebMCP(this._layout, {
         dataTitle: this.title,
         prefixName: this._spec.prefixName,
-        includeFillFormSkill: !!this._spec.includeFillFormSkill,
-        includeSubAgent: !!this._spec.includeSubAgent,
         // edited server-side: there is no person's screen with tabs to open
         screen: false
       })

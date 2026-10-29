@@ -430,17 +430,6 @@ describe('webmcp WebMCP class', () => {
     assert.ok(!tools.find((t) => t.name === 'fillFormSkill'))
   })
 
-  it('should include fillFormSkill when opted in', () => {
-    const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const webmcp = new WebMCP(layout, { includeFillFormSkill: true })
-    const tools = webmcp.getTools()
-
-    assert.ok(tools.find((t) => t.name === 'fillFormSkill'))
-  })
-
   it('should generate tool names with prefix', () => {
     const compiled = compile(simpleSchema)
     const mainTree = compiled.skeletonTrees[compiled.mainTree]
@@ -529,24 +518,6 @@ describe('webmcp WebMCP class', () => {
     assert.ok(text.includes('/name'), 'should mention field path')
     assert.ok(text.includes('Bob'), 'should mention field value')
     assert.match(textOf(result), /\/name \(text\) = "Bob"/)
-  })
-
-  it('should execute fillFormSkill tool when opted in', async () => {
-    const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const webmcp = new WebMCP(layout, { dataTitle: 'myform', includeFillFormSkill: true })
-    const tools = webmcp.getTools()
-
-    const skillTool = tools.find((t) => t.name === 'fillFormSkill')
-    assert.ok(skillTool)
-
-    const result = await /** @type {any} */(skillTool).execute({})
-
-    assert.ok(result.content)
-    assert.ok(!result.isError)
-    assert.ok(result.content[0].text.includes('JSON Myform Form-Filling Guide'))
   })
 
   it('should handle tool errors gracefully', async () => {
@@ -666,42 +637,6 @@ describe('webmcp WebMCP class', () => {
     assert.equal(parsed.data.name, 'Alice')
     assert.equal(parsed.valid, true)
   })
-
-  it('should include subagent tool when includeSubAgent is true', async () => {
-    const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const webmcp = new WebMCP(layout, { prefixName: 'myform_', dataTitle: 'registration', includeSubAgent: true })
-    const tools = webmcp.getTools()
-
-    const subagentTool = tools.find((t) => t.name === 'subagent_myform_form')
-    assert.ok(subagentTool, 'should have a subagent tool')
-    assert.ok(subagentTool.description.includes('registration'))
-
-    const result = await /** @type {any} */(subagentTool).execute({ task: 'fill the form' })
-    assert.ok(!result.isError)
-
-    const structured = JSON.parse(textOf(result))
-    assert.ok(structured.prompt.includes('Form-Filling Guide'))
-    assert.ok(Array.isArray(structured.tools))
-    assert.ok(structured.tools.includes('myform_getData'))
-    assert.ok(structured.tools.includes('myform_setData'))
-    assert.ok(structured.tools.includes('myform_setFieldValue'))
-    assert.ok(!structured.tools.includes('subagent_myform_form'), 'subagent tool should not include itself')
-  })
-
-  it('should use "form" as subagent name when no prefixName', async () => {
-    const compiled = compile(simpleSchema)
-    const mainTree = compiled.skeletonTrees[compiled.mainTree]
-    const layout = new StatefulLayout(compiled, mainTree, {}, {})
-
-    const webmcp = new WebMCP(layout, { dataTitle: 'registration', includeSubAgent: true })
-    const tools = webmcp.getTools()
-
-    const subagentTool = tools.find((t) => t.name === 'subagent_form')
-    assert.ok(subagentTool, 'should use "form" as subagent name when no prefixName')
-  })
 })
 
 const arrayOfObjectsSchema = {
@@ -726,6 +661,78 @@ const arrayOfObjectsSchema = {
     }
   }
 }
+
+describe('webmcp form skill', () => {
+  const layoutOf = () => {
+    const compiled = compile(simpleSchema)
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, {})
+  }
+
+  it('is the fill-form guide, as an Agent Skills resource named after the prefix', () => {
+    const skill = new WebMCP(layoutOf(), { prefixName: 'pageConfig_', dataTitle: 'registration' }).getSkill()
+    assert.equal(skill.name, 'page-config-form')
+    assert.equal(skill.uri, 'skill://page-config-form/SKILL.md')
+    assert.ok(skill.description.includes('registration'))
+    assert.ok(skill.body.includes('Form-Filling Guide'))
+    assert.ok(skill.body.includes('pageConfig_describeState'))
+  })
+
+  it('is named form without a prefix', () => {
+    assert.equal(new WebMCP(layoutOf(), {}).getSkill().name, 'form')
+  })
+
+  it('is never a tool: neither a guide to fetch nor a sub-agent', () => {
+    const names = new WebMCP(layoutOf(), { prefixName: 'p_' }).getTools().map((t) => t.name)
+    assert.ok(!names.some((name) => name.includes('fillFormSkill') || name.startsWith('subagent_')))
+  })
+
+  it('is registered beside the tools when the model context has resources, and unregistered with them', async () => {
+    /** @type {string[]} */
+    const events = []
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        modelContext: {
+          registerTool: (/** @type {any} */ tool) => { events.push(`tool ${tool.name}`) },
+          unregisterTool: (/** @type {string} */ name) => { events.push(`untool ${name}`) },
+          registerResource: (/** @type {any} */ resource) => {
+            events.push(`resource ${resource.uri}`)
+            return { unregister: () => { events.push(`unresource ${resource.uri}`) } }
+          }
+        }
+      }
+    })
+    try {
+      const webmcp = new WebMCP(layoutOf(), { prefixName: 'p_', dataTitle: 'registration' })
+      await webmcp.registerTools()
+      assert.ok(events.includes('resource skill://p-form/SKILL.md'))
+      assert.ok(events.includes('tool p_describeState'))
+      await webmcp.unregisterTools()
+      assert.ok(events.includes('unresource skill://p-form/SKILL.md'))
+    } finally {
+      if (previous) Object.defineProperty(globalThis, 'navigator', previous)
+      else delete (/** @type {any} */(globalThis)).navigator
+    }
+  })
+
+  it('a model context without resources still gets the tools', async () => {
+    /** @type {string[]} */
+    const events = []
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: { modelContext: { registerTool: (/** @type {any} */ tool) => { events.push(tool.name) }, unregisterTool: () => {} } }
+    })
+    try {
+      await new WebMCP(layoutOf(), {}).registerTools()
+      assert.ok(events.includes('describeState'))
+    } finally {
+      if (previous) Object.defineProperty(globalThis, 'navigator', previous)
+      else delete (/** @type {any} */(globalThis)).navigator
+    }
+  })
+})
 
 describe('webmcp suggestions truncation', () => {
   const bigDataset = {
