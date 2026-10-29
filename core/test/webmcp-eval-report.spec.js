@@ -610,13 +610,13 @@ describe('webmcp eval cost breakdown', () => {
 
   it('should count oversized calls per run and not fail on them', () => {
     const { lines, failed } = summarise([
-      withCalls('form', 1, [call('getData', 100_001), call('getData', 100_000)]),
+      withCalls('form', 1, [call('getData', 60_001), call('getData', 60_000)]),
       withCalls('form', 2, [call('getData', 5)])
     ])
     const text = lines.join('\n')
     assert.equal(failed, false)
     assert.ok(text.includes('oversized: 0–1'), text)
-    assert.ok(text.includes('100000 bytes'), 'legend names the threshold')
+    assert.ok(text.includes('60000 bytes'), 'legend names the threshold')
   })
 
   it('should print uncached input, cache reads and cache writes apart, with a legend', () => {

@@ -113,6 +113,24 @@ function referentials (evalCase) {
 }
 
 /**
+ * A dataset id as a schema writes it (`dataset:<id>`) or as a listing gives it (`<id>`).
+ * @param {string} id
+ * @returns {string}
+ */
+const bareId = (id) => id.startsWith('dataset:') ? id.slice('dataset:'.length) : id
+
+/**
+ * The 404 of an unknown dataset, naming the ids the case's remote data knows.
+ * @param {EvalCase} evalCase
+ * @param {string} id
+ * @returns {string}
+ */
+function unknownDataset (evalCase, id) {
+  const known = [...referentials(evalCase).keys()]
+  return `404 Not Found: no dataset ${JSON.stringify(id)}${known.length ? `; known ids: ${known.join(', ')}` : ''}`
+}
+
+/**
  * @param {EvalCase} evalCase
  * @param {(url: string) => Promise<any>} get
  * @returns {Record<LookupName, ApiTool>}
@@ -158,9 +176,17 @@ function catalogue (evalCase, get) {
       description: 'Describe a dataset: its `id`, `title`, `href` (its URL in the API) and `isRest` (true for an editable dataset), and its `schema`, the list of its columns as the API describes them: each with its `key`, `type`, and when it has them its `format`, `title`, `x-originalName`, `x-refersTo` (the URI of the concept the column holds, e.g. a label, a start date), `x-concept`, `enum` and other annotations. Calculated columns are left out. An unknown id answers 404 Not Found.',
       inputSchema: { type: 'object', properties: { datasetId }, required: ['datasetId'] },
       execute: (args) => attempt(async () => {
-        const id = args?.datasetId
-        if (typeof id !== 'string' || !id) return '400 Bad Request\ndatasetId is required'
-        const dataset = await get(`api/v1/datasets/${encodeURIComponent(id)}`)
+        const given = args?.datasetId
+        if (typeof given !== 'string' || !given) return '400 Bad Request\ndatasetId is required'
+        const id = bareId(given)
+        /** @type {any} */
+        let dataset
+        try {
+          dataset = await get(`api/v1/datasets/${encodeURIComponent(id)}`)
+        } catch (err) {
+          if (evalCase.remote && /^404\b/.test(err instanceof Error ? err.message : '')) return unknownDataset(evalCase, id)
+          throw err
+        }
         return {
           id: dataset.id,
           title: dataset.title,
@@ -185,10 +211,11 @@ function catalogue (evalCase, get) {
         required: ['datasetId', 'fieldKey']
       },
       execute: (args) => attempt(async () => {
-        const id = args?.datasetId
-        if (typeof id !== 'string' || !id) return '400 Bad Request\ndatasetId is required'
+        const given = args?.datasetId
+        if (typeof given !== 'string' || !given) return '400 Bad Request\ndatasetId is required'
+        const id = bareId(given)
         const column = referentials(evalCase).get(id)
-        if (!column) return `404 Not Found: dataset ${id}`
+        if (!column) return unknownDataset(evalCase, id)
         if (!REFERENTIAL_COLUMNS.includes(/** @type {string} */ (args?.fieldKey))) {
           return `400 Bad Request\nunknown column ${JSON.stringify(args?.fieldKey)}, the columns are: ${REFERENTIAL_COLUMNS.join(', ')}`
         }

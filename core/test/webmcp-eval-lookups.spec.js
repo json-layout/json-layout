@@ -89,6 +89,19 @@ describe('lookup tools', () => {
     assert.equal(two.count, found.count)
   })
 
+  it('reads a dataset id as the schema writes it, dataset:<id>', async () => {
+    const found = await json(getCase('data-fair-line'), 'get_field_values', { datasetId: 'dataset:communes', fieldKey: 'nom', q: 'Sébastien' })
+    assert.ok(found.results.some((/** @type {any} */ c) => c.code === '44190'), JSON.stringify(found))
+  })
+
+  it('answers an unknown dataset id with the known ids', async () => {
+    const withDescribe = /** @type {EvalCase} */ ({ ...getCase('data-fair-line'), lookups: ['describe_dataset', 'get_field_values'] })
+    const described = await run(withDescribe, 'describe_dataset', { datasetId: 'nope' })
+    assert.equal(described.isError, true)
+    assert.match(text(described), /^404 Not Found: no dataset "nope"; known ids: .*communes/)
+    assert.match(text(await run(withDescribe, 'get_field_values', { datasetId: 'nope', fieldKey: 'nom' })), /known ids:.*communes/)
+  })
+
   it('answers an unknown dataset with a 404 and an unknown column with the columns', async () => {
     const unknownDataset = await run(getCase('data-fair-line'), 'get_field_values', { datasetId: 'lieux', fieldKey: 'commune', q: 'Nantes' })
     assert.equal(unknownDataset.isError, true)

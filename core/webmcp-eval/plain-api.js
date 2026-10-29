@@ -171,6 +171,53 @@ export function errorLines (errors) {
   return [...new Set(lines)]
 }
 
+/** What a plain read of the schema may answer whole, in bytes; past it, an outline. */
+export const OUTLINE_BUDGET_BYTES = 16_000
+
+/** @param {unknown[] | string[]} keys */
+const keyList = (keys) => keys.slice(0, 40).join(', ') + (keys.length > 40 ? ', …' : '')
+
+/**
+ * The 404 text of a pointer that resolves to nothing: the deepest level that exists and
+ * what it holds, so the caller can correct the path.
+ * @param {unknown} root
+ * @param {unknown} path
+ * @returns {string}
+ */
+function notFound (root, path) {
+  const pointer = typeof path === 'string' ? path : ''
+  const parts = pointer.startsWith('/') ? pointer.slice(1).split('/') : []
+  let deepest = ''
+  let value = root
+  for (const part of parts) {
+    const next = resolvePointer(value, '/' + part)
+    if (!next.found) break
+    value = next.value
+    deepest += '/' + part
+  }
+  const keys = isObject(value) ? Object.keys(value) : Array.isArray(value) ? value.map((_, i) => String(i)) : []
+  return `404 Not Found: ${pointer}; the deepest existing level is ${deepest || '(root)'} with keys: ${keyList(keys)}`
+}
+
+/**
+ * An oversized schema, as its outline: each top-level property, `required` and the `$defs`
+ * names, with how to read a part.
+ * @param {Record<string, any>} schema
+ * @returns {string}
+ */
+function schemaOutline (schema) {
+  const lines = [`The schema is too long to be read whole (type ${schema.type ?? 'unspecified'}). Its outline:`, '', 'properties (key, type, title):']
+  for (const [key, property] of Object.entries(isObject(schema.properties) ? schema.properties : {})) {
+    const p = /** @type {Record<string, any>} */ (isObject(property) ? property : {})
+    const type = Array.isArray(p.type) ? p.type.join('|') : (p.type ?? (p.$ref ? `$ref ${p.$ref}` : p.oneOf ? 'oneOf' : p.anyOf ? 'anyOf' : 'unspecified'))
+    lines.push(`- ${key}: ${type}${typeof p.title === 'string' ? ` — ${p.title}` : ''}`)
+  }
+  if (Array.isArray(schema.required)) lines.push('', `required: ${schema.required.join(', ')}`)
+  if (isObject(schema.$defs)) lines.push('', `$defs: ${Object.keys(schema.$defs).join(', ')}`)
+  lines.push('', 'Read a part with a pointer: /properties/<key>, /$defs/<name>.')
+  return lines.join('\n')
+}
+
 /** The document tools every case has; its lookups come after them. */
 export const API_TOOL_NAMES = ['readDocument', 'readSchema', 'writeDocument', 'patchDocument']
 
@@ -247,7 +294,7 @@ export class PlainApiSession {
         name: 'readSchema',
         description: 'Read the JSON schema the API validates the document against, as JSON. Pass `path`, a JSON pointer into the schema (e.g. "/properties" or "/$defs/address"), to read only that part; omit it for the whole schema, which can be long. Besides standard JSON schema keywords, the schema may carry annotations meant for editing interfaces: layout hints, display conditions, URLs listing suggested values. The API does not enforce them when validating.',
         inputSchema: pathInput('JSON pointer into the schema. Omit for the whole schema.'),
-        execute: async (args) => this._read(this._case.schema, args?.path)
+        execute: async (args) => this._readSchema(args?.path)
       },
       {
         name: 'writeDocument',
@@ -287,8 +334,20 @@ export class PlainApiSession {
    */
   _read (root, path) {
     const resolved = resolvePointer(root, typeof path === 'string' ? path : undefined)
-    if (!resolved.found) return answer(`404 Not Found: no value at ${path}`, true)
+    if (!resolved.found) return answer(notFound(root, path), true)
     return answer(JSON.stringify(resolved.value))
+  }
+
+  /**
+   * The schema at a pointer; the whole schema, when it exceeds the budget, as an outline.
+   * @param {unknown} path
+   * @returns {ToolResult}
+   */
+  _readSchema (path) {
+    if ((path === undefined || path === '') && JSON.stringify(this._case.schema).length > OUTLINE_BUDGET_BYTES) {
+      return answer(schemaOutline(/** @type {Record<string, any>} */ (this._case.schema)))
+    }
+    return this._read(this._case.schema, path)
   }
 
   /**

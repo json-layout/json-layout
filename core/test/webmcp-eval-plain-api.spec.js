@@ -1,7 +1,8 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { patchTopLevel, PlainApiSession } from '../webmcp-eval/plain-api.js'
+import { OUTLINE_BUDGET_BYTES, patchTopLevel, PlainApiSession } from '../webmcp-eval/plain-api.js'
+import { TRUNCATION_BYTES } from '../webmcp-eval/arms.js'
 import { getCase } from '../webmcp-eval/cases/index.js'
 import { FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
 
@@ -33,6 +34,36 @@ const makeCase = (overrides = {}) => ({
 
 /** @param {any} result */
 const text = (result) => result.content.map((/** @type {any} */ p) => p.text).join('')
+
+describe('PlainApiSession schema reads', () => {
+  it('answers a pointer that resolves to nothing with the deepest existing level and its keys', async () => {
+    const session = new PlainApiSession(getCase('portal-page'))
+    const result = await session.call('readSchema', { path: '/$defs/alert' })
+    assert.equal(result.isError, true)
+    const out = text(result)
+    assert.match(out, /^404 Not Found: \/\$defs\/alert; the deepest existing level is \/\$defs with keys: /)
+    const defs = Object.keys(/** @type {any} */ (getCase('portal-page').schema).$defs)
+    for (const key of defs.slice(0, 5)) assert.ok(out.includes(key), key)
+  })
+
+  it('outlines an oversized schema read whole, and leaves a small one whole', async () => {
+    const big = new PlainApiSession(getCase('portal-page'))
+    const outline = text(await big.call('readSchema', {}))
+    assert.ok(Buffer.byteLength(outline) <= OUTLINE_BUDGET_BYTES, `${Buffer.byteLength(outline)} bytes`)
+    assert.ok(outline.includes('elements'))
+    assert.match(outline, /\/properties\/<key>, \/\$defs\/<name>/)
+    const small = new PlainApiSession(getCase('contact'))
+    assert.equal(text(await small.call('readSchema', {})), JSON.stringify(getCase('contact').schema))
+  })
+
+  it('counts an oversized call among the recorded bytes', async () => {
+    const huge = 'x'.repeat(70_000)
+    const session = new PlainApiSession(makeCase({ schema: { type: 'object', properties: { a: { type: 'string', description: huge } } } }))
+    await session.call('readSchema', { path: '/properties' })
+    assert.ok(session.calls[0].outputBytes > 70_000)
+    assert.ok(session.calls[0].outputBytes > TRUNCATION_BYTES)
+  })
+})
 
 describe('PlainApiSession', () => {
   it('exposes the four API tools and nothing else, no generic HTTP client', () => {

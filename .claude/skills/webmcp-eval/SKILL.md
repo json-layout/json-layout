@@ -102,8 +102,10 @@ run any number of times and always reflects the current `core/src` and case regi
      `mcp__document-api__*` for `plain`)
    - the transcript path, **`core/tmp/webmcp-eval-<label>.judge.json`**, where `<label>` is
      the run's evidence name: a copy of `core/tmp/webmcp-eval-<label>.json` without its
-     `checks` field, which holds the check labels, results and details. Never the raw
-     transcript, which the judge would read. Write the copy first with the line below, from
+     `checks` field, which holds the check labels, results and details. Pass this
+     `.judge.json` path and nothing else as the transcript: never the raw transcript, and
+     the judge (`Read` only) reads no other file (round 2's judges grepped
+     `cases/index.js` and saw the check definitions). Write the copy first with the line below, from
      the repository root (the report ignores `*.judge.json` files):
 
      ```bash

@@ -49,8 +49,11 @@ export async function createArm (evalCase, arm) {
   throw new Error(`unknown arm "${arm}", available: ${ARMS.join(', ')}`)
 }
 
-/** Claude Code caps an MCP tool's output at about 25k tokens; a call past this was likely cut off. */
-export const TRUNCATION_BYTES = 100_000
+/**
+ * Claude Code caps MCP output at 25,000 tokens; round 2 saw 95 KB responses cut, so a
+ * conservative 2.4 bytes/token: a call past this was likely cut off.
+ */
+export const TRUNCATION_BYTES = 60_000
 
 /** @typedef {'read-state'|'read-schema'|'write'|'lookup'|'other'} CallKind */
 
