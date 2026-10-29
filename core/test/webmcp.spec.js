@@ -2758,6 +2758,67 @@ describe('webmcp suggestion keys', () => {
   })
 })
 
+// Round 2: two portal-config-multi runs walked 9-11 tabs to find four settings.
+describe('webmcp describeState query', () => {
+  /** @param {string} name */
+  const caseLayout = (name) => {
+    const evalCase = getCase(name)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+  }
+
+  it('finds a field by its key', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'breadcrumb' })
+    assert.match(markdown, /^\/\$comp-5\/breadcrumb \(section\)/m)
+    assert.ok(!markdown.includes('describeState with'), markdown)
+  })
+
+  it('finds a field by the words of its title, accents and case apart', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: "FIL d'ariane" })
+    assert.match(markdown, /^\/\$comp-5\/breadcrumb\/position \(select\) = [^\n]* — Position du fil d'Ariane$/m)
+    assert.equal(describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'ecrans reseaux' }).includes('socialShares'), false)
+    assert.match(describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'reseaux sociaux' }), /\/socialShares \(/)
+  })
+
+  it('finds the setting the user calls department by its key, under any tab', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'department' })
+    assert.match(markdown, /\/datasets\/\$comp-1\/card\/\$comp-1\/showDepartment \(switch\) = [^\n]* — Afficher le propriétaire/)
+    assert.ok(markdown.split('\n').length >= 4)
+  })
+
+  it('finds a field by its description, with every word required', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'surcharge propriétaire' })
+    assert.match(markdown, /labelsOverrides\/owner/)
+    assert.ok(!describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'surcharge zzzz' }).includes('labelsOverrides'))
+  })
+
+  it('searches under a path only', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'department', path: '/datasets/page' })
+    assert.match(markdown, /\/page\/metadata\/showDepartment/)
+    assert.ok(!markdown.includes('/card/'), markdown)
+  })
+
+  it('says so when nothing matches', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'zzzz' })
+    assert.match(markdown, /no field matches "zzzz"/)
+    assert.match(markdown, /describeState without a query/)
+  })
+
+  it('keeps at most 30 matches and counts the rest', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'e' })
+    const lines = markdown.split('\n').filter(l => l.startsWith('/'))
+    assert.equal(lines.length, 30)
+    assert.match(markdown, /\d+ fields match "e", the first 30 are listed/)
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('is described by the tool', () => {
+    assert.ok(describeState.inputSchema.properties.query)
+    assert.match(describeState.getDescription('x'), /query/)
+  })
+})
+
 // Round 2 of the webmcp eval (baselines/2026-10-29-round-2): the root describeState of a 7.5 KB
 // portal page answered 95 KB and `/elements` 91 KB, cut before the model read them.
 describe('webmcp outline of a large form', () => {

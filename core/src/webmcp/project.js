@@ -732,6 +732,63 @@ function stateHeaderLines (stateTree, statefulLayout) {
   return lines
 }
 
+/** Matches a query answers before counting the rest. */
+export const QUERY_MATCHES_MAX = 30
+
+/**
+ * Lowercase, accents stripped, cut into words: "Fil d'Ariane" and "fil d ariane" read alike.
+ * @param {string} text
+ * @returns {string[]}
+ */
+function searchWords (text) {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+}
+
+/**
+ * The visible fields under a node whose key, title, label or help holds every word of a
+ * query: round 2 agents walked 9 to 11 tabs to find four settings. Words are looked for as
+ * parts of words, so "department" finds a key "showDepartment". Nodes are told by their form
+ * path, as describeState lists them.
+ * @param {import('../state/types.js').StateNode} root
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} query
+ * @returns {{ lines: string[], total: number }} the first QUERY_MATCHES_MAX lines, and the count of all matches
+ */
+export function projectQueryMatches (root, statefulLayout, query) {
+  const words = searchWords(query)
+  /** @type {string[]} */
+  const lines = []
+  let total = 0
+  if (!words.length) return { lines, total }
+  /** @param {import('../state/types.js').StateNode} node */
+  const visit = (node) => {
+    const layout = /** @type {Record<string, unknown>} */(node.layout)
+    const comp = node.layout.comp
+    if (comp === 'slot' || comp === 'none') return
+    const titled = [layout.label, layout.title].find((t) => typeof t === 'string' && t.trim())
+    const named = typeof node.key === 'string' && node.key && !node.key.startsWith('$')
+    if (named || titled || comp === 'list') {
+      const help = typeof layout.help === 'string' && layout.help ? helpToText(layout.help) : ''
+      const haystack = searchWords(`${named ? node.key : ''} ${titled ?? ''} ${help}`).join(' ')
+      if (words.every((w) => haystack.includes(w))) {
+        total++
+        if (lines.length < QUERY_MATCHES_MAX) {
+          const multiValued = isMultiValued(node)
+          const type = multiValued ? `list of ${multiValuedItemType(node, statefulLayout)}` : (compToType[comp] || comp)
+          const children = visibleChildren(node)
+          const count = comp === 'list' && Array.isArray(node.data) ? `, ${node.data.length} items` : ''
+          const current = multiValued ? multiValuedData(node) : node.data
+          const value = children.length === 0 ? ` = ${current === undefined ? 'not set' : outlineValue(current)}` : ''
+          lines.push(`${node.fullKey || '/'} (${type}${count})${value}${titled ? ` — ${titled}` : ''}`)
+        }
+      }
+    }
+    for (const child of visibleChildren(node)) visit(child)
+  }
+  visit(root)
+  return { lines, total }
+}
+
 /** Levels of nested sections an outline expands at most, fewer when that does not fit. */
 export const OUTLINE_MAX_DEPTH = 6
 
