@@ -386,3 +386,103 @@ describe('webmcp values picked, as the form stores them', () => {
     assert.deepEqual(webmcp.unpickedValues(), [])
   })
 })
+
+describe('webmcp lists reshaped from other fields', () => {
+  // catalog-melodi: one URL, the values of the selected concept picked out of it by
+  // itemsResults. The itemsCacheKey (the URL) does not change with the concept.
+  const range = {
+    range: [
+      { code: 'A', values: [{ code: 'a1' }, { code: 'a2' }] },
+      { code: 'B', values: [{ code: 'b1' }, { code: 'b2' }] }
+    ]
+  }
+  const schema = {
+    type: 'object',
+    properties: {
+      label: { type: 'string' },
+      selectedConcept: {
+        type: 'string',
+        layout: { comp: 'autocomplete', getItems: { url: 'http://example.com/range', itemsResults: 'data.range', itemValue: 'item.code', itemTitle: 'item.code' } }
+      },
+      selectedValue: {
+        type: 'string',
+        layout: {
+          comp: 'autocomplete',
+          getItems: {
+            url: 'http://example.com/range',
+            itemsResults: '((data.range || []).find(c => c.code === parent.data.selectedConcept)?.values || [])',
+            itemValue: 'item.code',
+            itemTitle: 'item.code'
+          }
+        }
+      }
+    }
+  }
+  const conceptForm = () => {
+    let fetches = 0
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {
+      debounceInputMs: 0,
+      fetch: async () => { fetches++; return range }
+    }, { selectedConcept: 'A' })
+    const webmcp = new WebMCP(layout)
+    return { layout, webmcp, tools: Object.fromEntries(webmcp.getTools().map((t) => [t.name, t])), fetches: () => fetches }
+  }
+
+  it('should drop the list and the pick of a field when the field its list is reshaped from changes', async () => {
+    const { tools, webmcp, layout } = conceptForm()
+    const listed = await run(tools, 'getFieldSuggestions', { path: '/selectedValue' })
+    assert.match(listed, /a1/, listed)
+    await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 0 })
+    assert.equal(/** @type {any} */(layout.data).selectedValue, 'a1')
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    await run(tools, 'getFieldSuggestions', { path: '/selectedConcept' })
+    const text = await run(tools, 'setFieldValue', { path: '/selectedConcept', value: 'B' })
+    assert.match(text, /\/selectedValue: "a1" was not among the suggestions/, text)
+    assert.deepEqual(webmcp.unpickedValues(), [{ path: '/selectedValue', value: 'a1' }])
+    const applied = await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 1 })
+    assert.match(applied, /were dropped by a write/, applied)
+    const relisted = await run(tools, 'getFieldSuggestions', { path: '/selectedValue' })
+    assert.match(relisted, /b1/, relisted)
+    assert.doesNotMatch(relisted, /a1/, relisted)
+  })
+
+  it('should keep the list and the pick across a write that leaves its list as it was', async () => {
+    const { tools, webmcp, layout, fetches } = conceptForm()
+    await run(tools, 'getFieldSuggestions', { path: '/selectedValue' })
+    await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 0 })
+    const text = await run(tools, 'setFieldValue', { path: '/label', value: 'my import' })
+    assert.ok(!text.includes('was not among'), text)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    const applied = await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 1 })
+    assert.ok(!applied.startsWith('Error'), applied)
+    assert.equal(/** @type {any} */(layout.data).selectedValue, 'a2')
+    assert.equal(fetches(), 1)
+  })
+
+  it('should keep the suggestions of a list reshaped from the item alone across the same write', async () => {
+    const { tools, layout } = conceptForm()
+    await run(tools, 'getFieldSuggestions', { path: '/selectedConcept' })
+    await run(tools, 'setFieldValue', { path: '/selectedConcept', value: 'B' })
+    const applied = await run(tools, 'setFieldValue', { path: '/selectedConcept', suggestionIndex: 0 })
+    assert.ok(!applied.startsWith('Error'), applied)
+    assert.equal(/** @type {any} */(layout.data).selectedConcept, 'A')
+  })
+  it('should judge a list searched only by its request from the data it can read, its own value aside', async () => {
+    const searched = structuredClone(schema)
+    searched.properties.selectedValue.layout.getItems.url = 'http://example.com/range?q={q}'
+    const compiled = compile(searched)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch: async () => range }, { selectedConcept: 'A' })
+    const webmcp = new WebMCP(layout)
+    const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
+    await run(tools, 'getFieldSuggestions', { path: '/selectedValue', query: 'a' })
+    await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 0 })
+    // picking again from the same list: its own value is not what it depends on
+    const again = await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 1 })
+    assert.ok(!again.startsWith('Error'), again)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    await run(tools, 'getFieldSuggestions', { path: '/selectedConcept' })
+    const text = await run(tools, 'setFieldValue', { path: '/selectedConcept', value: 'B' })
+    assert.match(text, /\/selectedValue: "a2" was not among the suggestions/, text)
+  })
+})

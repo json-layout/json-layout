@@ -36,9 +36,10 @@ export function getDescription (dataTitle) {
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, query?: string }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store] - memorizes the full items so that setFieldValue can apply one by index
+ * @param {(node: import('../../state/types.js').StateNode) => unknown} [freshnessKey] - what the node's options depend on, its itemsCacheKey by default
  * @returns {Promise<{items: Array<{value: unknown, title: string, key?: string}>, baseIndex: number}>}
  */
-export async function execute (statefulLayout, args, store) {
+export async function execute (statefulLayout, args, store, freshnessKey = (node) => node.itemsCacheKey) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
     throw nodeNotFoundError(statefulLayout, args.path)
@@ -50,7 +51,7 @@ export async function execute (statefulLayout, args, store) {
     const items = (oneOfItems || [])
       .filter((item) => !item.header)
       .map((item) => ({ value: item.key, title: item.title }))
-    return { items, baseIndex: store?.add(node.fullKey, items, node.itemsCacheKey) ?? 0 }
+    return { items, baseIndex: store?.add(node.fullKey, items, freshnessKey(node)) ?? 0 }
   }
 
   // the state layer would throw "missing items or getItems parameters": say instead what
@@ -82,5 +83,5 @@ export async function execute (statefulLayout, args, store) {
       return result
     })
 
-  return { items, baseIndex: store?.add(node.fullKey, items, node.itemsCacheKey) ?? 0 }
+  return { items, baseIndex: store?.add(node.fullKey, items, freshnessKey(node)) ?? 0 }
 }

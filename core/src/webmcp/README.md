@@ -174,7 +174,11 @@ needs the list remembered. Every write used to clear all of it, which broke a li
 unrelated write could not have affected. Invalidation now compares each path's
 `itemsCacheKey` — the same value the state layer uses to decide whether to re-fetch. `setData`
 also drops the paths whose data it changed, and nothing else; `editArray` drops the lists of
-the items an add or a remove shifted, and a move takes each item's lists along with it.
+the items an add or a remove shifted, and a move takes each item's lists along with it. A list whose items
+are reshaped by expressions that read other fields (`itemsResults` picking the values of the
+selected concept out of one same URL) is compared by the items it lists now instead, reshaped
+from its download without a request, so changing that field drops its suggestions and the
+values picked from them.
 
 **Picked, not invented.** A field whose options come from a remote list holds codes the form
 cannot check: an agent typed commune 44173 from memory (the real one was 44190) and the form

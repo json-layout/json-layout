@@ -49,6 +49,20 @@ export const isSection = (node) => !!node && node.layout.comp === 'section'
 /** @type {(node: StateNode | undefined, components: Record<string, import('@json-layout/vocabulary').ComponentInfo>) => node is SelectNode | ComboboxNode | AutocompleteNode} */
 export const isItemsNode = (node, components) => !!node && isItemsLayout(node.layout, components)
 
+/**
+ * Whether the expressions shaping a list's items (itemsResults, itemValue...) read data other
+ * than the item: the root data or a parent's, as the expressions' purity says. The
+ * itemsCacheKey does not follow that data, so such a list is reshaped on every getItems.
+ * @param {import('@json-layout/vocabulary').BaseCompObject} layout
+ * @returns {boolean}
+ */
+export const reshapesFromOtherData = (layout) => {
+  const getItems = /** @type {any} */(layout).getItems
+  if (!getItems || typeof getItems !== 'object') return false
+  return ['itemsResults', 'itemValue', 'itemTitle', 'itemKey', 'itemIcon', 'itemHeader']
+    .some((name) => getItems[name] && getItems[name].pure === false)
+}
+
 const logDataBinding = debug('jl:data-binding')
 const logSelectItems = debug('jl:select-items')
 const logGetItems = debug('jl:get-items')
@@ -666,15 +680,28 @@ export class StatefulLayout {
 
   /**
    * @private
-   * @type {Record<string, {key: any, appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}>}
+   * @type {Record<string, {key: any, appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems, raw?: unknown}>}
    */
   _itemsCache = {}
+
+  /**
+   * The items a node would list now, without a request: undefined when its list was not
+   * downloaded whole for its current itemsCacheKey (never asked for, or searched only with a
+   * query the request applied).
+   * @param {StateNode} node
+   * @returns {import('@json-layout/vocabulary').SelectItems | undefined}
+   */
+  cachedItems (node) {
+    const cached = this._itemsCache[node.fullKey]
+    if (!cached || cached.key !== node.itemsCacheKey || !isItemsNode(node, this._compiledLayout.components)) return undefined
+    return 'raw' in cached ? this.reshapeItems(node, cached.raw) : cached.items
+  }
 
   /**
    * @private
    * @param {StateNode} node
    * @param {string} q
-   * @returns {Promise<{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}>}
+   * @returns {Promise<{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems, raw?: unknown}>}
    */
   async getItemsWithoutCache (node, q = '') {
     if (!isItemsNode(node, this._compiledLayout.components)) {
@@ -683,6 +710,20 @@ export class StatefulLayout {
 
     if (node.itemsCacheKey === null) return { appliedQ: false, items: [] }
 
+    const { appliedQ, raw } = await this.downloadItems(node, q)
+    const items = this.reshapeItems(node, raw)
+    // a list reshaped from other data keeps its download, to be reshaped again as that data changes
+    return reshapesFromOtherData(node.layout) ? { appliedQ, items, raw } : { appliedQ, items }
+  }
+
+  /**
+   * The items of a node as listed or fetched, before the getItems expressions shape them.
+   * @private
+   * @param {SelectNode | ComboboxNode | AutocompleteNode} node
+   * @param {string} q
+   * @returns {Promise<{appliedQ: boolean, raw: unknown}>}
+   */
+  async downloadItems (node, q) {
     let appliedQ = false
     let rawItems
     if (node.layout.items || (node.layout.getItems && isGetItemsExpression(node.layout.getItems))) {
@@ -722,6 +763,17 @@ export class StatefulLayout {
     if (!rawItems) {
       throw new Error(`node ${node.fullKey} is missing items or getItems parameters`)
     }
+    return { appliedQ, raw: rawItems }
+  }
+
+  /**
+   * Apply the getItems expressions (itemsResults, itemValue, itemTitle...) to a download.
+   * @private
+   * @param {SelectNode | ComboboxNode | AutocompleteNode} node
+   * @param {any} rawItems
+   * @returns {import('@json-layout/vocabulary').SelectItems}
+   */
+  reshapeItems (node, rawItems) {
     if (node.layout.getItems?.itemsResults) {
       rawItems = this.evalNodeExpression(node, node.layout.getItems.itemsResults, rawItems)
       logGetItems(node.fullKey, 'items passed through the getItems.itemsResults expression', rawItems)
@@ -734,7 +786,7 @@ export class StatefulLayout {
       return this.prepareSelectItem(node, rawItem)
     })
 
-    return { appliedQ, items }
+    return items
   }
 
   /**
@@ -745,12 +797,12 @@ export class StatefulLayout {
   async getItems (node, q = '') {
     /** @type {{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}} */
     let itemsResult
-    if (
-      this._itemsCache[node.fullKey] &&
-      this._itemsCache[node.fullKey].key === node.itemsCacheKey &&
-      (!q || !this._itemsCache[node.fullKey].appliedQ)
-    ) {
-      itemsResult = this._itemsCache[node.fullKey]
+    const cached = this._itemsCache[node.fullKey]
+    if (cached && cached.key === node.itemsCacheKey && (!q || !cached.appliedQ)) {
+      // the download is reused, but a list reshaped from other data is reshaped from it
+      // again: the itemsCacheKey does not follow that data (catalog-melodi's values of the
+      // selected concept, read from one same URL)
+      itemsResult = 'raw' in cached ? { appliedQ: cached.appliedQ, items: this.reshapeItems(/** @type {SelectNode} */(node), cached.raw) } : cached
     } else {
       itemsResult = await this.getItemsWithoutCache(node, q)
       if (!q || !itemsResult.appliedQ) {
