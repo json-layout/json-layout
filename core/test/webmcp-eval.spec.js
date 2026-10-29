@@ -6,6 +6,8 @@ import { compile } from '../src/compile/index.js'
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
 import { TOOL_NAMES } from '../webmcp-eval/run-case.js'
 import { EvalSession } from '../webmcp-eval/session.js'
+import { PlainApiSession } from '../webmcp-eval/plain-api.js'
+import { runChecks } from '../webmcp-eval/checks.js'
 
 /**
  * @param {import('../src/state/index.js').StateNode} node
@@ -169,6 +171,71 @@ describe('webmcp eval session', () => {
     assert.equal(evidence.calls[0].tool, 'setFieldValue')
     assert.ok('response' in evidence.calls[0], 'the judge needs the response text, not just its size')
     assert.equal(typeof (/** @type {any} */(session).score), 'undefined', 'score() must be gone')
+  })
+})
+
+describe('webmcp eval line form case', () => {
+  /**
+   * A line as the goal describes it, written the loose way data-fair's line API accepts:
+   * multi-valued columns as joined strings, the SIRET as a number.
+   */
+  const looseLine = {
+    nom: 'Dojo des Grands Bois',
+    association: 'Judo Club Sébastiennais',
+    type_lieu: 'salle polyvalente',
+    commune: '44190',
+    adresse: '12 rue des Grands Bois',
+    telephone: '02 40 80 12 34',
+    siret: 52348761900017,
+    activites: 'judo',
+    publics: 'enfants, adultes, personnes handicapées',
+    date_ouverture: '2025-03-03'
+  }
+
+  it('should search communes offline, every word of the query in the name', async () => {
+    // The referential is searched the way data-fair's single search does it: the user's
+    // abbreviation finds nothing, the full word finds the commune among its homonyms.
+    const session = new EvalSession(getCase('data-fair-line'))
+    await session.call('getFieldSuggestions', { path: '/commune', query: 'St-Sébastien' })
+    assert.equal(session.calls[0].isError, false, session.calls[0].response)
+    assert.ok(!session.calls[0].response.includes('44190'), session.calls[0].response)
+    await session.call('getFieldSuggestions', { path: '/commune', query: 'Sébastien' })
+    assert.equal(session.calls[1].isError, false, session.calls[1].response)
+    assert.ok(session.calls[1].response.includes('44190'), session.calls[1].response)
+  })
+
+  it('should answer the commune search as data-fair does, sorted by code and capped', () => {
+    const { remote } = getCase('data-fair-line')
+    assert.ok(remote)
+    const saint = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=saint')))
+    assert.equal(saint.results.length, 10)
+    assert.ok(saint.total > 10)
+    const codes = saint.results.map((/** @type {any} */ r) => r.output)
+    assert.deepEqual(codes, [...codes].sort())
+    assert.ok(!codes.includes('44190'), 'the commune is past the first page of "saint"')
+    const reze = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=REZE')))
+    // a prefix of the homonym too, and it sorts first
+    assert.deepEqual(reze.results, [{ output: '15161', label: '15161 (Rézentières)' }, { output: '44143', label: '44143 (Rezé)' }])
+    assert.equal(remote(new URL('http://eval.local/unknown')), undefined)
+  })
+
+  it('should accept the line the goal describes, in the plain API and in the checks', async () => {
+    const evalCase = getCase('data-fair-line')
+    assert.equal(evalCase.saveMode, 'explicit')
+    assert.deepEqual(evalCase.data, {})
+    const session = new PlainApiSession(evalCase)
+    const result = await session.call('writeDocument', { document: looseLine })
+    assert.equal(result.isError, false, result.content[0].text)
+    const failed = runChecks(evalCase.checks ?? [], session.data, evalCase.data).filter((r) => !r.ok)
+    assert.deepEqual(failed, [])
+  })
+
+  it('should refuse what the register refuses', async () => {
+    const session = new PlainApiSession(getCase('data-fair-line'))
+    for (const wrong of [{ telephone: '0240801234' }, { activites: 'judo, ju-jitsu' }, { commune_nom: 'Saint-Sébastien-sur-Loire' }]) {
+      const result = await session.call('writeDocument', { document: { ...looseLine, ...wrong } })
+      assert.equal(result.isError, true, JSON.stringify(wrong))
+    }
   })
 })
 

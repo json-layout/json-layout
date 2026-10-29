@@ -40,12 +40,13 @@ finding needs checking against one.
 ### Where the vendored schemas came from
 
 Copies live in `cases/schemas/`, pinned so a run today is comparable to one months later.
-Both come from the [data-fair](https://github.com/data-fair) applications:
+They come from [data-fair](https://github.com/data-fair) and its applications:
 
 | file | upstream repo | upstream path |
 |---|---|---|
 | `cases/schemas/app-charts.json` | `data-fair/app-charts` | `src/config/schema.json` |
 | `cases/schemas/app-calendar.json` | `data-fair/app-calendar` | `public/config-schema.json` |
+| `cases/schemas/data-fair-line.json` | `data-fair/data-fair` @ `feat-autonomous-agents` | served by `GET /api/v1/datasets/<id>/schema?mimeType=application/schema+json&extension=true&arrays=true` for the register of `simulations/runner/line-edition-fixtures.ts` |
 
 `app-charts` is vendored from its **source** schema, not its published one:
 `public/config-schema.json` there is a build artefact (`df-build-types && ncp
@@ -60,6 +61,17 @@ vjsf until it moved, and moving it means the eval tracks the layer rather than a
 copy of it. Compiled raw, the first judged run showed why this matters: the pickers rendered as plain sections and
 `getFieldSuggestions` refused them, while the schema still showed the vendor keywords —
 two surfaces contradicting each other on the same path.
+
+`data-fair-line` is a REST dataset's line schema as data-fair serves it, read live on
+2026-10-29 from a register of the line edition experiment. Two rewrites only: the commune
+single-search URL becomes the relative `communes?q={q}` that the case's offline fixture
+(`cases/data/communes.json`, real communes from geo.api.gouv.fr) answers, and the
+referential's id becomes `communes` in the vendor keywords. data-fair already emits a
+`layout.getItems` beside its `x-fromUrl`, so `v2compat` leaves the vendor keywords in
+place. The case then applies what data-fair/mcp's `prepareEditorSchema`
+(`src/editor-schema.ts`, branch `fix-editor-line-edition`) does before its editor compiles
+the schema: `v2compat`, string layouts expanded, extension columns hidden, the form closed
+with `additionalProperties: false`.
 
 ### Where the pickers fetch from
 

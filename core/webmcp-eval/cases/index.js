@@ -363,7 +363,116 @@ const chartsPie = {
   context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
 }
 
-export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie]
+/**
+ * What data-fair/mcp's prepareEditorSchema (src/editor-schema.ts, branch
+ * fix-editor-line-edition) does to a line schema before the editor compiles it: the v2
+ * compatibility layer, string layouts expanded, attachment and extension columns hidden,
+ * and the form closed to its columns.
+ * @param {Record<string, any>} fetched
+ * @returns {Record<string, any>}
+ */
+function lineEditorSchema (fetched) {
+  const schema = v2compat(structuredClone(fetched))
+  schema.additionalProperties = false
+  for (const property of Object.values(schema.properties ?? {})) {
+    if (typeof property.layout === 'string') property.layout = { comp: property.layout }
+    const hide = (property['x-refersTo'] === 'http://schema.org/DigitalDocument' && property.layout?.comp !== 'text-field') ||
+      property['x-extension'] !== undefined
+    if (hide) property.layout = { ...(property.layout ?? {}), comp: 'none' }
+  }
+  return schema
+}
+
+/** @param {string} text */
+const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+/** @type {{ code: string, nom: string }[]} */
+const communes = JSON.parse(readFileSync(join(here, 'data', 'communes.json'), 'utf8'))
+
+/**
+ * The referential's single search as data-fair answers it
+ * (api/src/datasets/routes/master-data.ts): every word of `q` in the name, sorted on the
+ * code, ten results, each labelled "code (name)".
+ * @param {URL} url
+ * @returns {unknown}
+ */
+function communesRemote (url) {
+  if (url.pathname !== '/communes') return undefined
+  const words = fold(url.searchParams.get('q') ?? '').split(/\s+/).filter(Boolean)
+  const found = communes
+    .filter((c) => words.every((w) => fold(c.nom).includes(w)))
+    .sort((a, b) => a.code.localeCompare(b.code))
+  return {
+    total: found.length,
+    results: found.slice(0, 10).map((c) => ({ output: c.code, label: `${c.code} (${c.nom})` }))
+  }
+}
+
+const lineSchema = loadSchema('data-fair-line.json')
+
+/**
+ * What data-fair's line API tolerates (api/src/datasets/utils/rest.ts) before validating:
+ * a multi-valued column written as one joined string, a number for a string column.
+ * @param {unknown} doc
+ * @returns {unknown}
+ */
+function lineApiAccepts (doc) {
+  if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return doc
+  /** @type {Record<string, any>} */
+  const line = { ...doc }
+  const properties = /** @type {Record<string, any>} */ (lineSchema.properties)
+  for (const [key, value] of Object.entries(line)) {
+    const property = properties[key]
+    if (property?.type === 'array' && typeof value === 'string') line[key] = value.split(',').map((v) => v.trim()).filter(Boolean)
+    else if (property?.type === 'string' && typeof value === 'number') line[key] = String(value)
+  }
+  return line
+}
+
+/**
+ * A line of a data-fair REST dataset, entered from a loosely written email: the record an
+ * autonomous agent of data-fair is asked to add to a register of sports venues.
+ *
+ * Every value the goal gives is in a shape the register does not take as is. The commune
+ * is a code INSEE picked from a referential, and "St-Sébastien" matches nothing there
+ * while the full name matches several homonyms; the phone is grouped by twos; the
+ * activities and audiences are closed lists, and "ju-jitsu" and "self-défense" are not in
+ * them; the date is written out in French. The line API's own tolerances (a joined string
+ * for a multi-valued column, a number for a string column) are the plain API's, so the
+ * comparison measures the referential and the formats rather than the encoding.
+ *
+ * Vendored on 2026-10-29 from data-fair @ feat-autonomous-agents: the register of the line
+ * edition experiment (simulations/runner/line-edition-fixtures.ts), read live as
+ * `GET /api/v1/datasets/<id>/schema?mimeType=application/schema+json&extension=true&arrays=true`.
+ * The single search URL is rewritten to the relative `communes?q={q}` the fixture serves,
+ * and the referential renamed `communes` in the vendor keywords. The fixture is real
+ * communes of geo.api.gouv.fr: those of the Nantes area, every `Saint-…` of Loire-Atlantique
+ * whose code sorts before Saint-Sébastien-sur-Loire's, and homonyms elsewhere.
+ * @type {EvalCase}
+ */
+const dataFairLine = {
+  name: 'data-fair-line',
+  title: 'dataset line',
+  goal: 'Peux-tu ajouter ce lieu à notre liste des lieux d\'activité des associations ? Je te transfère le mail du club :\n\n' +
+    '« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien. ' +
+    'On y fera du judo, ju-jitsu et self-défense, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. ' +
+    'Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »',
+  schema: lineEditorSchema(lineSchema),
+  data: {},
+  remote: communesRemote,
+  apiAccepts: lineApiAccepts,
+  saveMode: 'explicit',
+  checks: [
+    { path: '/commune', equals: '44190' },
+    { path: '/telephone', equals: '02 40 80 12 34' },
+    { path: '/siret', equals: '52348761900017' },
+    { path: '/activites', values: ['judo'] },
+    { path: '/publics', values: ['enfants', 'adultes', 'personnes handicapées'] },
+    { path: '/date_ouverture', equals: '2025-03-03' }
+  ]
+}
+
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie, dataFairLine]
 
 /**
  * @param {string} name
