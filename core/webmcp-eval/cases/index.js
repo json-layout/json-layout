@@ -206,6 +206,8 @@ const calendar = {
   data: {},
   context: grandPoitiersContext,
   remote: calendarRemote,
+  // an application configuration is a draft the app's editor saves as it changes
+  saveMode: 'auto',
   checks: [
     { path: '/datasets/0/href', equals: agendaDataset?.href, label: 'the calendar is on "Agenda-manifestations"' },
     { path: '/labelField/key', equals: eventNameColumn?.key, label: 'the label is the event name column' },
@@ -278,6 +280,8 @@ const chartsEdit = {
   data: loadData('charts-edit.json'),
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
   context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
+  // an application configuration is a draft the app's editor saves as it changes
+  saveMode: 'auto',
   // the goal changes the metric and the legend position; everything else stays
   checks: [
     { unchangedExcept: ['/chart/config/valueCalc/metric', '/legendPosition'] },

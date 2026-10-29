@@ -55,8 +55,8 @@ run any number of times and always reflects the current `core/src` and case regi
    `.run.json` sidecar, is a separate run to judge.
 
    An arm that cannot take a case writes only a sidecar with `notRunnable` and the reason
-   (today the `session` arm on `portal-config-edit`, which auto-saves, until `FormSession`
-   has that mode). Nothing was launched, so there is nothing to judge: **do not dispatch a
+   (today the `session` arm on the cases that auto-save, `calendar`, `charts-edit` and
+   `portal-config-edit`, until `FormSession` has that mode). Nothing was launched, so there is nothing to judge: **do not dispatch a
    judge for it**. The report prints it as `not runnable` and does not fail on it.
 
    At most 6 subprocesses run at once; the rest queue.
@@ -92,12 +92,22 @@ run any number of times and always reflects the current `core/src` and case regi
      `cd core && node --input-type=module -e "const {createArm}=await import('./webmcp-eval/arms.js');const {cases}=await import('./webmcp-eval/cases/index.js');console.log((await createArm(cases.find(c=>c.name==='<case>'),'<arm>')).toolNames.join(', '))"`
      — e.g. `getData, setData, describeState, openSection, setFieldValue,
      getFieldSuggestions, editArray` for `form`, and for `session` the same without
-     `openSection` plus `saveForm` and `reloadForm`
+     `openSection` plus `saveForm` and `reloadForm`. The runner saw them under a server named after
+     its arm (`mcp__page-form__*` for `form`, `mcp__record-form__*` for `session`,
+     `mcp__document-api__*` for `plain`)
    - the transcript path, `core/tmp/webmcp-eval-<label>.json`, where `<label>` is the run's
      evidence name
    - never the case's checks or whether they passed: verdicts stay blind to them
-   - where the schema is: inline in `core/webmcp-eval/cases/index.js` for `contact`,
-     or `core/webmcp-eval/cases/schemas/<file>.json` for a vendored case
+   - the schema **as the runner saw it**, `core/tmp/webmcp-eval-<label>.schema.json`,
+     written first with the line below (`<variant>` empty for the control). Never the raw
+     vendored file under `cases/schemas/`: most cases transform it when they are built
+     (`v2compat` for the app schemas, `lineEditorSchema` for `data-fair-line`, the
+     `no-guide` variant strips the guide), so the raw file holds keywords and layouts the
+     runner never read:
+
+     ```bash
+     cd core && node --input-type=module -e "const [name,variant,label]=process.argv.slice(1);const {getCase}=await import('./webmcp-eval/cases/index.js');const {applyVariant}=await import('./webmcp-eval/session.js');const fs=await import('node:fs');fs.mkdirSync('tmp',{recursive:true});fs.writeFileSync('tmp/webmcp-eval-'+label+'.schema.json',JSON.stringify(applyVariant(getCase(name),variant||undefined).schema,null,2))" <case> '<variant>' <label>
+     ```
    - ask for the JSON verdict its own definition specifies
 
 6. **Write each verdict** to `core/tmp/webmcp-eval-<label>.verdict.json` (the same label as

@@ -466,3 +466,17 @@ describe('webmcp eval no-guide variant', () => {
     assert.deepEqual(Object.keys(stripped.schema.properties), Object.keys(guided.schema.properties))
   })
 })
+
+describe('webmcp eval save modes', () => {
+  it('should save the app configurations by themselves, and the contact and the line on demand', async () => {
+    for (const name of ['calendar', 'charts-edit', 'portal-config-edit']) {
+      assert.equal(getCase(name).saveMode, 'auto', name)
+      const arm = await createArm(getCase(name), 'session')
+      assert.equal(arm.runnable, false, `${name} is not runnable on the session arm until FormSession auto-saves`)
+    }
+    for (const name of ['contact', 'data-fair-line']) {
+      assert.notEqual(getCase(name).saveMode, 'auto', name)
+      assert.equal((await createArm(getCase(name), 'session')).runnable, true, name)
+    }
+  })
+})

@@ -490,6 +490,8 @@ describe('webmcp eval arm discovery', () => {
     put(`webmcp-eval-${name}.r2.json`, ev('form'))
     put(`webmcp-eval-${name}--plain.r1.json`, ev('plain'))
     put(`webmcp-eval-${name}--session.r1.run.json`, { case: name, ok: false, notRunnable: true, error: 'nope' })
+    // the schema the judge is handed is not a run
+    put(`webmcp-eval-${name}--plain.r2.schema.json`, { type: 'object' })
     try {
       const runs = loadRuns([name])
       assert.equal(runs.length, 4)

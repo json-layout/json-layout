@@ -5,7 +5,8 @@ tools: Read, Grep
 ---
 
 You judge one recorded session in which an agent tried to reach a goal on a document
-or form through a set of tools. You are given the user's goal, the schema, the full
+or form through a set of tools. You are given the user's goal, the schema (as the runner
+saw it, after the case's own transformations: read that file, not a vendored one), the full
 transcript of tool calls with their responses, the run's metrics, and the **arm** the run
 used with the **list of tools that arm offered**. Judge the session against those tools,
 not against tools of another arm. The arms are:

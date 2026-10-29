@@ -204,11 +204,14 @@ procedure):
 5. Each server records every call it receives to `core/tmp/webmcp-eval-<name>.json` as
    it goes — this is the evidence, not a score — together with the final data and the
    result of the case's checks. The launcher also writes a provenance sidecar,
-   `core/tmp/webmcp-eval-<name>.run.json`, recording the resolved model, cost, turn count
-   and any permission denials. The model is pinned by `JL_WEBMCP_EVAL_MODEL` (default
+   `core/tmp/webmcp-eval-<name>.run.json`, recording the arm and repeat, the resolved
+   model, cost, turn count and any permission denials (the report still reads the arm and
+   repeat from the file name). The model is pinned by `JL_WEBMCP_EVAL_MODEL` (default
    `haiku`) rather than inheriting whatever model happened to launch the run, so verdicts
    from different models are never compared silently.
-6. A `webmcp-eval-judge` subagent reads the goal, the schema, the recorded transcript and
+6. A `webmcp-eval-judge` subagent reads the goal, the schema as the case builds it (the
+   skill writes it to `core/tmp/webmcp-eval-<name>.schema.json`, since most cases
+   transform their vendored file), the recorded transcript and
    the arm's name and tool list, and returns a verdict — `satisfactory` or
    `unsatisfactory` — with reasoning and a list of friction points, each anchored to the
    call number that caused it. The skill dispatches one judge per run file and writes each
@@ -241,7 +244,7 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 - **`session`** is what a server exposes (openapi-mcp editor groups): the record only
   exists once saved, so the checks score the last saved document, or the starting one when
   nothing was saved. A case whose resource auto-saves (`saveMode: 'auto'`, today
-  `portal-config-edit`) is `not runnable` on this arm until `FormSession` announces an
+  the application configurations `calendar` and `charts-edit`, and `portal-config-edit`) is `not runnable` on this arm until `FormSession` announces an
   auto mode (`SAVE_MODES`): the run is not faked, the sidecar records `notRunnable` and the
   reason, and the report prints it without failing.
 - **`plain`** is the baseline the form tools claim to beat (`core/src/webmcp/README.md`
