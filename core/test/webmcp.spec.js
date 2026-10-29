@@ -1029,6 +1029,65 @@ describe('webmcp activation across an array removal', () => {
   }
 })
 
+describe('webmcp editArray move', () => {
+  const layoutWith = (/** @type {string} */ mode = 'menu') => {
+    const compiled = compile(listModeSchema(mode))
+    const items = [{ type: 'in', field: 'a' }, { type: 'out', field: 'b' }, { type: 'in', field: 'c' }]
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: items })
+  }
+  const fields = (/** @type {any} */ layout) => layout.data.filters.map((/** @type {any} */ i) => i.field)
+
+  it('moves an item to another place, keeping every item and its data', () => {
+    const layout = layoutWith()
+    const result = editArray.execute(layout, { path: '/filters', action: 'move', from: 0, to: 2 })
+    assert.deepEqual(fields(layout), ['b', 'c', 'a'])
+    assert.deepEqual(/** @type {any} */(layout.data).filters[2], { type: 'in', field: 'a' })
+    assert.equal(result.itemCount, 3)
+    assert.equal(result.index, 2)
+    const back = editArray.execute(layout, { path: '/filters', action: 'move', from: 2, to: 0 })
+    assert.deepEqual(fields(layout), ['a', 'b', 'c'])
+    assert.equal(back.valid, true)
+  })
+
+  it('answers a move onto itself without changing anything', () => {
+    const layout = layoutWith()
+    const result = editArray.execute(layout, { path: '/filters', action: 'move', from: 1, to: 1 })
+    assert.deepEqual(fields(layout), ['a', 'b', 'c'])
+    assert.equal(result.itemCount, 3)
+  })
+
+  it('refuses indexes out of range, naming the valid ones', () => {
+    const layout = layoutWith()
+    for (const [from, to] of [[3, 0], [0, 3], [-1, 0], [0, 1.5]]) {
+      assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'move', from, to }), /out of bounds.*0 to 2/)
+    }
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'move', from: 0 }), /"from" and "to".*0 to 2/)
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'move', to: 0 }), /"from" and "to"/)
+    assert.deepEqual(fields(layout), ['a', 'b', 'c'])
+  })
+
+  for (const [activated, from, to, expected] of [[0, 0, 2, 2], [1, 0, 2, 0], [2, 0, 2, 1], [2, 2, 0, 0], [0, 2, 0, 1], [1, 2, 0, 2]]) {
+    it(`keeps editing the same item: item ${activated} after moving ${from} to ${to}`, () => {
+      const layout = layoutWith()
+      layout.activateItem(/** @type {any} */(resolveNode(layout.stateTree.root, '/filters')), activated)
+      editArray.execute(layout, { path: '/filters', action: 'move', from, to })
+      assert.equal(layout.activatedItems['/filters'], expected)
+    })
+  }
+
+  it('is a tool action, described and answered', async () => {
+    const compiled = compile(listModeSchema('menu'))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: [{ field: 'a' }, { field: 'b' }] })
+    const tool = /** @type {any} */(new WebMCP(layout).getTools().find((t) => t.name === 'editArray'))
+    assert.deepEqual(editArray.inputSchema.properties.action.enum, ['add', 'remove', 'move'])
+    assert.ok(editArray.inputSchema.properties.from && editArray.inputSchema.properties.to)
+    assert.match(editArray.getDescription('x'), /move/)
+    const text = textOf(await tool.execute({ path: '/filters', action: 'move', from: 0, to: 1 }))
+    assert.match(text, /^moved item from 0 to 1, 2 total/)
+    assert.match(textOf(await tool.execute({ path: '/filters', action: 'move', from: 1, to: 1 })), /already at 1/)
+  })
+})
+
 describe('webmcp suggestions invalidation', () => {
   const suggestionsSchema = {
     type: 'object',

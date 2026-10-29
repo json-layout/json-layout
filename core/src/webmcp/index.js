@@ -393,15 +393,19 @@ export class WebMCP {
             }
             const result = editArray.execute(
               this._statefulLayout,
-              /** @type {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} */(args),
+              /** @type {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} */(args),
               this._variantsMemo
             )
             // adding or removing an item shifts the paths of the items after it, so the
             // suggestions memorized for those paths now designate another item
             this._suggestionsStore.clear()
-            let actionInfo = args.action === 'add'
-              ? `added item at index ${result.index}, ${result.itemCount} total`
-              : `removed item at index ${result.index}, ${result.itemCount} remaining`
+            let actionInfo
+            if (args.action === 'add') actionInfo = `added item at index ${result.index}, ${result.itemCount} total`
+            else if (args.action === 'move') {
+              actionInfo = result.moved
+                ? `item ${args.from} is already at ${args.to}, nothing moved, ${result.itemCount} total`
+                : `moved item from ${args.from} to ${args.to}, ${result.itemCount} total`
+            } else actionInfo = `removed item at index ${result.index}, ${result.itemCount} remaining`
             if (result.itemMarkdown) {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }

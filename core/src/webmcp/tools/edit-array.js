@@ -14,12 +14,20 @@ export const inputSchema = {
     },
     action: {
       type: 'string',
-      enum: ['add', 'remove'],
-      description: '"add" to insert an item, "remove" to delete one'
+      enum: ['add', 'remove', 'move'],
+      description: '"add" to insert an item, "remove" to delete one, "move" to put an item at another place in the list'
     },
     index: {
       type: 'number',
       description: 'Index to insert at (for add, defaults to end) or remove from (for remove, defaults to last)'
+    },
+    from: {
+      type: 'number',
+      description: 'Index of the item to move (move only, required)'
+    },
+    to: {
+      type: 'number',
+      description: 'Index the item should have afterwards (move only, required)'
     },
     value: {
       description: 'Value for the new item (for add action). For an item that is a choice between options, choose its option by the discriminator value describeState lists for it, e.g. { "type": "..." }: "$oneOf" is a path segment, not a data key. Or omit the value and choose the option afterwards with setFieldValue on the item\'s $oneOf.'
@@ -33,7 +41,7 @@ export const inputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Add or remove items in an array field of "${dataTitle}". Use describeState to see current array contents. When adding an item it is activated for edition and its children fields are returned, they can then be filled with setFieldValue. The returned errors are scoped to this array.`
+  return `Add, remove or move items in an array field of "${dataTitle}". Use describeState to see current array contents. When adding an item it is activated for edition and its children fields are returned, they can then be filled with setFieldValue. The returned errors are scoped to this array. Moving an item keeps its data, so reorder with move rather than adding and removing.`
 }
 
 /**
@@ -64,11 +72,11 @@ function assertKnownVariant (statefulLayout, listNode, value) {
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
- * @param {{ path: string, action: 'add'|'remove', index?: number, value?: unknown }} args
+ * @param {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} args
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -104,8 +112,22 @@ export function execute (statefulLayout, args, variantsMemo) {
       throw new Error(`index ${index} out of bounds (array length: ${currentData.length})`)
     }
     currentData.splice(index, 1)
+  } else if (args.action === 'move') {
+    const last = currentData.length - 1
+    if (args.from === undefined || args.to === undefined) {
+      throw new Error(`"from" and "to" are required to move an item${last >= 0 ? ` (indexes 0 to ${last})` : ' (the array is empty)'}`)
+    }
+    for (const given of [args.from, args.to]) {
+      if (!Number.isInteger(given) || given < 0 || given > last) {
+        throw new Error(`index ${given} out of bounds (array length: ${currentData.length}${last >= 0 ? `, items are at 0 to ${last}` : ''})`)
+      }
+    }
+    index = args.to
+    if (args.from === args.to) return unchangedMove(statefulLayout, node, args.path, currentData.length, index)
+    const [item] = currentData.splice(args.from, 1)
+    currentData.splice(args.to, 0, item)
   } else {
-    throw new Error(`unknown action: ${args.action}. Use "add" or "remove".`)
+    throw new Error(`unknown action: ${args.action}. Use "add", "remove" or "move".`)
   }
 
   statefulLayout.input(node, currentData)
@@ -117,6 +139,14 @@ export function execute (statefulLayout, args, variantsMemo) {
   if (listNodeAfterInput) {
     if (args.action === 'add' && listEditMode !== 'inline') {
       statefulLayout.activateItem(listNodeAfterInput, index)
+    } else if (args.action === 'move' && typeof activatedBefore === 'number') {
+      // the item being edited moves with the others: its index follows it
+      const { from, to } = /** @type {{ from: number, to: number }} */(args)
+      let followed = activatedBefore
+      if (activatedBefore === from) followed = to
+      else if (from < activatedBefore && activatedBefore <= to) followed = activatedBefore - 1
+      else if (to <= activatedBefore && activatedBefore < from) followed = activatedBefore + 1
+      if (statefulLayout.activatedItems[node.fullKey] !== followed) statefulLayout.activateItem(listNodeAfterInput, followed)
     } else if (args.action === 'remove' && typeof activatedBefore === 'number' && activatedBefore !== index) {
       // input() dropped the activation, but the item being edited is not the one that was
       // removed: it is restored, shifted down by one when it was after the removed item, so
@@ -128,7 +158,7 @@ export function execute (statefulLayout, args, variantsMemo) {
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
   const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
+  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
@@ -146,4 +176,17 @@ export function execute (statefulLayout, args, variantsMemo) {
   }
 
   return result
+}
+
+/**
+ * Moving an item onto its own place changes nothing: the answer says so.
+ * @param {import('../../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('../../state/types.js').StateNode} node
+ * @param {string} path
+ * @param {number} itemCount
+ * @param {number} index
+ */
+function unchangedMove (statefulLayout, node, path, itemCount, index) {
+  const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, resolveNode(statefulLayout.stateTree.root, path) ?? node)
+  return { valid: statefulLayout.valid, itemCount, index, moved: /** @type {'same'} */('same'), errors, otherErrors, ...(elsewhere ? { elsewhere } : {}) }
 }
