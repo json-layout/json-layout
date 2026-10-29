@@ -39,11 +39,13 @@ export function getDescription (dataTitle, screen = true) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path?: string, query?: string }} args
+ * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - updated, not consulted:
+ * a read is what the agent asked to see, so every union under it is listed in full, and the
+ * memo is what later writes use to avoid repeating those lists
  * @param {boolean} [screen] - false for a form edited with no screen: no section is "open"
  * @returns {string}
  */
-export function toMarkdown (statefulLayout, args, screen = true) {
-  // a union's options are listed in full the first time the answer meets them
+export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
   const listed = new VariantsMemo()
 
   if (args.query?.trim()) return queryMarkdown(statefulLayout, args.query.trim(), args.path)
@@ -73,16 +75,22 @@ export function toMarkdown (statefulLayout, args, screen = true) {
     const answer = (description) => formatMutationResult(statefulLayout.valid, errors, description, otherErrors, elsewhere)
     recordItemOptionsUnderList(node, statefulLayout, listed)
     const markdown = answer(projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen, true))
-    if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) return markdown
+    if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
+      variantsMemo?.merge(listed)
+      return markdown
+    }
     // a part too large is shown shallower rather than cut, as the whole form is
-    return outlineThatFits(node, statefulLayout, screen,
+    return outlineThatFits(node, statefulLayout, variantsMemo ?? new VariantsMemo(), screen,
       (outline, depth) => `${answer(outline)}\n${outlineFooter(depth)}`)
   }
 
   const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed, screen, true)
-  if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) return markdown
+  if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
+    variantsMemo?.merge(listed)
+    return markdown
+  }
   // round 2 answered 95 KB for a 7.5 KB page, and the agent never saw it whole
-  return projectStateTreeOutline(statefulLayout.stateTree, statefulLayout, screen)
+  return projectStateTreeOutline(statefulLayout.stateTree, statefulLayout, variantsMemo ?? new VariantsMemo(), screen)
 }
 
 /**

@@ -373,12 +373,13 @@ export function byteLength (text) {
  * The whole form as an outline, at the deepest level that fits the budget.
  * @param {import('../state/types.js').StateTree} stateTree
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
  * @param {boolean} [screen]
  * @returns {string}
  */
-export function projectStateTreeOutline (stateTree, statefulLayout, screen = true) {
+export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo, screen = true) {
   const header = stateHeaderLines(stateTree, statefulLayout)
-  return outlineThatFits(stateTree.root, statefulLayout, screen,
+  return outlineThatFits(stateTree.root, statefulLayout, variantsMemo, screen,
     (outline, depth) => [...header, 'Fields (outline):', outline, outlineFooter(depth)].join('\n'))
 }
 
@@ -389,11 +390,12 @@ export function projectStateTreeOutline (stateTree, statefulLayout, screen = tru
  * nothing more fits, one line per item stays the floor.
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo - the options listed are recorded in it
  * @param {boolean} screen
  * @param {(outline: string, levels: number) => string} wrap - the whole answer around the outline
  * @returns {string}
  */
-export function outlineThatFits (node, statefulLayout, screen, wrap) {
+export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wrap) {
   const budget = outlineBudget(node.data)
   /**
    * @param {number} maxDepth
@@ -405,10 +407,13 @@ export function outlineThatFits (node, statefulLayout, screen, wrap) {
     recordItemOptionsUnderList(node, statefulLayout, memo)
     const outline = projectNodeOutline(node, statefulLayout, maxDepth, memo, screen, expanded)
     const text = wrap(outline.text, outline.shown)
-    return { text, candidates: outline.candidates, fits: byteLength(text) <= budget }
+    return { text, memo, candidates: outline.candidates, fits: byteLength(text) <= budget }
   }
   let best = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => render(maxDepth))
-  if (!best.fits) return best.text
+  if (!best.fits) {
+    variantsMemo.merge(best.memo)
+    return best.text
+  }
   // what is left of the budget opens what was only named, breadth first: every part of a
   // level before any of the next, in the order they appear. Each round opens the largest
   // prefix that fits, found by bisection, and a round that cannot open all of its parts is
@@ -433,5 +438,6 @@ export function outlineThatFits (node, statefulLayout, screen, wrap) {
     for (const path of order.slice(0, low)) expanded.add(path)
     if (low < order.length) break
   }
+  variantsMemo.merge(best.memo)
   return best.text
 }

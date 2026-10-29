@@ -1,18 +1,21 @@
 /**
- * @file Remembers which variant lists one answer has already printed.
+ * @file Remembers which variant lists have already been sent to the agent.
  *
  * A discriminated union is a constant: the 39 branches of a portal page element are the
  * same 39 whether they are reached at /elements/0 or at /elements/0/.../children2/0. The
  * markdown projection used to print all of them every time one of those nodes appeared,
- * and on a recursive schema that is most of the response.
+ * and on a recursive schema that is most of the response — measured on the portal-page
+ * eval case, three emissions of one list were 4.45 KB of a 10.8 KB session, and the agent
+ * read it once and used it once.
  *
  * The memo is keyed on the SKELETON POINTER rather than the data path, which is what makes
  * it catch recursion: every one of those nodes resolves to
  * `page-config-simple#/$defs/element/oneOf`. It records where the list was first printed so
- * the rest of the answer can point back at it.
+ * a later response can point the agent back at it in its own transcript.
  *
- * It lives for one answer: each answer lists a union's options in full the first time it
- * meets them, and refers back within itself only, never to an earlier answer.
+ * It is never cleared on a write: unlike memorized suggestions, a schema's branches cannot
+ * be invalidated by editing the data. `describeState` projects into a fresh memo and merges
+ * it in afterwards, so a full read always prints every list once and stays authoritative.
  */
 export class VariantsMemo {
   /**
@@ -28,7 +31,8 @@ export class VariantsMemo {
   _underList = new Set()
 
   /**
-   * pointers an item read only named, its options printed nowhere in the answer
+   * pointers an item read only named, its options printed nowhere: never merged, so that a
+   * later write does not refer to a list no answer printed
    * @type {Set<string>}
    */
   _unprinted = new Set()
@@ -78,5 +82,20 @@ export class VariantsMemo {
     if (this._listedAt.has(pointer)) return
     this._listedAt.set(pointer, path)
     if (underList) this._underList.add(pointer)
+  }
+
+  /**
+   * @param {VariantsMemo} other
+   */
+  merge (other) {
+    for (const [pointer, path] of other._listedAt) {
+      if (!other._unprinted.has(pointer)) this.record(pointer, path, other._underList.has(pointer))
+    }
+  }
+
+  clear () {
+    this._listedAt.clear()
+    this._underList.clear()
+    this._unprinted.clear()
   }
 }

@@ -2316,9 +2316,9 @@ describe('webmcp repeated variant lists', () => {
       }
     }
   }
-  const toolsOf = (data = {}) => {
+  const toolsOf = () => {
     const compiled = compile(schema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
     return new WebMCP(layout, { dataTitle: 'page' }).getTools()
   }
   /**
@@ -2332,8 +2332,7 @@ describe('webmcp repeated variant lists', () => {
     return res.content.map((/** @type {any} */ p) => p.text ?? '').join('')
   }
 
-  it('should list a union in each answer that meets it', async () => {
-    // the memo lives for one answer: an earlier answer's list is not referred to
+  it('should list a union once and point back to it afterwards', async () => {
     const tools = toolsOf()
     const first = await run(tools, 'editArray', { path: '/elements', action: 'add' })
     assert.match(first, /- variant 0: Text/, 'the first sighting must list the branches')
@@ -2341,15 +2340,20 @@ describe('webmcp repeated variant lists', () => {
     await run(tools, 'setFieldValue', { path: '/elements/0/$oneOf', value: 1 })
     const nested = await run(tools, 'editArray', { path: '/elements/0/$oneOf/1/children', action: 'add' })
 
-    assert.match(nested, /- variant 0: Text \(type="text"\) \(active\)/, nested)
-    assert.match(nested, /- variant 1: Group/, nested)
-    assert.ok(!/already/.test(nested), nested)
+    assert.ok(!/- variant 0: Text/.test(nested), `the same union must not be listed again: ${nested}`)
+    assert.match(nested, /2 variants.*the same list already given for \/elements\/0\/\$oneOf/)
+    // not repeating the list must not cost the one fact that is this node's own rather
+    // than the union's: which of the branches is the live one
+    assert.match(nested, /variant 0: Text active/, `the pointer back must still say which branch is active: ${nested}`)
+    // "this path" was ambiguous between the path just named and the node being described
+    assert.match(nested, /call describeState on \/elements\/0\/\$oneOf\/1\/children\/0\/\$oneOf to see them again/)
     // the branch that is actually being edited is still spelled out
     assert.match(nested, /\/elements\/0\/\$oneOf\/1\/children\/0\/\$oneOf\/0\/content \(text\)/)
   })
 
   it('should let describeState list a union it had already given', async () => {
-    // a read is what the agent asked to see: answered in full whatever was sent before
+    // the escape hatch the elided line names: a read is what the agent asked to see, so it
+    // is answered in full whatever was sent before
     const tools = toolsOf()
     await run(tools, 'editArray', { path: '/elements', action: 'add' })
     await run(tools, 'setFieldValue', { path: '/elements/0/$oneOf', value: 1 })
@@ -2361,8 +2365,9 @@ describe('webmcp repeated variant lists', () => {
   })
 
   it('should list a union once within a single full read', async () => {
-    // once listed under the list, the items of the same answer refer to them
-    const tools = toolsOf({ elements: [{ type: 'text' }, { type: 'text' }] })
+    const tools = toolsOf()
+    await run(tools, 'editArray', { path: '/elements', action: 'add' })
+    await run(tools, 'editArray', { path: '/elements', action: 'add', index: 1 })
 
     const read = await run(tools, 'describeState', {})
     assert.equal(read.match(/- variant 0: Text(?! \(active\), one of)/g)?.length, 1, `listed once, not per item: ${read}`)
@@ -2973,7 +2978,7 @@ describe('webmcp review of rounds 4-6', () => {
     assert.match(text, /^removed item at index 5 \(Titre — "Thématiques à la une"\), 10 remaining/, text)
   })
 
-  it('lists the options of an editArray add an earlier answer listed', async () => {
+  it('says an editArray add holds options an earlier answer listed', async () => {
     const evalCase = getCase('portal-page-list-edit')
     const compiled = compile(evalCase.schema, evalCase.compileOptions)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
@@ -2985,7 +2990,23 @@ describe('webmcp review of rounds 4-6', () => {
     const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
     await run('describeState', { path: '/$comp-2/elements' })
     const added = await run('editArray', { path: '/$comp-2/elements', action: 'add', value: { type: 'title', content: 'x' } })
-    // each answer lists a union the first time it meets it
+    // #14: a write refers to the options an earlier answer printed
+    assert.ok(!added.includes('variant 39:'), added)
+    assert.match(added, /one of the 40 options listed under \/\$comp-2\/elements$/m, added)
+  })
+
+  it('lists the options of an editArray add when an earlier item read only named them', async () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    /**
+     * @param {string} name
+     * @param {any} args
+     */
+    const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
+    await run('describeState', { path: '/$comp-2/elements/7' })
+    const added = await run('editArray', { path: '/$comp-2/elements', action: 'add', value: { type: 'title', content: 'x' } })
     assert.match(added, /variant 39: /, added)
   })
 })
@@ -3136,10 +3157,9 @@ describe('webmcp describeState on one item of a list of unions', () => {
   })
 })
 
-// Rounds 4-5 tried a memory of the unions listed across the answers of one WebMCP instance; it
-// was removed: each answer lists a union's options the first time it meets them, and refers
-// back within itself only.
-describe('webmcp options of a union listed per answer', () => {
+// Rounds 4-5 tried referring a read to the unions earlier answers listed; it was removed: a
+// read lists a union's options the first time it meets them, and refers back within itself.
+describe('webmcp options of a union listed per read', () => {
   /** @param {string} name */
   const tools = (name) => {
     const evalCase = getCase(name)
