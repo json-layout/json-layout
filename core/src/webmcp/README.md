@@ -181,7 +181,10 @@ cannot check: an agent typed commune 44173 from memory (the real one was 44190) 
 said valid. A value written to such a field that no search listed for it, and that it did not
 hold when loaded, is accepted with a warning naming it, and `WebMCP#unpickedValues()` lists
 those still in the form so a host can hold a save on them (`resetBaseline()` after loading other
-data). The guide says it in one line.
+data). Only the tools' writes are tracked: a value a person picks on screen counts as unpicked
+until the host calls `resetBaseline()`, so the hold belongs to server-side sessions, where no
+person edits the form. A write that changes the list another field reads warns about that
+field's value too. The guide says it in one line.
 
 ## How far this is validated
 

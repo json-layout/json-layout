@@ -116,18 +116,43 @@ export class SuggestionsStore {
   /**
    * Drop the lists memorized under a list node, from one item on: adding or removing an item
    * shifts the paths of those after it, so what was memorized for them now designates
-   * another item.
+   * another item. The marks that say a list was dropped move with the items, so the failure
+   * message stays true of the item now at each path: an item that had a list says so at its
+   * new place, a removed one says nothing, and the item added says it never had one.
    * @param {string} prefix - the list's path
-   * @param {number} [fromIndex] - the first item whose path shifted, every item when omitted
+   * @param {number} [fromIndex] - the first item whose path shifted; omitted when the list
+   * itself is gone, which drops everything under it, marks included
+   * @param {number} [shift] - +1 after an item was added at fromIndex, -1 after the item at
+   * fromIndex was removed
    */
-  dropUnder (prefix, fromIndex) {
-    for (const path of [...this._byPath.keys()]) {
+  dropUnder (prefix, fromIndex, shift = 0) {
+    /**
+     * @param {string} path
+     * @returns {string|undefined|null} the path's new place, null when the edit leaves it, undefined when it goes
+     */
+    const shifted = (path) => {
       const index = itemIndexUnder(prefix, path)
-      if (index === undefined || (fromIndex !== undefined && index < fromIndex)) continue
+      if (index === undefined) return null
+      if (fromIndex === undefined) return undefined
+      if (index < fromIndex) return null
+      if (shift < 0 && index === fromIndex) return undefined
+      return `${prefix}/${index + shift}${path.slice(prefix.length + 1 + String(index).length)}`
+    }
+    /** @type {Set<string>} */
+    const invalidated = new Set()
+    for (const path of this._invalidated) {
+      const next = shifted(path)
+      if (next === null) invalidated.add(path)
+      else if (next !== undefined) invalidated.add(next)
+    }
+    for (const path of [...this._byPath.keys()]) {
+      const next = shifted(path)
+      if (next === null) continue
       this._byPath.delete(path)
       this._cacheKeys.delete(path)
-      this._invalidated.add(path)
+      if (next !== undefined) invalidated.add(next)
     }
+    this._invalidated = invalidated
   }
 
   /**
@@ -210,11 +235,14 @@ export class SuggestionsStore {
     return (itemKey !== undefined && offered.keys.has(itemKey)) || offered.values.some((o) => equal(o, value))
   }
 
+  /**
+   * Forget the memorized lists. The values they offered stay offered: they are still values
+   * of those lists, and forgetting them would turn picked values into invented ones.
+   */
   clear () {
     for (const path of this._byPath.keys()) this._invalidated.add(path)
     this._byPath.clear()
     this._cacheKeys.clear()
-    this._offered.clear()
   }
 }
 

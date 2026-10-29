@@ -6,6 +6,8 @@ import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
 import { getCase } from '../webmcp-eval/cases/index.js'
 import { caseFetch, FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
+import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
+import { resolveNode } from '../src/webmcp/resolve.js'
 
 /**
  * @param {Record<string, any>} tools
@@ -98,8 +100,49 @@ describe('webmcp suggestions a write does not touch', () => {
     await run(tools, 'getFieldSuggestions', { path: '/l/1/c' })
     await run(tools, 'editArray', { path: '/l', action: 'add', index: 1, value: { name: 'new' } })
     assert.ok(!(await run(tools, 'setFieldValue', { path: '/l/0/c', suggestionIndex: 0 })).startsWith('Error'))
+    // the item added never had a list; the one it pushed to /l/2 had one, dropped
+    assert.match(await run(tools, 'setFieldValue', { path: '/l/1/c', suggestionIndex: 0 }), /no suggestion memorized/)
+    assert.match(await run(tools, 'setFieldValue', { path: '/l/2/c', suggestionIndex: 0 }), /were dropped by a write/)
+  })
+
+  it('should say a list was dropped at the place its item moved to after a removal', async () => {
+    const { tools } = listTools()
+    await run(tools, 'getFieldSuggestions', { path: '/l/2/c' })
+    await run(tools, 'editArray', { path: '/l', action: 'remove', index: 1 })
     assert.match(await run(tools, 'setFieldValue', { path: '/l/1/c', suggestionIndex: 0 }), /were dropped by a write/)
-    assert.match(await run(tools, 'setFieldValue', { path: '/l/2/c', suggestionIndex: 0 }), /^Error/)
+    // the removed item's list leaves no mark on the item now at its place
+    const other = listTools()
+    await run(other.tools, 'getFieldSuggestions', { path: '/l/1/c' })
+    await run(other.tools, 'editArray', { path: '/l', action: 'remove', index: 1 })
+    assert.match(await run(other.tools, 'setFieldValue', { path: '/l/1/c', suggestionIndex: 0 }), /no suggestion memorized/)
+  })
+
+  it('should drop the lists under a list setFieldValue writes whole, where their data changed', async () => {
+    const { tools } = listTools()
+    await run(tools, 'getFieldSuggestions', { path: '/l/0/c' })
+    await run(tools, 'getFieldSuggestions', { path: '/l/1/c' })
+    await run(tools, 'setFieldValue', { path: '/l', value: [{ name: 'a' }, { name: 'other', c: 'y' }] })
+    assert.ok(!(await run(tools, 'setFieldValue', { path: '/l/0/c', suggestionIndex: 0 })).startsWith('Error'))
+    assert.match(await run(tools, 'setFieldValue', { path: '/l/1/c', suggestionIndex: 0 }), /were dropped by a write/)
+  })
+
+  it('should drop everything under a list a write hid', async () => {
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        l: { ...listSchema.properties.l, layout: { if: '!rootData.l || rootData.l.length < 4' } }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 },
+      { l: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] })
+    const webmcp = new WebMCP(layout)
+    const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
+    await run(tools, 'getFieldSuggestions', { path: '/l/0/c' })
+    await run(tools, 'getFieldSuggestions', { path: '/l/2/c' })
+    await run(tools, 'editArray', { path: '/l', action: 'add', index: 3 })
+    // the list is hidden, its items gone from the form, and nothing is memorized under it
+    assert.equal(resolveNode(layout.stateTree.root, '/l')?.layout.comp, 'none')
+    assert.deepEqual(webmcp._suggestionsStore.paths(), [])
   })
 
   it('should move a list with the item it belongs to, its indexes unchanged', async () => {
@@ -119,7 +162,34 @@ describe('webmcp suggestions a write does not touch', () => {
   })
 })
 
+describe('webmcp suggestions store memory', () => {
+  it('should keep offered values when its lists are cleared', () => {
+    const store = new SuggestionsStore()
+    store.add('/c', [{ value: 'x', title: 'X' }], 'k')
+    store.clear()
+    assert.ok(store.wasOffered('/c', 'k', 'x'))
+    assert.match(String((() => { try { store.getValue('/c', 0) } catch (err) { return err } })()), /were dropped by a write/)
+  })
+
+  it('should drop every list and mark under a list that is gone', () => {
+    const store = new SuggestionsStore()
+    store.add('/l/0/c', [{ value: 'x', title: 'X' }], 'k')
+    store.add('/m/0/c', [{ value: 'x', title: 'X' }], 'k')
+    store.dropUnder('/l')
+    assert.deepEqual(store.paths(), ['/m/0/c'])
+    assert.throws(() => store.getValue('/l/0/c', 0), /no suggestion memorized/)
+  })
+})
+
 describe('webmcp suggestions with no close match', () => {
+  it('should not say so for a variant selector, which ignores the query', async () => {
+    const compiled = compile({ type: 'object', properties: { shape: { type: 'object', oneOf: [{ title: 'Circle', properties: { kind: { const: 'circle' } } }, { title: 'Rect', properties: { kind: { const: 'rect' } } }] } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const tools = Object.fromEntries(new WebMCP(layout).getTools().map((t) => [t.name, t]))
+    const text = await run(tools, 'getFieldSuggestions', { path: '/shape/$oneOf', query: 'triangle' })
+    assert.ok(!text.includes('closely'), text)
+  })
+
   const schema = {
     type: 'object',
     properties: {
@@ -265,7 +335,9 @@ describe('webmcp values picked, not invented', () => {
     await run(tools, 'getFieldSuggestions', { path: '/l/0/place' })
     await run(tools, 'setFieldValue', { path: '/l/0/place', suggestionIndex: 1 })
     assert.deepEqual(webmcp.unpickedValues(), [])
-    await run(tools, 'setFieldValue', { path: '/dep', value: '85' })
+    const text = await run(tools, 'setFieldValue', { path: '/dep', value: '85' })
+    // the write that changed the list says so, about the field it did not write
+    assert.match(text, /\/l\/0\/place: "44190" was not among the suggestions/, text)
     assert.deepEqual(webmcp.unpickedValues(), [{ path: '/l/0/place', value: '44190' }])
   })
 

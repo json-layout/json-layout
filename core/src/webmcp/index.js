@@ -101,6 +101,28 @@ function warningLines (lines) {
 }
 
 /**
+ * The fields an editArray answer looks at for unpicked values: inside the list, only the
+ * item added (a removal or a move shifts the paths of values already there, which a
+ * comparison by path would take for new ones); outside it, any field whose list the edit
+ * changed.
+ * @param {string|undefined} listPath
+ * @param {number|undefined} addedIndex
+ * @returns {(fullKey: string) => boolean}
+ */
+function editArrayEligible (listPath, addedIndex) {
+  /**
+   * @param {string} fullKey
+   * @param {string} prefix
+   */
+  const under = (fullKey, prefix) => fullKey === prefix || fullKey.startsWith(prefix + '/')
+  return (fullKey) => {
+    if (listPath === undefined) return false
+    if (!under(fullKey, listPath)) return true
+    return addedIndex !== undefined && under(fullKey, `${listPath}/${addedIndex}`)
+  }
+}
+
+/**
  * @param {unknown} value
  * @returns {boolean}
  */
@@ -254,8 +276,11 @@ export class WebMCP {
   /**
    * The values of fields whose options come from a remote list that are neither among the
    * suggestions listed for that field nor the value it was loaded with: most likely typed
-   * from memory, so a host can hold a save on them. Fields not hydrated in the form (the
-   * items of a list shown as summaries and never opened) are not looked at.
+   * from memory, so a host can hold a save on them. Only what goes through these tools is
+   * tracked: a value a person picks on screen is reported here too, unless the host calls
+   * `resetBaseline()` after such an edit — so a hold on it belongs where no person edits the
+   * form (a server-side session). Fields not hydrated in the form (the items of a list shown
+   * as summaries and never opened) are not looked at.
    * @returns {Array<{path: string, value: unknown}>}
    */
   unpickedValues () {
@@ -314,27 +339,31 @@ export class WebMCP {
   }
 
   /**
-   * The values of fields whose options come from a remote list, before a write.
-   * @returns {Map<string, unknown>}
+   * The values of fields whose options come from a remote list, and the lists they read,
+   * before a write.
+   * @returns {Map<string, {data: unknown, cacheKey: unknown}>}
    */
   _referentialData () {
-    return new Map(referentialNodes(this._statefulLayout.stateTree.root).map((node) => [node.fullKey, node.data]))
+    return new Map(referentialNodes(this._statefulLayout.stateTree.root).map((node) => [node.fullKey, { data: node.data, cacheKey: node.itemsCacheKey }]))
   }
 
   /**
    * One line per referential value a write put in the form that was not picked: the form
    * accepts it, a code typed from memory is as valid as the right one (the data-fair agent
-   * that wrote commune 44173 for 44190).
-   * @param {Map<string, unknown>} before - see `_referentialData`
-   * @param {string} [under] - only the fields under this node path
+   * that wrote commune 44173 for 44190). A field the write left alone is told too when the
+   * write changed the list it reads (a commune whose département changed): its value may
+   * not be one of the new list's.
+   * @param {Map<string, {data: unknown, cacheKey: unknown}>} before - see `_referentialData`
+   * @param {(fullKey: string) => boolean} [eligible] - the fields to look at, all by default
    * @returns {string[]}
    */
-  _unpickedWarnings (before, under) {
+  _unpickedWarnings (before, eligible) {
     /** @type {string[]} */
     const lines = []
     for (const node of referentialNodes(this._statefulLayout.stateTree.root)) {
-      if (under !== undefined && node.fullKey !== under && !node.fullKey.startsWith(under + '/')) continue
-      if (before.has(node.fullKey) && equal(before.get(node.fullKey), node.data)) continue
+      if (eligible && !eligible(node.fullKey)) continue
+      const previous = before.get(node.fullKey)
+      if (previous && equal(previous.data, node.data) && equal(previous.cacheKey, node.itemsCacheKey)) continue
       const value = this._unpicked(node)
       if (value === undefined) continue
       lines.push(`${node.fullKey}: ${abbreviateValue(value)} was not among the suggestions listed for this field; pick one with ${this._toolName('getFieldSuggestions')}`)
@@ -344,11 +373,13 @@ export class WebMCP {
 
   /**
    * The data each memorized path holds before a write, for `_retainFresh`.
+   * @param {string} [under] - only the paths strictly under this node path
    * @returns {Map<string, unknown>}
    */
-  _memorizedData () {
+  _memorizedData (under) {
     const root = this._statefulLayout.stateTree.root
-    return new Map(this._suggestionsStore.paths().map((path) => [path, resolveNode(root, path)?.data]))
+    const paths = this._suggestionsStore.paths().filter((path) => under === undefined || path.startsWith(under + '/'))
+    return new Map(paths.map((path) => [path, resolveNode(root, path)?.data]))
   }
 
   /**
@@ -359,13 +390,13 @@ export class WebMCP {
    * itself decides whether to re-fetch. Compared by content: a static list is a distinct
    * array in each item of a list, so a moved item's list never had the identity of the
    * one now at its place, while having the same options.
-   * @param {Map<string, unknown>} [dataBefore] - also drop the paths whose data changed
+   * @param {Map<string, unknown>} [dataBefore] - also drop the paths of this map whose data changed
    */
   _retainFresh (dataBefore) {
     this._suggestionsStore.retainFresh((path, cacheKey) => {
       const node = resolveNode(this._statefulLayout.stateTree.root, path)
       if (!node || !equal(node.itemsCacheKey, cacheKey)) return false
-      return !dataBefore || equal(node.data, dataBefore.get(path))
+      return !dataBefore || !dataBefore.has(path) || equal(node.data, dataBefore.get(path))
     })
   }
 
@@ -529,6 +560,10 @@ export class WebMCP {
             }
             if (args.value !== undefined) args.value = parseIfJsonString(args.value)
             const referentialBefore = this._referentialData()
+            // a whole array or object written at once may put other items under the paths
+            // memorized below it, as setData can
+            const writtenPath = resolveNode(this._statefulLayout.stateTree.root, /** @type {string} */(args.path))?.fullKey
+            const memorizedBelow = writtenPath !== undefined ? this._memorizedData(writtenPath) : undefined
             const result = setFieldValue.execute(
               this._statefulLayout,
               /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
@@ -540,7 +575,7 @@ export class WebMCP {
             // of a field whose list actually depends on it. Comparing each memorized path's
             // itemsCacheKey against the node's current one is how the state layer itself
             // decides whether to re-fetch.
-            this._retainFresh()
+            this._retainFresh(memorizedBelow)
             let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
             if (result.visibility) fieldInfo += formatVisibilityDiff(result.visibility)
             if (result.activatedMarkdown) {
@@ -582,7 +617,8 @@ export class WebMCP {
             // A search that answers whatever it has reads as a list of matches: say when
             // none of them holds a word of the query, before one is picked as the closest
             const query = typeof args.query === 'string' ? args.query : undefined
-            const unmatched = query && !suggestionsMatchQuery(result.items, query) ? query : undefined
+            // a variant selector ignores the query: it always lists its branches
+            const unmatched = query && node?.layout.comp !== 'one-of-select' && !suggestionsMatchQuery(result.items, query) ? query : undefined
             return {
               content: [{ type: 'text', text: formatSuggestions(suggestions, blockedOn, unmatched) }]
             }
@@ -607,6 +643,8 @@ export class WebMCP {
             if (args.value !== undefined) {
               args.value = parseIfJsonString(args.value)
             }
+            const listPath = resolveNode(this._statefulLayout.stateTree.root, /** @type {string} */(args.path))?.fullKey
+            const referentialBefore = this._referentialData()
             const result = editArray.execute(
               this._statefulLayout,
               /** @type {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} */(args),
@@ -614,11 +652,12 @@ export class WebMCP {
             )
             // adding or removing an item shifts the paths of the items after it, so the
             // suggestions memorized for those paths now designate another item; a move
-            // takes each item's lists along with it
-            const listPath = resolveNode(this._statefulLayout.stateTree.root, /** @type {string} */(args.path))?.fullKey
+            // takes each item's lists along with it. A list that no longer resolves (a
+            // condition hid it) leaves nothing its memorized paths could designate.
             if (listPath !== undefined && !result.moved) {
-              if (args.action === 'move') this._suggestionsStore.move(listPath, /** @type {number} */(args.from), /** @type {number} */(args.to))
-              else this._suggestionsStore.dropUnder(listPath, result.index)
+              if (!resolveNode(this._statefulLayout.stateTree.root, listPath)) this._suggestionsStore.dropUnder(listPath)
+              else if (args.action === 'move') this._suggestionsStore.move(listPath, /** @type {number} */(args.from), /** @type {number} */(args.to))
+              else this._suggestionsStore.dropUnder(listPath, result.index, args.action === 'add' ? 1 : -1)
             }
             this._retainFresh()
             let actionInfo
@@ -633,9 +672,7 @@ export class WebMCP {
             }
             if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
-              // only an added item brings values: a removal or a move shifts the paths of
-              // values already there
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + (args.action === 'add' && listPath !== undefined ? warningLines(this._unpickedWarnings(new Map(), `${listPath}/${result.index}`)) : '') }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(this._unpickedWarnings(referentialBefore, editArrayEligible(listPath, args.action === 'add' ? result.index : undefined))) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
