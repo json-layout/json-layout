@@ -8,11 +8,12 @@
  * into claiming a branch it never reaches.
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { v2compat } from '../../src/compat/v2.js'
+import { remoteKey } from '../remote.js'
 
 /** @typedef {import('./types.js').EvalCase} EvalCase */
 
@@ -78,6 +79,31 @@ const contact = {
 const grandPoitiersContext = { datasetFilter: 'owner=organization:p6Qg1z-aq' }
 
 /**
+ * Responses captured from koumoul.com by `capture-remote.js calendar`: `index.json` maps
+ * each URL's `remoteKey` to its file. Missing files read as undefined, so the capture
+ * script can load this module before its first capture.
+ * @param {string} file
+ * @returns {any}
+ */
+function calendarCapture (file) {
+  const path = join(here, 'data', 'calendar-remote', file)
+  return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : undefined
+}
+
+/** @type {Record<string, string>} */
+const calendarIndex = calendarCapture('index.json') ?? {}
+
+/**
+ * The dataset the goal names and its event name column, read from the capture: the
+ * column the dataset itself marks as its label (rdf-schema#label), titled "Nom de
+ * l'évenement" — not "Nom", which is the applicant's name.
+ */
+const agendaDataset = calendarCapture('datasets-agenda-manifestations.json')?.results
+  ?.find((/** @type {any} */ d) => d.title === 'Agenda-manifestations')
+const eventNameColumn = calendarCapture('agenda-manifestations-schema.json')
+  ?.find((/** @type {any} */ c) => c['x-refersTo'] === 'http://www.w3.org/2000/01/rdf-schema#label')
+
+/**
  * Real app schema, large band but small enough that getSchema still returns it whole.
  * The pair with `charts` is the point: same band, opposite schema behaviour, which is
  * the evidence that the band alone says nothing about what an agent can read.
@@ -85,6 +111,12 @@ const grandPoitiersContext = { datasetFilter: 'owner=organization:p6Qg1z-aq' }
  * Written for vjsf v2, so it goes through the same compatibility layer a real page
  * applies; see vjsf-compat-v2.js. The goal names a public koumoul.com dataset that is
  * REST-enabled with an event-name label column, so every part of it is reachable.
+ *
+ * The coherence case: the label column only lists once a dataset is chosen, its value
+ * must be a column OF that dataset, and the crowd sourcing flag sits in a section that
+ * only opens for a REST dataset. Its pickers are served offline from a capture of
+ * koumoul.com (cases/data/calendar-remote/, see capture-remote.js), kept whole: the
+ * picked dataset object carries its column schema, some 14 KB the form stores as is.
  * @type {EvalCase}
  */
 const calendar = {
@@ -93,7 +125,16 @@ const calendar = {
   goal: 'Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.',
   schema: v2compat(loadSchema('app-calendar.json'), undefined, 'fr'),
   data: {},
-  context: grandPoitiersContext
+  context: grandPoitiersContext,
+  remote: (url) => {
+    const file = calendarIndex[remoteKey(url)]
+    return file ? calendarCapture(file) : undefined
+  },
+  checks: [
+    { path: '/datasets/0/href', equals: agendaDataset?.href, label: 'the calendar is on "Agenda-manifestations"' },
+    { path: '/labelField/key', equals: eventNameColumn?.key, label: 'the label is the event name column' },
+    { path: '/crowdSourcing', equals: true, label: 'crowd sourcing is on' }
+  ]
 }
 
 /**
@@ -160,7 +201,9 @@ const chartsEdit = {
   schema: v2compat(loadSchema('app-charts.json'), undefined, 'fr'),
   data: loadData('charts-edit.json'),
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
-  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
+  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
+  // the goal changes the metric and the legend position; everything else stays
+  checks: [{ unchangedExcept: ['/chart/config/valueCalc/metric', '/legendPosition'] }]
 }
 
 /**
@@ -179,7 +222,9 @@ const portalPageEdit = {
   goal: 'Delete the "Mentions légales" block from this page, and rename the page to "Données ouvertes".',
   schema: loadSchema('portal-page.json'),
   data: loadData('portal-page-edit.json'),
-  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  // "Mentions légales" is the third block; the other two keep their place and content
+  checks: [{ unchangedExcept: ['/elements/2', '/title'] }]
 }
 
 /**
@@ -268,7 +313,19 @@ const portalConfigEdit = {
       event: [],
       news: []
     }
-  }
+  },
+  // a portal configuration is a draft the editor saves as it changes
+  saveMode: 'auto',
+  checks: [
+    // The colour itself is left to the judge: "a dark green" names no value. In assisted
+    // mode (the start's) the portal derives the four colour sets from the main colours, so
+    // an agent updating their primary along with it changes nothing the goal does not ask.
+    {
+      unchangedExcept: ['/theme/assistedModeColors/primary', '/theme/colors', '/theme/darkColors', '/theme/hcColors', '/theme/hcDarkColors', '/menu/children'],
+      label: 'nothing changed but the main colour and the menu'
+    },
+    { path: '/menu/children', contains: { type: 'generic', pageRef: { slug: 'jeunesse' } }, label: 'the menu links the page "Nos actions pour la jeunesse"' }
+  ]
 }
 
 /**

@@ -87,6 +87,13 @@ drifts, which is accepted: a judged run is already driven by a model, and the tr
 carries its timestamp. The deterministic spec never calls `getItems`, so CI stays
 offline.
 
+`calendar` is the exception: its pickers are served offline from a capture of koumoul.com
+in `cases/data/calendar-remote/`, so its checks can name the dataset and column the goal
+means. `node webmcp-eval/capture-remote.js calendar` drives the form through the goal's
+pickers against the live instance and rewrites the capture: one file per URL, keyed in
+`index.json` by path and sorted query (see `remoteKey` in `remote.js`), responses whole.
+It is run by hand, never by tests; a URL it did not capture answers 404.
+
 Both are labelled in French while the goals are in English, as real pages of theirs are.
 The judge is told this so it does not score a translation step as protocol friction.
 

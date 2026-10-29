@@ -242,6 +242,136 @@ describe('webmcp eval line form case', () => {
   })
 })
 
+describe('webmcp eval coherence and large-document checks', () => {
+  /**
+   * The labels of a case's checks that fail on `data`.
+   * @param {string} name
+   * @param {unknown} data
+   * @param {unknown} start
+   * @returns {{ failed: string[] }}
+   */
+  const outcome = (name, data, start) => {
+    const results = runChecks(getCase(name).checks ?? [], data, start)
+    return { failed: results.filter((r) => !r.ok).map((r) => r.label) }
+  }
+
+  /**
+   * @param {string} response
+   * @param {RegExp} line
+   */
+  const indexOf = (response, line) => {
+    const match = new RegExp(`^- \\[(\\d+)\\] ${line.source}`, 'm').exec(response)
+    assert.ok(match, response)
+    return Number(match[1])
+  }
+
+  it('should resolve the calendar pickers offline, from the capture', async () => {
+    const evalCase = getCase('calendar')
+    assert.ok(evalCase.remote, 'calendar serves its pickers from a capture')
+    const session = new EvalSession(evalCase, { fetch: async () => { throw new Error('the network must not be reached') } })
+    await session.call('getFieldSuggestions', { path: '/$allOf-0/datasets/0', query: '' })
+    assert.equal(session.calls[0].isError, false, session.calls[0].response)
+    await session.call('getFieldSuggestions', { path: '/$allOf-0/datasets/0', query: 'Agenda-manifestations' })
+    assert.equal(session.calls[1].isError, false, session.calls[1].response)
+    const index = indexOf(session.calls[1].response, /Agenda-manifestations \(/)
+    await session.call('setFieldValue', { path: '/$allOf-0/datasets/0', suggestionIndex: index })
+    assert.equal(session.calls[2].isError, false, session.calls[2].response)
+    // the picked dataset is stored whole, column schema included
+    assert.ok(JSON.stringify(/** @type {any} */ (session.data).datasets[0]).length > 10000, 'the dataset object is kept whole')
+    await session.call('getFieldSuggestions', { path: '/$allOf-1/labelField', query: '' })
+    assert.equal(session.calls[3].isError, false, session.calls[3].response)
+    assert.match(session.calls[3].response, /nomevenement/)
+  })
+
+  it('should answer the calendar URLs an agent writes by hand, whatever the order of their parameters', async () => {
+    const session = new PlainApiSession(getCase('calendar'))
+    const listing = await session.call('httpGet', { url: 'api/v1/datasets?size=100&short-concept=date,startDate,endDate&owner=organization:p6Qg1z-aq&select=title,isRest,schema,timePeriod,attachmentsAsImage,userPermissions&q=&status=finalized' })
+    assert.equal(listing.isError, false, listing.content[0].text)
+    assert.match(listing.content[0].text, /Agenda-manifestations/)
+    const href = JSON.parse(listing.content[0].text).results.find((/** @type {any} */ d) => d.title === 'Agenda-manifestations').href
+    for (const url of [`${href}/schema?calculated=false`, `${href}/schema`, `${new URL(href).pathname.replace('/data-fair/', '')}/schema?calculated=false`]) {
+      const schema = await session.call('httpGet', { url })
+      assert.equal(schema.isError, false, `${url}: ${schema.content[0].text}`)
+    }
+    const unknown = await session.call('httpGet', { url: 'api/v1/datasets?q=nothing-captured' })
+    assert.equal(unknown.isError, true)
+    assert.match(unknown.content[0].text, /404/)
+  })
+
+  it('should check the calendar against the dataset, the event name column and crowd sourcing', async () => {
+    const evalCase = getCase('calendar')
+    const session = new EvalSession(evalCase)
+    await session.call('getFieldSuggestions', { path: '/$allOf-0/datasets/0', query: 'Agenda-manifestations' })
+    await session.call('setFieldValue', { path: '/$allOf-0/datasets/0', suggestionIndex: indexOf(session.calls[0].response, /Agenda-manifestations \(/) })
+    await session.call('getFieldSuggestions', { path: '/$allOf-1/labelField', query: '' })
+    // "Nom" is the applicant's name, the trap; the event name is its own column
+    await session.call('setFieldValue', { path: '/$allOf-1/labelField', suggestionIndex: indexOf(session.calls[2].response, /Nom de l'évenement/) })
+    await session.call('setFieldValue', { path: '/$allOf-3/crowdSourcing', value: true })
+    for (const call of session.calls) assert.equal(call.isError, false, call.response)
+    assert.deepEqual(outcome('calendar', session.data, session.start).failed, [])
+    assert.equal(evalCase.checks?.length, 3)
+
+    const wrongLabel = structuredClone(/** @type {any} */ (session.data))
+    wrongLabel.labelField = { ...wrongLabel.labelField, key: 'nom' }
+    assert.equal(outcome('calendar', wrongLabel, session.start).failed.length, 1)
+    const wrongDataset = structuredClone(/** @type {any} */ (session.data))
+    wrongDataset.datasets[0].href = 'https://koumoul.com/data-fair/api/v1/datasets/hxyyxil1dhvz-7pfs89za6da'
+    assert.equal(outcome('calendar', wrongDataset, session.start).failed.length, 1)
+    const noCrowd = { ...(/** @type {any} */ (session.data)), crowdSourcing: false }
+    assert.equal(outcome('calendar', noCrowd, session.start).failed.length, 1)
+  })
+
+  it('should check the portal configuration change and nothing it does not ask for', () => {
+    const evalCase = getCase('portal-config-edit')
+    assert.equal(evalCase.saveMode, 'auto')
+    const start = evalCase.data
+    const changed = structuredClone(/** @type {any} */ (start))
+    changed.theme.assistedModeColors.primary = '#1B5E20'
+    changed.theme.colors.primary = '#1B5E20'
+    changed.menu.children.push({ type: 'generic', pageRef: { slug: 'jeunesse', title: 'Nos actions pour la jeunesse' }, title: 'Jeunesse' })
+    assert.deepEqual(outcome('portal-config-edit', changed, start).failed, [])
+    assert.equal(outcome('portal-config-edit', start, start).failed.length, 1, 'the page is not in the menu yet')
+    const unrelated = structuredClone(changed)
+    unrelated.theme.assistedModeColors.secondary = '#000000'
+    assert.equal(outcome('portal-config-edit', unrelated, start).failed.length, 1)
+    const wrongPage = structuredClone(changed)
+    wrongPage.menu.children.at(-1).pageRef = { slug: 'contact-presse', title: 'Contact presse' }
+    assert.equal(outcome('portal-config-edit', wrongPage, start).failed.length, 1)
+  })
+
+  it('should check the chart edit against exactly the two settings it changes', () => {
+    const evalCase = getCase('charts-edit')
+    assert.equal(evalCase.checks?.length, 1)
+    const start = evalCase.data
+    const changed = structuredClone(/** @type {any} */ (start))
+    changed.chart.config.valueCalc.metric = 'max'
+    changed.legendPosition = 'bottom'
+    assert.deepEqual(outcome('charts-edit', changed, start).failed, [])
+    const otherGrouping = structuredClone(changed)
+    otherGrouping.chart.config.groupBy.field = 'code_com'
+    assert.equal(outcome('charts-edit', otherGrouping, start).failed.length, 1)
+    const otherTitle = { ...changed, title: 'Pollution' }
+    assert.equal(outcome('charts-edit', otherTitle, start).failed.length, 1)
+  })
+
+  it('should check the page edit against the removed block and the title only', () => {
+    const evalCase = getCase('portal-page-edit')
+    assert.equal(evalCase.checks?.length, 1)
+    const start = evalCase.data
+    const changed = structuredClone(/** @type {any} */ (start))
+    changed.elements.splice(2, 1)
+    changed.title = 'Données ouvertes'
+    assert.deepEqual(outcome('portal-page-edit', changed, start).failed, [])
+    const wrongBlock = structuredClone(/** @type {any} */ (start))
+    wrongBlock.elements.splice(0, 1)
+    wrongBlock.title = 'Données ouvertes'
+    assert.equal(outcome('portal-page-edit', wrongBlock, start).failed.length, 1)
+    const unrelated = structuredClone(changed)
+    unrelated.showBreadcrumbs = false
+    assert.equal(outcome('portal-page-edit', unrelated, start).failed.length, 1)
+  })
+})
+
 describe('webmcp eval no-guide variant', () => {
   it('strips the schema\'s agent guide and nothing else', async () => {
     const { applyVariant } = await import('../webmcp-eval/session.js')

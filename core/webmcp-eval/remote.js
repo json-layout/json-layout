@@ -26,3 +26,19 @@ export function caseFetch (evalCase, options = {}) {
     return value
   }
 }
+
+/**
+ * The key a captured response is stored under: the path and the query, so the host does
+ * not matter, with data-fair's `/data-fair` mount prefix dropped (a dataset's `href` is
+ * absolute under it, the schemas' URLs are relative to it), the parameters sorted and
+ * the empty ones dropped (an unfilled `q={q}`), so a URL an agent writes by hand finds
+ * the response the form's own spelling of it was captured under.
+ * @param {URL} url
+ * @returns {string}
+ */
+export function remoteKey (url) {
+  const path = url.pathname.replace(/^\/data-fair\//, '/')
+  const params = [...url.searchParams].filter(([, value]) => value !== '')
+    .sort(([a, va], [b, vb]) => a === b ? va.localeCompare(vb) : a.localeCompare(b))
+  return params.length ? `${path}?${new URLSearchParams(params)}` : path
+}
