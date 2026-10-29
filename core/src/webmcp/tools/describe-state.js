@@ -36,14 +36,15 @@ export function getDescription (dataTitle, screen = true) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path?: string, query?: string }} args
- * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - updated, not consulted:
- * a read is what the agent asked to see, so every union under it is listed in full, and the
- * memo is what later writes use to avoid repeating those lists
+ * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the unions this instance
+ * already listed: they are referred to with the selector that lists them again, and the ones
+ * this read lists are recorded. A read of a selector itself lists its options in full.
  * @param {boolean} [screen] - false for a form edited with no screen: no section is "open"
  * @returns {string}
  */
 export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
-  const listed = new VariantsMemo()
+  // what earlier answers of this instance listed is referred to, not listed again
+  let listed = VariantsMemo.seededFrom(variantsMemo)
 
   if (args.query?.trim()) return queryMarkdown(statefulLayout, args.query.trim(), args.path)
 
@@ -61,6 +62,9 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
       }
       throw nodeNotFoundError(statefulLayout, args.path)
     }
+    // asked about a choice itself: its options in full, it is where they are read again
+    const selector = node.layout.comp === 'one-of-select'
+    if (selector) listed = new VariantsMemo()
     const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, node)
     /** @param {string} description */
     const answer = (description) => formatMutationResult(statefulLayout.valid, errors, description, otherErrors, elsewhere)
@@ -71,8 +75,11 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
       return markdown
     }
     // a part too large is shown shallower rather than cut, as the whole form is
-    return outlineThatFits(node, statefulLayout, variantsMemo ?? new VariantsMemo(), screen,
+    const memo = selector || !variantsMemo ? new VariantsMemo() : variantsMemo
+    const text = outlineThatFits(node, statefulLayout, memo, screen,
       (outline, depth) => `${answer(outline)}\n${outlineFooter(depth)}`)
+    if (memo !== variantsMemo) variantsMemo?.merge(memo)
+    return text
   }
 
   const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed, screen, true)

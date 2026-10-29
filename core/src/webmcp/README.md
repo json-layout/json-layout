@@ -203,7 +203,9 @@ per enum.
 
 **Repeated things are said once.** A recursive schema reaches the same union at every level;
 `portal-page`'s 39 branches were printed three times in a ten-call run. They are now printed
-once, then referred back to by path.
+once, then referred back to by path — across the answers of one WebMCP instance, reads
+included: after a root `describeState`, a page block's read names the option it holds and the
+selector that lists the options again (`describeState …/$oneOf`), rather than the 40 of them.
 
 **Memorised suggestions are dropped only when they go stale.** Applying an option by index
 needs the list remembered. Every write used to clear all of it, which broke a listing an

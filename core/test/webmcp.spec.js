@@ -2312,9 +2312,9 @@ describe('webmcp repeated variant lists', () => {
       }
     }
   }
-  const toolsOf = () => {
+  const toolsOf = (data = {}) => {
     const compiled = compile(schema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
     return new WebMCP(layout, { dataTitle: 'page' }).getTools()
   }
   /**
@@ -2361,9 +2361,8 @@ describe('webmcp repeated variant lists', () => {
   })
 
   it('should list a union once within a single full read', async () => {
-    const tools = toolsOf()
-    await run(tools, 'editArray', { path: '/elements', action: 'add' })
-    await run(tools, 'editArray', { path: '/elements', action: 'add', index: 1 })
+    // a first read: once the options are listed, later answers of the instance refer to them
+    const tools = toolsOf({ elements: [{ type: 'text' }, { type: 'text' }] })
 
     const read = await run(tools, 'describeState', {})
     assert.equal(read.match(/- variant 0: Text(?! \(active\), one of)/g)?.length, 1, `listed once, not per item: ${read}`)
@@ -2403,9 +2402,9 @@ describe('webmcp help text', () => {
       height: { type: 'number', description: shortHelp }
     }
   }
-  const toolsOf = () => {
+  const toolsOf = (data = {}) => {
     const compiled = compile(schema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
     return new WebMCP(layout, { dataTitle: 'page' }).getTools()
   }
   /**
@@ -3023,6 +3022,46 @@ describe('webmcp describeState on one item of a list of unions', () => {
   it('still lists every option on the selector itself', () => {
     const markdown = describeState.toMarkdown(caseLayout(), { path: '/$comp-2/elements/7/$oneOf' })
     assert.match(markdown, /variant 39: /)
+  })
+})
+
+// Rounds 4-5: describeState of a nested list or a block re-listed the 40 options of a page
+// element (reorder form r3 #2, list-edit form r3 #2) and the 6 options of a link already given
+// by an earlier answer of the same WebMCP instance.
+describe('webmcp options of a union listed once per instance', () => {
+  /** @param {string} name */
+  const tools = (name) => {
+    const evalCase = getCase(name)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+    const registered = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    /** @param {any} args */
+    return async (args) => textOf(await /** @type {any} */(registered.find((t) => t.name === 'describeState')).execute(args))
+  }
+
+  it('refers to the options a root answer listed rather than listing them again', async () => {
+    const describe = tools('portal-page-list-edit')
+    await describe({})
+    const block = await describe({ path: '/$comp-2/elements/6' })
+    assert.ok(!block.includes('variant 39:'), block)
+    assert.match(block, /one of the 40 options already listed under \/\$comp-2\/elements \(describeState \/\$comp-2\/elements\/6\/\$oneOf to list them again\)/, block)
+    // 3813 bytes before, 40 lines of them the options printed again; what they took of the
+    // outline's budget now opens the first card of the grid
+    assert.equal(block.match(/- variant \d+: /g)?.length, undefined)
+    assert.match(block, /children\/0\/\$oneOf\/12\/title \(text\)/)
+    // the selector itself still lists them all, and a new instance starts over
+    assert.match(await describe({ path: '/$comp-2/elements/6/$oneOf' }), /variant 39: /)
+    assert.match(await tools('portal-page-list-edit')({ path: '/$comp-2/elements/6' }), /variant 39: /)
+  })
+
+  it('refers to a nested choice listed by an earlier block answer', async () => {
+    const describe = tools('portal-page-list-edit')
+    const first = await describe({ path: '/$comp-2/elements/5' })
+    assert.match(first, /variant 5: Aucun lien/)
+    const second = await describe({ path: '/$comp-2/elements/0' })
+    assert.ok(!second.includes('variant 5: Aucun lien'), second)
+    assert.match(second, /link\/\$oneOf[^\n]*\n\s*- [^\n]*6 [^\n]*already[^\n]*\/\$comp-2\/elements\/5\/\$oneOf\/0\/link\/\$oneOf/, second)
   })
 })
 

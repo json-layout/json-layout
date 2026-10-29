@@ -644,9 +644,10 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
       // every item of a list holds the same union: its options are given once, under the
       // list, and an item only says which one it holds (round 2: 91 KB for 11 page blocks)
       const active = variants.find((v) => v.key === activeKey)
+      const options = optionsListedAt(variantsMemo, node, variants.length, listedAt)
       lines.push(active
-        ? `${indent}  - variant ${active.key}: ${active.title} (active), one of the ${variants.length} options listed under ${listedAt}`
-        : `${indent}  - no option chosen yet, one of the ${variants.length} options listed under ${listedAt}`)
+        ? `${indent}  - variant ${active.key}: ${active.title} (active), ${options}`
+        : `${indent}  - no option chosen yet, ${options}`)
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
       // so name where it was given rather than repeat it — but which branch is active is
@@ -686,6 +687,22 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
   }
 
   return lines.join('\n')
+}
+
+/**
+ * Where the options of a choice were listed, when they are not listed again: in an earlier
+ * answer, with the selector that lists them again (describeState on a selector always lists
+ * its own options).
+ * @param {import('./variants-memo.js').VariantsMemo | undefined} variantsMemo
+ * @param {import('../state/types.js').StateNode} selector
+ * @param {number} count
+ * @param {string} listedAt
+ * @returns {string}
+ */
+function optionsListedAt (variantsMemo, selector, count, listedAt) {
+  const earlier = !!variantsMemo?.listedEarlier(selector.skeleton.pointer)
+  const hint = earlier ? ` (describeState ${selector.fullKey} to list them again)` : ''
+  return `one of the ${count} options ${earlier ? 'already ' : ''}listed under ${listedAt}${hint}`
 }
 
 /**
@@ -1179,7 +1196,7 @@ export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo
       else {
         const selector = children.map(itemSelector).find(Boolean)
         const listedAt = selector && variantsMemo.listedAt(selector.skeleton.pointer)
-        if (selector && listedAt !== undefined) lines.push(`${indent}  - each item is one of the ${variantsOf(selector).length} options listed under ${listedAt}`)
+        if (selector && listedAt !== undefined) lines.push(`${indent}  - each item is ${optionsListedAt(variantsMemo, selector, variantsOf(selector).length, listedAt)}`)
       }
       for (const item of children.slice(0, OUTLINE_ITEMS_MAX)) {
         lines.push(outlineItemLine(item, `${indent}  `, errorsByPath))
@@ -1203,7 +1220,7 @@ export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo
         variantsMemo.record(pointer, path)
         lines.push(...variantLines(node, statefulLayout, `${indent}  `, false))
       } else {
-        lines.push(`${indent}  - one of the ${variantsOf(node).length} options listed under ${listedAt}`)
+        lines.push(`${indent}  - ${optionsListedAt(variantsMemo, node, variantsOf(node).length, listedAt)}`)
       }
       // the choice and its option's section are one level with the fields they hold
       const branch = children[0]
@@ -1291,7 +1308,8 @@ export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wra
    * @param {Set<string>} [expanded]
    */
   const render = (maxDepth, expanded) => {
-    const memo = new VariantsMemo()
+    // what earlier answers listed is referred to, not listed again
+    const memo = VariantsMemo.seededFrom(variantsMemo)
     const outline = projectNodeOutline(node, statefulLayout, maxDepth, memo, screen, expanded)
     const text = wrap(outline.text, outline.shown)
     return { text, memo, candidates: outline.candidates, fits: byteLength(text) <= budget }

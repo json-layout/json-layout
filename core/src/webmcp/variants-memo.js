@@ -14,8 +14,13 @@
  * a later response can point the agent back at it in its own transcript.
  *
  * It is never cleared on a write: unlike memorized suggestions, a schema's branches cannot
- * be invalidated by editing the data. `describeState` projects into a fresh memo and merges
- * it in afterwards, so a full read always prints every list once and stays authoritative.
+ * be invalidated by editing the data. It lives as long as its WebMCP instance: a host that
+ * loads another form builds another instance, which starts over.
+ *
+ * `describeState` projects into a memo seeded from this one: a list given by an earlier
+ * answer is referred to, with the selector to read it from again (rounds 4-5: a nested list or
+ * a block re-listed the 40 options a root answer had just given). Asked about a selector
+ * itself, it lists its options in full.
  */
 export class VariantsMemo {
   /**
@@ -29,6 +34,33 @@ export class VariantsMemo {
    * @type {Set<string>}
    */
   _underList = new Set()
+
+  /**
+   * pointers listed by an earlier answer, seeded into this memo
+   * @type {Set<string>}
+   */
+  _earlier = new Set()
+
+  /**
+   * A memo for a new answer, knowing what earlier answers listed.
+   * @param {VariantsMemo} [earlier]
+   * @returns {VariantsMemo}
+   */
+  static seededFrom (earlier) {
+    const memo = new VariantsMemo()
+    if (!earlier) return memo
+    memo.merge(earlier)
+    for (const pointer of earlier._listedAt.keys()) memo._earlier.add(pointer)
+    return memo
+  }
+
+  /**
+   * @param {string} pointer
+   * @returns {boolean} whether the list was printed by an earlier answer, not this one
+   */
+  listedEarlier (pointer) {
+    return this._earlier.has(pointer)
+  }
 
   /**
    * @param {string} pointer - skeleton pointer of the one-of-select node
@@ -67,5 +99,6 @@ export class VariantsMemo {
   clear () {
     this._listedAt.clear()
     this._underList.clear()
+    this._earlier.clear()
   }
 }
