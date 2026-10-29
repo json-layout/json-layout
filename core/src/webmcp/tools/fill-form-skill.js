@@ -55,6 +55,8 @@ Then write. If the goal already tells you every value, set them in one call with
 
 Never invent a value for a field that has a fixed set of accepted ones. ${prefixName}describeState tells you which case you are in: it either states them on the field's line as values=[...], and you write one of those directly, or it marks the field "suggestions", and the list exists only behind a request — then call ${prefixName}getFieldSuggestions, whose description says how to apply what it returns.
 
+Values of fields whose options come from a list are picked from ${prefixName}getFieldSuggestions, never typed from memory.
+
 A field shown as (variant-selector) chooses between shapes rather than between values: ${prefixName}describeState lists its branches under it as "variant N: label", and you switch to one by setting the field to that number with ${prefixName}setFieldValue, which then lists the fields the branch contains. Choosing a branch only fills its defaults: then set each of its fields that the request calls for.${potentialSentence}
 
 To fill an array, call ${prefixName}editArray with action "add": the new item is activated for edition and the tool returns the fields it contains, then fill them one by one with ${prefixName}setFieldValue.

@@ -18,6 +18,8 @@
  * the agent used: a list item's lists are then all under the list's own path.
  */
 
+import equal from 'fast-deep-equal'
+
 /** @typedef {{value: unknown, title: string, key?: string}} SuggestionItem */
 
 /**
@@ -49,6 +51,17 @@ export class SuggestionsStore {
   _invalidated = new Set()
 
   /**
+   * Every value a search answered, per field and per list: never dropped by a write, since
+   * a value offered from a list stays one of its values. Keyed by the node path with its
+   * item indexes left out, and by the list (the itemsCacheKey, a resolved URL for a remote
+   * picker): a value stays offered to its item wherever a move or a removal takes it, and
+   * stops being one when the list the field reads changes. See `wasOffered`.
+   * @private
+   * @type {Map<string, {values: unknown[], keys: Set<unknown>}>}
+   */
+  _offered = new Map()
+
+  /**
    * Memorize a search's items and return the index its first item was given. Indices are
    * absolute per path, so an index handed out earlier keeps meaning what the agent saw.
    * @param {string} path
@@ -59,6 +72,15 @@ export class SuggestionsStore {
   add (path, items, cacheKey) {
     this._invalidated.delete(path)
     this._cacheKeys.set(path, cacheKey)
+    const offeredKey = offeredKeyOf(path, cacheKey)
+    const offered = this._offered.get(offeredKey) ?? { values: [], keys: new Set() }
+    for (const item of items) {
+      offered.values.push(item.value)
+      // the item's key, which the get-field-suggestions projection leaves out when it is the title
+      const key = item.key ?? item.title
+      if (typeof key === 'string' ? key !== '' : typeof key === 'number') offered.keys.add(key)
+    }
+    this._offered.set(offeredKey, offered)
     const known = this._byPath.get(path)
     if (!known) {
       this._byPath.set(path, [...items])
@@ -171,10 +193,28 @@ export class SuggestionsStore {
     return items[index].value
   }
 
+  /**
+   * Whether a value was among the suggestions some search listed for this field, from the
+   * list it reads now.
+   * @param {string} path
+   * @param {unknown} cacheKey - the node's current itemsCacheKey
+   * @param {unknown} value
+   * @param {unknown} [itemKey] - the value's item key, for an object value the form stores
+   * trimmed to its schema (a data-fair dataset loses its owner, id, slug...): the key is how
+   * the state layer itself recognizes the selected item
+   * @returns {boolean}
+   */
+  wasOffered (path, cacheKey, value, itemKey) {
+    const offered = this._offered.get(offeredKeyOf(path, cacheKey))
+    if (!offered) return false
+    return (itemKey !== undefined && offered.keys.has(itemKey)) || offered.values.some((o) => equal(o, value))
+  }
+
   clear () {
     for (const path of this._byPath.keys()) this._invalidated.add(path)
     this._byPath.clear()
     this._cacheKeys.clear()
+    this._offered.clear()
   }
 }
 
@@ -188,4 +228,19 @@ function itemIndexUnder (listPath, path) {
   if (!path.startsWith(listPath + '/')) return undefined
   const segment = path.slice(listPath.length + 1).split('/')[0]
   return /^\d+$/.test(segment) ? Number(segment) : undefined
+}
+
+/**
+ * @param {string} path
+ * @param {unknown} cacheKey
+ * @returns {string}
+ */
+function offeredKeyOf (path, cacheKey) {
+  let key
+  try {
+    key = JSON.stringify(cacheKey) ?? ''
+  } catch {
+    key = String(cacheKey)
+  }
+  return `${path.replace(/\/\d+(?=\/|$)/g, '/*')}\u0000${key}`
 }

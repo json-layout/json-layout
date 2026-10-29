@@ -176,6 +176,13 @@ unrelated write could not have affected. Invalidation now compares each path's
 also drops the paths whose data it changed, and nothing else; `editArray` drops the lists of
 the items an add or a remove shifted, and a move takes each item's lists along with it.
 
+**Picked, not invented.** A field whose options come from a remote list holds codes the form
+cannot check: an agent typed commune 44173 from memory (the real one was 44190) and the form
+said valid. A value written to such a field that no search listed for it, and that it did not
+hold when loaded, is accepted with a warning naming it, and `WebMCP#unpickedValues()` lists
+those still in the form so a host can hold a save on them (`resetBaseline()` after loading other
+data). The guide says it in one line.
+
 ## How far this is validated
 
 Unit tests: 463, covering tool shapes, projection rules and the compile-level changes in both

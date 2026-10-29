@@ -93,6 +93,63 @@ function coercedLine (coerced) {
 }
 
 /**
+ * @param {string[]} lines
+ * @returns {string}
+ */
+function warningLines (lines) {
+  return lines.length ? '\n' + lines.join('\n') : ''
+}
+
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isEmpty (value) {
+  return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
+}
+
+/**
+ * The fields whose options come from a remote list (getItems with a URL): their values are
+ * codes a model may type from memory, and the form cannot tell a real one from an invented
+ * one. Not a list whose items are fetched: the form fills it itself.
+ * @param {import('../state/types.js').StateNode} root
+ * @returns {import('../state/types.js').StateNode[]}
+ */
+function referentialNodes (root) {
+  /** @type {import('../state/types.js').StateNode[]} */
+  const found = []
+  /** @param {import('../state/types.js').StateNode} node */
+  const visit = (node) => {
+    if (/** @type {any} */(node.layout).getItems?.url && node.layout.comp !== 'list') found.push(node)
+    for (const child of node.children ?? []) visit(child)
+  }
+  visit(root)
+  return found
+}
+
+/**
+ * The values a data path held in the loaded data, any item of a list standing for the
+ * item index: a loaded value stays loaded wherever adding, removing or moving items, or an
+ * array passed whole, takes it.
+ * @param {unknown} data
+ * @param {string} dataPath
+ * @returns {unknown[]}
+ */
+function loadedValuesAt (data, dataPath) {
+  let current = [data]
+  for (const segment of dataPath.split('/').filter(Boolean)) {
+    /** @type {unknown[]} */
+    const next = []
+    for (const value of current) {
+      if (Array.isArray(value) && /^\d+$/.test(segment)) next.push(...value)
+      else if (value !== null && typeof value === 'object' && segment in value) next.push(/** @type {Record<string, unknown>} */(value)[segment])
+    }
+    current = next
+  }
+  return current
+}
+
+/**
  * @typedef {object} WebMCPOptions
  * @property {string} [prefixName] - Prefix for all tool names
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
@@ -140,6 +197,13 @@ export class WebMCP {
   _screen = true
 
   /**
+   * The data counted as loaded, see `resetBaseline`.
+   * @private
+   * @type {unknown}
+   */
+  _baseline
+
+  /**
    * @type {string[]}
    */
   _registeredTools = []
@@ -170,6 +234,112 @@ export class WebMCP {
     this._includeFillFormSkill = options.includeFillFormSkill || false
     this._includeSubAgent = options.includeSubAgent || false
     this._screen = options.screen ?? true
+    this.resetBaseline()
+  }
+
+  /**
+   * The data the form was loaded with: a value it already held when loaded counts as picked,
+   * the agent did not type it. Set when this instance is created; a host that loads other
+   * data into the same form (after a save, or to start a new document) calls this again.
+   * @param {unknown} [data] - the data now counted as loaded, the form's current data by default
+   */
+  resetBaseline (data = this._statefulLayout.data) {
+    try {
+      this._baseline = structuredClone(data)
+    } catch {
+      this._baseline = data
+    }
+  }
+
+  /**
+   * The values of fields whose options come from a remote list that are neither among the
+   * suggestions listed for that field nor the value it was loaded with: most likely typed
+   * from memory, so a host can hold a save on them. Fields not hydrated in the form (the
+   * items of a list shown as summaries and never opened) are not looked at.
+   * @returns {Array<{path: string, value: unknown}>}
+   */
+  unpickedValues () {
+    /** @type {Array<{path: string, value: unknown}>} */
+    const found = []
+    for (const node of referentialNodes(this._statefulLayout.stateTree.root)) {
+      const value = this._unpicked(node)
+      if (value !== undefined) found.push({ path: node.fullKey, value })
+    }
+    return found
+  }
+
+  /**
+   * What of a referential node's value was not picked, undefined when all of it was.
+   * @param {import('../state/types.js').StateNode} node
+   * @returns {unknown}
+   */
+  _unpicked (node) {
+    const data = node.data
+    if (isEmpty(data)) return undefined
+    // the schema's default is not typed by the agent either
+    const defaultData = /** @type {any} */(node.layout).defaultData
+    const loaded = [...loadedValuesAt(this._baseline, node.dataPath), ...(defaultData !== undefined ? [defaultData] : [])]
+    /** @param {unknown} value */
+    const picked = (value) => {
+      const key = this._itemKeyOf(node, value)
+      /** @param {unknown} l */
+      const same = (l) => equal(l, value) || (key !== undefined && this._itemKeyOf(node, l) === key)
+      return this._suggestionsStore.wasOffered(node.fullKey, node.itemsCacheKey, value, key) ||
+        loaded.some((l) => same(l) || (Array.isArray(l) && l.some(same)))
+    }
+    if (picked(data)) return undefined
+    if (Array.isArray(data) && /** @type {any} */(node.layout).multiple) {
+      const unpicked = data.filter((value) => !isEmpty(value) && !picked(value))
+      return unpicked.length ? unpicked : undefined
+    }
+    return data
+  }
+
+  /**
+   * The item key of an object value, as the state layer computes it to recognize the
+   * selected item: the form stores such a value trimmed to its schema, so it no longer
+   * equals the item it was picked from.
+   * @param {import('../state/types.js').StateNode} node
+   * @param {unknown} value
+   * @returns {string|number|undefined}
+   */
+  _itemKeyOf (node, value) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+    try {
+      const key = this._statefulLayout.prepareSelectItem(node, value).key
+      return typeof key === 'string' ? (key === '' || key === String(value) ? undefined : key) : typeof key === 'number' ? key : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * The values of fields whose options come from a remote list, before a write.
+   * @returns {Map<string, unknown>}
+   */
+  _referentialData () {
+    return new Map(referentialNodes(this._statefulLayout.stateTree.root).map((node) => [node.fullKey, node.data]))
+  }
+
+  /**
+   * One line per referential value a write put in the form that was not picked: the form
+   * accepts it, a code typed from memory is as valid as the right one (the data-fair agent
+   * that wrote commune 44173 for 44190).
+   * @param {Map<string, unknown>} before - see `_referentialData`
+   * @param {string} [under] - only the fields under this node path
+   * @returns {string[]}
+   */
+  _unpickedWarnings (before, under) {
+    /** @type {string[]} */
+    const lines = []
+    for (const node of referentialNodes(this._statefulLayout.stateTree.root)) {
+      if (under !== undefined && node.fullKey !== under && !node.fullKey.startsWith(under + '/')) continue
+      if (before.has(node.fullKey) && equal(before.get(node.fullKey), node.data)) continue
+      const value = this._unpicked(node)
+      if (value === undefined) continue
+      lines.push(`${node.fullKey}: ${abbreviateValue(value)} was not among the suggestions listed for this field; pick one with ${this._toolName('getFieldSuggestions')}`)
+    }
+    return lines
   }
 
   /**
@@ -274,6 +444,7 @@ export class WebMCP {
             }
             args.data = parseIfJsonString(args.data)
             const memorized = this._memorizedData()
+            const referentialBefore = this._referentialData()
             const result = setData.execute(
               this._statefulLayout,
               /** @type {{ data: unknown, merge?: boolean }} */(args)
@@ -290,6 +461,7 @@ export class WebMCP {
             if (result.unknownKeys.length) {
               warnings.push(`${result.unknownKeys.length} key(s) match no field of this form and were ignored by it: ${result.unknownKeys.join(', ')} — check for a typo with describeState`)
             }
+            warnings.push(...this._unpickedWarnings(referentialBefore))
             const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
             const stored = result.written.length ? `stored ${result.written.length} key(s): ${result.written.join(', ')}` : ''
             const text = [formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(result.coerced ? [`coerced: ${result.coerced.join('; ')}`] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
@@ -356,6 +528,7 @@ export class WebMCP {
               throw new Error('path is required')
             }
             if (args.value !== undefined) args.value = parseIfJsonString(args.value)
+            const referentialBefore = this._referentialData()
             const result = setFieldValue.execute(
               this._statefulLayout,
               /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
@@ -375,7 +548,7 @@ export class WebMCP {
             }
             if (this._screen) fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(this._unpickedWarnings(referentialBefore)) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -460,7 +633,9 @@ export class WebMCP {
             }
             if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) }]
+              // only an added item brings values: a removal or a move shifts the paths of
+              // values already there
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + (args.action === 'add' && listPath !== undefined ? warningLines(this._unpickedWarnings(new Map(), `${listPath}/${result.index}`)) : '') }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)

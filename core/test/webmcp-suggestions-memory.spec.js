@@ -150,3 +150,167 @@ describe('webmcp suggestions with no close match', () => {
     assert.ok(!noQuery.includes('closely'), noQuery)
   })
 })
+
+describe('webmcp values picked, not invented', () => {
+  const warning = /\/commune: "44173" was not among the suggestions listed for this field; pick one with getFieldSuggestions/
+
+  it('should accept a referential value typed from memory, with a warning', async () => {
+    // the data-fair experiment: an agent typed the commune code 44173 from memory (the real
+    // one is 44190) and the form said valid
+    const { tools, webmcp, layout } = lineForm()
+    const text = await run(tools, 'setFieldValue', { path: '/commune', value: '44173' })
+    assert.match(text, warning, text)
+    assert.equal(/** @type {any} */(layout.data).commune, '44173')
+    assert.deepEqual(webmcp.unpickedValues(), [{ path: '/commune', value: '44173' }])
+  })
+
+  it('should say so for a setData too', async () => {
+    const { tools, webmcp } = lineForm()
+    const text = await run(tools, 'setData', { data: { nom: 'Dojo', commune: '44173' } })
+    assert.match(text, warning, text)
+    assert.deepEqual(webmcp.unpickedValues(), [{ path: '/commune', value: '44173' }])
+  })
+
+  it('should not warn about a value applied by its index', async () => {
+    const { tools, webmcp } = lineForm()
+    const listed = await run(tools, 'getFieldSuggestions', { path: '/commune', query: 'Sébastien' })
+    const index = Number(listed.match(/\[(\d+)\] 44190/)?.[1])
+    const text = await run(tools, 'setFieldValue', { path: '/commune', suggestionIndex: index })
+    assert.ok(!text.includes('was not among'), text)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
+  it('should not warn about a listed value written directly', async () => {
+    const { tools, webmcp } = lineForm()
+    await run(tools, 'getFieldSuggestions', { path: '/commune', query: 'Sébastien' })
+    const text = await run(tools, 'setFieldValue', { path: '/commune', value: '44190' })
+    assert.ok(!text.includes('was not among'), text)
+    // nor after a write that dropped the list it was in
+    const again = await run(tools, 'setData', { data: { commune: '44190', nom: 'Dojo' } })
+    assert.ok(!again.includes('was not among'), again)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
+  it('should not warn about the value the form was loaded with', async () => {
+    const { tools, webmcp } = lineForm({ commune: '44173' })
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    const other = await run(tools, 'setData', { data: { nom: 'Dojo' } })
+    assert.ok(!other.includes('was not among'), other)
+    const same = await run(tools, 'setFieldValue', { path: '/commune', value: '44173' })
+    assert.ok(!same.includes('was not among'), same)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
+  it('should take the data of a reset as the loaded value', async () => {
+    const { tools, webmcp } = lineForm()
+    await run(tools, 'setFieldValue', { path: '/commune', value: '44173' })
+    webmcp.resetBaseline()
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
+  it('should not warn about a field whose options are not a remote list', async () => {
+    const { tools, webmcp } = lineForm()
+    const text = await run(tools, 'setFieldValue', { path: '/activites', value: ['judo'] })
+    assert.ok(!text.includes('was not among'), text)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
+  const placesSchema = {
+    type: 'object',
+    properties: {
+      dep: { type: 'string' },
+      l: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            // eslint-disable-next-line no-template-curly-in-string
+            place: { type: 'string', layout: { getItems: { url: 'http://example.com/places?dep=${rootData.dep}&q={q}', itemsResults: 'data.results', itemKey: 'item.code', itemTitle: 'item.label' } } }
+          }
+        }
+      }
+    }
+  }
+  /** @param {string} url */
+  const fetch = async (url) => {
+    const dep = new URL(url).searchParams.get('dep')
+    return { results: dep === '44' ? [{ code: '44109', label: 'Nantes' }, { code: '44190', label: 'Saint-Sébastien-sur-Loire' }] : [{ code: '85191', label: 'La Roche-sur-Yon' }] }
+  }
+  const placesForm = () => {
+    const compiled = compile(placesSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch },
+      { dep: '44', l: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] })
+    const webmcp = new WebMCP(layout)
+    return { layout, webmcp, tools: Object.fromEntries(webmcp.getTools().map((t) => [t.name, t])) }
+  }
+
+  it('should keep a pick with its item when items are removed or moved', async () => {
+    const { tools, webmcp, layout } = placesForm()
+    await run(tools, 'getFieldSuggestions', { path: '/l/2/place' })
+    await run(tools, 'setFieldValue', { path: '/l/2/place', suggestionIndex: 1 })
+    await run(tools, 'editArray', { path: '/l', action: 'remove', index: 0 })
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    await run(tools, 'editArray', { path: '/l', action: 'move', from: 1, to: 0 })
+    assert.equal(/** @type {any} */(layout.data).l[0].place, '44190')
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    // an invented value in an added item is told
+    const added = await run(tools, 'editArray', { path: '/l', action: 'add', value: { name: 'd', place: '44999' } })
+    assert.match(added, /\/l\/2\/place: "44999" was not among the suggestions/, added)
+    assert.deepEqual(webmcp.unpickedValues(), [{ path: '/l/2/place', value: '44999' }])
+  })
+
+  it('should forget a pick when the list it came from changes', async () => {
+    const { tools, webmcp } = placesForm()
+    await run(tools, 'getFieldSuggestions', { path: '/l/0/place' })
+    await run(tools, 'setFieldValue', { path: '/l/0/place', suggestionIndex: 1 })
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    await run(tools, 'setFieldValue', { path: '/dep', value: '85' })
+    assert.deepEqual(webmcp.unpickedValues(), [{ path: '/l/0/place', value: '44190' }])
+  })
+
+  it('should say once in the guide that such values are picked', async () => {
+    const { generateSkill } = await import('../src/webmcp/index.js')
+    const skill = generateSkill('doc', 'x_', {})
+    const line = 'Values of fields whose options come from a list are picked from x_getFieldSuggestions, never typed from memory.'
+    assert.equal(skill.split(line).length, 2, skill)
+  })
+})
+
+describe('webmcp values picked, as the form stores them', () => {
+  // a data-fair dataset picked whole: the form keeps only the properties of its schema, so
+  // the stored object no longer equals the item it was picked from
+  const schema = {
+    type: 'object',
+    properties: {
+      dataset: {
+        type: 'object',
+        properties: { href: { type: 'string' }, title: { type: 'string' } },
+        layout: { getItems: { url: 'http://example.com/datasets?q={q}', itemsResults: 'data.results', itemKey: 'item.href', itemTitle: 'item.title', returnObjects: true } }
+      },
+      place: { type: 'string', default: '44109', layout: { getItems: { url: 'http://example.com/places?q={q}' } } }
+    }
+  }
+  const fetch = async () => ({ results: [{ href: 'http://example.com/d/1', title: 'Agenda', owner: { id: 'o' }, id: '1' }] })
+  const formOf = () => {
+    const compiled = compile(schema, { useDefault: 'data' })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch, removeAdditional: true }, {})
+    const webmcp = new WebMCP(layout)
+    return { layout, webmcp, tools: Object.fromEntries(webmcp.getTools().map((t) => [t.name, t])) }
+  }
+
+  it('should recognize an object picked whole by its item key', async () => {
+    const { tools, webmcp } = formOf()
+    await run(tools, 'getFieldSuggestions', { path: '/dataset' })
+    const text = await run(tools, 'setFieldValue', { path: '/dataset', suggestionIndex: 0 })
+    assert.ok(!text.includes('was not among'), text)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
+  it('should count the default of a field as picked', async () => {
+    const { tools, webmcp } = formOf()
+    const text = await run(tools, 'setFieldValue', { path: '/place', value: '44109' })
+    assert.ok(!text.includes('was not among'), text)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+})
