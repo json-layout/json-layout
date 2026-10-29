@@ -732,6 +732,23 @@ function stateHeaderLines (stateTree, statefulLayout) {
   return lines
 }
 
+/**
+ * Whether one item of a suggestions answer holds a word of the query in its title, key or
+ * scalar value, read as describeState reads a query (accents and case aside).
+ * @param {Array<{value: unknown, title: string, key?: string}>} items
+ * @param {string} query
+ * @returns {boolean}
+ */
+export function suggestionsMatchQuery (items, query) {
+  const words = searchWords(query)
+  if (!words.length) return true
+  return items.some((item) => {
+    const value = ['string', 'number', 'boolean'].includes(typeof item.value) ? String(item.value) : ''
+    const haystack = searchWords(`${item.title ?? ''} ${item.key ?? ''} ${value}`).join(' ')
+    return words.some((w) => haystack.includes(w))
+  })
+}
+
 /** Matches a query answers before counting the rest. */
 export const QUERY_MATCHES_MAX = 30
 
@@ -1253,14 +1270,18 @@ function suggestionTitle (item) {
  * Format field suggestions as markdown for LLM-readable output.
  * @param {ProjectedSuggestion[]} suggestions
  * @param {string} [blockedOn] - the expression the list is waiting on, when it has one
+ * @param {string} [unmatchedQuery] - the query, when none of the suggestions holds a word of it
  * @returns {string}
  */
-export function formatSuggestions (suggestions, blockedOn) {
+export function formatSuggestions (suggestions, blockedOn, unmatchedQuery) {
   if (suggestions.length === 0) {
     if (blockedOn) return `No options yet: this field's list comes from \`${blockedOn}\`, and that cannot be resolved until the data it reads is set. Fill that field first, then ask again.`
     return 'No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.'
   }
-  const lines = [`${suggestions.length} suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):`]
+  const apply = 'apply one with setFieldValue and its suggestionIndex (or copy a short value):'
+  const lines = [unmatchedQuery
+    ? `No suggestion matches ${JSON.stringify(unmatchedQuery)} closely; ${suggestions.length} other option(s), ${apply}`
+    : `${suggestions.length} suggestion(s), ${apply}`]
   for (const suggestion of suggestions) {
     const title = suggestion.key ? `${suggestion.title} (${suggestion.key})` : suggestion.title
     if (suggestion.valueOmitted) {

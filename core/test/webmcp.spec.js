@@ -2464,12 +2464,17 @@ describe('webmcp suggestions invalidated by a write', () => {
     assert.match(never, /no suggestion memorized.*on this path first/, `never fetched still says so: ${never}`)
   })
 
-  it('should still drop everything when paths themselves may have moved', async () => {
-    // setData replaces the document and editArray shifts item indices: those invalidate
-    // what a path DESIGNATES, which no cache key can detect
+  it('should drop on setData only what the write changed', async () => {
+    // setData can replace an array whole, so a path whose data changed may designate
+    // another item, which no cache key can detect; a path it left alone keeps its list
+    // (round 2's data-fair-line lost its commune list to a setData of the other fields)
     const tools = toolsOf()
     await run(tools, 'getFieldSuggestions', { path: '/fixed' })
-    await run(tools, 'setData', { data: { kind: 'a' } })
+    await run(tools, 'setData', { data: { kind: 'a', other: 'o' } })
+    const kept = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
+    assert.match(kept, /\/fixed \(select\) = "x"/, `got: ${kept}`)
+    await run(tools, 'getFieldSuggestions', { path: '/fixed' })
+    await run(tools, 'setData', { data: { fixed: 'y' } })
     const applied = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
     assert.match(applied, /were dropped by a write/, `got: ${applied}`)
   })

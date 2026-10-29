@@ -13,7 +13,9 @@ import * as getData from './tools/get-data.js'
 import * as getFieldSuggestions from './tools/get-field-suggestions.js'
 import * as editArray from './tools/edit-array.js'
 import * as fillFormSkill from './tools/fill-form-skill.js'
-import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource } from './project.js'
+import equal from 'fast-deep-equal'
+
+import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource, suggestionsMatchQuery } from './project.js'
 import { resolveNode } from './resolve.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
@@ -171,6 +173,33 @@ export class WebMCP {
   }
 
   /**
+   * The data each memorized path holds before a write, for `_retainFresh`.
+   * @returns {Map<string, unknown>}
+   */
+  _memorizedData () {
+    const root = this._statefulLayout.stateTree.root
+    return new Map(this._suggestionsStore.paths().map((path) => [path, resolveNode(root, path)?.data]))
+  }
+
+  /**
+   * Drop the memorized suggestions a write invalidated. A getItems expression can depend on
+   * another field, so a write may have changed the options of a field memorized under an
+   * unchanged path — but only of a field whose list actually depends on it. Comparing each
+   * memorized path's itemsCacheKey against the node's current one is how the state layer
+   * itself decides whether to re-fetch. Compared by content: a static list is a distinct
+   * array in each item of a list, so a moved item's list never had the identity of the
+   * one now at its place, while having the same options.
+   * @param {Map<string, unknown>} [dataBefore] - also drop the paths whose data changed
+   */
+  _retainFresh (dataBefore) {
+    this._suggestionsStore.retainFresh((path, cacheKey) => {
+      const node = resolveNode(this._statefulLayout.stateTree.root, path)
+      if (!node || !equal(node.itemsCacheKey, cacheKey)) return false
+      return !dataBefore || equal(node.data, dataBefore.get(path))
+    })
+  }
+
+  /**
    * @param {string} name
    * @returns {string}
    */
@@ -244,12 +273,16 @@ export class WebMCP {
               throw new Error('data is required')
             }
             args.data = parseIfJsonString(args.data)
+            const memorized = this._memorizedData()
             const result = setData.execute(
               this._statefulLayout,
               /** @type {{ data: unknown, merge?: boolean }} */(args)
             )
-            // the whole data was replaced, what a memorized path designates may have changed
-            this._suggestionsStore.clear()
+            // A list survives a setData that did not touch it: round 2's agents lost the
+            // commune list they had just fetched to a setData of the other fields. One whose
+            // path now holds other data may designate another item (an array passed whole
+            // replaces the previous one), so it goes.
+            this._retainFresh(memorized)
             const warnings = []
             if (result.removed.length) {
               warnings.push(`removed ${result.removed.length} key(s) not present in the data you passed: ${result.removed.join(', ')} — pass merge=true to keep them`)
@@ -334,10 +367,7 @@ export class WebMCP {
             // of a field whose list actually depends on it. Comparing each memorized path's
             // itemsCacheKey against the node's current one is how the state layer itself
             // decides whether to re-fetch.
-            this._suggestionsStore.retainFresh((path, cacheKey) => {
-              const node = resolveNode(this._statefulLayout.stateTree.root, path)
-              return !!node && node.itemsCacheKey === cacheKey
-            })
+            this._retainFresh()
             let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
             if (result.visibility) fieldInfo += formatVisibilityDiff(result.visibility)
             if (result.activatedMarkdown) {
@@ -376,8 +406,12 @@ export class WebMCP {
             // field is still empty. Only the second is a reason to go somewhere else.
             const node = resolveNode(this._statefulLayout.stateTree.root, /** @type {any} */(args).path)
             const blockedOn = node && suggestionsBlocked(node) ? suggestionsSource(node) : undefined
+            // A search that answers whatever it has reads as a list of matches: say when
+            // none of them holds a word of the query, before one is picked as the closest
+            const query = typeof args.query === 'string' ? args.query : undefined
+            const unmatched = query && !suggestionsMatchQuery(result.items, query) ? query : undefined
             return {
-              content: [{ type: 'text', text: formatSuggestions(suggestions, blockedOn) }]
+              content: [{ type: 'text', text: formatSuggestions(suggestions, blockedOn, unmatched) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -406,8 +440,14 @@ export class WebMCP {
               this._variantsMemo
             )
             // adding or removing an item shifts the paths of the items after it, so the
-            // suggestions memorized for those paths now designate another item
-            this._suggestionsStore.clear()
+            // suggestions memorized for those paths now designate another item; a move
+            // takes each item's lists along with it
+            const listPath = resolveNode(this._statefulLayout.stateTree.root, /** @type {string} */(args.path))?.fullKey
+            if (listPath !== undefined && !result.moved) {
+              if (args.action === 'move') this._suggestionsStore.move(listPath, /** @type {number} */(args.from), /** @type {number} */(args.to))
+              else this._suggestionsStore.dropUnder(listPath, result.index)
+            }
+            this._retainFresh()
             let actionInfo
             if (args.action === 'add') actionInfo = `added item at index ${result.index}, ${result.itemCount} total`
             else if (args.action === 'move') {

@@ -9,7 +9,13 @@
  * first had handed out, so an agent applying an index it had been given a moment earlier
  * would set a different value with no error — the worst kind of failure this protocol can
  * produce, since nothing in the transcript looks wrong. A write can change another
- * field's options, so writes drop what they invalidate — see `retainFresh`.
+ * field's options, so writes drop what they invalidate — see `retainFresh` — and only that:
+ * a list dropped by a write that did not touch it cost round 2's agents a call, or their
+ * trust in suggestionIndex. Moving a list item takes its lists along (`move`), adding or
+ * removing one drops the lists of the items it shifted (`dropUnder`).
+ *
+ * Paths are node paths (a node's fullKey, as describeState lists them), whatever spelling
+ * the agent used: a list item's lists are then all under the list's own path.
  */
 
 /** @typedef {{value: unknown, title: string, key?: string}} SuggestionItem */
@@ -86,6 +92,58 @@ export class SuggestionsStore {
   }
 
   /**
+   * Drop the lists memorized under a list node, from one item on: adding or removing an item
+   * shifts the paths of those after it, so what was memorized for them now designates
+   * another item.
+   * @param {string} prefix - the list's path
+   * @param {number} [fromIndex] - the first item whose path shifted, every item when omitted
+   */
+  dropUnder (prefix, fromIndex) {
+    for (const path of [...this._byPath.keys()]) {
+      const index = itemIndexUnder(prefix, path)
+      if (index === undefined || (fromIndex !== undefined && index < fromIndex)) continue
+      this._byPath.delete(path)
+      this._cacheKeys.delete(path)
+      this._invalidated.add(path)
+    }
+  }
+
+  /**
+   * Re-key the lists of the items a move shifted, so each stays with its item: its indexes
+   * are kept, they are the ones the agent was handed.
+   * @param {string} listPath
+   * @param {number} from
+   * @param {number} to
+   */
+  move (listPath, from, to) {
+    /** @param {number} index */
+    const moved = (index) => {
+      if (index === from) return to
+      if (from < to && index > from && index <= to) return index - 1
+      if (to < from && index >= to && index < from) return index + 1
+      return index
+    }
+    /** @param {string} path */
+    const rekey = (path) => {
+      const index = itemIndexUnder(listPath, path)
+      if (index === undefined) return path
+      const rest = path.slice(listPath.length + 1 + String(index).length)
+      return `${listPath}/${moved(index)}${rest}`
+    }
+    this._byPath = new Map([...this._byPath].map(([path, items]) => [rekey(path), items]))
+    this._cacheKeys = new Map([...this._cacheKeys].map(([path, key]) => [rekey(path), key]))
+    this._invalidated = new Set([...this._invalidated].map(rekey))
+  }
+
+  /**
+   * The paths that have memorized suggestions.
+   * @returns {string[]}
+   */
+  paths () {
+    return [...this._byPath.keys()]
+  }
+
+  /**
    * @param {string} path
    * @returns {SuggestionItem[]|undefined}
    */
@@ -118,4 +176,16 @@ export class SuggestionsStore {
     this._byPath.clear()
     this._cacheKeys.clear()
   }
+}
+
+/**
+ * The index of the item of a list a path is under, or undefined when it is not under one.
+ * @param {string} listPath
+ * @param {string} path
+ * @returns {number|undefined}
+ */
+function itemIndexUnder (listPath, path) {
+  if (!path.startsWith(listPath + '/')) return undefined
+  const segment = path.slice(listPath.length + 1).split('/')[0]
+  return /^\d+$/.test(segment) ? Number(segment) : undefined
 }

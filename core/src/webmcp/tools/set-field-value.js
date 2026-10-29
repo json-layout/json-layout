@@ -80,7 +80,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     if (!store) {
       throw new Error('no suggestion memorized, call getFieldSuggestions first')
     }
-    value = store.getValue(args.path, args.suggestionIndex)
+    value = store.getValue(node.fullKey, args.suggestionIndex)
   } else if (args.value === undefined && !('value' in args)) {
     throw new Error('value or suggestionIndex is required')
   }

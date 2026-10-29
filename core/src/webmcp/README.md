@@ -172,7 +172,9 @@ once, then referred back to by path.
 **Memorised suggestions are dropped only when they go stale.** Applying an option by index
 needs the list remembered. Every write used to clear all of it, which broke a listing an
 unrelated write could not have affected. Invalidation now compares each path's
-`itemsCacheKey` — the same value the state layer uses to decide whether to re-fetch.
+`itemsCacheKey` — the same value the state layer uses to decide whether to re-fetch. `setData`
+also drops the paths whose data it changed, and nothing else; `editArray` drops the lists of
+the items an add or a remove shifted, and a move takes each item's lists along with it.
 
 ## How far this is validated
 

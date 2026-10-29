@@ -50,7 +50,7 @@ export async function execute (statefulLayout, args, store) {
     const items = (oneOfItems || [])
       .filter((item) => !item.header)
       .map((item) => ({ value: item.key, title: item.title }))
-    return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
+    return { items, baseIndex: store?.add(node.fullKey, items, node.itemsCacheKey) ?? 0 }
   }
 
   // the state layer would throw "missing items or getItems parameters": say instead what
@@ -82,5 +82,5 @@ export async function execute (statefulLayout, args, store) {
       return result
     })
 
-  return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
+  return { items, baseIndex: store?.add(node.fullKey, items, node.itemsCacheKey) ?? 0 }
 }
