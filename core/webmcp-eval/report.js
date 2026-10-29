@@ -8,7 +8,7 @@
  * evidence of anything — and so does a case with no transcript at all: a case that never
  * dispatched must fail the report loudly rather than disappear from it.
  *
- * Usage: npm run webmcp-eval:report -w core [case ...]
+ * Usage: npm run webmcp-eval:report -w core [case ...] [--arm form|session|plain|all]
  */
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 
 import { cases } from './cases/index.js'
 import { evidenceName, parseEvidenceName } from './session.js'
+import { ARMS } from './arms.js'
 import { parseVerdict } from './verdict.js'
 import { sidecarPath } from './run-case.js'
 
@@ -162,7 +163,7 @@ function compare (runs) {
     for (const [key, group] of groups) {
       const evs = group.map((r) => /** @type {any} */(r.evidence))
       const recs = group.map((r) => /** @type {any} */(r.run)).filter(Boolean)
-      const tokens = recs.map((r) => r.tokens).filter(Boolean).map((t) => t.input + t.cacheRead + t.cacheWrite)
+      const tokens = recs.map((r) => r.tokens).filter(Boolean).map((t) => (t.input ?? 0) + (t.cacheRead ?? 0) + (t.cacheWrite ?? 0))
       const costs = recs.map((r) => r.costUsd).filter((c) => c != null)
       const checks = evs.map((e) => Array.isArray(e.checks) ? `${e.checks.filter((/** @type {any} */ c) => c.ok).length}/${e.checks.length}` : 'n/a')
       const verdicts = group.map((r) => /** @type {any} */(r.verdict)?.verdict)
@@ -208,21 +209,30 @@ function combinationsOf (name) {
 
 /**
  * @param {string[]} names
+ * @param {string} [arm] - `form`, `session`, `plain` or `all` (the default). The control
+ *   entry of every selected arm is expected; with `all`, only the form arm is expected
+ *   when it left nothing behind, and another arm is expected once it left any file for
+ *   the case. Naming an arm expects it unconditionally.
  * @returns {EvalRun[]}
  */
-export function loadRuns (names) {
+export function loadRuns (names, arm = 'all') {
   /** @type {EvalRun[]} */
   const runs = []
   for (const name of names) {
-    const combos = combinationsOf(name)
+    const all = combinationsOf(name)
+    const selected = arm === 'all' ? [...ARMS] : [arm]
+    const combos = all.filter((c) => selected.includes(c.arm))
     // A requested case with no control transcript or sidecar is reported, never skipped:
     // it is a failure of the run, not an absence of one. An ablation nobody ran is not.
-    if (!combos.some((c) => !c.variant)) combos.unshift({ variant: undefined, arm: 'form', run: undefined })
-    for (const { variant, arm, run: runIndex } of combos) {
-      const label = evidenceName(name, variant, arm, runIndex)
+    for (const a of [...selected].reverse()) {
+      const expected = arm !== 'all' || a === 'form' || all.some((c) => c.arm === a)
+      if (expected && !combos.some((c) => !c.variant && c.arm === a)) combos.unshift({ variant: undefined, arm: a, run: undefined })
+    }
+    for (const { variant, arm: runArm, run: runIndex } of combos) {
+      const label = evidenceName(name, variant, runArm, runIndex)
       const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${label}.json`)
       const run = loadRun(label, name)
-      const base = { name, variant, arm, runIndex }
+      const base = { name, variant, arm: runArm, runIndex }
       if (!existsSync(evidencePath)) {
         runs.push({ ...base, evidence: null, verdict: null, run })
         continue
@@ -300,8 +310,13 @@ function loadVerdict (verdictPath, name) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const wanted = process.argv.slice(2)
-  const { lines, failed } = summarise(loadRuns(wanted.length ? wanted : cases.map((c) => c.name)))
+  const argv = process.argv.slice(2)
+  const at = argv.indexOf('--arm')
+  const arm = at >= 0 ? argv[at + 1] : 'all'
+  if (at >= 0) argv.splice(at, 2)
+  if (arm !== 'all' && !ARMS.includes(arm)) throw new Error(`unknown arm "${arm}", available: ${ARMS.join(', ')}, all`)
+  const wanted = argv
+  const { lines, failed } = summarise(loadRuns(wanted.length ? wanted : cases.map((c) => c.name), arm))
   console.log(lines.join('\n'))
   process.exit(failed ? 1 : 0)
 }

@@ -412,16 +412,11 @@ describe('webmcp eval run provenance', () => {
  * @param {string} name
  * @param {string} arm
  * @param {number} runIndex
- * @param {{ verdict?: string|null, calls?: number, bytes?: number, input?: number, cost?: number, checks?: object[] }} [o]
- * @param o.verdict
- * @param o.calls
- * @param o.bytes
- * @param o.input
- * @param o.cost
- * @param o.checks
+ * @param {any} [o] - verdict, calls, bytes, input, cost, checks overrides
  * @returns {any}
  */
-const armRun = (name, arm, runIndex, { verdict = 'satisfactory', calls = 10, bytes = 1000, input = 100, cost = 0.1, checks = [{ label: 'a', ok: true, detail: '' }] } = {}) => ({
+const armRun = (name, arm, runIndex, o = {}) => armRunOf(name, arm, runIndex, o)
+const armRunOf = (name, arm, runIndex, { verdict = 'satisfactory', calls = 10, bytes = 1000, input = 100, cost = 0.1, checks = [{ label: 'a', ok: true, detail: '' }] }) => ({
   name,
   arm,
   runIndex,
@@ -488,11 +483,8 @@ describe('webmcp eval arm discovery', () => {
     const name = 'report-spec-arms'
     mkdirSync(tmpDir, { recursive: true })
     const files = []
-    /**
-     * @param {string} f @param {object} o
-     * @param o
-     */
-    const put = (f, o) => { const p = join(tmpDir, f); writeFileSync(p, JSON.stringify(o)); files.push(p) }
+    // writes a JSON file and remembers it for cleanup
+    const put = (/** @type {string} */ f, /** @type {object} */ o) => { const p = join(tmpDir, f); writeFileSync(p, JSON.stringify(o)); files.push(p) }
     const ev = (/** @type {string} */ arm) => ({ case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: 1, outputBytes: 1 }, valid: true, checks: [] })
     put(`webmcp-eval-${name}.r1.json`, ev('form'))
     put(`webmcp-eval-${name}.r2.json`, ev('form'))
@@ -506,5 +498,50 @@ describe('webmcp eval arm discovery', () => {
     } finally {
       for (const f of files) rmSync(f, { force: true })
     }
+  })
+})
+
+describe('webmcp eval expected arms', () => {
+  const name = 'report-spec-expected'
+  const ev = (/** @type {string} */ arm) => ({ case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: 1, outputBytes: 1 }, valid: true, checks: [] })
+  const verdict = { case: name, verdict: 'satisfactory', reasoning: 'ok', friction: [] }
+  /**
+   * @param {string[]} labels @param {() => void} fn
+   * @param fn
+   */
+  const withFiles = (/** @type {string[]} */ labels, /** @type {() => void} */ fn) => {
+    mkdirSync(tmpDir, { recursive: true })
+    const files = []
+    for (const label of labels) {
+      const arm = parseEvidenceName(label, name)?.arm ?? 'form'
+      for (const [suffix, body] of [['', ev(arm)], ['.verdict', verdict]]) {
+        const f = join(tmpDir, `webmcp-eval-${label}${suffix}.json`)
+        writeFileSync(f, JSON.stringify(body))
+        files.push(f)
+      }
+    }
+    try { fn() } finally { for (const f of files) rmSync(f, { force: true }) }
+  }
+
+  it('should report the form arm not run when only a plain file exists', () => {
+    withFiles([`${name}--plain`], () => {
+      const { failed, lines } = summarise(loadRuns([name]))
+      assert.equal(failed, true)
+      assert.ok(lines.join('\n').includes(`${name}: not run`))
+    })
+  })
+
+  it('should pass on form-only files with the default selection', () => {
+    withFiles([name], () => {
+      assert.equal(summarise(loadRuns([name])).failed, false)
+    })
+  })
+
+  it('should expect a named arm even when it left nothing behind', () => {
+    withFiles([name], () => {
+      const { failed, lines } = summarise(loadRuns([name], 'plain'))
+      assert.equal(failed, true)
+      assert.ok(lines.join('\n').includes(`${name} (plain): not run`))
+    })
   })
 })
