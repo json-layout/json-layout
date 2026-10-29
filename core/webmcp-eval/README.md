@@ -119,8 +119,8 @@ pickers against the live instance and rewrites the capture: one file per URL, ke
   memory and the form answered `valid, no errors`. A judge reading the transcript cannot
   tell a right code from a wrong one; a check can.
 
-Both are labelled in French while the goals are in English, as real pages of theirs are.
-The judge is told this so it does not score a translation step as protocol friction.
+The app-calendar and app-charts schemas are labelled in French while their goals are in
+English, as real pages of theirs are. The judge is told this so it does not score a translation step as protocol friction.
 
 ## Deterministic runs (CI)
 
@@ -139,9 +139,9 @@ procedure):
 1. `npm run webmcp-eval:run -w core [case ...] [--variant v] [--arm form|session|plain|all]
    [--runs n]` spawns one headless `claude -p` subprocess per case, arm and repeat,
    concurrently, at most 6 at a time (`MAX_CONCURRENT_RUNS`; more trips rate limits and
-   starves the machine, and a queue costs only wall-clock time). Each subprocess is passed a single inline MCP
-   server config via `--strict-mcp-config --mcp-config` — one server definition,
-   `page-form`, shared by every case — so there is no repository-level MCP server file
+   starves the machine, and a queue costs only wall-clock time). Each subprocess is passed
+   a single inline MCP server config via `--strict-mcp-config --mcp-config` — one server
+   definition, `page-form`, shared by every case — so there is no repository-level MCP server file
    to generate or register, and no per-case setup step. Which case a subprocess serves is
    chosen by the `JL_WEBMCP_EVAL_CASE` environment variable set on the `claude` process,
    which its MCP server child inherits; the runner itself never sees a case identifier.
@@ -178,8 +178,8 @@ procedure):
    evidence lands beside the control as `webmcp-eval-<case>--<variant>.json` and the report
    prints both. Variants are about the form guide; a different tool surface is an arm.
 
-   **Isolation.** The same for every arm. The run happens from a temporary directory outside this repository,
-   with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from
+   **Isolation.** The same for every arm. The run happens from a temporary directory
+   outside this repository, with `--setting-sources=`. That is load-bearing, not hygiene: a runner launched from
    inside the repository inherits ~5.7k tokens of context, including a SessionStart
    hook and Claude Code's auto-memory index — and that index can itself name this eval,
    telling the runner the one thing the isolation guarantee exists to prevent it from
@@ -249,8 +249,9 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 
 ## Checks
 
-A case may carry `checks`, evaluated on each run's final data (`checks.js`, run by the
-recorded in the evidence, so the same on every arm whatever path the agent took):
+A case may carry `checks`, evaluated on each run's final data. Each arm's session runs
+them through `runChecks` (`checks.js`) and records the results in the evidence, so they
+are the same on every arm whatever path the agent took:
 
 | check | passes when |
 |---|---|
@@ -280,7 +281,8 @@ npm run webmcp-eval:report -w core -- data-fair-line --arm plain  # only one arm
 ```
 
 This aggregates the evidence and verdict files and prints, per run, the verdict and
-reasoning, the failed checks, the goal, and the metrics (`toolCalls`, `outputBytes`, `valid`) as *context*
+reasoning, the failed checks, the goal, and the metrics (`toolCalls`, `outputBytes`,
+`valid`) as *context*
 — they describe the run, they never decide it. There is deliberately no budget or
 threshold: a run within any call count can still be judged unsatisfactory, and a run
 with a high call count on a genuinely large form can still be satisfactory.
