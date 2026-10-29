@@ -68,11 +68,14 @@ describe('FormSessionArm', () => {
     assert.equal(arm.runnable, true)
   })
 
-  it('is constructible but not runnable for an auto-save case', async () => {
+  it('runs an auto-save case with no save tool, scoring what each valid write saved', async () => {
     const arm = await FormSessionArm.create({ ...contact(), saveMode: 'auto' })
-    assert.equal(arm.runnable, false)
-    assert.equal(arm.notRunnableReason, 'FormSession has no auto-save mode yet')
-    assert.deepEqual(arm.tools, [])
-    assert.equal(arm.prompt, '')
+    assert.equal(arm.runnable, true)
+    assert.ok(!arm.toolNames.includes('saveForm'))
+    assert.match(arm.prompt, /saved as they go/)
+    const edit = await arm.call('setData', { data: ada })
+    assert.ok(!edit.isError)
+    assert.equal(arm.saves, 1)
+    assert.deepEqual(arm.data, ada)
   })
 })

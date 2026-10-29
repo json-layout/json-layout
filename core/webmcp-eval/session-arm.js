@@ -2,7 +2,7 @@
  * @file The server form session as an eval arm.
  *
  * The same case driven through `@json-layout/agents`' FormSession: the form tools plus an
- * explicit save. What the checks score is what was saved, because a record that was never
+ * explicit save, or auto-save for a case whose resource saves by itself. What the checks score is what was saved, because a record that was never
  * persisted is not a result. Same surface and recording as EvalSession and PlainApiSession.
  */
 

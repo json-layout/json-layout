@@ -465,7 +465,8 @@ describe('webmcp eval save modes', () => {
     for (const name of ['calendar', 'charts-edit', 'portal-config-edit', 'portal-page-list-edit', 'portal-page-reorder', 'portal-page-switch', 'portal-config-multi']) {
       assert.equal(getCase(name).saveMode, 'auto', name)
       const arm = await createArm(getCase(name), 'session')
-      assert.equal(arm.runnable, false, `${name} is not runnable on the session arm until FormSession auto-saves`)
+      assert.equal(arm.runnable, true, `${name} runs on the session arm, auto-saved`)
+      assert.ok(!arm.toolNames.includes('saveForm'), name)
     }
     for (const name of ['contact', 'data-fair-line']) {
       assert.notEqual(getCase(name).saveMode, 'auto', name)

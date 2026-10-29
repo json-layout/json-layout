@@ -25,8 +25,9 @@ export interface FormTool {
 export type SessionStatus = 'closed' | 'opening' | 'ready' | 'stale' | 'saving' | 'error'
 
 export interface SessionSpec {
-  // returns the resource document, or `{ data, version }`
-  load: () => unknown
+  // returns the resource document, or `{ data, version }`; absent, or returning no
+  // document, for a session that creates records: its form empties after each save
+  load?: () => unknown
   // persists the document; absent means the session is read-only
   save?: (data: unknown, context: SaveContext) => unknown
   // returns a JSON Schema, or `{ schema, version }`
@@ -39,6 +40,9 @@ export interface SessionSpec {
   options?: Partial<StatefulLayoutOptions>
   // only used when compiling `schema`
   compileOptions?: PartialCompileOptions
+  // 'explicit' (default): saved by saveForm or a write's `save: true`; 'auto': saved after
+  // every write that leaves the form valid, for a document bound to a server-side draft
+  saveMode?: 'explicit' | 'auto'
   // let `save` persist a document that fails the schema's validation (default false)
   allowInvalid?: boolean
   // prefix for every tool name, for a consumer that registers several sessions in one

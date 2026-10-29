@@ -262,7 +262,7 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 | arm | tools | prompt |
 |---|---|---|
 | `form` | the WebMCP page tools: `getData`, `setData`, `describeState`, `openSection`, `setFieldValue`, `getFieldSuggestions`, `editArray` | the form runner's, then the form-filling guide |
-| `session` | the same tools served by `@json-layout/agents` `FormSession` (no `openSection`), plus `saveForm` and `reloadForm` | the session runner's, then the session's own skill |
+| `session` | the same tools served by `@json-layout/agents` `FormSession` (no `openSection`), plus `saveForm` (explicit save, the `save` option of the writes too) and `reloadForm` | the session runner's, then the session's own skill |
 | `plain` | a JSON API: `readDocument`, `readSchema` (both by JSON pointer), `writeDocument`, `patchDocument` (single level: each top-level key replaced whole), plus the case's `lookups` | the plain runner's, a neutral description of the API, then the schema's `x-agent-guide` |
 
 - **`form`** is what a page exposes: no save, the page persists by data binding. What the
@@ -271,9 +271,11 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
   exists once saved, so the checks score the last saved document, or the starting one when
   nothing was saved. A case whose resource auto-saves (`saveMode: 'auto'`, today
   the application configurations `calendar` and `charts-edit`, `portal-config-edit` and the four nested-document cases `portal-page-list-edit`,
-  `portal-page-reorder`, `portal-page-switch` and `portal-config-multi`) is `not runnable`
-  on this arm until `FormSession` announces an auto mode (`SAVE_MODES`): the run is not faked, the sidecar records `notRunnable` and the
-  reason, and the report prints it without failing.
+  `portal-page-reorder`, `portal-page-switch` and `portal-config-multi`) runs on a session in
+  `FormSession`'s auto mode: no `saveForm`, every write that leaves the form valid is saved.
+  An arm that cannot take a case (a `FormSession` that does not announce `SAVE_MODES`) is
+  `not runnable`: the run is not faked, the sidecar records `notRunnable` and the reason, and
+  the report prints it without failing.
 - **`plain`** is the baseline the form tools claim to beat (`core/src/webmcp/README.md`
   opens on that claim): what a well-made JSON API offers, honestly described and not
   sabotaged. The agent reads the raw schema as the case holds it, vendor keywords included

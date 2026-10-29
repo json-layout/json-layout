@@ -423,7 +423,10 @@ describe('webmcp eval arms', () => {
     let spawned = 0
     const spawn = async () => { spawned++; return { code: 0, stdout: claudeOutput(), stderr: '' } }
     const sidecarDir = tmpSidecarDir()
-    const record = await runCase({ ...getCase('contact'), saveMode: 'auto' }, { spawn, sidecarDir, arm: 'session' })
+    // FormSession auto-saves now; an arm that cannot take a case is still recorded so
+    const session = await createArm(getCase('contact'), 'session')
+    Object.assign(session, { runnable: false, notRunnableReason: 'this arm cannot run this case' })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir, arm: 'session', session: /** @type {any} */(session) })
     assert.equal(spawned, 0)
     assert.equal(record.ok, false)
     assert.equal(record.notRunnable, true)
