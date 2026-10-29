@@ -145,6 +145,7 @@ function withoutValueAt (data, segments) {
   const copy = /** @type {Record<string, unknown>} */(Array.isArray(data) ? [...data] : { ...data })
   // left out, not set to undefined: a deep comparison tells a missing key from an undefined one
   if (!rest.length) {
+    // an item keeps its place: removing it would shift the items after it
     if (Array.isArray(copy)) copy[/** @type {any} */(segment)] = null
     else delete copy[segment]
   } else copy[segment] = withoutValueAt(copy[segment], rest)
@@ -407,7 +408,8 @@ export class WebMCP {
     if (!reshapesFromOtherData(node.layout)) return node.itemsCacheKey
     try {
       const items = this._statefulLayout.cachedItems(node)
-      if (items) return { items: node.itemsCacheKey, listed: items.map((item) => item.key) }
+      // the key alone does not tell two lists apart: two concepts can share codes, with other ids and labels
+      if (items) return { items: node.itemsCacheKey, listed: items.map((item) => [item.key, item.value, item.title]) }
     } catch {
       // an expression that fails on the current data: fall back to the data itself
     }

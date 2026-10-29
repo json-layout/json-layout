@@ -468,11 +468,17 @@ describe('webmcp lists reshaped from other fields', () => {
     assert.ok(!applied.startsWith('Error'), applied)
     assert.equal(/** @type {any} */(layout.data).selectedConcept, 'A')
   })
-  it('should judge a list searched only by its request from the data it can read, its own value aside', async () => {
+  it('should judge a list with no whole download from the data it can read, its own value aside', async () => {
     const searched = structuredClone(schema)
     searched.properties.selectedValue.layout.getItems.url = 'http://example.com/range?q={q}'
     const compiled = compile(searched)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch: async () => range }, { selectedConcept: 'A' })
+    // the whole download getFieldSuggestions makes for such a list fails
+    /** @param {string} url */
+    const fetch = async (url) => {
+      if (!new URL(url).searchParams.has('q')) throw new Error('unavailable')
+      return range
+    }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch }, { selectedConcept: 'A' })
     const webmcp = new WebMCP(layout)
     const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
     await run(tools, 'getFieldSuggestions', { path: '/selectedValue', query: 'a' })
@@ -484,5 +490,43 @@ describe('webmcp lists reshaped from other fields', () => {
     await run(tools, 'getFieldSuggestions', { path: '/selectedConcept' })
     const text = await run(tools, 'setFieldValue', { path: '/selectedConcept', value: 'B' })
     assert.match(text, /\/selectedValue: "a2" was not among the suggestions/, text)
+  })
+  it('should keep a pick from a list searched only by a query its request applies across an unrelated write', async () => {
+    const searched = structuredClone(schema)
+    searched.properties.selectedValue.layout.getItems.url = 'http://example.com/range?q={q}'
+    const compiled = compile(searched)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch: async () => range }, { selectedConcept: 'A' })
+    const webmcp = new WebMCP(layout)
+    const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
+    await run(tools, 'getFieldSuggestions', { path: '/selectedValue', query: 'a' })
+    await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 0 })
+    const text = await run(tools, 'setFieldValue', { path: '/label', value: 'my import' })
+    assert.ok(!text.includes('was not among'), text)
+    assert.deepEqual(webmcp.unpickedValues(), [])
+    const applied = await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 1 })
+    assert.ok(!applied.startsWith('Error'), applied)
+  })
+
+  it('should tell two lists apart that share item keys but not values or titles', async () => {
+    // two concepts can hold the same codes, with other ids and labels
+    const shared = {
+      range: [
+        { code: 'A', values: [{ code: 'x', id: 'A-x', label: 'A x' }] },
+        { code: 'B', values: [{ code: 'x', id: 'B-x', label: 'B x' }] }
+      ]
+    }
+    const keyed = structuredClone(schema)
+    Object.assign(keyed.properties.selectedValue.layout.getItems, { itemKey: 'item.code', itemValue: 'item.id', itemTitle: 'item.label' })
+    const compiled = compile(keyed)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch: async () => shared }, { selectedConcept: 'A' })
+    const webmcp = new WebMCP(layout)
+    const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
+    await run(tools, 'getFieldSuggestions', { path: '/selectedValue' })
+    await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 0 })
+    assert.equal(/** @type {any} */(layout.data).selectedValue, 'A-x')
+    await run(tools, 'getFieldSuggestions', { path: '/selectedConcept' })
+    await run(tools, 'setFieldValue', { path: '/selectedConcept', value: 'B' })
+    const applied = await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 0 })
+    assert.match(applied, /were dropped by a write/, applied)
   })
 })
