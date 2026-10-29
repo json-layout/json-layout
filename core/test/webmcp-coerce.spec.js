@@ -10,7 +10,10 @@ import * as setData from '../src/webmcp/tools/set-data.js'
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import { getCase } from '../webmcp-eval/cases/index.js'
 
-/** @param {Record<string, unknown>} [layout] @param {string} [key] */
+/**
+ * @param {Record<string, unknown>} [layout]
+ * @param {string} [key]
+ */
 const node = (layout = {}, key = 'x') => /** @type {any} */({ key, layout })
 
 describe('coerceForNode', () => {
@@ -60,6 +63,7 @@ describe('coerceForNode', () => {
     assert.deepEqual(coerceForNode(node(), 'judo, tennis', schema), { value: ['judo, tennis'], coerced: 'single value → list' })
     // the whole text is an allowed value that holds a comma
     assert.deepEqual(coerceForNode(node(), 'a, b', schema), { value: ['a, b'], coerced: 'single value → list' })
+    assert.deepEqual(coerceForNode(node({ separator: ',' }), 'a, b', schema), { value: ['a, b'], coerced: 'single value → list' })
   })
   it('turns the numbers of a list of texts into texts', () => {
     assert.deepEqual(coerceForNode(node(), [1, 'b'], { type: 'array', items: { type: 'string' } }), { value: ['1', 'b'], coerced: 'number → string' })

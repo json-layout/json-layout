@@ -101,7 +101,7 @@ export function coerceForNode (node, value, schema) {
           .map((part) => part.trim()).filter(Boolean)
         if (parts.length > 1 && parts.every((part) => allowed.includes(part))) return { value: parts, coerced: 'text → list' }
       }
-      if (separator && value.includes(separator)) {
+      if (separator && value.includes(separator) && !allowed?.includes(value)) {
         const parts = value.split(separator).map((part) => part.trim()).filter(Boolean)
         return { value: parts, coerced: `split on "${separator}"` }
       }
