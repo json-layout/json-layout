@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-edit",
+  "arm": "form",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00486698,
+  "turns": 12,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 14,
+    "output": 1427,
+    "cacheRead": 93948,
+    "cacheWrite": 16063
+  },
+  "answer": "Both changes are in the form and the form is valid.\n\n- **Main colour:** set to dark green `#1B5E20` (Apparence › Couleurs › Thème par défaut). The form has assisted colour mode on, so the other palettes and text colours are recalculated from this when the draft is saved, which may overwrite any colours set by hand.\n- **Menu:** added a new item to the navigation menu as a \"Page libre\" linking to the existing page \"Nos actions pour la jeunesse\" (slug `jeunesse`). Its label is \"Nos actions pour la jeunesse\". It is the third item, after Accueil and Catalogue de données. I left its icon and \"open in new tab\" options unset.\n\nI did not change anything else."
+}

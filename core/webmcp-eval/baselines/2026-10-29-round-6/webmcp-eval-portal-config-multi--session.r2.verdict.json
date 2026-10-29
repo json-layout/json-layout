@@ -1,0 +1,14 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "All four changes were made and saved with no wasted calls: showDepartment=false, socialShares set to bluesky/linkedin/facebook, breadcrumb above-footer, and a new generic footer link added in one editArray call with value {type:generic}, whose pageRef came from the suggestion list (contact-presse). Verified with getData on two values. Only the quoted-string coercion on the breadcrumb write was a minor irritant.",
+  "friction": [
+    {
+      "call": 8,
+      "tool": "setFieldValue",
+      "observed": "value passed as \"\\\"above-footer\\\"\" (extra quotes); tool replied \"coerced: /$comp-5/breadcrumb/position quoted text → text\" and saved",
+      "inferred": "The agent double-quoted a plain string value; the tool silently repaired it and noted the coercion, so no harm, but the agent had no earlier hint on how to pass string values.",
+      "severity": "low"
+    }
+  ]
+}

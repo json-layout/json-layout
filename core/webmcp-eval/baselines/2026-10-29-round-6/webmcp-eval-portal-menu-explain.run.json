@@ -1,0 +1,18 @@
+{
+  "case": "portal-menu-explain",
+  "arm": "form",
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0021137400000000002,
+  "turns": 3,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 1066,
+    "cacheRead": 18654,
+    "cacheWrite": 6968
+  },
+  "answer": "I haven't changed anything. The menu has six kinds of entry. Each one has a title, an optional \"open in new tab\" flag, and optional icon settings (MDI icon, custom SVG path, colour). What each kind requires:\n\n1. **Page standard** (`standard`): choose a **Type de page** from a fixed list. The list includes Accueil, Contact, Accessibilité, Conditions générales d'utilisation, Mentions légales, Politique de confidentialité, Politique de cookies, Catalogue de données, Catalogue de visualisations, Catalogue de réutilisations, Catalogue d'événements, Catalogue d'actualités, Plan du site and Documentation d'API. The title is optional.\n2. **Page libre** (`generic`): a **pageRef** is required, picked from an autocomplete of existing free pages. The title is optional.\n3. **Page d'événements** (`event`): a **pageRef** is required, picked from a select list. The title is optional.\n4. **Page d'actualités** (`news`): a **pageRef** is required, picked from a select list. The title is optional.\n5. **Sous-menu** (`submenu`): a **title** is required, plus a list of child entries. Each child uses the same kinds of entry, so submenus can nest.\n6. **Lien** (`external`): both an **URL (href)** and a **title** are required.\n\nThe current menu has two entries, both \"Page standard\": Accueil (`home`) and Catalogue de données (`datasets`). The form is valid.\n\nIf you want to add an entry, tell me which kind and what it should point to, and I'll fill it in."
+}

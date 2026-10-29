@@ -42,6 +42,13 @@ export class VariantsMemo {
   _earlier = new Set()
 
   /**
+   * pointers an item read only named, its options printed nowhere: never merged into the
+   * instance memo, so that a later read of the list still prints them
+   * @type {Set<string>}
+   */
+  _unprinted = new Set()
+
+  /**
    * A memo for a new answer, knowing what earlier answers listed.
    * @param {VariantsMemo} [earlier]
    * @returns {VariantsMemo}
@@ -52,6 +59,26 @@ export class VariantsMemo {
     memo.merge(earlier)
     for (const pointer of earlier._listedAt.keys()) memo._earlier.add(pointer)
     return memo
+  }
+
+  /**
+   * @param {string} pointer
+   * @returns {boolean} whether the options were only named by an item, printed nowhere
+   */
+  unprinted (pointer) {
+    return this._unprinted.has(pointer)
+  }
+
+  /**
+   * An item of a list of unions read alone names the option it holds and not the others,
+   * which are printed nowhere yet.
+   * @param {string} pointer
+   * @param {string} path - the list's
+   */
+  recordUnprinted (pointer, path) {
+    if (this._listedAt.has(pointer)) return
+    this.record(pointer, path, true)
+    this._unprinted.add(pointer)
   }
 
   /**
@@ -93,12 +120,15 @@ export class VariantsMemo {
    * @param {VariantsMemo} other
    */
   merge (other) {
-    for (const [pointer, path] of other._listedAt) this.record(pointer, path, other._underList.has(pointer))
+    for (const [pointer, path] of other._listedAt) {
+      if (!other._unprinted.has(pointer)) this.record(pointer, path, other._underList.has(pointer))
+    }
   }
 
   clear () {
     this._listedAt.clear()
     this._underList.clear()
     this._earlier.clear()
+    this._unprinted.clear()
   }
 }

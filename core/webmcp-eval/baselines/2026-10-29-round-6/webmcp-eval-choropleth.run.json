@@ -1,0 +1,18 @@
+{
+  "case": "choropleth",
+  "arm": "form",
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00724751,
+  "turns": 16,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 24,
+    "output": 2551,
+    "cacheRead": 161721,
+    "cacheWrite": 21762
+  },
+  "answer": "The communes are now shaded by the digital fragility index, and the indicator is labelled \"Fragilité numérique\". The form is valid.\n\nWhat I set, under \"Remplissage de la carte\" → \"Indicateurs\":\n- **Indicator type:** \"Couleur en fonction de valeurs dans un intervalle\" (numeric range), since the index is a number.\n- **Dataset:** \"Indice de Fragilité Numérique (IFN) sur les communes du territoire de Saintes Grandes Rives, l'Agglo.\"\n- **Value:** the column \"Indice de fragilité numérique\" (`indice_de_fragilite_numerique`), with the calculation left as a plain column value.\n- **Label:** \"Fragilité numérique\".\n\nDefaults I left in place, which you may want to change: 4 equal-size intervals, the RdYlGn colour scheme, multiplier 1, no divider, no unit.\n\nThe dataset covers only 37 communes of the Saintes Grandes Rives agglomeration, so communes outside it will not be shaded by this indicator. The join uses the commune code (`insee_com` on the map side, `code_insee` in the index dataset)."
+}

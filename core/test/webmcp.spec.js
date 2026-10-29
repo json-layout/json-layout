@@ -3042,7 +3042,8 @@ describe('webmcp describeState on one item of a list of unions', () => {
 
   it('names the chosen option and where the options are listed, and lists only its fields', () => {
     const markdown = describeState.toMarkdown(caseLayout(), { path: '/$comp-2/elements/7' })
-    assert.match(markdown, /- variant 0: Titre \(active\), one of the 40 options listed under \/\$comp-2\/elements$/m)
+    // nothing listed them yet: the item names the selector that does
+    assert.match(markdown, /- variant 0: Titre \(active\), one of 40 options \(describeState \/\$comp-2\/elements\/7\/\$oneOf to list them\)$/m)
     assert.ok(!markdown.includes('variant 1: Texte'), markdown)
     assert.match(markdown, /\/\$comp-2\/elements\/7\/\$oneOf\/0\/content \(text\)/)
     // 6210 bytes before, the 40 options printed again
@@ -3083,6 +3084,15 @@ describe('webmcp options of a union listed once per instance', () => {
     // the selector itself still lists them all, and a new instance starts over
     assert.match(await describe({ path: '/$comp-2/elements/6/$oneOf' }), /variant 39: /)
     assert.match(await tools('portal-page-list-edit')({ path: '/$comp-2/elements/6' }), /variant 39: /)
+  })
+
+  it('lists the options on a later list read when an item read only named them', async () => {
+    // review of round 6: an item read recorded the union as listed under the list, which
+    // then refused to list it although nothing had
+    const describe = tools('portal-page-list-edit')
+    const item = await describe({ path: '/$comp-2/elements/7' })
+    assert.match(item, /one of 40 options \(describeState \/\$comp-2\/elements\/7\/\$oneOf to list them\)/)
+    assert.match(await describe({ path: '/$comp-2/elements' }), /variant 39: /)
   })
 
   it('refers to a nested choice listed by an earlier block answer', async () => {

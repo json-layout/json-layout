@@ -700,6 +700,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @returns {string}
  */
 function optionsListedAt (variantsMemo, selector, count, listedAt) {
+  if (variantsMemo?.unprinted(selector.skeleton.pointer)) return `one of ${count} options (describeState ${selector.fullKey} to list them)`
   const earlier = !!variantsMemo?.listedEarlier(selector.skeleton.pointer)
   const hint = earlier ? ` (describeState ${selector.fullKey} to list them again)` : ''
   return `one of the ${count} options ${earlier ? 'already ' : ''}listed under ${listedAt}${hint}`
@@ -752,10 +753,11 @@ function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, po
 
 /**
  * An item of a list of unions asked for alone holds one option of the union every item holds:
- * record the options as listed under the list, so the item says which one it holds and shows
- * only that option's fields, as the outline does. Round 3: one page block answered its 40
- * options again before its fields, 6.2 KB judged bulky. An item with no option chosen yet
- * still lists them, it is where one is chosen.
+ * record the options as named but printed nowhere, so the item says which one it holds, names
+ * its selector to list the others, and shows only that option's fields, as the outline does.
+ * Round 3: one page block answered its 40 options again before its fields, 6.2 KB judged
+ * bulky. Never merged into the instance memo: a later read of the list still prints them. An
+ * item with no option chosen yet still lists them, it is where one is chosen.
  * @param {import('../state/types.js').StateNode} item
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
@@ -766,7 +768,7 @@ export function recordItemOptionsUnderList (item, statefulLayout, variantsMemo) 
   if (!list || list.layout.comp !== 'list') return
   const selector = itemSelector(item)
   if (!selector || !activeVariant(selector)) return
-  variantsMemo.record(selector.skeleton.pointer, list.fullKey || '/', true)
+  variantsMemo.recordUnprinted(selector.skeleton.pointer, list.fullKey || '/')
 }
 
 /**

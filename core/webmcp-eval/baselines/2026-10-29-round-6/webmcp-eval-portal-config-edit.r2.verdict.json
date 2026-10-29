@@ -1,0 +1,21 @@
+{
+  "case": "portal-config-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent reached both goals in 9 calls: it set assistedModeColors/primary to #1B5E20 and added a generic menu entry whose pageRef was applied from the suggestion list (Nos actions pour la jeunesse, slug jeunesse). Form valid. It guessed no value that the tools had not surfaced. The new item took the page title as label, no explicit title set, which is fine.",
+  "friction": [
+    {
+      "call": 1,
+      "tool": "describeState",
+      "observed": "Outline of the whole form, ~15.6 KB, 3 levels deep with values cut short; the colour setting is only reachable under assisted mode as assistedModeColors/primary, shown as a sub-path",
+      "inferred": "Had to follow with a second describeState to find the primary colour picker; reasonable but costly",
+      "severity": "low"
+    },
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "setFieldValue confirms assistedModeColors/primary = \"#1B5E20\" with form valid, while the data still holds theme.colors.primary = #1976D2 (derived colours are not recomputed in the form state)",
+      "inferred": "Agent trusted that assisted mode derives the other colours; nothing in the tool response says so",
+      "severity": "low"
+    }
+  ]
+}
