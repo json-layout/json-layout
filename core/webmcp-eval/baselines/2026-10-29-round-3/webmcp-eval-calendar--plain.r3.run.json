@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00411575,
+  "turns": 7,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 2223,
+    "cacheRead": 31725,
+    "cacheWrite": 13431
+  },
+  "answer": "The calendar is set up on the Agenda-manifestations dataset. The write was accepted (200 OK) and a read-back confirms the stored document:\n\n- **Dataset:** `Agenda-manifestations` (`hokfkn9ym3s9pr-yt1atgzl-`), added as the calendar's source.\n- **Event label:** `nomevenement` (the \"Nom de l'évenement\" column), the field shown on each event.\n- **Crowd sourcing:** enabled (`crowdSourcing: true`), so visitors can propose new events.\n\nTwo things I could not complete or had to guess:\n\n- **No contribution dataset is set.** The schema lets you pick a dataset to hold visitor proposals, but you didn't name one and the tools don't say which one to use. Crowd sourcing is on, but proposals have nowhere specific to go until you choose one. Tell me the dataset and I'll add it.\n- **Label format is a guess.** The schema only says `labelField` is an object, so I stored `{\"key\": \"nomevenement\", \"title\": \"Nom de l'évenement\"}`. The API accepted it, but I couldn't confirm how the calendar reads this object."
+}

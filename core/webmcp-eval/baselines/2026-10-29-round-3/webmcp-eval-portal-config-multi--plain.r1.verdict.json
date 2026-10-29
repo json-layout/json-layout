@@ -1,0 +1,28 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document, found the portal page 'Contact presse' (slug contact-presse) through list_portal_pages instead of guessing it, read the schemas for breadcrumb, footer links, socialShares and menuItem, then applied all four changes in one patchDocument: datasets.card.showDepartment false (page-level showDepartment left true, matching 'dataset cards'), socialShares reduced to bluesky/facebook/linkedin, breadcrumb.position above-footer (a value the schema enumerated), and a generic footer link carrying the real pageRef. Because patch replaces each top-level key whole, it re-sent eight full subtrees, but the copies were faithful and the final document differs from the start only by the four intended edits; no sibling data was lost. Four read-back calls confirmed the result.",
+  "friction": [
+    {
+      "call": 8,
+      "tool": "patchDocument",
+      "observed": "Patch had to name whole top-level keys (datasets, applications, reuses, events, news, socialShares, breadcrumb, footer); response '200 OK\\nstored 24 top-level key(s)'",
+      "inferred": "Single-level replacement forced re-typing large unchanged subtrees (applications, reuses, events, news) to change one boolean; the response did not say what changed, so the agent had to verify by reading back",
+      "severity": "medium"
+    },
+    {
+      "call": 9,
+      "tool": "readDocument",
+      "observed": "false / [\"bluesky\",\"facebook\",\"linkedin\"] / {\"position\":\"above-footer\"} / footer links list (calls 9-12)",
+      "inferred": "Four separate verification reads because the write response only reports a key count",
+      "severity": "low"
+    },
+    {
+      "call": 5,
+      "tool": "readSchema",
+      "observed": "5.4KB footer/links schema dominated by an itemTitle JS expression",
+      "inferred": "Mostly noise for the task; the agent then needed a further call (7) on $defs/menuItem to learn the generic item shape",
+      "severity": "low"
+    }
+  ]
+}

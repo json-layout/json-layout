@@ -1,0 +1,119 @@
+{
+  "case": "data-fair-line",
+  "goal": "Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :\n\n« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »",
+  "arm": "plain",
+  "startedAt": "2026-10-29T16:03:26.784Z",
+  "start": {},
+  "calls": [
+    {
+      "tool": "readDocument",
+      "args": {},
+      "response": "{}",
+      "outputBytes": 2,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {},
+      "response": "{\"type\":\"object\",\"required\":[\"nom\",\"association\",\"type_lieu\",\"commune\",\"date_ouverture\"],\"properties\":{\"nom\":{\"type\":\"string\",\"title\":\"Nom du lieu\",\"x-cardinality\":6},\"association\":{\"type\":\"string\",\"title\":\"Association\",\"x-cardinality\":6},\"type_lieu\":{\"type\":\"string\",\"title\":\"Type de lieu\",\"x-labels\":{\"gymnase\":\"gymnase\",\"piscine\":\"piscine\",\"stade\":\"stade\",\"salle polyvalente\":\"salle polyvalente\",\"plein air\":\"plein air\"},\"x-labelsRestricted\":true,\"x-cardinality\":5,\"oneOf\":[{\"title\":\"gymnase\",\"const\":\"gymnase\"},{\"title\":\"piscine\",\"const\":\"piscine\"},{\"title\":\"stade\",\"const\":\"stade\"},{\"title\":\"salle polyvalente\",\"const\":\"salle polyvalente\"},{\"title\":\"plein air\",\"const\":\"plein air\"}]},\"commune\":{\"type\":\"string\",\"title\":\"Commune\",\"description\":\"Code INSEE de la commune.\",\"x-refersTo\":\"http://rdf.insee.fr/def/geo#codeCommune\",\"x-master\":{\"id\":\"dataset:communes--masterData_singleSearch_commune\",\"title\":\"Recherche de commune\",\"remoteService\":\"dataset:communes\",\"action\":\"masterData_singleSearch_commune\"},\"x-fromUrl\":\"communes?q={q}\",\"x-itemKey\":\"output\",\"x-itemTitle\":\"label\",\"x-itemsProp\":\"results\",\"x-concept\":{\"id\":\"codeCommune\",\"title\":\"Code commune\",\"primary\":true},\"x-cardinality\":4,\"layout\":{\"getItems\":{\"url\":\"communes?q={q}\",\"itemKey\":\"data[\\\"output\\\"]\",\"itemTitle\":\"data[\\\"label\\\"]\",\"itemsResults\":\"data[\\\"results\\\"]\"}}},\"adresse\":{\"type\":\"string\",\"title\":\"Adresse\",\"x-cardinality\":6},\"telephone\":{\"type\":\"string\",\"title\":\"Téléphone\",\"pattern\":\"^0[1-9]( \\\\d{2}){4}$\",\"patternErrorMessage\":\"Un numéro à 10 chiffres groupés par deux, par exemple 02 40 12 34 56.\",\"x-cardinality\":4,\"errorMessage\":{\"pattern\":\"Un numéro à 10 chiffres groupés par deux, par exemple 02 40 12 34 56.\"}},\"email\":{\"type\":\"string\",\"title\":\"Courriel\",\"pattern\":\"^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$\",\"patternErrorMessage\":\"Une adresse de courriel, par exemple contact@association.fr.\",\"x-cardinality\":4,\"errorMessage\":{\"pattern\":\"Une adresse de courriel, par exemple contact@association.fr.\"}},\"siret\":{\"type\":\"string\",\"title\":\"SIRET\",\"pattern\":\"^\\\\d{14}$\",\"patternErrorMessage\":\"Un SIRET compte 14 chiffres.\",\"x-cardinality\":4,\"errorMessage\":{\"pattern\":\"Un SIRET compte 14 chiffres.\"}},\"activites\":{\"type\":\"array\",\"title\":\"Activités\",\"items\":{\"type\":\"string\",\"x-labels\":{\"football\":\"football\",\"basket\":\"basket\",\"natation\":\"natation\",\"judo\":\"judo\",\"handisport\":\"handisport\",\"yoga\":\"yoga\",\"danse\":\"danse\",\"escalade\":\"escalade\"},\"x-labelsRestricted\":true,\"x-cardinality\":8,\"oneOf\":[{\"title\":\"football\",\"const\":\"football\"},{\"title\":\"basket\",\"const\":\"basket\"},{\"title\":\"natation\",\"const\":\"natation\"},{\"title\":\"judo\",\"const\":\"judo\"},{\"title\":\"handisport\",\"const\":\"handisport\"},{\"title\":\"yoga\",\"const\":\"yoga\"},{\"title\":\"danse\",\"const\":\"danse\"},{\"title\":\"escalade\",\"const\":\"escalade\"}]}},\"publics\":{\"type\":\"array\",\"title\":\"Publics\",\"items\":{\"type\":\"string\",\"x-labels\":{\"enfants\":\"enfants\",\"adultes\":\"adultes\",\"seniors\":\"seniors\",\"personnes handicapées\":\"personnes handicapées\"},\"x-labelsRestricted\":true,\"x-cardinality\":4,\"oneOf\":[{\"title\":\"enfants\",\"const\":\"enfants\"},{\"title\":\"adultes\",\"const\":\"adultes\"},{\"title\":\"seniors\",\"const\":\"seniors\"},{\"title\":\"personnes handicapées\",\"const\":\"personnes handicapées\"}]}},\"capacite\":{\"type\":\"integer\",\"title\":\"Capacité\",\"minimum\":0,\"x-cardinality\":6},\"accessible_pmr\":{\"type\":\"boolean\",\"title\":\"Accessible PMR\",\"x-cardinality\":2,\"examples\":[\"true\",\"false\"]},\"date_ouverture\":{\"type\":\"string\",\"format\":\"date\",\"title\":\"Date d'ouverture\",\"x-refersTo\":\"https://schema.org/startDate\",\"x-concept\":{\"id\":\"startDate\",\"title\":\"Date de début\",\"primary\":true},\"x-cardinality\":6},\"date_fermeture\":{\"type\":\"string\",\"format\":\"date\",\"title\":\"Date de fermeture\",\"x-refersTo\":\"https://schema.org/endDate\",\"x-concept\":{\"id\":\"endDate\",\"title\":\"Date de fin\",\"primary\":true},\"x-cardinality\":2},\"tarif_annuel\":{\"type\":\"number\",\"title\":\"Tarif annuel (€)\",\"x-cardinality\":5},\"_code_insee.departement\":{\"x-originalName\":\"_code_insee.departement\",\"x-extension\":\"dataset:communes/masterData_bulkSearch_code-insee\",\"title\":\"Département\",\"description\":\"\",\"type\":\"string\",\"x-cardinality\":1,\"examples\":[\"44\"],\"readOnly\":true,\"layout\":{\"comp\":\"none\"}},\"_code_insee.population\":{\"x-originalName\":\"_code_insee.population\",\"x-extension\":\"dataset:communes/masterData_bulkSearch_code-insee\",\"title\":\"Population\",\"description\":\"\",\"type\":\"integer\",\"x-cardinality\":4,\"readOnly\":true,\"layout\":{\"comp\":\"none\"}}},\"$id\":\"_jl\",\"additionalProperties\":false}",
+      "outputBytes": 4446,
+      "isError": false
+    },
+    {
+      "tool": "get_field_values",
+      "args": {
+        "datasetId": "dataset:communes",
+        "fieldKey": "nom",
+        "q": "Saint-Sébastien"
+      },
+      "response": "{\"count\":3,\"results\":[{\"code\":\"23239\",\"nom\":\"Saint-Sébastien\"},{\"code\":\"27602\",\"nom\":\"Saint-Sébastien-de-Morsent\"},{\"code\":\"44190\",\"nom\":\"Saint-Sébastien-sur-Loire\"}]}",
+      "outputBytes": 170,
+      "isError": false
+    },
+    {
+      "tool": "writeDocument",
+      "args": {
+        "document": {
+          "nom": "Dojo des Grands Bois",
+          "association": "Judo Club Sébastiennais",
+          "type_lieu": "salle polyvalente",
+          "commune": "44190",
+          "adresse": "12 rue des Grands Bois",
+          "telephone": "02 40 80 12 34",
+          "siret": "52348761900017",
+          "activites": [
+            "judo",
+            "yoga",
+            "handisport"
+          ],
+          "publics": [
+            "enfants",
+            "adultes",
+            "personnes handicapées"
+          ],
+          "date_ouverture": "2025-03-03"
+        }
+      },
+      "response": "200 OK\nstored 10 top-level key(s)",
+      "outputBytes": 33,
+      "isError": false
+    }
+  ],
+  "data": {
+    "nom": "Dojo des Grands Bois",
+    "association": "Judo Club Sébastiennais",
+    "type_lieu": "salle polyvalente",
+    "commune": "44190",
+    "adresse": "12 rue des Grands Bois",
+    "telephone": "02 40 80 12 34",
+    "siret": "52348761900017",
+    "activites": [
+      "judo",
+      "yoga",
+      "handisport"
+    ],
+    "publics": [
+      "enfants",
+      "adultes",
+      "personnes handicapées"
+    ],
+    "date_ouverture": "2025-03-03"
+  },
+  "checks": [
+    {
+      "label": "/commune equals \"44190\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "/telephone equals \"02 40 80 12 34\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "/siret equals \"52348761900017\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "/activites has values [\"judo\",\"yoga\",\"handisport\"]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "/publics has values [\"enfants\",\"adultes\",\"personnes handicapées\"]",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "/date_ouverture equals \"2025-03-03\"",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 4,
+    "outputBytes": 4651
+  }
+}

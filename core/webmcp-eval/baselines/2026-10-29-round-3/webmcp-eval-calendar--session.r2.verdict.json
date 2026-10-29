@@ -1,0 +1,21 @@
+{
+ "case": "calendar",
+ "verdict": "satisfactory",
+ "reasoning": "The agent selected the dataset 'Agenda-manifestations' from the suggestions (the only match, so not a guess), set labelField from the real nomevenement column (labelled 'Nom de l'évenement', which also carries the label concept) chosen from the listed schema columns, and enabled crowdSourcing, which only became available after the dataset was chosen. Each write was reported 'saved' and 'form is valid', and the final data holds datasets[0] with the right href, labelField nomevenement and crowdSourcing true. Short and direct session; the only waste was a failed describeState search and a verification read at the end.",
+ "friction": [
+  {
+   "call": 3,
+   "tool": "describeState",
+   "observed": "no field matches \"crowd sourcing proposition\". Try fewer or other words, or call describeState without a query to see the form's sections.",
+   "inferred": "The crowdSourcing field was not found and nothing said it only appears once a dataset (REST) is selected; the agent recovered by selecting the dataset first",
+   "severity": "low"
+  },
+  {
+   "call": 10,
+   "tool": "describeState",
+   "observed": "/$allOf-0/datasets lists datasets/0 and datasets/1",
+   "inferred": "A re-read after the goal was reached that bought no new information",
+   "severity": "low"
+  }
+ ]
+}

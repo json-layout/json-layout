@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-switch",
+  "arm": "plain",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0056031300000000004,
+  "turns": 7,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 12,
+    "output": 4620,
+    "cacheRead": 56593,
+    "cacheWrite": 13630
+  },
+  "answer": "Le paragraphe « Besoin d'aide ? » de la colonne de droite de « Nos engagements » est maintenant un bloc alerte d'information. L'API a accepté l'écriture (200 OK), et une relecture confirme le bloc.\n\nLe texte est repris à l'identique, du « Besoin d'aide ? » jusqu'à l'adresse opendata@valdeloue.fr. Le bloc n'a pas de titre, car le paragraphe original n'en avait pas. Les autres blocs de la page sont inchangés."
+}

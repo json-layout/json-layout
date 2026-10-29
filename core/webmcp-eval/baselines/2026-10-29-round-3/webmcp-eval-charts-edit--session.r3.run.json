@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "session",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00208726,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 470,
+    "cacheRead": 20366,
+    "cacheWrite": 8240
+  },
+  "answer": "I made both changes and the form is valid and saved.\n\n- **Aggregation:** the value calculation metric changed from average (`avg`) to maximum (`max`). The column is still `valeur`, and the chart still groups by `nom_com`.\n- **Legend:** the position changed from right to bottom.\n\nI didn't check the rendered chart, only the form data."
+}

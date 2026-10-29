@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "session",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.006904110000000001,
+  "turns": 20,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 18,
+    "output": 2499,
+    "cacheRead": 151861,
+    "cacheWrite": 20671
+  },
+  "answer": "All four changes are made and saved, and the form is valid.\n\n- **Dataset cards:** \"Afficher le propriétaire\" (`showDepartment`) is now off. This is the switch in the dataset card options that shows the department.\n- **Sharing:** the share list is now Bluesky, Facebook and LinkedIn. I removed X, Reddit, SMS and WhatsApp.\n- **Breadcrumb:** the position is set to \"Au-dessus du pied de page\".\n- **Footer links:** I added a \"Page libre\" link at the end of the footer links, pointing to the existing page \"Contact presse\" (slug `contact-presse`), with the label \"Contact presse\". The other four footer links are unchanged.\n\nI did not change the new breadcrumb sub-options (home link, separator, and so on), so they keep their defaults."
+}

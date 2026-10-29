@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-reorder",
+  "arm": "session",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0055428299999999995,
+  "turns": 7,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 12,
+    "output": 1654,
+    "cacheRead": 78043,
+    "cacheWrite": 19671
+  },
+  "answer": "Les trois modifications sont faites et enregistrées. Le formulaire est valide.\n\n- **Encadré « Nouveau »** : déplacé tout en haut de la page, au-dessus du titre « Les données ouvertes du Val de Loue ».\n- **Séparateur** : ajouté juste avant le titre « Questions fréquentes », avec les réglages par défaut (épaisseur 1, opacité 0,1, bords arrondis, sans texte).\n- **Bouton « Voir tout le catalogue »** : retiré de la colonne « Nos engagements ». Il reste le titre et le texte de cette colonne."
+}

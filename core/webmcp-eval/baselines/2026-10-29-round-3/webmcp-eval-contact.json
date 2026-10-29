@@ -1,0 +1,42 @@
+{
+  "case": "contact",
+  "goal": "Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.",
+  "arm": "form",
+  "startedAt": "2026-10-29T16:07:39.118Z",
+  "start": {},
+  "calls": [
+    {
+      "tool": "describeState",
+      "args": {},
+      "response": "valid: false, 2 error(s)\n\nErrors:\n- /name: required information\n- /email: required information\n\nFields:\n- / (section, required) title=\"Contact\"\n  - /name (text, required, error) label=\"Full name\" value=undefined — required information\n  - /birthYear (number, min=1800, max=2100, step=1, precision=0) label=\"Year of birth\" value=undefined\n  - /email (text, required, error, format=email) label=\"Email\" value=undefined — required information\n  - /contactMethod (select, values=[\"email\",\"phone\",\"post\"]) label=\"Preferred contact method\" value=undefined",
+      "outputBytes": 553,
+      "isError": false
+    },
+    {
+      "tool": "setData",
+      "args": {
+        "data": {
+          "name": "Ada Lovelace",
+          "birthYear": 1815,
+          "email": "ada@analytical.org",
+          "contactMethod": "email"
+        }
+      },
+      "response": "valid, no errors\nstored 4 key(s): name, birthYear, email, contactMethod",
+      "outputBytes": 71,
+      "isError": false
+    }
+  ],
+  "data": {
+    "name": "Ada Lovelace",
+    "birthYear": 1815,
+    "email": "ada@analytical.org",
+    "contactMethod": "email"
+  },
+  "checks": [],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 2,
+    "outputBytes": 624
+  }
+}

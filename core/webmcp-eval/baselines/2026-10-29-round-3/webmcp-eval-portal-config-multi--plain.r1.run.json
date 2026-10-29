@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00664954,
+  "turns": 13,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 3440,
+    "cacheRead": 63534,
+    "cacheWrite": 21466
+  },
+  "answer": "All four changes are saved and the API accepted the write (200 OK). I read each value back to confirm.\n\n1. **Dataset cards no longer show the department.** I set `datasets.card.showDepartment` to `false`. The department is still shown on dataset pages and on the application cards and pages, since you only asked about dataset cards.\n2. **Sharing offers only Bluesky, Facebook and LinkedIn.** `socialShares` is now `[\"bluesky\", \"facebook\", \"linkedin\"]`.\n3. **Breadcrumb appears above the footer.** `breadcrumb.position` is now `above-footer`. The other breadcrumb options keep their defaults.\n4. **\"Contact presse\" is in the footer links.** I added it as a \"Page libre\" link to the existing page `contact-presse`, with the label \"Contact presse\". It is the last footer link, after \"Site de l'agglomération\".\n\nNothing else in the document was changed. The write replaced the top-level keys I sent, and I re-sent the other keys with their existing values."
+}

@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "form",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00210116,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 518,
+    "cacheRead": 20736,
+    "cacheWrite": 8171
+  },
+  "answer": "The chart now shows the maximum per commune instead of the average, and the legend is at the bottom. The form is valid after both changes.\n\n- **Calculation type:** \"Type de calcul\" in the value calculation (`valueCalc`) is set to \"Valeur maximale\" (`max`), replacing \"Moyenne\" (`avg`). The column is still `valeur`.\n- **Legend position:** \"Position de la légende\" is set to \"Bas\" (`bottom`), replacing \"Droite\" (`right`).\n\nI did not change anything else, so the grouping by `nom_com`, the top 10 limit, the sorting and the chart title are as they were."
+}

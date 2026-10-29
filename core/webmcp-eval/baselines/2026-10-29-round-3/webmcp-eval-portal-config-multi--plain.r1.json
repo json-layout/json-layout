@@ -1,0 +1,1243 @@
+{
+  "case": "portal-config-multi",
+  "goal": "A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page \"Contact presse\" to the footer links.",
+  "arm": "plain",
+  "startedAt": "2026-10-29T16:07:06.044Z",
+  "start": {
+    "title": "Données ouvertes du Val de Loue",
+    "menu": {
+      "children": [
+        {
+          "type": "standard",
+          "subtype": "home"
+        },
+        {
+          "type": "standard",
+          "subtype": "datasets"
+        },
+        {
+          "type": "standard",
+          "subtype": "applications",
+          "title": "Visualisations"
+        },
+        {
+          "type": "generic",
+          "pageRef": {
+            "slug": "reutilisations",
+            "title": "Ils réutilisent nos données"
+          },
+          "title": "Réutilisations"
+        },
+        {
+          "type": "standard",
+          "subtype": "contact",
+          "title": "Contact"
+        }
+      ]
+    },
+    "authentication": "optional",
+    "theme": {
+      "bodyFontFamily": "Nunito",
+      "bodyFontFamilyCss": "@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaORs71cA-Bm_i0Dk1.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaHRs71cA-Cznx39fA.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaMRs71cA-CuWrHpFO.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaNRs71cA-D1eeM49Z.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaDRs4-BbMn9XSX.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOOaBXso-BWI5zH9R.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIMeaBXso-C3IBG1kp.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOuaBXso-B55YuedR.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIO-aBXso-DcJfvmGA.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}",
+      "preloadLinks": [
+        {
+          "href": "/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2",
+          "as": "font",
+          "type": "font/woff2",
+          "crossorigin": true
+        }
+      ],
+      "colors": {
+        "background": "#FAFAFA",
+        "on-background": "#424242",
+        "surface": "#FFFFFF",
+        "on-surface": "#424242",
+        "surface-inverse": "#424242",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#1669bb",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#0775a8",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFCC80",
+        "on-info": "#000000",
+        "text-info": "#BF4300",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#8B2500",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#B71C1C",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#2E7D32",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#B71C1C"
+      },
+      "dark": false,
+      "darkColors": {
+        "background": "#303030",
+        "on-background": "#FFFFFF",
+        "surface": "#424242",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FAFAFA",
+        "on-surface-inverse": "#424242",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#61beff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#9daaff",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FFCDD2",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "hc": false,
+      "hcColors": {
+        "background": "#FFFFFF",
+        "on-background": "#000000",
+        "surface": "#FFFFFF",
+        "on-surface": "#000000",
+        "surface-inverse": "#212121",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#11508e",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#055a81",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "text-info": "#993500",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#8B0000",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#1B5E20",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#8B0000"
+      },
+      "hcDark": false,
+      "hcDarkColors": {
+        "background": "#121212",
+        "on-background": "#FFFFFF",
+        "surface": "#121212",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FFFFFF",
+        "on-surface-inverse": "#000000",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#52afff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#8e9bf9",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FF8A80",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "assistedModeColors": {
+        "primary": "#1976D2",
+        "secondary": "#81D4FA",
+        "accent": "#283593"
+      },
+      "assistedMode": true
+    },
+    "header": {
+      "show": true,
+      "showTitle": true,
+      "logoPrimaryType": "default",
+      "logoPrimaryCentered": false
+    },
+    "navBar": {
+      "logoType": "default",
+      "align": "center",
+      "fluid": true
+    },
+    "breadcrumb": {
+      "position": "none"
+    },
+    "linksConfig": {
+      "underline": "always"
+    },
+    "footer": {
+      "color": "primary",
+      "socialPosition": "none",
+      "copyright": "text",
+      "logoPrimaryType": "default",
+      "extraLogos": [],
+      "linksMode": "lines",
+      "links": [
+        {
+          "type": "standard",
+          "subtype": "sitemap",
+          "title": "Plan du site"
+        },
+        {
+          "type": "standard",
+          "subtype": "legal-notice",
+          "title": "Mentions légales"
+        },
+        {
+          "type": "standard",
+          "subtype": "accessibility",
+          "title": "Accessibilité : partiellement conforme"
+        },
+        {
+          "type": "external",
+          "href": "https://www.valdeloue.fr",
+          "title": "Site de l'agglomération",
+          "target": true
+        }
+      ],
+      "importantLinks": [],
+      "logoPosition": "main",
+      "logoAlignment": "left",
+      "backgroundImageLocation": "right",
+      "sloganPosition": "main",
+      "sloganAlignment": "left",
+      "textPosition": "main"
+    },
+    "datasets": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "metadata": {
+          "actionButtons": [
+            "download",
+            "api",
+            "embed",
+            "notifications",
+            "attachments",
+            "table",
+            "map",
+            "schema"
+          ],
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true
+        },
+        "titleStyle": {
+          "position": "none"
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "keywords": {
+          "show": true
+        },
+        "applications": {
+          "display": "side-by-side"
+        },
+        "reuses": {
+          "display": "none"
+        },
+        "relatedDatasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "applications": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "openInFullPage": false,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "titleStyle": {
+          "position": "none"
+        },
+        "metadata": {
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true,
+          "showBaseApplication": true
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "reuses": {
+      "card": {
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showAuthor": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "showImage": true,
+        "titleStyle": {
+          "position": "none"
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      },
+      "allowUserReuses": false
+    },
+    "events": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "news": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "socialShares": [
+      "bluesky",
+      "x",
+      "facebook",
+      "linkedin",
+      "reddit",
+      "sms",
+      "whatsapp"
+    ],
+    "socialLinks": {
+      "facebook": "https://www.facebook.com/valdeloue",
+      "bluesky": "valdeloue.bsky.social"
+    },
+    "contactInformations": {
+      "email": "opendata@valdeloue.fr",
+      "phone": "03 81 57 20 00",
+      "phoneLabel": "Accueil de l'agglomération",
+      "website": "https://www.valdeloue.fr",
+      "websiteLabel": "valdeloue.fr",
+      "infos": "Communauté d'agglomération du Val de Loue\n2 place de la Mairie, 25290 Ornans\n\nDu lundi au vendredi, de 9 h à 17 h."
+    },
+    "personal": {
+      "navigationColor": "primary",
+      "hidePages": [
+        "contribute",
+        "processings"
+      ],
+      "accountPages": []
+    },
+    "agentChat": {
+      "active": true,
+      "visibleTo": [
+        "anonymous",
+        "external",
+        "user",
+        "contrib",
+        "admin"
+      ]
+    },
+    "analytics": {
+      "tracker": {
+        "type": "none",
+        "anonymized": true
+      },
+      "mergeDatasetAppPaths": false
+    },
+    "defaults": {
+      "elevation": 1,
+      "density": "comfortable",
+      "rounded": "default"
+    },
+    "navLinksConfig": {
+      "showIcon": true,
+      "uppercase": true
+    },
+    "topics": [
+      {
+        "id": "sport",
+        "title": "Sport et loisirs",
+        "color": "#2e7d32"
+      },
+      {
+        "id": "citoyennete",
+        "title": "Citoyenneté",
+        "color": "#1565c0"
+      },
+      {
+        "id": "education",
+        "title": "Education, social, santé",
+        "color": "#ad1457"
+      }
+    ],
+    "description": "Le portail open data de la Communauté d'agglomération du Val de Loue : transports, environnement, budget et équipements publics."
+  },
+  "calls": [
+    {
+      "tool": "readDocument",
+      "args": {},
+      "response": "{\"title\":\"Données ouvertes du Val de Loue\",\"menu\":{\"children\":[{\"type\":\"standard\",\"subtype\":\"home\"},{\"type\":\"standard\",\"subtype\":\"datasets\"},{\"type\":\"standard\",\"subtype\":\"applications\",\"title\":\"Visualisations\"},{\"type\":\"generic\",\"pageRef\":{\"slug\":\"reutilisations\",\"title\":\"Ils réutilisent nos données\"},\"title\":\"Réutilisations\"},{\"type\":\"standard\",\"subtype\":\"contact\",\"title\":\"Contact\"}]},\"authentication\":\"optional\",\"theme\":{\"bodyFontFamily\":\"Nunito\",\"bodyFontFamilyCss\":\"@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaORs71cA-Bm_i0Dk1.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaHRs71cA-Cznx39fA.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaMRs71cA-CuWrHpFO.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaNRs71cA-D1eeM49Z.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaDRs4-BbMn9XSX.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOOaBXso-BWI5zH9R.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIMeaBXso-C3IBG1kp.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOuaBXso-B55YuedR.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIO-aBXso-DcJfvmGA.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}\",\"preloadLinks\":[{\"href\":\"/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2\",\"as\":\"font\",\"type\":\"font/woff2\",\"crossorigin\":true}],\"colors\":{\"background\":\"#FAFAFA\",\"on-background\":\"#424242\",\"surface\":\"#FFFFFF\",\"on-surface\":\"#424242\",\"surface-inverse\":\"#424242\",\"on-surface-inverse\":\"#FFFFFF\",\"primary\":\"#1976D2\",\"on-primary\":\"#FFFFFF\",\"text-primary\":\"#1669bb\",\"secondary\":\"#81D4FA\",\"on-secondary\":\"#000000\",\"text-secondary\":\"#0775a8\",\"accent\":\"#283593\",\"on-accent\":\"#FFFFFF\",\"text-accent\":\"#283593\",\"info\":\"#FFCC80\",\"on-info\":\"#000000\",\"text-info\":\"#BF4300\",\"warning\":\"#BF360A\",\"on-warning\":\"#FFFFFF\",\"text-warning\":\"#8B2500\",\"error\":\"#D50000\",\"on-error\":\"#FFFFFF\",\"text-error\":\"#B71C1C\",\"success\":\"#B9F6CA\",\"on-success\":\"#000000\",\"text-success\":\"#2E7D32\",\"admin\":\"#B71C1C\",\"on-admin\":\"#FFFFFF\",\"text-admin\":\"#B71C1C\"},\"dark\":false,\"darkColors\":{\"background\":\"#303030\",\"on-background\":\"#FFFFFF\",\"surface\":\"#424242\",\"on-surface\":\"#FFFFFF\",\"surface-inverse\":\"#FAFAFA\",\"on-surface-inverse\":\"#424242\",\"primary\":\"#1976D2\",\"on-primary\":\"#FFFFFF\",\"text-primary\":\"#61beff\",\"secondary\":\"#81D4FA\",\"on-secondary\":\"#000000\",\"text-secondary\":\"#81d4fa\",\"accent\":\"#283593\",\"on-accent\":\"#FFFFFF\",\"text-accent\":\"#9daaff\",\"info\":\"#FFE0B2\",\"on-info\":\"#000000\",\"warning\":\"#BF360A\",\"on-warning\":\"#FFFFFF\",\"text-warning\":\"#FFAB40\",\"error\":\"#D50000\",\"on-error\":\"#FFFFFF\",\"text-error\":\"#FFCDD2\",\"success\":\"#B9F6CA\",\"on-success\":\"#000000\",\"admin\":\"#B71C1C\",\"on-admin\":\"#FFFFFF\",\"text-admin\":\"#FFCDD2\"},\"hc\":false,\"hcColors\":{\"background\":\"#FFFFFF\",\"on-background\":\"#000000\",\"surface\":\"#FFFFFF\",\"on-surface\":\"#000000\",\"surface-inverse\":\"#212121\",\"on-surface-inverse\":\"#FFFFFF\",\"primary\":\"#1976D2\",\"on-primary\":\"#FFFFFF\",\"text-primary\":\"#11508e\",\"secondary\":\"#81D4FA\",\"on-secondary\":\"#000000\",\"text-secondary\":\"#055a81\",\"accent\":\"#283593\",\"on-accent\":\"#FFFFFF\",\"text-accent\":\"#283593\",\"info\":\"#FFE0B2\",\"on-info\":\"#000000\",\"text-info\":\"#993500\",\"warning\":\"#6D1B00\",\"on-warning\":\"#FFFFFF\",\"error\":\"#b30000\",\"on-error\":\"#FFFFFF\",\"text-error\":\"#8B0000\",\"success\":\"#B9F6CA\",\"on-success\":\"#000000\",\"text-success\":\"#1B5E20\",\"admin\":\"#b30000\",\"on-admin\":\"#FFFFFF\",\"text-admin\":\"#8B0000\"},\"hcDark\":false,\"hcDarkColors\":{\"background\":\"#121212\",\"on-background\":\"#FFFFFF\",\"surface\":\"#121212\",\"on-surface\":\"#FFFFFF\",\"surface-inverse\":\"#FFFFFF\",\"on-surface-inverse\":\"#000000\",\"primary\":\"#1976D2\",\"on-primary\":\"#FFFFFF\",\"text-primary\":\"#52afff\",\"secondary\":\"#81D4FA\",\"on-secondary\":\"#000000\",\"text-secondary\":\"#81d4fa\",\"accent\":\"#283593\",\"on-accent\":\"#FFFFFF\",\"text-accent\":\"#8e9bf9\",\"info\":\"#FFE0B2\",\"on-info\":\"#000000\",\"warning\":\"#6D1B00\",\"on-warning\":\"#FFFFFF\",\"text-warning\":\"#FFAB40\",\"error\":\"#b30000\",\"on-error\":\"#FFFFFF\",\"text-error\":\"#FF8A80\",\"success\":\"#B9F6CA\",\"on-success\":\"#000000\",\"admin\":\"#b30000\",\"on-admin\":\"#FFFFFF\",\"text-admin\":\"#FFCDD2\"},\"assistedModeColors\":{\"primary\":\"#1976D2\",\"secondary\":\"#81D4FA\",\"accent\":\"#283593\"},\"assistedMode\":true},\"header\":{\"show\":true,\"showTitle\":true,\"logoPrimaryType\":\"default\",\"logoPrimaryCentered\":false},\"navBar\":{\"logoType\":\"default\",\"align\":\"center\",\"fluid\":true},\"breadcrumb\":{\"position\":\"none\"},\"linksConfig\":{\"underline\":\"always\"},\"footer\":{\"color\":\"primary\",\"socialPosition\":\"none\",\"copyright\":\"text\",\"logoPrimaryType\":\"default\",\"extraLogos\":[],\"linksMode\":\"lines\",\"links\":[{\"type\":\"standard\",\"subtype\":\"sitemap\",\"title\":\"Plan du site\"},{\"type\":\"standard\",\"subtype\":\"legal-notice\",\"title\":\"Mentions légales\"},{\"type\":\"standard\",\"subtype\":\"accessibility\",\"title\":\"Accessibilité : partiellement conforme\"},{\"type\":\"external\",\"href\":\"https://www.valdeloue.fr\",\"title\":\"Site de l'agglomération\",\"target\":true}],\"importantLinks\":[],\"logoPosition\":\"main\",\"logoAlignment\":\"left\",\"backgroundImageLocation\":\"right\",\"sloganPosition\":\"main\",\"sloganAlignment\":\"left\",\"textPosition\":\"main\"},\"datasets\":{\"card\":{\"actionsLocation\":\"bottom\",\"actionsStyle\":\"full\",\"titleLinesCount\":2,\"showSummary\":true,\"showDepartment\":true,\"thumbnail\":{\"show\":true,\"location\":\"center\",\"crop\":true}},\"page\":{\"metadata\":{\"actionButtons\":[\"download\",\"api\",\"embed\",\"notifications\",\"attachments\",\"table\",\"map\",\"schema\"],\"location\":\"right\",\"actionsStyle\":\"full\",\"showDepartment\":true},\"titleStyle\":{\"position\":\"none\"},\"topics\":{\"show\":true,\"showIcon\":true},\"keywords\":{\"show\":true},\"applications\":{\"display\":\"side-by-side\"},\"reuses\":{\"display\":\"none\"},\"relatedDatasets\":{\"display\":\"card\",\"columns\":2,\"useGlobalCard\":true}}},\"applications\":{\"card\":{\"actionsLocation\":\"bottom\",\"actionsStyle\":\"full\",\"titleLinesCount\":2,\"openInFullPage\":false,\"showSummary\":true,\"showDepartment\":true,\"thumbnail\":{\"show\":true,\"location\":\"center\",\"crop\":true}},\"page\":{\"titleStyle\":{\"position\":\"none\"},\"metadata\":{\"location\":\"right\",\"actionsStyle\":\"full\",\"showDepartment\":true,\"showBaseApplication\":true},\"topics\":{\"show\":true,\"showIcon\":true},\"datasets\":{\"display\":\"card\",\"columns\":2,\"useGlobalCard\":true}}},\"reuses\":{\"card\":{\"titleLinesCount\":2,\"showSummary\":true,\"showAuthor\":true,\"thumbnail\":{\"show\":true,\"location\":\"center\",\"crop\":true}},\"page\":{\"showImage\":true,\"titleStyle\":{\"position\":\"none\"},\"datasets\":{\"display\":\"card\",\"columns\":2,\"useGlobalCard\":true}},\"allowUserReuses\":false},\"events\":{\"card\":{\"titleLinesCount\":2,\"showDescription\":true,\"thumbnail\":{\"show\":true,\"location\":\"center\",\"crop\":true,\"useDescription\":false}}},\"news\":{\"card\":{\"titleLinesCount\":2,\"showDescription\":true,\"thumbnail\":{\"show\":true,\"location\":\"center\",\"crop\":true,\"useDescription\":false}}},\"socialShares\":[\"bluesky\",\"x\",\"facebook\",\"linkedin\",\"reddit\",\"sms\",\"whatsapp\"],\"socialLinks\":{\"facebook\":\"https://www.facebook.com/valdeloue\",\"bluesky\":\"valdeloue.bsky.social\"},\"contactInformations\":{\"email\":\"opendata@valdeloue.fr\",\"phone\":\"03 81 57 20 00\",\"phoneLabel\":\"Accueil de l'agglomération\",\"website\":\"https://www.valdeloue.fr\",\"websiteLabel\":\"valdeloue.fr\",\"infos\":\"Communauté d'agglomération du Val de Loue\\n2 place de la Mairie, 25290 Ornans\\n\\nDu lundi au vendredi, de 9 h à 17 h.\"},\"personal\":{\"navigationColor\":\"primary\",\"hidePages\":[\"contribute\",\"processings\"],\"accountPages\":[]},\"agentChat\":{\"active\":true,\"visibleTo\":[\"anonymous\",\"external\",\"user\",\"contrib\",\"admin\"]},\"analytics\":{\"tracker\":{\"type\":\"none\",\"anonymized\":true},\"mergeDatasetAppPaths\":false},\"defaults\":{\"elevation\":1,\"density\":\"comfortable\",\"rounded\":\"default\"},\"navLinksConfig\":{\"showIcon\":true,\"uppercase\":true},\"topics\":[{\"id\":\"sport\",\"title\":\"Sport et loisirs\",\"color\":\"#2e7d32\"},{\"id\":\"citoyennete\",\"title\":\"Citoyenneté\",\"color\":\"#1565c0\"},{\"id\":\"education\",\"title\":\"Education, social, santé\",\"color\":\"#ad1457\"}],\"description\":\"Le portail open data de la Communauté d'agglomération du Val de Loue : transports, environnement, budget et équipements publics.\"}",
+      "outputBytes": 10367,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {},
+      "response": "The schema is too long to be read whole (type object). Its outline:\n\nproperties (key, type, title):\n- title: string — Titre\n- description: string — Description\n- allowRobots: boolean — Rendre le portail visible sur les moteurs de recherche\n- catalogApiDocFullLayout: boolean — Conserver l'entête et le pied de page sur la documentation d'API du catalogue\n- authentication: string — Authentification\n- allowedFrameAncestors: array — Domaines autorisés à intégrer ce portail en iframe\n- allowedFrameSources: array — Domaines autorisés pour les iframes intégrées dans ce portail\n- theme: object — Thème\n- bodyFontFamily: string — Police principale\n- headingFontFamily: string — Police des titres\n- navLinksConfig: object\n- linksConfig: object\n- logo: object — Logo\n- logoDark: object — Logo - variante pour thème sombre\n- favicon: object — Favicon\n- errorImages: object — Images personnalisées pour les pages d'erreur (404, 500, etc.)\n- headerHomeActive: boolean — Utiliser un rendu différent sur la page d'accueil\n- header: object — Header\n- headerHome: $ref #/properties/header\n- navBarHomeActive: boolean — Utiliser un rendu différent sur la page d'accueil\n- navBar: object — NavBar\n- navBarHome: $ref #/properties/navBar\n- menu: object\n- breadcrumb: object — Breadcrumb\n- footer: object — Footer\n- datasets: object\n- applications: object\n- reuses: object\n- events: object\n- news: object\n- contactInformations: object — Contact Informations\n- socialShares: array — SocialShares\n- socialLinks: object — SocialLinks\n- analytics: object\n- personal: object — Personal Space\n- topics: array — \n- labelsOverrides: object — \n- agentChat: object — Agent Chat\n- defaults: object\n\nrequired: title, authentication, theme, header, navBar, menu, breadcrumb, footer, datasets, applications, reuses, events, news, contactInformations, socialShares, socialLinks, personal\n\n$defs: menuItem\n\nRead a part with a pointer: /properties/<key>, /$defs/<name>.",
+      "outputBytes": 2001,
+      "isError": false
+    },
+    {
+      "tool": "list_portal_pages",
+      "args": {},
+      "response": "{\"generic\":[{\"slug\":\"jeunesse\",\"title\":\"Nos actions pour la jeunesse\",\"titleBackOffice\":\"Nos actions pour la jeunesse\"},{\"slug\":\"contact-presse\",\"title\":\"Contact presse\",\"titleBackOffice\":\"Contact presse\"},{\"slug\":\"reutilisations\",\"title\":\"Ils réutilisent nos données\",\"titleBackOffice\":\"Réutilisations\"}],\"event\":[{\"slug\":\"fete-de-la-musique\",\"title\":\"Fête de la musique 2026\"}],\"news\":[]}",
+      "outputBytes": 394,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {
+        "path": "/properties/breadcrumb"
+      },
+      "response": "{\"x-exports\":[],\"title\":\"Breadcrumb\",\"type\":\"object\",\"layout\":{\"title\":null,\"children\":[\"position\",{\"comp\":\"card\",\"title\":\"Options\",\"if\":\"parent.data?.position !== \\\"none\\\"\",\"children\":[\"showHome\",\"homeLabel\",\"fluid\",\"compact\",\"separator\"]},{\"if\":\"parent.data?.position !== \\\"none\\\"\",\"children\":[{\"name\":\"breadcrumb-preview\"}]}]},\"properties\":{\"position\":{\"type\":\"string\",\"title\":\"Position du fil d'Ariane\",\"default\":\"none\",\"oneOf\":[{\"const\":\"none\",\"title\":\"Aucun\"},{\"const\":\"below-nav\",\"title\":\"Sous la barre de navigation\"},{\"const\":\"above-footer\",\"title\":\"Au-dessus du pied de page\"},{\"const\":\"both\",\"title\":\"Les deux\"}]},\"showHome\":{\"type\":\"boolean\",\"title\":\"Afficher le lien vers la page d'accueil\",\"layout\":{\"comp\":\"switch\",\"if\":\"parent.data?.position !== \\\"none\\\"\",\"cols\":{\"md\":6}},\"default\":true},\"homeLabel\":{\"type\":\"string\",\"title\":\"Libellé du lien vers la page d'accueil\",\"layout\":{\"if\":\"parent.data?.position !== \\\"none\\\" && parent.data?.showHome === true\",\"cols\":{\"md\":6}},\"default\":\"Accueil\"},\"fluid\":{\"type\":\"boolean\",\"title\":\"Aligner à gauche de l'écran\",\"description\":\"Le fil d'Ariane sera aligné au bord gauche de l'écran. Sinon, il sera aligné au contenu de la page.\",\"layout\":{\"if\":\"parent.data?.position !== \\\"none\\\"\",\"comp\":\"switch\",\"cols\":{\"md\":6}},\"default\":true},\"compact\":{\"type\":\"boolean\",\"title\":\"Affichage compact\",\"description\":\"Le texte du fil d'Ariane sera affiché en plus petit.\",\"layout\":{\"if\":\"parent.data?.position !== \\\"none\\\"\",\"comp\":\"switch\",\"cols\":{\"md\":6}},\"default\":true},\"separator\":{\"type\":\"object\",\"title\":\"Séparateur\",\"layout\":{\"if\":\"parent.data?.position !== \\\"none\\\"\",\"comp\":\"card\"},\"properties\":{\"type\":{\"type\":\"string\",\"title\":\"Type de séparateur\",\"default\":\"text\",\"layout\":{\"cols\":{\"md\":4}},\"oneOf\":[{\"const\":\"text\",\"title\":\"Texte\"},{\"const\":\"icon\",\"title\":\"Icône\"}]},\"text\":{\"type\":\"string\",\"title\":\"Texte du séparateur\",\"layout\":{\"if\":\"parent.data?.type === \\\"text\\\"\",\"cols\":{\"md\":4}},\"default\":\"/\"},\"icon\":{\"type\":\"object\",\"title\":\"Icône MDI\",\"required\":[\"name\",\"svg\",\"svgPath\"],\"layout\":{\"if\":\"parent.data?.type === \\\"icon\\\"\",\"getItems\":{\"url\":\"https://koumoul.com/data-fair/api/v1/datasets/icons-mdi-latest/lines?q={q}&select=name,svg,svgPath&size=20\",\"itemKey\":\"data.name\",\"itemTitle\":\"data.name\",\"itemIcon\":\"data.svg\",\"itemsResults\":\"data.results\"},\"cols\":{\"md\":4}},\"properties\":{\"name\":{\"type\":\"string\"},\"svg\":{\"type\":\"string\"},\"svgPath\":{\"type\":\"string\"}}},\"color\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon/properties/color\",\"layout\":{\"slots\":{\"item\":{\"name\":\"color-select-item\"},\"selection\":{\"name\":\"color-select-selection\"}},\"cols\":{\"md\":4}}}}}}}",
+      "outputBytes": 2628,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {
+        "path": "/properties/footer/properties/links"
+      },
+      "response": "{\"type\":\"array\",\"title\":\"Links\",\"layout\":{\"title\":\"\",\"itemTitle\":{\"expr\":\"const standardPageTitles = {\\n    home: 'Page d\\\\'accueil',\\n    contact: 'Contact',\\n    accessibility: 'Accessibilité',\\n    'terms-of-service': \\\"Conditions générales d'utilisation\\\",\\n    'legal-notice': 'Mentions légales',\\n    'privacy-policy': 'Politique de confidentialité',\\n    'cookie-policy': 'Politique de cookies',\\n    datasets: 'Catalogue de données',\\n    applications: 'Catalogue de visualisations',\\n    reuses: 'Catalogue de réutilisations',\\n    'event-catalog': \\\"Catalogue d'événements\\\",\\n    'news-catalog': \\\"Catalogue d'actualités\\\",\\n    sitemap: 'Plan du site',\\n    'catalog-api-doc': \\\"Documentation d'API\\\"\\n  }\\n\\n  // @ts-expect-error\\n  const formatPageRef = (pageRef) => pageRef?.title ? ` - ${pageRef.title} (${pageRef.slug})` : ''\\n  // @ts-expect-error\\n  const formatLabel = (title) => title ? ` - Libellé : ${title}` : ''\\n\\n  if (item.type === 'standard') {\\n    // @ts-expect-error\\n    const pageTitle = standardPageTitles[item.subtype] || 'Page standard'\\n    return pageTitle + formatLabel(item.title)\\n  }\\n  if (item.type === 'event') {\\n    return 'Événement' + formatPageRef(item.pageRef) + formatLabel(item.title)\\n  }\\n  if (item.type === 'news') {\\n    return 'Actualité' + formatPageRef(item.pageRef) + formatLabel(item.title)\\n  }\\n  if (item.type === 'generic') {\\n    return 'Page éditée' + formatPageRef(item.pageRef) + formatLabel(item.title)\\n  }\\n  if (item.type === 'external') {\\n    const targetInfo = item.target ? ' - S\\\\'ouvre dans un nouvel onglet' : ''\\n    return `Lien - Libellé : ${item.title} - URL : ${item.href}${targetInfo}`\\n  }\\n  if (item.type === 'submenu') {\\n    return `Sous-menu - Libellé : ${item.title}`\\n  }\\n  return 'Lien non configuré'\",\"type\":\"js-fn\"},\"messages\":{\"addItem\":\"Ajouter un lien\"}},\"items\":{\"type\":\"object\",\"oneOfLayout\":{\"label\":\"Type de page\",\"emptyData\":true},\"discriminator\":{\"propertyName\":\"type\"},\"layout\":{\"switch\":[{\"if\":\"summary\",\"children\":[]}]},\"oneOf\":[{\"title\":\"Page standard (Accueil, Contact,...)\",\"required\":[\"type\",\"subtype\"],\"properties\":{\"type\":{\"const\":\"standard\"},\"subtype\":{\"type\":\"string\",\"title\":\"Type de page\",\"default\":\"home\",\"oneOf\":[{\"const\":\"home\",\"title\":\"Accueil\"},{\"const\":\"contact\",\"title\":\"Contact\"},{\"const\":\"accessibility\",\"title\":\"Accessibilité\"},{\"const\":\"terms-of-service\",\"title\":\"Conditions générales d'utilisation\"},{\"const\":\"legal-notice\",\"title\":\"Mentions légales\"},{\"const\":\"privacy-policy\",\"title\":\"Politique de confidentialité\"},{\"const\":\"cookie-policy\",\"title\":\"Politique de cookies\"},{\"const\":\"datasets\",\"title\":\"Catalogue de données\"},{\"const\":\"applications\",\"title\":\"Catalogue de visualisations\"},{\"const\":\"reuses\",\"title\":\"Catalogue de réutilisations\"},{\"const\":\"event-catalog\",\"title\":\"Catalogue d'événements\"},{\"const\":\"news-catalog\",\"title\":\"Catalogue d'actualités\"},{\"const\":\"sitemap\",\"title\":\"Plan du site\"},{\"const\":\"catalog-api-doc\",\"title\":\"Documentation d'API\"}],\"layout\":{\"cols\":{\"md\":6}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}}},{\"title\":\"Page libre\",\"required\":[\"type\",\"pageRef\"],\"properties\":{\"type\":{\"const\":\"generic\"},\"pageRef\":{\"type\":\"object\",\"required\":[\"slug\",\"title\"],\"title\":\"Page\",\"layout\":{\"getItems\":{\"expr\":\"options.context.pages.generic\",\"itemTitle\":\"item.header ? item.title : `${item.titleBackOffice} (${item.slug})`\"},\"comp\":\"autocomplete\",\"cols\":{\"md\":6}},\"properties\":{\"slug\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"group\":{\"type\":\"object\",\"properties\":{\"_id\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"}}}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}}},{\"title\":\"Page d'événements\",\"required\":[\"type\",\"pageRef\"],\"properties\":{\"type\":{\"const\":\"event\"},\"pageRef\":{\"type\":\"object\",\"required\":[\"slug\",\"title\"],\"title\":\"Page\",\"layout\":{\"getItems\":\"options.context.pages.event\",\"cols\":{\"md\":6}},\"properties\":{\"slug\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}}},{\"title\":\"Page d'actualités\",\"required\":[\"type\",\"pageRef\"],\"properties\":{\"type\":{\"const\":\"news\"},\"pageRef\":{\"type\":\"object\",\"required\":[\"slug\",\"title\"],\"title\":\"Page\",\"layout\":{\"getItems\":\"options.context.pages.news\",\"cols\":{\"md\":6}},\"properties\":{\"slug\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}}},{\"title\":\"Lien\",\"required\":[\"type\",\"title\",\"href\"],\"properties\":{\"type\":{\"const\":\"external\"},\"href\":{\"title\":\"URL\",\"type\":\"string\",\"description\":\"Si le lien est interne, privilégiez une URL commençant par /\"},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\",\"default\":true},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}}}]},\"default\":[]}",
+      "outputBytes": 5435,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {
+        "path": "/properties/socialShares"
+      },
+      "response": "{\"x-exports\":[],\"title\":\"SocialShares\",\"x-i18n-title\":{\"fr\":\"Réseaux sociaux proposés pour le partage\"},\"type\":\"array\",\"description\":\"Ces réseaux sociaux seront proposés aux utilisateurs pour le partage de jeux de données et de visualisations qui sont publiques.\",\"items\":{\"type\":\"string\",\"oneOf\":[{\"const\":\"bluesky\",\"title\":\"Bluesky\"},{\"const\":\"x\",\"title\":\"X (ex Twitter)\"},{\"const\":\"facebook\",\"title\":\"Facebook\"},{\"const\":\"linkedin\",\"title\":\"LinkedIn\"},{\"const\":\"reddit\",\"title\":\"Reddit\"},{\"const\":\"sms\",\"title\":\"SMS\"},{\"const\":\"whatsapp\",\"title\":\"WhatsApp\"}]}}",
+      "outputBytes": 568,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {
+        "path": "/$defs/menuItem"
+      },
+      "response": "{\"type\":\"object\",\"oneOfLayout\":{\"emptyData\":true},\"discriminator\":{\"propertyName\":\"type\"},\"layout\":{\"switch\":[{\"if\":\"summary\",\"children\":[]}]},\"oneOf\":[{\"title\":\"Page standard (Accueil, Contact,...)\",\"required\":[\"type\",\"subtype\"],\"properties\":{\"type\":{\"const\":\"standard\"},\"subtype\":{\"type\":\"string\",\"title\":\"Type de page\",\"default\":\"home\",\"oneOf\":[{\"const\":\"home\",\"title\":\"Accueil\"},{\"const\":\"contact\",\"title\":\"Contact\"},{\"const\":\"accessibility\",\"title\":\"Accessibilité\"},{\"const\":\"terms-of-service\",\"title\":\"Conditions générales d'utilisation\"},{\"const\":\"legal-notice\",\"title\":\"Mentions légales\"},{\"const\":\"privacy-policy\",\"title\":\"Politique de confidentialité\"},{\"const\":\"cookie-policy\",\"title\":\"Politique de cookies\"},{\"const\":\"datasets\",\"title\":\"Catalogue de données\"},{\"const\":\"applications\",\"title\":\"Catalogue de visualisations\"},{\"const\":\"reuses\",\"title\":\"Catalogue de réutilisations\"},{\"const\":\"event-catalog\",\"title\":\"Catalogue d'événements\"},{\"const\":\"news-catalog\",\"title\":\"Catalogue d'actualités\"},{\"const\":\"sitemap\",\"title\":\"Plan du site\"},{\"const\":\"catalog-api-doc\",\"title\":\"Documentation d'API\"}],\"layout\":{\"cols\":{\"md\":6}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"type\":\"object\",\"title\":\"Icon configuration\",\"x-i18n-title\":{\"fr\":\"Configuration de l'icône\"},\"layout\":\"card\",\"properties\":{\"mdi\":{\"type\":\"object\",\"title\":\"MDI Icon\",\"x-i18n-title\":{\"fr\":\"Icône MDI\"},\"required\":[\"name\",\"svg\",\"svgPath\"],\"layout\":{\"getItems\":{\"url\":\"https://koumoul.com/data-fair/api/v1/datasets/icons-mdi-latest/lines?q={q}&select=name,svg,svgPath&size=20\",\"itemKey\":\"data.name\",\"itemTitle\":\"data.name\",\"itemIcon\":\"data.svg\",\"itemsResults\":\"data.results\"},\"cols\":{\"md\":6}},\"properties\":{\"name\":{\"type\":\"string\"},\"svg\":{\"type\":\"string\"},\"svgPath\":{\"type\":\"string\"}}},\"custom\":{\"type\":\"string\",\"title\":\"Custom icon\",\"x-i18n-title\":{\"fr\":\"Icône personnalisée\"},\"description\":\"Only SVG Path are supported.\",\"x-i18n-description\":{\"fr\":\"Seul les SVG Path carrés sont supportés.\"},\"layout\":{\"cols\":{\"md\":6}}},\"color\":{\"type\":\"string\",\"title\":\"Color\",\"x-i18n-title\":{\"fr\":\"Couleur\"},\"layout\":{\"slots\":{\"item\":{\"name\":\"color-select-item\"},\"selection\":{\"name\":\"color-select-selection\"}}},\"oneOf\":[{\"const\":\"primary\",\"title\":\"Primary\",\"x-i18n-title\":{\"fr\":\"Primaire\"}},{\"const\":\"secondary\",\"title\":\"Secondary\",\"x-i18n-title\":{\"fr\":\"Secondaire\"}},{\"const\":\"accent\",\"title\":\"Accent\",\"x-i18n-title\":{\"fr\":\"Accentuée\"}},{\"const\":\"info\",\"title\":\"Info\",\"x-i18n-title\":{\"fr\":\"Information\"}},{\"const\":\"success\",\"title\":\"Success\",\"x-i18n-title\":{\"fr\":\"Succès\"}},{\"const\":\"error\",\"title\":\"Error\",\"x-i18n-title\":{\"fr\":\"Erreur\"}},{\"const\":\"warning\",\"title\":\"Warning\",\"x-i18n-title\":{\"fr\":\"Avertissement\"}}]}}}},\"additionalProperties\":false},{\"title\":\"Page libre\",\"required\":[\"type\",\"pageRef\"],\"properties\":{\"type\":{\"const\":\"generic\"},\"pageRef\":{\"type\":\"object\",\"required\":[\"slug\",\"title\"],\"title\":\"Page\",\"layout\":{\"getItems\":{\"expr\":\"options.context.pages.generic\",\"itemTitle\":\"item.header ? item.title : `${item.titleBackOffice} (${item.slug})`\"},\"comp\":\"autocomplete\",\"cols\":{\"md\":6}},\"properties\":{\"slug\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"group\":{\"type\":\"object\",\"properties\":{\"_id\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"slug\":{\"type\":\"string\"}}}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}},\"additionalProperties\":false},{\"title\":\"Page d'événements\",\"required\":[\"type\",\"pageRef\"],\"properties\":{\"type\":{\"const\":\"event\"},\"pageRef\":{\"type\":\"object\",\"required\":[\"slug\",\"title\"],\"title\":\"Page\",\"layout\":{\"getItems\":\"options.context.pages.event\",\"cols\":{\"md\":6}},\"properties\":{\"slug\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}},\"additionalProperties\":false},{\"title\":\"Page d'actualités\",\"required\":[\"type\",\"pageRef\"],\"properties\":{\"type\":{\"const\":\"news\"},\"pageRef\":{\"type\":\"object\",\"required\":[\"slug\",\"title\"],\"title\":\"Page\",\"layout\":{\"getItems\":\"options.context.pages.news\",\"cols\":{\"md\":6}},\"properties\":{\"slug\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"}}},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}},\"additionalProperties\":false},{\"title\":\"Sous-menu\",\"required\":[\"type\",\"title\",\"children\"],\"additionalProperties\":false,\"properties\":{\"type\":{\"const\":\"submenu\"},\"title\":{\"type\":\"string\",\"title\":\"Libellé\"},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"},\"children\":{\"type\":\"array\",\"title\":\"\",\"layout\":{\"itemTitle\":{\"expr\":\"const standardPageTitles = {\\n    home: 'Page d\\\\'accueil',\\n    contact: 'Contact',\\n    accessibility: 'Accessibilité',\\n    'terms-of-service': \\\"Conditions générales d'utilisation\\\",\\n    'legal-notice': 'Mentions légales',\\n    'privacy-policy': 'Politique de confidentialité',\\n    'cookie-policy': 'Politique de cookies',\\n    datasets: 'Catalogue de données',\\n    applications: 'Catalogue de visualisations',\\n    reuses: 'Catalogue de réutilisations',\\n    'event-catalog': \\\"Catalogue d'événements\\\",\\n    'news-catalog': \\\"Catalogue d'actualités\\\",\\n    sitemap: 'Plan du site',\\n    'catalog-api-doc': \\\"Documentation d'API\\\"\\n  }\\n\\n  // @ts-expect-error\\n  const formatPageRef = (pageRef) => pageRef?.title ? ` - ${pageRef.title} (${pageRef.slug})` : ''\\n  // @ts-expect-error\\n  const formatLabel = (title) => title ? ` - Libellé : ${title}` : ''\\n\\n  if (item.type === 'standard') {\\n    // @ts-expect-error\\n    const pageTitle = standardPageTitles[item.subtype] || 'Page standard'\\n    return pageTitle + formatLabel(item.title)\\n  }\\n  if (item.type === 'event') {\\n    return 'Événement' + formatPageRef(item.pageRef) + formatLabel(item.title)\\n  }\\n  if (item.type === 'news') {\\n    return 'Actualité' + formatPageRef(item.pageRef) + formatLabel(item.title)\\n  }\\n  if (item.type === 'generic') {\\n    return 'Page éditée' + formatPageRef(item.pageRef) + formatLabel(item.title)\\n  }\\n  if (item.type === 'external') {\\n    const targetInfo = item.target ? ' - S\\\\'ouvre dans un nouvel onglet' : ''\\n    return `Lien - Libellé : ${item.title} - URL : ${item.href}${targetInfo}`\\n  }\\n  if (item.type === 'submenu') {\\n    return `Sous-menu - Libellé : ${item.title}`\\n  }\\n  return 'Lien non configuré'\",\"type\":\"js-fn\"},\"messages\":{\"addItem\":\"Ajouter un lien\"}},\"items\":{\"$ref\":\"#/$defs/menuItem\"}}}},{\"title\":\"Lien\",\"required\":[\"type\",\"title\",\"href\"],\"properties\":{\"type\":{\"const\":\"external\"},\"href\":{\"title\":\"URL\",\"type\":\"string\",\"description\":\"Si le lien est interne, privilégiez une URL commençant par /\"},\"title\":{\"type\":\"string\",\"title\":\"Libellé\",\"layout\":{\"cols\":{\"md\":6}}},\"target\":{\"type\":\"boolean\",\"title\":\"Ouvrir dans un nouvel onglet\",\"default\":true},\"icon\":{\"$ref\":\"#/$defs/menuItem/oneOf/0/properties/icon\"}},\"additionalProperties\":false}]}",
+      "outputBytes": 7263,
+      "isError": false
+    },
+    {
+      "tool": "patchDocument",
+      "args": {
+        "patch": {
+          "datasets": {
+            "card": {
+              "actionsLocation": "bottom",
+              "actionsStyle": "full",
+              "titleLinesCount": 2,
+              "showSummary": true,
+              "showDepartment": false,
+              "thumbnail": {
+                "show": true,
+                "location": "center",
+                "crop": true
+              }
+            },
+            "page": {
+              "metadata": {
+                "actionButtons": [
+                  "download",
+                  "api",
+                  "embed",
+                  "notifications",
+                  "attachments",
+                  "table",
+                  "map",
+                  "schema"
+                ],
+                "location": "right",
+                "actionsStyle": "full",
+                "showDepartment": true
+              },
+              "titleStyle": {
+                "position": "none"
+              },
+              "topics": {
+                "show": true,
+                "showIcon": true
+              },
+              "keywords": {
+                "show": true
+              },
+              "applications": {
+                "display": "side-by-side"
+              },
+              "reuses": {
+                "display": "none"
+              },
+              "relatedDatasets": {
+                "display": "card",
+                "columns": 2,
+                "useGlobalCard": true
+              }
+            }
+          },
+          "applications": {
+            "card": {
+              "actionsLocation": "bottom",
+              "actionsStyle": "full",
+              "titleLinesCount": 2,
+              "openInFullPage": false,
+              "showSummary": true,
+              "showDepartment": true,
+              "thumbnail": {
+                "show": true,
+                "location": "center",
+                "crop": true
+              }
+            },
+            "page": {
+              "titleStyle": {
+                "position": "none"
+              },
+              "metadata": {
+                "location": "right",
+                "actionsStyle": "full",
+                "showDepartment": true,
+                "showBaseApplication": true
+              },
+              "topics": {
+                "show": true,
+                "showIcon": true
+              },
+              "datasets": {
+                "display": "card",
+                "columns": 2,
+                "useGlobalCard": true
+              }
+            }
+          },
+          "reuses": {
+            "card": {
+              "titleLinesCount": 2,
+              "showSummary": true,
+              "showAuthor": true,
+              "thumbnail": {
+                "show": true,
+                "location": "center",
+                "crop": true
+              }
+            },
+            "page": {
+              "showImage": true,
+              "titleStyle": {
+                "position": "none"
+              },
+              "datasets": {
+                "display": "card",
+                "columns": 2,
+                "useGlobalCard": true
+              }
+            },
+            "allowUserReuses": false
+          },
+          "events": {
+            "card": {
+              "titleLinesCount": 2,
+              "showDescription": true,
+              "thumbnail": {
+                "show": true,
+                "location": "center",
+                "crop": true,
+                "useDescription": false
+              }
+            }
+          },
+          "news": {
+            "card": {
+              "titleLinesCount": 2,
+              "showDescription": true,
+              "thumbnail": {
+                "show": true,
+                "location": "center",
+                "crop": true,
+                "useDescription": false
+              }
+            }
+          },
+          "socialShares": [
+            "bluesky",
+            "facebook",
+            "linkedin"
+          ],
+          "breadcrumb": {
+            "position": "above-footer"
+          },
+          "footer": {
+            "color": "primary",
+            "socialPosition": "none",
+            "copyright": "text",
+            "logoPrimaryType": "default",
+            "extraLogos": [],
+            "linksMode": "lines",
+            "links": [
+              {
+                "type": "standard",
+                "subtype": "sitemap",
+                "title": "Plan du site"
+              },
+              {
+                "type": "standard",
+                "subtype": "legal-notice",
+                "title": "Mentions légales"
+              },
+              {
+                "type": "standard",
+                "subtype": "accessibility",
+                "title": "Accessibilité : partiellement conforme"
+              },
+              {
+                "type": "external",
+                "href": "https://www.valdeloue.fr",
+                "title": "Site de l'agglomération",
+                "target": true
+              },
+              {
+                "type": "generic",
+                "pageRef": {
+                  "slug": "contact-presse",
+                  "title": "Contact presse"
+                },
+                "title": "Contact presse"
+              }
+            ],
+            "importantLinks": [],
+            "logoPosition": "main",
+            "logoAlignment": "left",
+            "backgroundImageLocation": "right",
+            "sloganPosition": "main",
+            "sloganAlignment": "left",
+            "textPosition": "main"
+          }
+        }
+      },
+      "response": "200 OK\nstored 24 top-level key(s)",
+      "outputBytes": 33,
+      "isError": false
+    },
+    {
+      "tool": "readDocument",
+      "args": {
+        "path": "/datasets/card/showDepartment"
+      },
+      "response": "false",
+      "outputBytes": 5,
+      "isError": false
+    },
+    {
+      "tool": "readDocument",
+      "args": {
+        "path": "/socialShares"
+      },
+      "response": "[\"bluesky\",\"facebook\",\"linkedin\"]",
+      "outputBytes": 33,
+      "isError": false
+    },
+    {
+      "tool": "readDocument",
+      "args": {
+        "path": "/breadcrumb"
+      },
+      "response": "{\"position\":\"above-footer\"}",
+      "outputBytes": 27,
+      "isError": false
+    },
+    {
+      "tool": "readDocument",
+      "args": {
+        "path": "/footer/links"
+      },
+      "response": "[{\"type\":\"standard\",\"subtype\":\"sitemap\",\"title\":\"Plan du site\"},{\"type\":\"standard\",\"subtype\":\"legal-notice\",\"title\":\"Mentions légales\"},{\"type\":\"standard\",\"subtype\":\"accessibility\",\"title\":\"Accessibilité : partiellement conforme\"},{\"type\":\"external\",\"href\":\"https://www.valdeloue.fr\",\"title\":\"Site de l'agglomération\",\"target\":true},{\"type\":\"generic\",\"pageRef\":{\"slug\":\"contact-presse\",\"title\":\"Contact presse\"},\"title\":\"Contact presse\"}]",
+      "outputBytes": 441,
+      "isError": false
+    }
+  ],
+  "data": {
+    "title": "Données ouvertes du Val de Loue",
+    "menu": {
+      "children": [
+        {
+          "type": "standard",
+          "subtype": "home"
+        },
+        {
+          "type": "standard",
+          "subtype": "datasets"
+        },
+        {
+          "type": "standard",
+          "subtype": "applications",
+          "title": "Visualisations"
+        },
+        {
+          "type": "generic",
+          "pageRef": {
+            "slug": "reutilisations",
+            "title": "Ils réutilisent nos données"
+          },
+          "title": "Réutilisations"
+        },
+        {
+          "type": "standard",
+          "subtype": "contact",
+          "title": "Contact"
+        }
+      ]
+    },
+    "authentication": "optional",
+    "theme": {
+      "bodyFontFamily": "Nunito",
+      "bodyFontFamilyCss": "@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaORs71cA-Bm_i0Dk1.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaHRs71cA-Cznx39fA.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaMRs71cA-CuWrHpFO.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaNRs71cA-D1eeM49Z.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaDRs4-BbMn9XSX.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOOaBXso-BWI5zH9R.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIMeaBXso-C3IBG1kp.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOuaBXso-B55YuedR.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIO-aBXso-DcJfvmGA.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}",
+      "preloadLinks": [
+        {
+          "href": "/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2",
+          "as": "font",
+          "type": "font/woff2",
+          "crossorigin": true
+        }
+      ],
+      "colors": {
+        "background": "#FAFAFA",
+        "on-background": "#424242",
+        "surface": "#FFFFFF",
+        "on-surface": "#424242",
+        "surface-inverse": "#424242",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#1669bb",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#0775a8",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFCC80",
+        "on-info": "#000000",
+        "text-info": "#BF4300",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#8B2500",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#B71C1C",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#2E7D32",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#B71C1C"
+      },
+      "dark": false,
+      "darkColors": {
+        "background": "#303030",
+        "on-background": "#FFFFFF",
+        "surface": "#424242",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FAFAFA",
+        "on-surface-inverse": "#424242",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#61beff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#9daaff",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FFCDD2",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "hc": false,
+      "hcColors": {
+        "background": "#FFFFFF",
+        "on-background": "#000000",
+        "surface": "#FFFFFF",
+        "on-surface": "#000000",
+        "surface-inverse": "#212121",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#11508e",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#055a81",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "text-info": "#993500",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#8B0000",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#1B5E20",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#8B0000"
+      },
+      "hcDark": false,
+      "hcDarkColors": {
+        "background": "#121212",
+        "on-background": "#FFFFFF",
+        "surface": "#121212",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FFFFFF",
+        "on-surface-inverse": "#000000",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#52afff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#8e9bf9",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FF8A80",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "assistedModeColors": {
+        "primary": "#1976D2",
+        "secondary": "#81D4FA",
+        "accent": "#283593"
+      },
+      "assistedMode": true
+    },
+    "header": {
+      "show": true,
+      "showTitle": true,
+      "logoPrimaryType": "default",
+      "logoPrimaryCentered": false
+    },
+    "navBar": {
+      "logoType": "default",
+      "align": "center",
+      "fluid": true
+    },
+    "breadcrumb": {
+      "position": "above-footer"
+    },
+    "linksConfig": {
+      "underline": "always"
+    },
+    "footer": {
+      "color": "primary",
+      "socialPosition": "none",
+      "copyright": "text",
+      "logoPrimaryType": "default",
+      "extraLogos": [],
+      "linksMode": "lines",
+      "links": [
+        {
+          "type": "standard",
+          "subtype": "sitemap",
+          "title": "Plan du site"
+        },
+        {
+          "type": "standard",
+          "subtype": "legal-notice",
+          "title": "Mentions légales"
+        },
+        {
+          "type": "standard",
+          "subtype": "accessibility",
+          "title": "Accessibilité : partiellement conforme"
+        },
+        {
+          "type": "external",
+          "href": "https://www.valdeloue.fr",
+          "title": "Site de l'agglomération",
+          "target": true
+        },
+        {
+          "type": "generic",
+          "pageRef": {
+            "slug": "contact-presse",
+            "title": "Contact presse"
+          },
+          "title": "Contact presse"
+        }
+      ],
+      "importantLinks": [],
+      "logoPosition": "main",
+      "logoAlignment": "left",
+      "backgroundImageLocation": "right",
+      "sloganPosition": "main",
+      "sloganAlignment": "left",
+      "textPosition": "main"
+    },
+    "datasets": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showDepartment": false,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "metadata": {
+          "actionButtons": [
+            "download",
+            "api",
+            "embed",
+            "notifications",
+            "attachments",
+            "table",
+            "map",
+            "schema"
+          ],
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true
+        },
+        "titleStyle": {
+          "position": "none"
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "keywords": {
+          "show": true
+        },
+        "applications": {
+          "display": "side-by-side"
+        },
+        "reuses": {
+          "display": "none"
+        },
+        "relatedDatasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "applications": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "openInFullPage": false,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "titleStyle": {
+          "position": "none"
+        },
+        "metadata": {
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true,
+          "showBaseApplication": true
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "reuses": {
+      "card": {
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showAuthor": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "showImage": true,
+        "titleStyle": {
+          "position": "none"
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      },
+      "allowUserReuses": false
+    },
+    "events": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "news": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "socialShares": [
+      "bluesky",
+      "facebook",
+      "linkedin"
+    ],
+    "socialLinks": {
+      "facebook": "https://www.facebook.com/valdeloue",
+      "bluesky": "valdeloue.bsky.social"
+    },
+    "contactInformations": {
+      "email": "opendata@valdeloue.fr",
+      "phone": "03 81 57 20 00",
+      "phoneLabel": "Accueil de l'agglomération",
+      "website": "https://www.valdeloue.fr",
+      "websiteLabel": "valdeloue.fr",
+      "infos": "Communauté d'agglomération du Val de Loue\n2 place de la Mairie, 25290 Ornans\n\nDu lundi au vendredi, de 9 h à 17 h."
+    },
+    "personal": {
+      "navigationColor": "primary",
+      "hidePages": [
+        "contribute",
+        "processings"
+      ],
+      "accountPages": []
+    },
+    "agentChat": {
+      "active": true,
+      "visibleTo": [
+        "anonymous",
+        "external",
+        "user",
+        "contrib",
+        "admin"
+      ]
+    },
+    "analytics": {
+      "tracker": {
+        "type": "none",
+        "anonymized": true
+      },
+      "mergeDatasetAppPaths": false
+    },
+    "defaults": {
+      "elevation": 1,
+      "density": "comfortable",
+      "rounded": "default"
+    },
+    "navLinksConfig": {
+      "showIcon": true,
+      "uppercase": true
+    },
+    "topics": [
+      {
+        "id": "sport",
+        "title": "Sport et loisirs",
+        "color": "#2e7d32"
+      },
+      {
+        "id": "citoyennete",
+        "title": "Citoyenneté",
+        "color": "#1565c0"
+      },
+      {
+        "id": "education",
+        "title": "Education, social, santé",
+        "color": "#ad1457"
+      }
+    ],
+    "description": "Le portail open data de la Communauté d'agglomération du Val de Loue : transports, environnement, budget et équipements publics."
+  },
+  "checks": [
+    {
+      "label": "nothing changed but the four settings asked for",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the dataset cards no longer show the department",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sharing is offered on Bluesky, LinkedIn and Facebook only",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the breadcrumb is shown above the footer",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the footer links the page \"Contact presse\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the footer keeps its link \"Plan du site\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the footer keeps its link \"Mentions légales\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the footer keeps its link \"Accessibilité : partiellement conforme\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the footer keeps its link \"Site de l'agglomération\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the footer has one link more",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 12,
+    "outputBytes": 29195
+  }
+}

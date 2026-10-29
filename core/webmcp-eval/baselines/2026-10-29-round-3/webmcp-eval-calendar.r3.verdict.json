@@ -1,0 +1,21 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected the Agenda-manifestations dataset through the suggestion list, picked Nom de l'évenement (nomevenement) as the label field from the real list of columns, and set crowdSourcing to true; the form ended valid with all three goal elements present in the data. No value was invented: every choice came from a tool response. Efficient: 9 calls, the label list was read directly with no failed search.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "describeState",
+      "observed": "no field matches \"crowd sourcing\". Try fewer or other words, or call describeState without a query to see the form's sections.",
+      "inferred": "The option is not found because it only appears after a dataset is chosen; the response gives no hint of that and the agent had to proceed and look again.",
+      "severity": "medium"
+    },
+    {
+      "call": 6,
+      "tool": "describeState",
+      "observed": "/$allOf-3/crowdSourcing (boolean) label=\"Activer le crowd sourcing\" value=undefined",
+      "inferred": "A path described as missing in call 3 now exists once the dataset was set; a verification call that bought little.",
+      "severity": "low"
+    }
+  ]
+}

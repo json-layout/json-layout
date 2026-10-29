@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected the Agenda-manifestations dataset through the suggestion list, picked Nom de l'évenement (nomevenement) as the label field from the real list of columns, and set crowdSourcing to true; the form ended valid with all three goal elements present in the data. No value was invented: every choice came from a tool response. Some wasted calls (an empty-handed search, a post-hoc inspection of the contributions dataset field).",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "describeState",
+      "observed": "no field matches \"crowd\". Try fewer or other words, or call describeState without a query to see the form's sections.",
+      "inferred": "The crowd sourcing option does not exist yet; true only because the Edition section is hidden until a dataset is chosen, but the response does not say so and bought nothing.",
+      "severity": "medium"
+    },
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "No option matched. The list exists but nothing came back for this query",
+      "inferred": "The English query \"event name\" did not match the French label; agent retried with no query and got the 27 columns.",
+      "severity": "low"
+    },
+    {
+      "call": 11,
+      "tool": "describeState",
+      "observed": "/$allOf-0/datasets/1 (autocomplete, suggestions) label=\"Jeu de données des contributions externes\" value=undefined",
+      "inferred": "Contributions dataset appears at two paths (datasets/1 and $allOf-3/contribsDataset); the agent spent two extra calls (11, 12) inspecting a field the goal did not ask to fill.",
+      "severity": "low"
+    }
+  ]
+}

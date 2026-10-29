@@ -1,0 +1,6 @@
+{
+  "case": "portal-page-reorder",
+  "verdict": "satisfactory",
+  "reasoning": "Moved the alert (index 2) to index 0 in one editArray, removed the button at children index 2 of the Nos engagements two-columns, and added a divider at index 7, directly before the Questions fréquentes title. Every write answered form is valid and saved. The final getData confirms the alert first, the button gone from the left column only (the Jeunesse and Presse buttons are untouched), and the new divider immediately before the FAQ title, with all other elements intact. Five calls, none wasted.",
+  "friction": []
+}

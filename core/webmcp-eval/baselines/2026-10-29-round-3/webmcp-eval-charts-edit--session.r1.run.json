@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "session",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0025995899999999997,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 424,
+    "cacheRead": 17479,
+    "cacheWrite": 11061
+  },
+  "answer": "I made both changes and the form is valid and saved.\n\n- **Aggregation:** the value calculation is now the maximum (`max`) instead of the average (`avg`). It still uses the `valeur` column, grouped by `nom_com`.\n- **Legend:** the position is now `bottom`, previously `right`.\n\nI didn't touch the other settings, including the title, sorting and the 10-item limit."
+}

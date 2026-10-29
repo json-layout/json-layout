@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-edit",
+  "arm": "session",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0049796400000000005,
+  "turns": 11,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 12,
+    "output": 1452,
+    "cacheRead": 82864,
+    "cacheWrite": 17119
+  },
+  "answer": "Both changes are saved and the form is valid.\n\n- **Main colour:** set to `#1B5E20`, a dark green, in the default theme's \"Couleur principale\" (`primary`). The portal is in simplified colour mode, so the other palettes (dark, high contrast) are recalculated from this colour when the draft is saved. The secondary and accent colours are unchanged.\n- **Menu:** added a \"Page libre\" item pointing to \"Nos actions pour la jeunesse\" (slug `jeunesse`). It is the third item, after Accueil and Catalogue de données. I left its label and icon empty, so it shows the page's own title. I didn't set an icon or open it in a new tab.\n\nI didn't check the rendered portal, so I can't confirm how the green looks in the header or on the new menu item."
+}

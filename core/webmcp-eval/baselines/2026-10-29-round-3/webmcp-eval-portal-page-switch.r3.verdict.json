@@ -1,0 +1,28 @@
+{
+ "case": "portal-page-switch",
+ "verdict": "satisfactory",
+ "reasoning": "The agent read the outline, found the paragraph starting with Besoin d'aide ? at children2/1 of the Nos engagements two-columns block (the second content list, which the disposition and labels make the right column), and switched its variant selector from text to alert (variant 2) in one setFieldValue. The tool carried uuid, the exact content and mb over, defaulted alertType to info, and returned the new data and the fields of the activated variant. The final data shows type alert, alertType info, identical text, valid true. The path was derived from the outline, not guessed.",
+ "friction": [
+  {
+   "call": 1,
+   "tool": "describeState",
+   "observed": "Full outline of the whole page (about 20 KB), with all 40 variants listed and every element expanded, before any targeting.",
+   "inferred": "The agent had to scan a large output to locate children2/1; it did so correctly. The right column is exposed as children2 with label Deuxième contenu, which is only inferable from the disposition.",
+   "severity": "low"
+  },
+  {
+   "call": 3,
+   "tool": "getData",
+   "observed": "Read-back of the same node (text variant before, alert after) returning the exact content.",
+   "inferred": "The agent checked content preservation; the switch response already showed the full data, so this bought little.",
+   "severity": "low"
+  },
+  {
+   "call": 5,
+   "tool": "getData",
+   "observed": "Read-back of the same node (text variant before, alert after) returning the exact content.",
+   "inferred": "The agent checked content preservation; the switch response already showed the full data, so this bought little.",
+   "severity": "low"
+  }
+ ]
+}

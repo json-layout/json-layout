@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-edit",
+  "arm": "session",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00532409,
+  "turns": 13,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 16,
+    "output": 1862,
+    "cacheRead": 109509,
+    "cacheWrite": 16482
+  },
+  "answer": "Both changes are saved and the form is valid.\n\n- **Main colour:** set to dark green `#1B5E20`. This is the primary colour of the default theme. Assisted colour mode is on, so the dark, high-contrast and other palettes, plus the text colours, are recalculated from it on save. Any colours you set by hand elsewhere will be overwritten.\n- **Menu:** added a \"Page libre\" item pointing to \"Nos actions pour la jeunesse\" (slug `jeunesse`). It is the third item, after Accueil and Catalogue de données. I left its label and icon empty, so the menu shows the page's own title. Tell me if you want a different label, an icon, or the item in another position."
+}

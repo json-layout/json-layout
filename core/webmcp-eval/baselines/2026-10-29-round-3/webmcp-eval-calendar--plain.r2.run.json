@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "plain",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.009233550000000002,
+  "turns": 8,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 12,
+    "output": 8032,
+    "cacheRead": 64775,
+    "cacheWrite": 22843
+  },
+  "answer": "The calendar is configured on the Agenda-manifestations dataset and the write was accepted (200 OK).\n\n- **Dataset:** `datasets[0]` points to Agenda-manifestations (`hokfkn9ym3s9pr-yt1atgzl-`), with its column schema copied in from the dataset description.\n- **Event label:** `labelField` is set to the `nomevenement` column (\"Nom de l'évenement\").\n- **Crowd sourcing:** `crowdSourcing` is `true`, so visitors can propose new events.\n\nTwo things to check:\n\n- **No contributions dataset is set.** The schema has an optional `contribsDataset` field for where proposed events are stored. I found no existing dataset for this, and I didn't create one. Without it, I can't say where proposals will land, so you may want to pick or create one and I can add it.\n- **The `labelField` format is my reading of the schema.** It declares `labelField` as an object rather than a column name, so I stored the column's definition. The calendar editor normally writes this value itself, so it's worth confirming the label displays correctly in the calendar."
+}

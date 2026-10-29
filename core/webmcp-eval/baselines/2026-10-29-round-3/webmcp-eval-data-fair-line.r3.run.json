@@ -1,0 +1,19 @@
+{
+  "case": "data-fair-line",
+  "arm": "form",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0026119600000000004,
+  "turns": 5,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 1176,
+    "cacheRead": 23896,
+    "cacheWrite": 8921
+  },
+  "answer": "J'ai rempli le formulaire du lieu et il est valide. Il reste en attente de validation de ta part avant tout envoi.\n\nValeurs saisies :\n- **Nom du lieu** : Dojo des Grands Bois\n- **Association** : Judo Club Sébastiennais\n- **Type de lieu** : salle polyvalente\n- **Commune** : Saint-Sébastien-sur-Loire (code INSEE 44190). Le mail dit « St-Sébastien, juste à côté de Nantes », j'ai donc retenu cette commune parmi les trois suggestions.\n- **Adresse** : 12 rue des Grands Bois\n- **Téléphone** : 02 40 80 12 34\n- **SIRET** : 52348761900017\n- **Activités** : judo, yoga, handisport\n- **Publics** : enfants, adultes, personnes handicapées (le mail mentionne « à partir de 6 ans » ; le formulaire n'a pas de champ d'âge, donc cette précision n'est pas saisie)\n- **Date d'ouverture** : 3 mars 2025\n\nNon renseignés, car absents du mail : courriel, capacité, accessibilité PMR, date de fermeture, tarif annuel.\n\nPoint à vérifier : la date d'ouverture est en mars 2025, alors qu'nous sommes le 29 octobre 2026. Si l'ouverture a bien eu lieu, la date est correcte ; sinon, il faudrait peut-être la corriger."
+}

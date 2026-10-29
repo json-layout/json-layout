@@ -1,0 +1,19 @@
+{
+  "case": "data-fair-line",
+  "arm": "session",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0028758000000000004,
+  "turns": 6,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 1346,
+    "cacheRead": 33500,
+    "cacheWrite": 9334
+  },
+  "answer": "J'ai ajouté le Dojo des Grands Bois à la liste et enregistré le formulaire. Il est valide.\n\nCe que contient maintenant la fiche :\n- **Nom du lieu :** Dojo des Grands Bois\n- **Association :** Judo Club Sébastiennais\n- **Type de lieu :** salle polyvalente\n- **Commune :** 44190 (Saint-Sébastien-sur-Loire). Le mail indique « St-Sébastien, juste à côté de Nantes », et c'est la seule commune proche de Nantes parmi les trois proposées.\n- **Adresse :** 12 rue des Grands Bois\n- **Téléphone :** 02 40 80 12 34 (mis au format à espaces, comme attendu par le champ)\n- **SIRET :** 52348761900017\n- **Activités :** judo, yoga, handisport\n- **Publics :** enfants, adultes, personnes handicapées\n- **Date d'ouverture :** 2025-03-03\n\nPoints à vérifier :\n- La date d'ouverture du mail est le 3 mars 2025, alors qu'on est le 29 octobre 2026. J'ai saisi la date telle qu'elle est donnée. Si le dojo a bien ouvert à cette date, c'est cohérent ; sinon, il faudra peut-être la corriger.\n- Je n'ai pas renseigné la capacité, l'accessibilité PMR, la date de fermeture ni le tarif annuel, car le mail ne les mentionne pas.\n- Le courriel de contact n'est pas dans le mail, donc le champ est resté vide."
+}

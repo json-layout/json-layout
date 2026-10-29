@@ -1,0 +1,922 @@
+{
+  "case": "calendar",
+  "goal": "Set up the calendar on the \"Agenda-manifestations\" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.",
+  "arm": "session",
+  "startedAt": "2026-10-29T16:03:35.554Z",
+  "start": {
+    "color": {
+      "type": "monochrome",
+      "colors": {
+        "type": "theme",
+        "strValue": "primary"
+      }
+    }
+  },
+  "calls": [
+    {
+      "tool": "describeState",
+      "args": {},
+      "response": "valid: false, 1 error(s)\n\nErrors:\n- /$allOf-0/datasets: must have required property datasets\n\nFields:\n- / (section, required)\n  - /$allOf-0 (section) title=\"Source de données\"\n    - /$allOf-0/datasets (section, error) — must have required property datasets\n      - /$allOf-0/datasets/0 (autocomplete, suggestions) label=\"Jeu de données\" value=undefined help=\"Ce jeu doit contenir au moins un champ avec le concept de date\"\n  - /$allOf-1 (section) title=\"Affichage\"\n    - /$allOf-1/labelField (select, suggestions once another field is set) label=\"Champ de libellé\" value=undefined help=\"Choisissez le champ représentant le libellé d'un événement.\"\n    - /$allOf-1/color (section) title=\"Réglage des couleurs\"\n      - /$allOf-1/color/$oneOf (variant-selector, modified)\n        - variant 0: Calendrier multicolore (type=\"multicolor\") — { field*: select, colors: { $oneOf: variant selector (2 variants) } }\n        - variant 1: Calendrier monochrome (type=\"monochrome\") (active) — { colors: { $oneOf: variant selector (2 variants) } }\n        - /$allOf-1/color/$oneOf/1 (section, required) title=\"Calendrier monochrome\"\n          - /$allOf-1/color/$oneOf/1/colors (section) title=\"Couleur\"\n            - /$allOf-1/color/$oneOf/1/colors/$oneOf (variant-selector)\n              - variant 0: Thème (type=\"theme\") (active) — { strValue: select [\"primary\" (Primaire), \"secondary\" (Secondaire)] }\n              - variant 1: Personnalisée (type=\"custom\") — { hexValue: color-picker }\n              - /$allOf-1/color/$oneOf/1/colors/$oneOf/0 (section, required) title=\"Thème\"\n                - /$allOf-1/color/$oneOf/1/colors/$oneOf/0/strValue (select, values=[\"primary\" (Primaire), \"secondary\" (Secondaire)]) label=\"Couleur\" value=\"primary\"\n  - /$allOf-2 (section) title=\"Détails d'un événement\"\n    - /$allOf-2/descriptionField (select, suggestions once another field is set) label=\"Champ de description\" value=undefined help=\"Choisissez le champ permettant de fournir une description de l'événement, interprète le html et le markdown.\"\n    - /$allOf-2/additionalFields (list of text, suggestions once another field is set) label=\"Champs supplémentaires à afficher.\" value=[]",
+      "outputBytes": 2196,
+      "isError": false
+    },
+    {
+      "tool": "getFieldSuggestions",
+      "args": {
+        "path": "/$allOf-0/datasets/0",
+        "query": "Agenda-manifestations"
+      },
+      "response": "1 suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):\n- [0] Agenda-manifestations (https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-) — apply with suggestionIndex=0",
+      "outputBytes": 228,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "query": "crowd sourcing participatif proposition"
+      },
+      "response": "no field matches \"crowd sourcing participatif proposition\". Try fewer or other words, or call describeState without a query to see the form's sections.",
+      "outputBytes": 151,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$allOf-0/datasets/0",
+        "suggestionIndex": 0
+      },
+      "response": "/$allOf-0/datasets/0 (autocomplete) = <object, 12508 chars — call getData with this path to read it>\n5 field(s) became available: /$allOf-3, /$allOf-3/formDensity, /$allOf-3/formVariant, /$allOf-3/showHelpMessages, /$allOf-3/crowdSourcing\nno error here\nform is valid\nsaved",
+      "outputBytes": 274,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {},
+      "response": "valid: true, no errors\n\nFields:\n- / (section, required)\n  - /$allOf-0 (section) title=\"Source de données\"\n    - /$allOf-0/datasets (section)\n      - /$allOf-0/datasets/0 (autocomplete, suggestions) label=\"Jeu de données\" value=<object, 12508 chars — call getData with this path to read it> help=\"Ce jeu doit contenir au moins un champ avec le concept de date\"\n  - /$allOf-1 (section) title=\"Affichage\"\n    - /$allOf-1/labelField (select, suggestions) label=\"Champ de libellé\" value=undefined help=\"Choisissez le champ représentant le libellé d'un événement.\"\n    - /$allOf-1/color (section) title=\"Réglage des couleurs\"\n      - /$allOf-1/color/$oneOf (variant-selector)\n        - variant 0: Calendrier multicolore (type=\"multicolor\") — { field*: select, colors: { $oneOf: variant selector (2 variants) } }\n        - variant 1: Calendrier monochrome (type=\"monochrome\") (active) — { colors: { $oneOf: variant selector (2 variants) } }\n        - /$allOf-1/color/$oneOf/1 (section, required) title=\"Calendrier monochrome\"\n          - /$allOf-1/color/$oneOf/1/colors (section) title=\"Couleur\"\n            - /$allOf-1/color/$oneOf/1/colors/$oneOf (variant-selector)\n              - variant 0: Thème (type=\"theme\") (active) — { strValue: select [\"primary\" (Primaire), \"secondary\" (Secondaire)] }\n              - variant 1: Personnalisée (type=\"custom\") — { hexValue: color-picker }\n              - /$allOf-1/color/$oneOf/1/colors/$oneOf/0 (section, required) title=\"Thème\"\n                - /$allOf-1/color/$oneOf/1/colors/$oneOf/0/strValue (select, values=[\"primary\" (Primaire), \"secondary\" (Secondaire)]) label=\"Couleur\" value=\"primary\"\n  - /$allOf-2 (section) title=\"Détails d'un événement\"\n    - /$allOf-2/descriptionField (select, suggestions) label=\"Champ de description\" value=undefined help=\"Choisissez le champ permettant de fournir une description de l'événement, interprète le html et le markdown.\"\n    - /$allOf-2/additionalFields (list of text, suggestions) label=\"Champs supplémentaires à afficher.\" value=[]\n  - /$allOf-3 (section) title=\"Edition\"\n    - /$allOf-3/formDensity (select, values=[\"default\" (Normale), \"compact\" (Compacte), \"comfortable\" (Aérée)]) label=\"Densité du formulaire\" value=\"default\"\n    - /$allOf-3/formVariant (select, values=[\"outlined\" (Bordure), \"underlined\" (Souligné), \"filled\" (Rempli), \"solo\", \"solo-inverted\" (Solo inversé), \"solo-filled\" (Solo rempli)]) label=\"Style du formulaire\" value=\"underlined\"\n    - /$allOf-3/showHelpMessages (boolean) label=\"Afficher les descriptions des champs en bulles d'aide\" value=false\n    - /$allOf-3/crowdSourcing (boolean) label=\"Activer le crowd sourcing\" value=undefined",
+      "outputBytes": 2683,
+      "isError": false
+    },
+    {
+      "tool": "getFieldSuggestions",
+      "args": {
+        "path": "/$allOf-1/labelField",
+        "query": "nom"
+      },
+      "response": "3 suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):\n- [0] Nom (nom) — apply with suggestionIndex=0\n- [1] Prénom (prenom) — apply with suggestionIndex=1\n- [2] Nom de l'évenement (nomevenement) — apply with suggestionIndex=2",
+      "outputBytes": 273,
+      "isError": false
+    },
+    {
+      "tool": "getFieldSuggestions",
+      "args": {
+        "path": "/$allOf-1/labelField"
+      },
+      "response": "27 suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):\n- [3] Type demandeur (type_demandeur) — apply with suggestionIndex=3\n- [4] Nom (nom) — apply with suggestionIndex=4\n- [5] Prénom (prenom) — apply with suggestionIndex=5\n- [6] Association (association) — apply with suggestionIndex=6\n- [7] SIRET (siret) — apply with suggestionIndex=7\n- [8] Adresse (adresse) — apply with suggestionIndex=8\n- [9] Comp adresse (comp_adresse) — apply with suggestionIndex=9\n- [10] CP (cp) — apply with suggestionIndex=10\n- [11] Ville (ville) — apply with suggestionIndex=11\n- [12] Telephone (telephone) — apply with suggestionIndex=12\n- [13] Mail (mail) — apply with suggestionIndex=13\n- [14] Salle (salle) — apply with suggestionIndex=14\n- [15] Date debut (date_debut) — apply with suggestionIndex=15\n- [16] Date fin (date_fin) — apply with suggestionIndex=16\n- [17] Date début option (date_debut_option) — apply with suggestionIndex=17\n- [18] Date fin option (date_fin_option) — apply with suggestionIndex=18\n- [19] Nom de l'évenement (nomevenement) — apply with suggestionIndex=19\n- [20] Type-evenement (typeevenement) — apply with suggestionIndex=20\n- [21] Commentaire (commentaire) — apply with suggestionIndex=21\n- [22] Restauration (restauration) — apply with suggestionIndex=22\n- [23] Boissons alcoolisées (boissons_alooisees) — apply with suggestionIndex=23\n- [24] Image (image) — apply with suggestionIndex=24\n- [25] Lien (lien) — apply with suggestionIndex=25\n- [26] Document numérique attaché (attachmentPath) — apply with suggestionIndex=26\n- [27] Date de publication (date_de_publication) — apply with suggestionIndex=27\n- [28] Latitude (_coords.lat) — apply with suggestionIndex=28\n- [29] Longitude (_coords.lon) — apply with suggestionIndex=29",
+      "outputBytes": 1844,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$allOf-1/labelField",
+        "suggestionIndex": 19
+      },
+      "response": "/$allOf-1/labelField (select) = {\"key\":\"nomevenement\",\"x-originalName\":\"Nomevenement\",\"type\":\"string\",\"title\":\"Nom de l'évenement\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-refersTo\":\"http://www.w3.org/2000/01/rdf-schema#label\",\"x-concept\":{\"id\":\"label\",\"title\":\"Libellé\",\"primary\":true},\"x-cardinality\":32,\"description\":\"\",\"x-group\":\"Evenement\",\"label\":\"Nom de l'évenement\"}\nno error here\nform is valid\nsaved",
+      "outputBytes": 448,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$allOf-3/crowdSourcing",
+        "value": true
+      },
+      "response": "/$allOf-3/crowdSourcing (boolean) = true\n4 field(s) became available: /$allOf-0/datasets/1, /$allOf-3/contribsDataset, /$allOf-3/deleteValidatedContribs, /$allOf-3/colorContrib\nno error here\nform is valid\nsaved",
+      "outputBytes": 210,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "path": "/$allOf-3"
+      },
+      "response": "- /$allOf-3 (section) title=\"Edition\"\n  - /$allOf-3/formDensity (select, values=[\"default\" (Normale), \"compact\" (Compacte), \"comfortable\" (Aérée)]) label=\"Densité du formulaire\" value=\"default\"\n  - /$allOf-3/formVariant (select, values=[\"outlined\" (Bordure), \"underlined\" (Souligné), \"filled\" (Rempli), \"solo\", \"solo-inverted\" (Solo inversé), \"solo-filled\" (Solo rempli)]) label=\"Style du formulaire\" value=\"underlined\"\n  - /$allOf-3/showHelpMessages (boolean) label=\"Afficher les descriptions des champs en bulles d'aide\" value=false\n  - /$allOf-3/crowdSourcing (boolean) label=\"Activer le crowd sourcing\" value=true\n  - /$allOf-3/contribsDataset (autocomplete, suggestions) label=\"Jeu de données des contributions externes\" value=undefined\n  - /$allOf-3/deleteValidatedContribs (boolean) label=\"Supprimer les contributions après validation\" value=false\n  - /$allOf-3/colorContrib (color-picker) label=\"Couleur\" value=\"#7AA95C\"\nno error here\nform is valid",
+      "outputBytes": 963,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "path": "/$allOf-0/datasets/1"
+      },
+      "response": "- /$allOf-0/datasets/1 (autocomplete, suggestions) label=\"Jeu de données des contributions externes\" value=undefined\nno error here\nform is valid",
+      "outputBytes": 145,
+      "isError": false
+    },
+    {
+      "tool": "getFieldSuggestions",
+      "args": {
+        "path": "/$allOf-3/contribsDataset"
+      },
+      "response": "13 suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):\n- [0] Agenda-manifestations (https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-) — apply with suggestionIndex=0\n- [1] Salle Van Gogh (https://koumoul.com/data-fair/api/v1/datasets/a-m0v5-4dr1168aia4hkq1kt) — apply with suggestionIndex=1\n- [2] SPORT1_calendrier_salles_associations (https://koumoul.com/data-fair/api/v1/datasets/o-x2hi7tzbszdr3n9kmhv8xa) — apply with suggestionIndex=2\n- [3] EVENEMENTS_calendrier_salles_associations (https://koumoul.com/data-fair/api/v1/datasets/fvyzkn0za7muk2j6xhs2nbdo) — apply with suggestionIndex=3\n- [4] SPORT_calendrier_salles_autre (https://koumoul.com/data-fair/api/v1/datasets/o8myr23qkhxcsy7ndzk1awq7) — apply with suggestionIndex=4\n- [5] EVENEMENTS_calendrier_salles_autre (https://koumoul.com/data-fair/api/v1/datasets/zlb2ajbuqjiy9rstnr9rgo62) — apply with suggestionIndex=5\n- [6] Calendrier Mediation numérique (https://koumoul.com/data-fair/api/v1/datasets/fxe7k10tygw5v-240h37xct5) — apply with suggestionIndex=6\n- [7] Vacances pour toutes et tous (https://koumoul.com/data-fair/api/v1/datasets/hrhttj17i7mpoowx5cqcg8pq) — apply with suggestionIndex=7\n- [8] Espace public - Pictavie - Signalements depuis 2014 (https://koumoul.com/data-fair/api/v1/datasets/52ttktt07hdctulmyn4okipr) — apply with suggestionIndex=8\n- [9] Débit journalier moyen des cours d'eau (https://koumoul.com/data-fair/api/v1/datasets/543nqgsysvysdimw-pwzudhd) — apply with suggestionIndex=9\n- [10] Délibérations - Chasseneuil du Poitou (https://koumoul.com/data-fair/api/v1/datasets/deliberations-chasseneuil-du-poitou) — apply with suggestionIndex=10\n- [11] Délibérations - Montamisé (https://koumoul.com/data-fair/api/v1/datasets/deliberations-montamise) — apply with suggestionIndex=11\n- [12] Délibérations - Buxerolles (https://koumoul.com/data-fair/api/v1/datasets/deliberations-buxerolles) — apply with suggestionIndex=12",
+      "outputBytes": 2000,
+      "isError": false
+    }
+  ],
+  "data": {
+    "color": {
+      "type": "monochrome",
+      "colors": {
+        "type": "theme",
+        "strValue": "primary"
+      }
+    },
+    "datasets": [
+      {
+        "title": "Agenda-manifestations",
+        "isRest": true,
+        "attachmentsAsImage": false,
+        "schema": [
+          {
+            "key": "type_demandeur",
+            "x-originalName": "Type demandeur",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 2,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "https://schema.org/DefinedTermSet",
+            "x-labels": {
+              "Particulier": "Particulier",
+              "Association": "Association",
+              "Personnes morales": "Entreprise/administration/école"
+            },
+            "x-concept": {
+              "id": "tag",
+              "title": "Étiquette",
+              "primary": true
+            },
+            "enum": [
+              "Association",
+              "Particulier"
+            ]
+          },
+          {
+            "key": "nom",
+            "x-originalName": "Nom",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 20,
+            "description": "",
+            "x-group": "Demandeur",
+            "enum": [
+              "CHEVAILLER",
+              "FELLER",
+              "DELHOMME",
+              "FERRY",
+              "FOUILLEUL",
+              "Flavigny",
+              "ABONNEAU",
+              "PALOMARES",
+              "BERTHOMIER",
+              "BONNET",
+              "BOURDERIOUX",
+              "CROST",
+              "FFFFFFFFFF",
+              "GEOFFRAY",
+              "MAHIEU",
+              "REISSER",
+              "REY",
+              "ROQUE",
+              "STELLITTANO",
+              "TROCCON"
+            ]
+          },
+          {
+            "key": "prenom",
+            "x-originalName": "Prénom",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 20,
+            "description": "",
+            "x-group": "Demandeur",
+            "enum": [
+              "André",
+              "Sandrine",
+              "Anaïs",
+              "Bruno",
+              "Eveline",
+              "Pascal",
+              "Jean-Pierre",
+              "Patrice",
+              "CAMILLE",
+              "CATERINA",
+              "Christophe",
+              "DENISE",
+              "DOLORES",
+              "GASTON",
+              "JANINE",
+              "JEAN DENIS",
+              "Julienne",
+              "Marie",
+              "RENE",
+              "TTTTTTTTTT"
+            ]
+          },
+          {
+            "key": "association",
+            "x-originalName": "Association",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 11,
+            "description": "",
+            "x-group": "Demandeur",
+            "enum": [
+              "LES EPICURIENS DE LA PHILATELIE",
+              "LUEUR DE NUIT",
+              "COMITE DES FETES DE NANTEUIL",
+              "LES ATELIERS DE L'AUXANCES",
+              "SHARKS POITIERS TAROT CLUB",
+              "VERT LEZART",
+              "ASSOCIATION DES AMIS DE MICHEL NOURY",
+              "ACCA (Chasse)",
+              "Acca",
+              "BRASS BAND DE LA VIENNE",
+              "LE 40 MARS"
+            ]
+          },
+          {
+            "key": "siret",
+            "x-originalName": "SIRET",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-numeric",
+            "x-cardinality": 1,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "http://www.datatourisme.fr/ontology/core/1.0/#siret",
+            "x-concept": {
+              "id": "siret",
+              "title": "SIRET",
+              "primary": true
+            }
+          },
+          {
+            "key": "adresse",
+            "x-originalName": "Adresse",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 11,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "http://schema.org/address",
+            "x-concept": {
+              "id": "address",
+              "title": "Adresse",
+              "primary": true
+            },
+            "enum": [
+              "12 rue des Sorbiers",
+              "64 rue de Nanteuil",
+              "12 rue Marcelin Maury",
+              "27 rue Brissot",
+              "4 Les rets",
+              "5 rue de Saumur",
+              "40 rue du Dr Mesmain",
+              "15 place Leclerc",
+              "31 rue du Centre",
+              "7 rue du Centre",
+              "Les Roches de Vert"
+            ]
+          },
+          {
+            "key": "comp_adresse",
+            "x-originalName": "Comp adresse",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 1,
+            "description": "",
+            "x-group": "Demandeur"
+          },
+          {
+            "key": "cp",
+            "x-originalName": "CP",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-numeric",
+            "x-cardinality": 8,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "http://schema.org/postalCode",
+            "x-concept": {
+              "id": "postalCode",
+              "title": "Code postal",
+              "primary": true
+            },
+            "enum": [
+              "86440",
+              "86000",
+              "86700",
+              "86034",
+              "86035",
+              "86036",
+              "86037",
+              "86360"
+            ]
+          },
+          {
+            "key": "ville",
+            "x-originalName": "Ville",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 9,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "http://schema.org/City",
+            "x-concept": {
+              "id": "city",
+              "title": "Commune",
+              "primary": true
+            },
+            "enum": [
+              "MIGNE AUXANCES",
+              "POITIERS",
+              "VOULON",
+              "BOURESSE",
+              "BOURG-ARCHAMBAULT",
+              "BOURNAND",
+              "BRIGUEIL-LE-CHANTRE",
+              "CHASSENEUIL-DU-POITOU",
+              "Poitiers"
+            ]
+          },
+          {
+            "key": "telephone",
+            "x-originalName": "Telephone",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-numeric",
+            "x-cardinality": 10,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "https://www.w3.org/2006/vcard/ns#tel",
+            "x-concept": {
+              "id": "tel",
+              "title": "N° de téléphone",
+              "primary": true
+            },
+            "enum": [
+              "0549511648",
+              "0610693438",
+              "0674705678",
+              "0683202269",
+              "0685468485",
+              "0766884307",
+              "0549525252",
+              "0645410102",
+              "0549415149",
+              "0549523535"
+            ]
+          },
+          {
+            "key": "mail",
+            "x-originalName": "Mail",
+            "type": "string",
+            "x-display": "markdown",
+            "title": "",
+            "icon": "mdi-text-subject",
+            "x-capabilities": {
+              "index": false,
+              "values": false,
+              "textAgg": false,
+              "insensitive": false
+            },
+            "maxLength": 1000,
+            "description": "",
+            "x-group": "Demandeur",
+            "x-refersTo": "https://www.w3.org/2006/vcard/ns#email",
+            "x-concept": {
+              "id": "email",
+              "title": "Adresse e-mail",
+              "primary": true
+            }
+          },
+          {
+            "key": "salle",
+            "x-originalName": "Salle",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 4,
+            "description": "",
+            "x-group": "Logistique",
+            "x-labels": {
+              "Jean Ferrat": "Salle jean Ferrat",
+              "Pierre Saumon": "Salle Pierre Saumon",
+              "Complexe sportif": "Salle coplexe sportif",
+              "Van Gogh": "Salle Van Gogh"
+            },
+            "enum": [
+              "Salle Pierre Saumon",
+              "Complexe sportif",
+              "Jean Ferrat",
+              "Salle Van Gogh"
+            ]
+          },
+          {
+            "key": "date_debut",
+            "x-originalName": "Date debut",
+            "type": "string",
+            "format": "date-time",
+            "title": "",
+            "icon": "mdi-clock-outline",
+            "x-refersTo": "https://schema.org/startDate",
+            "x-concept": {
+              "id": "startDate",
+              "title": "Date de début",
+              "primary": true
+            },
+            "x-cardinality": 45,
+            "description": "",
+            "x-group": "Evenement"
+          },
+          {
+            "key": "date_fin",
+            "x-originalName": "Date fin",
+            "type": "string",
+            "format": "date-time",
+            "title": "",
+            "icon": "mdi-clock-outline",
+            "x-refersTo": "https://schema.org/endDate",
+            "x-concept": {
+              "id": "endDate",
+              "title": "Date de fin",
+              "primary": true
+            },
+            "x-cardinality": 45,
+            "description": "",
+            "x-group": "Evenement"
+          },
+          {
+            "key": "date_debut_option",
+            "x-originalName": "Date début option",
+            "type": "string",
+            "format": "date",
+            "title": "",
+            "icon": "mdi-calendar",
+            "x-group": "Evenement",
+            "x-cardinality": 3,
+            "description": ""
+          },
+          {
+            "key": "date_fin_option",
+            "x-originalName": "Date fin option",
+            "type": "string",
+            "format": "date",
+            "title": "",
+            "icon": "mdi-calendar",
+            "x-group": "Evenement",
+            "x-cardinality": 3,
+            "description": ""
+          },
+          {
+            "key": "nomevenement",
+            "x-originalName": "Nomevenement",
+            "type": "string",
+            "title": "Nom de l'évenement",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-refersTo": "http://www.w3.org/2000/01/rdf-schema#label",
+            "x-concept": {
+              "id": "label",
+              "title": "Libellé",
+              "primary": true
+            },
+            "x-cardinality": 32,
+            "description": "",
+            "x-group": "Evenement"
+          },
+          {
+            "key": "typeevenement",
+            "x-originalName": "Type-evenement",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 21,
+            "description": "",
+            "x-labels": {
+              "Culture et loisirs": "Culture et loisirs",
+              "Education et familles": "Education et familles",
+              "Enseignement": "Enseignement",
+              "Solidatité": "Solidarité",
+              "Sport": "Sport",
+              "Transports": "Transports"
+            },
+            "x-group": "Evenement",
+            "enum": [
+              "Jeune public",
+              "Animation",
+              "Le Palais, Patrimoine",
+              "Musique",
+              "Culture et loisirs",
+              "Danse, Théâtre",
+              "Animation, Conférence",
+              "Animation, Jeune public",
+              "Animations espaces verts, Jeune public",
+              "Animations espaces verts, Nature",
+              "Cinéma, Jeune public",
+              "Conférence, Théâtre",
+              "Humour",
+              "Jeu",
+              "Jeune public, Le Palais",
+              "Jeune public, Patrimoine",
+              "Musée",
+              "Patrimoine",
+              "Solidatité",
+              "Sport",
+              "Théâtre"
+            ]
+          },
+          {
+            "key": "commentaire",
+            "x-originalName": "Commentaire",
+            "type": "string",
+            "x-display": "textarea",
+            "title": "",
+            "icon": "mdi-text-subject",
+            "x-capabilities": {
+              "index": false,
+              "values": false,
+              "textAgg": false,
+              "insensitive": false
+            },
+            "maxLength": 1000,
+            "description": "",
+            "x-refersTo": "http://schema.org/description",
+            "x-concept": {
+              "id": "description",
+              "title": "Description",
+              "primary": true
+            },
+            "x-group": "Evenement"
+          },
+          {
+            "key": "restauration",
+            "x-originalName": "Restauration",
+            "type": "boolean",
+            "title": "",
+            "icon": "mdi-checkbox-marked-circle-outline",
+            "x-group": "Logistique",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "true"
+            ]
+          },
+          {
+            "key": "boissons_alooisees",
+            "x-originalName": "Boissons alooisées",
+            "type": "boolean",
+            "title": "Boissons alcoolisées",
+            "icon": "mdi-checkbox-marked-circle-outline",
+            "x-group": "Logistique",
+            "x-cardinality": 1,
+            "description": "",
+            "enum": [
+              "true"
+            ]
+          },
+          {
+            "key": "image",
+            "x-originalName": "Image",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-subject",
+            "x-capabilities": {
+              "index": false,
+              "values": false,
+              "textAgg": false,
+              "insensitive": false
+            },
+            "maxLength": 1000,
+            "x-refersTo": "http://schema.org/image",
+            "x-concept": {
+              "id": "image",
+              "title": "Image",
+              "primary": true
+            },
+            "description": ""
+          },
+          {
+            "key": "lien",
+            "x-originalName": "Lien",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-refersTo": "https://schema.org/WebPage",
+            "x-concept": {
+              "id": "webPage",
+              "title": "Page Web",
+              "primary": true
+            },
+            "x-cardinality": 44,
+            "description": ""
+          },
+          {
+            "key": "attachmentPath",
+            "type": "string",
+            "title": "Document numérique attaché",
+            "x-refersTo": "http://schema.org/DigitalDocument",
+            "x-concept": {
+              "id": "attachment",
+              "title": "Document numérique attaché",
+              "primary": true
+            },
+            "description": "",
+            "x-cardinality": 1
+          },
+          {
+            "key": "date_de_publication",
+            "x-originalName": "Date de publication",
+            "type": "string",
+            "title": "",
+            "icon": "mdi-text-short",
+            "x-capabilities": {
+              "textAgg": false
+            },
+            "maxLength": 200,
+            "x-cardinality": 16,
+            "description": "",
+            "enum": [
+              "Sat, 11 Jan 2025 09:00:00 +0100",
+              "Sun, 12 Jan 2025 09:00:00 +0100",
+              "Fri, 27 Dec 2024 09:00:00 +0100",
+              "Thu, 02 Jan 2025 09:00:00 +0100",
+              "Thu, 09 Jan 2025 09:00:00 +0100",
+              "Fri, 03 Jan 2025 09:00:00 +0100",
+              "Mon, 23 Dec 2024 09:00:00 +0100",
+              "Mon, 30 Dec 2024 09:00:00 +0100",
+              "Sun, 22 Dec 2024 09:00:00 +0100",
+              "Wed, 08 Jan 2025 09:00:00 +0100",
+              "Sun, 05 Jan 2025 09:00:00 +0100",
+              "Tue, 31 Dec 2024 09:00:00 +0100",
+              "Fri, 10 Jan 2025 09:00:00 +0100",
+              "Sun, 29 Dec 2024 09:00:00 +0100",
+              "Thu, 26 Dec 2024 09:00:00 +0100",
+              "Tue, 07 Jan 2025 09:00:00 +0100"
+            ]
+          },
+          {
+            "key": "_coords.lat",
+            "x-originalName": "_coords.lat",
+            "x-extension": "geocoder-koumoul/postCoords",
+            "title": "Latitude",
+            "description": "",
+            "type": "number",
+            "x-refersTo": "http://schema.org/latitude",
+            "x-concept": {
+              "id": "latitude",
+              "title": "Latitude",
+              "primary": true
+            }
+          },
+          {
+            "key": "_coords.lon",
+            "x-originalName": "_coords.lon",
+            "x-extension": "geocoder-koumoul/postCoords",
+            "title": "Longitude",
+            "description": "",
+            "type": "number",
+            "x-refersTo": "http://schema.org/longitude",
+            "x-concept": {
+              "id": "longitude",
+              "title": "Longitude",
+              "primary": true
+            }
+          },
+          {
+            "key": "_coords.error",
+            "type": "string",
+            "x-originalName": "error",
+            "x-extension": "geocoder-koumoul/postCoords",
+            "title": "Erreur d'enrichissement",
+            "description": "Si il y a eu une erreur dans le traitement d'une ligne",
+            "x-calculated": true
+          },
+          {
+            "x-calculated": true,
+            "key": "_file.content",
+            "type": "string",
+            "title": "Contenu textuel du fichier",
+            "description": "Résultat d'une extraction automatique"
+          },
+          {
+            "x-calculated": true,
+            "key": "_file.content_type",
+            "type": "string",
+            "title": "Type mime du fichier",
+            "description": "Résultat d'une détection automatique."
+          },
+          {
+            "x-calculated": true,
+            "key": "_file.content_length",
+            "type": "integer",
+            "title": "La taille en octet du fichier",
+            "description": "Résultat d'une détection automatique."
+          },
+          {
+            "x-calculated": true,
+            "key": "_attachment_url",
+            "type": "string",
+            "title": "URL de téléchargement unitaire du fichier joint",
+            "x-capabilities": {
+              "text": false,
+              "textStandard": false,
+              "insensitive": false,
+              "nativeWildcard": true
+            },
+            "description": ""
+          },
+          {
+            "x-calculated": true,
+            "key": "_geopoint",
+            "type": "string",
+            "title": "Coordonnée géographique",
+            "description": "Centroïde au format \"lat,lon\"",
+            "x-refersTo": "http://www.w3.org/2003/01/geo/wgs84_pos#lat_long",
+            "x-concept": {
+              "id": "latLon",
+              "title": "Latitude / Longitude",
+              "primary": true
+            }
+          },
+          {
+            "x-calculated": true,
+            "key": "_updatedAt",
+            "type": "string",
+            "format": "date-time",
+            "title": "Date de mise à jour",
+            "description": "Date de dernière mise à jour de la ligne du jeu de données"
+          },
+          {
+            "x-calculated": true,
+            "key": "_id",
+            "type": "string",
+            "format": "uri-reference",
+            "title": "Identifiant",
+            "description": "Identifiant unique parmi toutes les lignes du jeu de données"
+          },
+          {
+            "x-calculated": true,
+            "key": "_i",
+            "type": "integer",
+            "title": "Numéro de ligne",
+            "description": "Indice de la ligne dans le fichier d'origine"
+          },
+          {
+            "x-calculated": true,
+            "key": "_rand",
+            "type": "integer",
+            "title": "Nombre aléatoire",
+            "description": "Un nombre aléatoire associé à la ligne qui permet d'obtenir un tri aléatoire par exemple"
+          }
+        ],
+        "timePeriod": {
+          "startDate": "2024-12-22T15:00:00.000Z",
+          "endDate": "2025-01-13T00:00:00.000Z"
+        },
+        "userPermissions": [
+          "list",
+          "readDescription",
+          "readSafeDescription",
+          "readSchema",
+          "readSafeSchema",
+          "readLines",
+          "getGeoAgg",
+          "getValuesAgg",
+          "getValues",
+          "getMetricAgg",
+          "getSimpleMetricsAgg",
+          "getWordsAgg",
+          "getMinAgg",
+          "getMaxAgg",
+          "downloadOriginalData",
+          "downloadFullData",
+          "readApiDoc",
+          "realtime-transactions",
+          "readLine",
+          "readLineRevisions",
+          "readRevisions",
+          "bulkSearch",
+          "listDataFiles",
+          "downloadDataFile",
+          "downloadMetadataAttachment",
+          "downloadAttachment",
+          "getReadApiKey",
+          "readCompatODSRecords",
+          "readCompatODSExports"
+        ],
+        "href": "https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-"
+      }
+    ],
+    "formDensity": "default",
+    "formVariant": "underlined",
+    "showHelpMessages": false,
+    "labelField": {
+      "key": "nomevenement",
+      "x-originalName": "Nomevenement",
+      "type": "string",
+      "title": "Nom de l'évenement",
+      "icon": "mdi-text-short",
+      "x-capabilities": {
+        "textAgg": false
+      },
+      "maxLength": 200,
+      "x-refersTo": "http://www.w3.org/2000/01/rdf-schema#label",
+      "x-concept": {
+        "id": "label",
+        "title": "Libellé",
+        "primary": true
+      },
+      "x-cardinality": 32,
+      "description": "",
+      "x-group": "Evenement",
+      "label": "Nom de l'évenement"
+    },
+    "crowdSourcing": true,
+    "deleteValidatedContribs": false,
+    "colorContrib": "#7AA95C"
+  },
+  "checks": [
+    {
+      "label": "the calendar is on \"Agenda-manifestations\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the label is the event name column",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "crowd sourcing is on",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 12,
+    "outputBytes": 11415
+  }
+}

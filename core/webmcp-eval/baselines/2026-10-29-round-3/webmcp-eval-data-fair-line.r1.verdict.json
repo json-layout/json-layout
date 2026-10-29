@@ -1,0 +1,21 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The agent filled all required and relevant fields from the email (name, association, type, address, phone reformatted to the pattern, SIRET coerced from number to string, activities, publics, ISO date) and chose the Nantes-adjacent commune 44190 from suggestions, ending with a valid form. Nothing invented; the commune choice relied on outside geographic knowledge since suggestions carried no département.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "getFieldSuggestions",
+      "observed": "3 suggestions: 23239 (Saint-Sébastien), 27602 (Saint-Sébastien-de-Morsent), 44190 (Saint-Sébastien-sur-Loire), with no département or other disambiguating info",
+      "inferred": "Picked 44190 by outside knowledge that Saint-Sébastien-sur-Loire is next to Nantes; the tool output alone could not confirm the choice",
+      "severity": "low"
+    },
+    {
+      "call": 13,
+      "tool": "describeState",
+      "observed": "valid: true, full field listing (1562 bytes)",
+      "inferred": "Final confirmation; the previous response already said 'form is valid', so it bought no new information",
+      "severity": "low"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "case": "portal-page-list-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent located the responsive grid from the outline, descended to the card at children/2 titled Budget et finances, and set its title with one setFieldValue; the tool replied valid and saved. The saved data differs from the start only by that one title, so no sibling was touched.",
+  "friction": [
+    {
+      "call": 1,
+      "tool": "describeState",
+      "observed": "no field matches \"Thématiques à la une\". Try fewer or other words, or call describeState without a query to see the form's sections.",
+      "inferred": "The grid heading is a separate title element, not a field label, so the agent fell back to the full outline.",
+      "severity": "low"
+    },
+    {
+      "call": 3,
+      "tool": "describeState",
+      "observed": "Error: node not found at path: /comp-2/elements/6/... The form starts with /$comp-1 (\"Métadonnées\"), /$comp-2 (\"Contenu\"). Use a path listed by describeState",
+      "inferred": "The agent dropped the $ from a path; the error named the correct prefix and the retry worked.",
+      "severity": "low"
+    }
+  ]
+}

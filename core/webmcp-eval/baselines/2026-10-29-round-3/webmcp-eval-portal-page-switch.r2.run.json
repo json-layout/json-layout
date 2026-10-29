@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-switch",
+  "arm": "form",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0037534000000000005,
+  "turns": 5,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 881,
+    "cacheRead": 41310,
+    "cacheWrite": 14495
+  },
+  "answer": "Le paragraphe « Besoin d'aide ? » de la colonne de droite (deuxième contenu) de « Nos engagements » est maintenant un bloc « Texte accentué » de type **Information**, avec la variante par défaut (fond coloré). Le contenu n'a pas changé : « Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr. ». Le formulaire est valide.\n\nJe n'ai pas touché aux autres réglages : pas de titre, pas de bouton de fermeture, espacement inférieur à 0."
+}

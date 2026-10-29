@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "form",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.006418990000000001,
+  "turns": 19,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 14,
+    "output": 2546,
+    "cacheRead": 106939,
+    "cacheWrite": 20376
+  },
+  "answer": "All four changes are made and the form is valid.\n\n1. **Dataset cards:** \"Afficher le propriétaire\" (`showDepartment`) is now off. The form has no field labelled \"department\", so I took this one as the match. If you meant something else, tell me.\n2. **Sharing:** the share list now offers only Bluesky, Facebook and LinkedIn. X, Reddit, SMS and WhatsApp are removed.\n3. **Breadcrumb:** the position is set to \"Au-dessus du pied de page\" (above the footer). Its extra options appeared once this was set. I left them at their defaults.\n4. **Footer links:** a new \"Page libre\" link to the page \"Contact presse\" (`contact-presse`) is added as the fifth footer link, after the existing four. Its label is left empty, so the page's own title will be used. I didn't set a label, so tell me if you want a specific one.\n\nI haven't saved or published the draft."
+}

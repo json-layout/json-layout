@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "form",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00666094,
+  "turns": 18,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 16,
+    "output": 2479,
+    "cacheRead": 130764,
+    "cacheWrite": 20561
+  },
+  "answer": "All four changes are in place and the form is valid.\n\n- **Dataset cards:** \"Afficher le propriétaire\" (`showDepartment`) is now off, in Jeux de données > Vignette d'un jeu de données.\n- **Sharing:** the share list is now Bluesky, Facebook and LinkedIn. I removed X, Reddit, SMS and WhatsApp. I kept the existing order.\n- **Breadcrumb:** the position is set to \"Au-dessus du pied de page\" (`above-footer`). I didn't pick \"Les deux\", so it won't also appear under the navigation bar. Say if you want both.\n- **Footer links:** I added a \"Page libre\" entry pointing to the existing page \"Contact presse\" (`contact-presse`) as the fifth footer link. Its label is empty, so it will use the page's own title. The other four links are unchanged."
+}

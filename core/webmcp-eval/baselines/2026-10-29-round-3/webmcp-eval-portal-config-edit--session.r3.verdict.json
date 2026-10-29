@@ -1,0 +1,35 @@
+{
+  "case": "portal-config-edit",
+  "verdict": "satisfactory",
+  "reasoning": "After a few mistyped paths (dropped '$'), the agent located the menu list and the primary colour field, added a menu item, selected 'Page libre', found the page through suggestions for 'jeunesse', applied it and got 'saved', then set assistedModeColors.primary to #1B5E20 and got 'form is valid / saved'. Final data has the generic menu item with slug jeunesse and a dark green primary in assisted colours, which the schema says drive the palettes at save. The goal is reached with values taken from the form's own lists. The run cost 12 calls, 5 of them wasted on path mistakes and a guessed variant value.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "editArray",
+      "observed": "Error: \"type\" \"free\" is none of the options of this item: \"standard\", \"generic\", \"event\", \"news\", \"submenu\", \"external\". Give one of them, or add the item without a value and choose its option with setFieldValue on its $oneOf.",
+      "inferred": "The agent invented the discriminator value 'free' for a free page without having seen the variant list; the error listed the options and the recovery, so it recovered, but the call bought nothing.",
+      "severity": "medium"
+    },
+    {
+      "call": 3,
+      "tool": "describeState",
+      "observed": "Error: node not found at path: /comp-4/comp-3/menu/children/0. The form starts with /$comp-1 ...",
+      "inferred": "The agent wrote paths without the '$' prefix of component segments; the error did not point at the missing '$', so it repeated the mistake in call 4 before using an outline path in call 5.",
+      "severity": "low"
+    },
+    {
+      "call": 4,
+      "tool": "getFieldSuggestions",
+      "observed": "Error: node not found at path: /comp-4/comp-3/menu/children/2/$oneOf/0/page ...",
+      "inferred": "Guessed a path for a field of an item that did not exist yet; the same generic error as call 3 gave no hint it was premature.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "Error: /menu/children is a list, it has no suggestions itself: add an item with editArray, then ask for the suggestions of the item's field",
+      "inferred": "Asked suggestions on the list; the error clearly told it what to do next.",
+      "severity": "low"
+    }
+  ]
+}

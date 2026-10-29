@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-switch",
+  "arm": "session",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0036055300000000005,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 735,
+    "cacheRead": 40803,
+    "cacheWrite": 14146
+  },
+  "answer": "Le paragraphe « Besoin d'aide ? » de la colonne de droite (« Deuxième contenu » de « Nos engagements ») est maintenant un encadré d'information.\n\n- **Type :** Texte → Texte accentué (alerte), type prédéfini « Information », variante par défaut, sans bouton de fermeture.\n- **Texte :** repris à l'identique : « Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr. »\n- **Titre de l'encadré :** aucun, je n'en ai pas ajouté.\n\nLe formulaire est valide et enregistré."
+}

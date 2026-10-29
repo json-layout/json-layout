@@ -1,0 +1,945 @@
+{
+  "case": "portal-config-edit",
+  "goal": "I manage our open data portal. I would like its main colour to be a dark green, and our page \"Nos actions pour la jeunesse\" to show up in the portal menu.",
+  "arm": "session",
+  "startedAt": "2026-10-29T16:04:16.011Z",
+  "start": {
+    "title": "Portail de l'agglomération",
+    "menu": {
+      "children": [
+        {
+          "type": "standard",
+          "subtype": "home"
+        },
+        {
+          "type": "standard",
+          "subtype": "datasets"
+        }
+      ]
+    },
+    "authentication": "optional",
+    "theme": {
+      "bodyFontFamily": "Nunito",
+      "bodyFontFamilyCss": "@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaORs71cA-Bm_i0Dk1.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaHRs71cA-Cznx39fA.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaMRs71cA-CuWrHpFO.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaNRs71cA-D1eeM49Z.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaDRs4-BbMn9XSX.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOOaBXso-BWI5zH9R.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIMeaBXso-C3IBG1kp.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOuaBXso-B55YuedR.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIO-aBXso-DcJfvmGA.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}",
+      "preloadLinks": [
+        {
+          "href": "/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2",
+          "as": "font",
+          "type": "font/woff2",
+          "crossorigin": true
+        }
+      ],
+      "colors": {
+        "background": "#FAFAFA",
+        "on-background": "#424242",
+        "surface": "#FFFFFF",
+        "on-surface": "#424242",
+        "surface-inverse": "#424242",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#1669bb",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#0775a8",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFCC80",
+        "on-info": "#000000",
+        "text-info": "#BF4300",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#8B2500",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#B71C1C",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#2E7D32",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#B71C1C"
+      },
+      "dark": false,
+      "darkColors": {
+        "background": "#303030",
+        "on-background": "#FFFFFF",
+        "surface": "#424242",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FAFAFA",
+        "on-surface-inverse": "#424242",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#61beff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#9daaff",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FFCDD2",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "hc": false,
+      "hcColors": {
+        "background": "#FFFFFF",
+        "on-background": "#000000",
+        "surface": "#FFFFFF",
+        "on-surface": "#000000",
+        "surface-inverse": "#212121",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#11508e",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#055a81",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "text-info": "#993500",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#8B0000",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#1B5E20",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#8B0000"
+      },
+      "hcDark": false,
+      "hcDarkColors": {
+        "background": "#121212",
+        "on-background": "#FFFFFF",
+        "surface": "#121212",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FFFFFF",
+        "on-surface-inverse": "#000000",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#52afff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#8e9bf9",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FF8A80",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "assistedModeColors": {
+        "primary": "#1976D2",
+        "secondary": "#81D4FA",
+        "accent": "#283593"
+      },
+      "assistedMode": true
+    },
+    "header": {
+      "show": true,
+      "showTitle": true,
+      "logoPrimaryType": "default",
+      "logoPrimaryCentered": false
+    },
+    "navBar": {
+      "logoType": "default",
+      "align": "center",
+      "fluid": true
+    },
+    "breadcrumb": {
+      "position": "none"
+    },
+    "linksConfig": {
+      "underline": "always"
+    },
+    "footer": {
+      "color": "primary",
+      "socialPosition": "none",
+      "copyright": "text",
+      "logoPrimaryType": "default",
+      "extraLogos": [],
+      "linksMode": "lines",
+      "links": [
+        {
+          "type": "standard",
+          "subtype": "sitemap",
+          "title": "Plan du site"
+        }
+      ],
+      "importantLinks": [],
+      "logoPosition": "main",
+      "logoAlignment": "left",
+      "backgroundImageLocation": "right",
+      "sloganPosition": "main",
+      "sloganAlignment": "left",
+      "textPosition": "main"
+    },
+    "datasets": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "metadata": {
+          "actionButtons": [
+            "download",
+            "api",
+            "embed",
+            "notifications",
+            "attachments",
+            "table",
+            "map",
+            "schema"
+          ],
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true
+        },
+        "titleStyle": {
+          "position": "none"
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "keywords": {
+          "show": true
+        },
+        "applications": {
+          "display": "side-by-side"
+        },
+        "reuses": {
+          "display": "none"
+        },
+        "relatedDatasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "applications": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "openInFullPage": false,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "titleStyle": {
+          "position": "none"
+        },
+        "metadata": {
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true,
+          "showBaseApplication": true
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "reuses": {
+      "card": {
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showAuthor": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "showImage": true,
+        "titleStyle": {
+          "position": "none"
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      },
+      "allowUserReuses": false
+    },
+    "events": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "news": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "socialShares": [
+      "bluesky",
+      "x",
+      "facebook",
+      "linkedin",
+      "reddit",
+      "sms",
+      "whatsapp"
+    ],
+    "socialLinks": {},
+    "contactInformations": {},
+    "personal": {
+      "navigationColor": "primary",
+      "hidePages": [
+        "contribute",
+        "processings"
+      ],
+      "accountPages": []
+    },
+    "agentChat": {
+      "active": true,
+      "visibleTo": [
+        "anonymous",
+        "external",
+        "user",
+        "contrib",
+        "admin"
+      ]
+    },
+    "analytics": {
+      "tracker": {
+        "type": "none",
+        "anonymized": true
+      },
+      "mergeDatasetAppPaths": false
+    },
+    "defaults": {
+      "elevation": 1,
+      "density": "comfortable",
+      "rounded": "default"
+    },
+    "navLinksConfig": {
+      "showIcon": true,
+      "uppercase": true
+    },
+    "topics": [
+      {
+        "id": "sport",
+        "title": "Sport et loisirs",
+        "color": "#2e7d32"
+      },
+      {
+        "id": "citoyennete",
+        "title": "Citoyenneté",
+        "color": "#1565c0"
+      },
+      {
+        "id": "education",
+        "title": "Education, social, santé",
+        "color": "#ad1457"
+      }
+    ]
+  },
+  "calls": [
+    {
+      "tool": "describeState",
+      "args": {},
+      "response": "valid: true, no errors\n\nFields (outline):\n- / (tabs, required)\n  - /$comp-1 (section, required) label=\"Paramètres généraux\"\n    - /$comp-1/$comp-1 (card, required) label=\"Métadonnées\"\n      - /$comp-1/$comp-1/title (text, required) label=\"Titre\" value=\"Portail de l'agglomération\"\n      - /$comp-1/$comp-1/description (textarea) label=\"Description\" not set\n    - /$comp-1/$comp-2 (card, required) label=\"Thématiques\"\n      - /$comp-1/$comp-2/topics (list, 3 items)\n        - /$comp-1/$comp-2/topics/0: \"Sport et loisirs\"\n        - /$comp-1/$comp-2/topics/1: \"Citoyenneté\"\n        - /$comp-1/$comp-2/topics/2: \"Education, social, santé\"\n    - /$comp-1/$comp-3 (card, required) label=\"Libellés\"\n      - /$comp-1/$comp-3/labelsOverrides (section)\n        - /$comp-1/$comp-3/labelsOverrides/owner (text) label=\"Propriétaire\" not set\n    - /$comp-1/$comp-4 (card, required) label=\"Réseaux sociaux\"\n      - /$comp-1/$comp-4/socialShares (list of text, required) label=\"Réseaux sociaux proposés pour le partage\" value=<array of 7 items>\n      - /$comp-1/$comp-4/socialLinks (section, required) label=\"Vos réseaux\" — 7 part(s), describeState on this path to see them\n    - /$comp-1/$comp-5 (card, required) label=\"Suivi d'activité (Web analytics)\"\n      - /$comp-1/$comp-5/analytics (section)\n        - /$comp-1/$comp-5/analytics/tracker (section, required)\n          - /$comp-1/$comp-5/analytics/tracker/$oneOf (variant-selector) — variant 0: Aucun suivi (active)\n            - variant 0: Aucun suivi (type=\"none\")\n            - variant 1: Google Analytics v4 (type=\"google-analytics-v4\")\n            - variant 2: Matomo (type=\"matomo\")\n            - variant 3: Piano (type=\"piano\")\n            - /$comp-1/$comp-5/analytics/tracker/$oneOf/0 (option 0)\n        - /$comp-1/$comp-5/analytics/mergeDatasetAppPaths (boolean) label=\"Fusionner les pages datasets/applications\" value=false\n    - /$comp-1/$comp-6 (card, required) label=\"Sécurité\"\n      - /$comp-1/$comp-6/allowRobots (switch) label=\"Rendre le portail visible sur les moteurs de recherche\" not set\n      - /$comp-1/$comp-6/authentication (select, required) label=\"Authentification\" value=\"optional\"\n      - /$comp-1/$comp-6/allowedFrameAncestors (list of text) label=\"Domaines autorisés à intégrer ce portail en iframe\" value=[]\n      - /$comp-1/$comp-6/allowedFrameSources (list of text) label=\"Domaines autorisés pour les iframes intégrées dans ce porta…\" value=[]\n  - /$comp-2 (section, required) label=\"Apparence\"\n    - /$comp-2/$comp-1 (card, required) label=\"Images\"\n      - /$comp-2/$comp-1/logo (slot) not set\n      - /$comp-2/$comp-1/logoDark (slot) not set\n      - /$comp-2/$comp-1/favicon (slot) not set\n      - /$comp-2/$comp-1/errorImages (section) label=\"Images personnalisées pour les pages d'erreur (404, 500, et…\" — 3 part(s), describeState on this path to see them\n    - /$comp-2/$comp-2 (card, required) label=\"Couleurs\"\n      - /$comp-2/$comp-2/theme (section, required)\n        - /$comp-2/$comp-2/theme/logo (text) label=\"URL d'un logo\" not set\n        - /$comp-2/$comp-2/theme/bodyFontFamily (text) label=\"Nom de police de caractères pour le corps du texte\" value=\"Nunito\"\n        - /$comp-2/$comp-2/theme/headingFontFamily (text) label=\"Nom de police de caractères pour les titres\" not set\n        - /$comp-2/$comp-2/theme/bodyFontFamilyCss (textarea) label=\"CSS police de caractères pour le corps du texte\" value=\"@font-face{font-family:Nunito;font-style:italic;font-weight…\"\n        - /$comp-2/$comp-2/theme/headingFontFamilyCss (textarea) label=\"CSS police de caractères pour les titres\" not set\n        - /$comp-2/$comp-2/theme/assistedMode (boolean) label=\"Mode de gestion des couleurs simplifié\" value=true\n        - /$comp-2/$comp-2/theme/$comp-1 (tabs, required)\n          - /$comp-2/$comp-2/theme/$comp-1/$comp-1 (section, required) label=\"Thème par défaut\" — 2 part(s), describeState on this path to see them\n          - /$comp-2/$comp-2/theme/$comp-1/$comp-2 (section, required) label=\"Thème sombre\" — 2 part(s), describeState on this path to see them\n          - /$comp-2/$comp-2/theme/$comp-1/$comp-3 (section, required) label=\"Thème à fort contraste\" — 2 part(s), describeState on this path to see them\n          - /$comp-2/$comp-2/theme/$comp-1/$comp-4 (section, required) label=\"Thème sombre à fort contraste\" — 2 part(s), describeState on this path to see them\n    - /$comp-2/$comp-3 (card, required) label=\"Polices de caractères\"\n      - /$comp-2/$comp-3/$comp-1 (section, required)\n        - /$comp-2/$comp-3/$comp-1/headingFontFamily (autocomplete) label=\"Police des titres\" not set\n        - /$comp-2/$comp-3/$comp-1/bodyFontFamily (autocomplete) label=\"Police principale\" not set\n    - /$comp-2/$comp-4 (card, required) label=\"Style visuel par défaut\"\n      - /$comp-2/$comp-4/defaults (section)\n        - /$comp-2/$comp-4/defaults/elevation (select) label=\"Élévation\" value=1\n        - /$comp-2/$comp-4/defaults/density (select) label=\"Densité\" value=\"comfortable\"\n        - /$comp-2/$comp-4/defaults/rounded (select) label=\"Arrondi\" value=\"default\"\n        - /$comp-2/$comp-4/defaults/hover (section) label=\"Effets au survol\"\n          - /$comp-2/$comp-4/defaults/hover/effects (list of text) label=\"Effets\" value=[]\n    - /$comp-2/$comp-5 (card, required) label=\"Rendu des boutons de navigation\"\n      - /$comp-2/$comp-5/navLinksConfig (section) — 8 part(s), describeState on this path to see them\n    - /$comp-2/$comp-6 (card, required) label=\"Rendu des liens texte\"\n      - /$comp-2/$comp-6/linksConfig (section) — 3 part(s), describeState on this path to see them\n    - /$comp-2/$comp-7 (card, required) label=\"Documentation d'API\"\n      - /$comp-2/$comp-7/catalogApiDocFullLayout (switch) label=\"Conserver l'entête et le pied de page sur la documentation …\" not set\n  - /$comp-3 (section, required) label=\"Entête\"\n    - /$comp-3/headerHomeActive (switch) label=\"Utiliser un rendu différent sur la page d'accueil\" not set\n    - /$comp-3/$comp-2 (section, required)\n      - /$comp-3/$comp-2/header (section, required)\n        - /$comp-3/$comp-2/header/$comp-1 (card, required) label=\"Options\" — 3 part(s), describeState on this path to see them\n        - /$comp-3/$comp-2/header/$comp-2 (card, required) label=\"Contenu\" — 4 part(s), describeState on this path to see them\n  - /$comp-4 (section, required) label=\"Barre de navigation\"\n    - /$comp-4/navBarHomeActive (switch) label=\"Utiliser un rendu différent sur la page d'accueil\" not set\n    - /$comp-4/$comp-2 (section, required)\n      - /$comp-4/$comp-2/$comp-1 (card, required) label=\"Options\"\n        - /$comp-4/$comp-2/$comp-1/navBar (section, required)\n          - /$comp-4/$comp-2/$comp-1/navBar/logoType (select) label=\"Logo principal\" value=\"default\"\n          - /$comp-4/$comp-2/$comp-1/navBar/logoMobile (slot) not set\n          - /$comp-4/$comp-2/$comp-1/navBar/logoLink (text) label=\"Lien au clic sur le logo principal\" not set\n          - /$comp-4/$comp-2/$comp-1/navBar/color (select) label=\"Couleur\" not set\n          - /$comp-4/$comp-2/$comp-1/navBar/loginColor (select) label=\"Couleur du bouton de connexion\" not set\n          - /$comp-4/$comp-2/$comp-1/navBar/sliderColor (select) label=\"Couleur de l'indicateur de l'élément actif\" not set\n          - /$comp-4/$comp-2/$comp-1/navBar/align (select) label=\"Position des onglets\" value=\"center\"\n          - /$comp-4/$comp-2/$comp-1/navBar/tabsStyle (list of text) label=\"Style des titres des onglets\" value=[]\n          - /$comp-4/$comp-2/$comp-1/navBar/transparent (switch) label=\"Appliquer un effet de transparence au scroll\" not set\n          - /$comp-4/$comp-2/$comp-1/navBar/keepOnScroll (switch) label=\"Garder la barre de navigation affichée au scroll\" not set\n          - /$comp-4/$comp-2/$comp-1/navBar/fluid (switch) label=\"Afficher la barre de navigation en pleine largeur\" value=true\n    - /$comp-4/$comp-3 (card, required) label=\"Éléments du menu de navigation\"\n      - /$comp-4/$comp-3/menu (section, required)\n        - /$comp-4/$comp-3/menu/children (list, 2 items, required)\n          - /$comp-4/$comp-3/menu/children/0: {\"type\":\"standard\",\"subtype\":\"home\"}\n          - /$comp-4/$comp-3/menu/children/1: {\"type\":\"standard\",\"subtype\":\"datasets\"}\n  - /$comp-5 (section, required) label=\"Fil d'Ariane\"\n    - /$comp-5/breadcrumb (section, required)\n      - /$comp-5/breadcrumb/position (select) label=\"Position du fil d'Ariane\" value=\"none\"\n  - /$comp-6 (section, required) label=\"Pied de page\"\n    - /$comp-6/footer (section, required)\n      - /$comp-6/footer/$comp-1 (card, required) label=\"Options\"\n        - /$comp-6/footer/$comp-1/color (select, required) label=\"Couleur du pied de page\" value=\"primary\"\n        - /$comp-6/footer/$comp-1/socialPosition (select) label=\"Position des réseaux sociaux\" value=\"none\"\n        - /$comp-6/footer/$comp-1/copyright (select, required) label=\"Affichage du copyright\" value=\"text\"\n      - /$comp-6/footer/$comp-2 (card, required) label=\"Logo\"\n        - /$comp-6/footer/$comp-2/logoPrimaryType (select, required) label=\"Logo principal du pied de page\" value=\"default\"\n        - /$comp-6/footer/$comp-2/logoPrimaryLink (text) label=\"Lien au clic sur le logo principal\" not set\n        - /$comp-6/footer/$comp-2/logoPosition (select) label=\"Position du logo principal\" value=\"main\"\n        - /$comp-6/footer/$comp-2/logoAlignment (select) label=\"Alignement du logo principal\" value=\"left\"\n      - /$comp-6/footer/$comp-3 (card, required) label=\"Image de fond\"\n        - /$comp-6/footer/$comp-3/backgroundImage (slot) not set\n        - /$comp-6/footer/$comp-3/backgroundImageLocation (select) label=\"Position de l'image de fond\" value=\"right\"\n      - /$comp-6/footer/$comp-4 (card, required) label=\"Slogan\"\n        - /$comp-6/footer/$comp-4/slogan (text) label=\"Slogan\" not set\n        - /$comp-6/footer/$comp-4/sloganColor (select) label=\"Couleur du slogan\" not set\n        - /$comp-6/footer/$comp-4/sloganPosition (select) label=\"Position du slogan\" value=\"main\"\n        - /$comp-6/footer/$comp-4/sloganAlignment (select) label=\"Alignement du slogan\" value=\"left\"\n      - /$comp-6/footer/$comp-5 (card, required) label=\"Texte libre\"\n        - /$comp-6/footer/$comp-5/text (text) label=\"Texte libre\" not set\n        - /$comp-6/footer/$comp-5/textPosition (select) label=\"Position du texte libre\" value=\"main\"\n      - /$comp-6/footer/$comp-6 (card, required) label=\"Liens\"\n        - /$comp-6/footer/$comp-6/linksMode (select, required) label=\"Mode d'affichage des liens\" value=\"lines\"\n        - /$comp-6/footer/$comp-6/links (list, 1 items, required) — describeState on this path to see its items\n      - /$comp-6/footer/$comp-7 (card, required) label=\"Liens importants\"\n        - /$comp-6/footer/$comp-7/importantLinks (list, 0 items, required)\n      - /$comp-6/footer/$comp-8 (card, required) label=\"Liste de logos\"\n        - /$comp-6/footer/$comp-8/extraLogos (list, 0 items, required)\n  - /$comp-7 (section, required) label=\"Contact\"\n    - /$comp-7/contactInformations (section, required)\n      - /$comp-7/contactInformations/email (text) label=\"Email de contact\" not set\n      - /$comp-7/contactInformations/phone (text) label=\"Téléphone de contact\" not set\n      - /$comp-7/contactInformations/phoneLabel (text) label=\"Nom associé au téléphone de contact\" not set\n      - /$comp-7/contactInformations/website (text) label=\"Site Web de contact\" not set\n      - /$comp-7/contactInformations/websiteLabel (text) label=\"Nom associé au site Web de contact\" not set\n      - /$comp-7/contactInformations/infos (text) label=\"Informations de contact\" not set\n  - /$comp-8 (section, required) label=\"Jeux de données\"\n    - /$comp-8/datasets (tabs, required)\n      - /$comp-8/datasets/$comp-1 (section, required) label=\"Vignette d'un jeu de données\"\n        - /$comp-8/datasets/$comp-1/card (section, required) — 4 part(s), describeState on this path to see them\n      - /$comp-8/datasets/page (section, required) label=\"Page d'un jeu de données\"\n        - /$comp-8/datasets/page/$comp-1 (card, required) label=\"Options\" — 3 part(s), describeState on this path to see them\n        - /$comp-8/datasets/page/titleStyle (card) label=\"Configuration des titres\" — 2 part(s), describeState on this path to see them\n        - /$comp-8/datasets/page/metadata (card) label=\"Configuration des métadonnées\" — 7 part(s), describeState on this path to see them\n        - /$comp-8/datasets/page/topics (card) label=\"Configuration des thématiques\" — 2 part(s), describeState on this path to see them\n        - /$comp-8/datasets/page/keywords (card) label=\"Configuration des mots-clés\" — 2 part(s), describeState on this path to see them\n        - /$comp-8/datasets/page/applications (card) label=\"Configuration des visualisations\"\n          - /$comp-8/datasets/page/applications/display (select) label=\"Mode d'affichage\" value=\"side-by-side\"\n        - /$comp-8/datasets/page/reuses (card) label=\"Configuration des réutilisations\" — 2 part(s), describeState on this path to see them\n        - /$comp-8/datasets/page/relatedDatasets (card) label=\"Configuration des jeux de données liés\" — 3 part(s), describeState on this path to see them\n  - /$comp-9 (section, required) label=\"Visualisations\"\n    - /$comp-9/applications (tabs, required)\n      - /$comp-9/applications/$comp-1 (section, required) label=\"Vignette d'une visualisation\"\n        - /$comp-9/applications/$comp-1/card (section, required) — 3 part(s), describeState on this path to see them\n      - /$comp-9/applications/page (section, required) label=\"Page d'une visualisation\" — 5 part(s), describeState on this path to see them\n  - /$comp-10 (section, required) label=\"Réutilisations\"\n    - /$comp-10/reuses (section, required)\n      - /$comp-10/reuses/allowUserReuses (switch) label=\"Permettre aux utilisateurs du portail de proposer des réuti…\" value=false\n      - /$comp-10/reuses/$comp-1 (tabs, required)\n        - /$comp-10/reuses/$comp-1/$comp-1 (section, required) label=\"Vignette d'une réutilisation\" — 2 part(s), describeState on this path to see them\n        - /$comp-10/reuses/$comp-1/page (section, required) label=\"Page d'une réutilisation\" — 3 part(s), describeState on this path to see them\n  - /$comp-11 (section, required) label=\"Événements\"\n    - /$comp-11/events (section, required)\n      - /$comp-11/events/$comp-1 (tabs, required)\n        - /$comp-11/events/$comp-1/$comp-1 (section, required) label=\"Vignette d'un événement\"\n          - /$comp-11/events/$comp-1/$comp-1/card (section, required) — 2 part(s), describeState on this path to see them\n  - /$comp-12 (section, required) label=\"Actualités\"\n    - /$comp-12/news (section, required)\n      - /$comp-12/news/$comp-1 (tabs, required)\n        - /$comp-12/news/$comp-1/$comp-1 (section, required) label=\"Vignette d'une actualité\"\n          - /$comp-12/news/$comp-1/$comp-1/card (section, required) — 2 part(s), describeState on this path to see them\n  - /$comp-13 (section, required) label=\"Espace personnel\"\n    - /$comp-13/personal (section, required)\n      - /$comp-13/personal/$comp-1 (card, required) label=\"Options\" — 2 part(s), describeState on this path to see them\n      - /$comp-13/personal/$comp-2 (card, required) label=\"Pages supplémentaires en iframe\"\n        - /$comp-13/personal/$comp-2/accountPages (list, 0 items, required) — describeState on this path to see its items\n(an outline, 3 level(s) deep with values cut short, the full description being over 16000 bytes — call describeState with the path of a part to see it in full)",
+      "outputBytes": 15582,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "query": "principale"
+      },
+      "response": "3 fields match \"principale\":\n/$comp-2/$comp-2/theme/assistedMode (boolean) = true — Mode de gestion des couleurs simplifié\n/$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors/primary (color-picker) = \"#1976D2\" — Couleur principale\n/$comp-2/$comp-3/$comp-1/bodyFontFamily (autocomplete) = not set — Police principale",
+      "outputBytes": 328,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors/primary",
+        "value": "#1B5E20"
+      },
+      "response": "/$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors/primary (color-picker) = \"#1B5E20\"\nno error here\nform is valid\nsaved",
+      "outputBytes": 126,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children"
+      },
+      "response": "- /$comp-4/$comp-3/menu/children (array, required, 2 items) title=\"\"\n  - /$comp-4/$comp-3/menu/children/0 (section, required) value={\"type\":\"standard\",\"subtype\":\"home\"}\n    - /$comp-4/$comp-3/menu/children/0/$oneOf (one-of-select, declared)\n  - /$comp-4/$comp-3/menu/children/1 (section, required) value={\"type\":\"standard\",\"subtype\":\"datasets\"}\n    - /$comp-4/$comp-3/menu/children/1/$oneOf (one-of-select, declared)\nno error here\nform is valid",
+      "outputBytes": 444,
+      "isError": false
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children/0/$oneOf"
+      },
+      "response": "- /$comp-4/$comp-3/menu/children/0/$oneOf (variant-selector)\n  - variant 0: Page standard (Accueil, Contact,...) (type=\"standard\") (active) — { subtype*: select [\"home\" (Accueil), \"contact\" (Contact), \"accessibility\" (Accessibilité), \"terms-of-service\" (Conditions générales d'utilisation), \"legal-notice\" (Mentions légales), \"privacy-policy\" (Politique de confidentialité), \"cookie-policy\" (Politique de cookies), \"datasets\" (Catalogue de données), \"applications\" (Catalogue de visualisations), \"reuses\" (Catalogue de réutilisations), \"event-catalog\" (Catalogue d'événements), \"news-catalog\" (Catalogue d'actualités), \"sitemap\" (Plan du site), \"catalog-api-doc\" (Documentation d'API)], title: text, target: boolean, icon: { mdi: autocomplete, custom: text, color: select [\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)] } }\n  - variant 1: Page libre (type=\"generic\") — { pageRef*: autocomplete, title: text, target: boolean, icon: { mdi: autocomplete, custom: text, color: select [\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)] } }\n  - variant 2: Page d'événements (type=\"event\") — { pageRef*: select, title: text, target: boolean, icon: { mdi: autocomplete, custom: text, color: select [\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)] } }\n  - variant 3: Page d'actualités (type=\"news\") — { pageRef*: select, title: text, target: boolean, icon: { mdi: autocomplete, custom: text, color: select [\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)] } }\n  - variant 4: Sous-menu (type=\"submenu\") — { title*: text, children*: array of { $oneOf: variant selector (6 variants) }, icon: { mdi: autocomplete, custom: text, color: select [\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)] } }\n  - variant 5: Lien (type=\"external\") — { href*: text, title*: text, target: boolean, icon: { mdi: autocomplete, custom: text, color: select [\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)] } }\n  - /$comp-4/$comp-3/menu/children/0/$oneOf/0 (section, required) title=\"Page standard (Accueil, Contact,...)\"\n    - /$comp-4/$comp-3/menu/children/0/$oneOf/0/subtype (select, required, values=[\"home\" (Accueil), \"contact\", \"accessibility\" (Accessibilité), \"terms-of-service\" (Conditions générales d'utilisation), \"legal-notice\" (Mentions légales), \"privacy-policy\" (Politique de confidentialité), \"cookie-policy\" (Politique de cookies), \"datasets\" (Catalogue de données), \"applications\" (Catalogue de visualisations), \"reuses\" (Catalogue de réutilisations), \"event-catalog\" (Catalogue d'événements), \"news-catalog\" (Catalogue d'actualités), \"sitemap\" (Plan du site), \"catalog-api-doc\" (Documentation d'API)]) label=\"Type de page\" value=\"home\"\n    - /$comp-4/$comp-3/menu/children/0/$oneOf/0/title (text) label=\"Libellé\" value=undefined\n    - /$comp-4/$comp-3/menu/children/0/$oneOf/0/target (boolean) label=\"Ouvrir dans un nouvel onglet\" value=undefined\n    - /$comp-4/$comp-3/menu/children/0/$oneOf/0/icon (card) title=\"Configuration de l'icône\"\n      - /$comp-4/$comp-3/menu/children/0/$oneOf/0/icon/mdi (autocomplete, suggestions) label=\"Icône MDI\" value=undefined\n      - /$comp-4/$comp-3/menu/children/0/$oneOf/0/icon/custom (text) label=\"Icône personnalisée\" value=undefined help=\"Seul les SVG Path carrés sont supportés.\"\n      - /$comp-4/$comp-3/menu/children/0/$oneOf/0/icon/color (select, values=[\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)]) label=\"Couleur\" value=undefined\nno error here\nform is valid",
+      "outputBytes": 4208,
+      "isError": false
+    },
+    {
+      "tool": "getFieldSuggestions",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children/0/$oneOf",
+        "query": "Nos actions pour la jeunesse"
+      },
+      "response": "6 suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):\n- [0] Page standard (Accueil, Contact,...) — value=0\n- [1] Page libre — value=1\n- [2] Page d'événements — value=2\n- [3] Page d'actualités — value=3\n- [4] Sous-menu — value=4\n- [5] Lien — value=5",
+      "outputBytes": 304,
+      "isError": false
+    },
+    {
+      "tool": "editArray",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children",
+        "action": "add"
+      },
+      "response": "added item at index 2, 3 total\nFields of the new item (activated for edition):\n- /$comp-4/$comp-3/menu/children/2 (section, required, error) — tag \"type\" must be string\n  - /$comp-4/$comp-3/menu/children/2/$oneOf (variant-selector) value={}\n    - 6 variants, the same list already given for /$comp-4/$comp-3/menu/children/0/$oneOf — call describeState on /$comp-4/$comp-3/menu/children/2/$oneOf to see them again\n1 error(s) here:\n- /$comp-4/$comp-3/menu/children/2: tag \"type\" must be string\nform is invalid\nnot saved yet: the form is invalid",
+      "outputBytes": 546,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children/2/$oneOf",
+        "value": 1
+      },
+      "response": "/$comp-4/$comp-3/menu/children/2/$oneOf (variant-selector) = {\"type\":\"generic\"}\nFields of the activated variant:\n- /$comp-4/$comp-3/menu/children/2/$oneOf/1 (section, required) title=\"Page libre\"\n  - /$comp-4/$comp-3/menu/children/2/$oneOf/1/pageRef (autocomplete, required, error, suggestions) label=\"Page\" value=undefined — information obligatoire\n  - /$comp-4/$comp-3/menu/children/2/$oneOf/1/title (text) label=\"Libellé\" value=undefined\n  - /$comp-4/$comp-3/menu/children/2/$oneOf/1/target (boolean) label=\"Ouvrir dans un nouvel onglet\" value=undefined\n  - /$comp-4/$comp-3/menu/children/2/$oneOf/1/icon (card) title=\"Configuration de l'icône\"\n    - /$comp-4/$comp-3/menu/children/2/$oneOf/1/icon/mdi (autocomplete, suggestions) label=\"Icône MDI\" value=undefined\n    - /$comp-4/$comp-3/menu/children/2/$oneOf/1/icon/custom (text) label=\"Icône personnalisée\" value=undefined help=\"Seul les SVG Path carrés sont supportés.\"\n    - /$comp-4/$comp-3/menu/children/2/$oneOf/1/icon/color (select, values=[\"primary\" (Primaire), \"secondary\" (Secondaire), \"accent\" (Accentuée), \"info\" (Information), \"success\" (Succès), \"error\" (Erreur), \"warning\" (Avertissement)]) label=\"Couleur\" value=undefined\n1 error(s) here:\n- /$comp-4/$comp-3/menu/children/2/$oneOf/1/pageRef: information obligatoire\nform is invalid\nnot saved yet: the form is invalid",
+      "outputBytes": 1347,
+      "isError": false
+    },
+    {
+      "tool": "getFieldSuggestions",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children/2/$oneOf/1/pageRef",
+        "query": "jeunesse"
+      },
+      "response": "1 suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):\n- [0] Nos actions pour la jeunesse (jeunesse) — apply with suggestionIndex=0",
+      "outputBytes": 173,
+      "isError": false
+    },
+    {
+      "tool": "setFieldValue",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children/2/$oneOf/1/pageRef",
+        "suggestionIndex": 0
+      },
+      "response": "/$comp-4/$comp-3/menu/children/2/$oneOf/1/pageRef (autocomplete) = {\"slug\":\"jeunesse\",\"title\":\"Nos actions pour la jeunesse\"}\nno error here\nform is valid\nsaved",
+      "outputBytes": 159,
+      "isError": false
+    },
+    {
+      "tool": "getData",
+      "args": {
+        "path": "/$comp-4/$comp-3/menu/children"
+      },
+      "response": "{\"data\":[{\"type\":\"standard\",\"subtype\":\"home\"},{\"type\":\"standard\",\"subtype\":\"datasets\"},{\"type\":\"generic\",\"pageRef\":{\"slug\":\"jeunesse\",\"title\":\"Nos actions pour la jeunesse\"}}],\"valid\":true}",
+      "outputBytes": 189,
+      "isError": false
+    },
+    {
+      "tool": "getData",
+      "args": {
+        "path": "/theme/colors/primary"
+      },
+      "response": "Error: node not found at path: /theme/colors/primary. The value exists in the data but its field is not shown in the form right now: a condition hides it, another setting replaces it or must change first. Look for the field the form shows instead with describeState.",
+      "outputBytes": 266,
+      "isError": true
+    },
+    {
+      "tool": "describeState",
+      "args": {
+        "path": "/$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors"
+      },
+      "response": "- /$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors (section)\n  - /$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors/primary (color-picker) label=\"Couleur principale\" value=\"#1B5E20\"\n  - /$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors/secondary (color-picker) label=\"Couleur secondaire\" value=\"#81D4FA\"\n  - /$comp-2/$comp-2/theme/$comp-1/$comp-1/assistedModeColors/accent (color-picker) label=\"Couleur accentuée\" value=\"#283593\"\nno error here\nform is valid",
+      "outputBytes": 482,
+      "isError": false
+    }
+  ],
+  "data": {
+    "title": "Portail de l'agglomération",
+    "menu": {
+      "children": [
+        {
+          "type": "standard",
+          "subtype": "home"
+        },
+        {
+          "type": "standard",
+          "subtype": "datasets"
+        },
+        {
+          "type": "generic",
+          "pageRef": {
+            "slug": "jeunesse",
+            "title": "Nos actions pour la jeunesse"
+          }
+        }
+      ]
+    },
+    "authentication": "optional",
+    "theme": {
+      "bodyFontFamily": "Nunito",
+      "bodyFontFamilyCss": "@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaORs71cA-Bm_i0Dk1.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaHRs71cA-Cznx39fA.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaMRs71cA-CuWrHpFO.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaNRs71cA-D1eeM49Z.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:italic;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXX3I6Li01BKofIMNaDRs4-BbMn9XSX.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOOaBXso-BWI5zH9R.woff2) format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIMeaBXso-C3IBG1kp.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIOuaBXso-B55YuedR.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofIO-aBXso-DcJfvmGA.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Nunito;font-style:normal;font-weight:200 1000;font-display:swap;src:url({SITE_PATH}/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}",
+      "preloadLinks": [
+        {
+          "href": "/simple-directory/fonts/XRXV3I6Li01BKofINeaB-BaTF6Vo7.woff2",
+          "as": "font",
+          "type": "font/woff2",
+          "crossorigin": true
+        }
+      ],
+      "colors": {
+        "background": "#FAFAFA",
+        "on-background": "#424242",
+        "surface": "#FFFFFF",
+        "on-surface": "#424242",
+        "surface-inverse": "#424242",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#1669bb",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#0775a8",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFCC80",
+        "on-info": "#000000",
+        "text-info": "#BF4300",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#8B2500",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#B71C1C",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#2E7D32",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#B71C1C"
+      },
+      "dark": false,
+      "darkColors": {
+        "background": "#303030",
+        "on-background": "#FFFFFF",
+        "surface": "#424242",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FAFAFA",
+        "on-surface-inverse": "#424242",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#61beff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#9daaff",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#BF360A",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#D50000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FFCDD2",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#B71C1C",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "hc": false,
+      "hcColors": {
+        "background": "#FFFFFF",
+        "on-background": "#000000",
+        "surface": "#FFFFFF",
+        "on-surface": "#000000",
+        "surface-inverse": "#212121",
+        "on-surface-inverse": "#FFFFFF",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#11508e",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#055a81",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#283593",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "text-info": "#993500",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#8B0000",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "text-success": "#1B5E20",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#8B0000"
+      },
+      "hcDark": false,
+      "hcDarkColors": {
+        "background": "#121212",
+        "on-background": "#FFFFFF",
+        "surface": "#121212",
+        "on-surface": "#FFFFFF",
+        "surface-inverse": "#FFFFFF",
+        "on-surface-inverse": "#000000",
+        "primary": "#1976D2",
+        "on-primary": "#FFFFFF",
+        "text-primary": "#52afff",
+        "secondary": "#81D4FA",
+        "on-secondary": "#000000",
+        "text-secondary": "#81d4fa",
+        "accent": "#283593",
+        "on-accent": "#FFFFFF",
+        "text-accent": "#8e9bf9",
+        "info": "#FFE0B2",
+        "on-info": "#000000",
+        "warning": "#6D1B00",
+        "on-warning": "#FFFFFF",
+        "text-warning": "#FFAB40",
+        "error": "#b30000",
+        "on-error": "#FFFFFF",
+        "text-error": "#FF8A80",
+        "success": "#B9F6CA",
+        "on-success": "#000000",
+        "admin": "#b30000",
+        "on-admin": "#FFFFFF",
+        "text-admin": "#FFCDD2"
+      },
+      "assistedModeColors": {
+        "primary": "#1B5E20",
+        "secondary": "#81D4FA",
+        "accent": "#283593"
+      },
+      "assistedMode": true
+    },
+    "header": {
+      "show": true,
+      "showTitle": true,
+      "logoPrimaryType": "default",
+      "logoPrimaryCentered": false
+    },
+    "navBar": {
+      "logoType": "default",
+      "align": "center",
+      "fluid": true
+    },
+    "breadcrumb": {
+      "position": "none"
+    },
+    "linksConfig": {
+      "underline": "always"
+    },
+    "footer": {
+      "color": "primary",
+      "socialPosition": "none",
+      "copyright": "text",
+      "logoPrimaryType": "default",
+      "extraLogos": [],
+      "linksMode": "lines",
+      "links": [
+        {
+          "type": "standard",
+          "subtype": "sitemap",
+          "title": "Plan du site"
+        }
+      ],
+      "importantLinks": [],
+      "logoPosition": "main",
+      "logoAlignment": "left",
+      "backgroundImageLocation": "right",
+      "sloganPosition": "main",
+      "sloganAlignment": "left",
+      "textPosition": "main"
+    },
+    "datasets": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "metadata": {
+          "actionButtons": [
+            "download",
+            "api",
+            "embed",
+            "notifications",
+            "attachments",
+            "table",
+            "map",
+            "schema"
+          ],
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true
+        },
+        "titleStyle": {
+          "position": "none"
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "keywords": {
+          "show": true
+        },
+        "applications": {
+          "display": "side-by-side"
+        },
+        "reuses": {
+          "display": "none"
+        },
+        "relatedDatasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "applications": {
+      "card": {
+        "actionsLocation": "bottom",
+        "actionsStyle": "full",
+        "titleLinesCount": 2,
+        "openInFullPage": false,
+        "showSummary": true,
+        "showDepartment": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "titleStyle": {
+          "position": "none"
+        },
+        "metadata": {
+          "location": "right",
+          "actionsStyle": "full",
+          "showDepartment": true,
+          "showBaseApplication": true
+        },
+        "topics": {
+          "show": true,
+          "showIcon": true
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      }
+    },
+    "reuses": {
+      "card": {
+        "titleLinesCount": 2,
+        "showSummary": true,
+        "showAuthor": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true
+        }
+      },
+      "page": {
+        "showImage": true,
+        "titleStyle": {
+          "position": "none"
+        },
+        "datasets": {
+          "display": "card",
+          "columns": 2,
+          "useGlobalCard": true
+        }
+      },
+      "allowUserReuses": false
+    },
+    "events": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "news": {
+      "card": {
+        "titleLinesCount": 2,
+        "showDescription": true,
+        "thumbnail": {
+          "show": true,
+          "location": "center",
+          "crop": true,
+          "useDescription": false
+        }
+      }
+    },
+    "socialShares": [
+      "bluesky",
+      "x",
+      "facebook",
+      "linkedin",
+      "reddit",
+      "sms",
+      "whatsapp"
+    ],
+    "socialLinks": {},
+    "contactInformations": {},
+    "personal": {
+      "navigationColor": "primary",
+      "hidePages": [
+        "contribute",
+        "processings"
+      ],
+      "accountPages": []
+    },
+    "agentChat": {
+      "active": true,
+      "visibleTo": [
+        "anonymous",
+        "external",
+        "user",
+        "contrib",
+        "admin"
+      ]
+    },
+    "analytics": {
+      "tracker": {
+        "type": "none",
+        "anonymized": true
+      },
+      "mergeDatasetAppPaths": false
+    },
+    "defaults": {
+      "elevation": 1,
+      "density": "comfortable",
+      "rounded": "default"
+    },
+    "navLinksConfig": {
+      "showIcon": true,
+      "uppercase": true
+    },
+    "topics": [
+      {
+        "id": "sport",
+        "title": "Sport et loisirs",
+        "color": "#2e7d32"
+      },
+      {
+        "id": "citoyennete",
+        "title": "Citoyenneté",
+        "color": "#1565c0"
+      },
+      {
+        "id": "education",
+        "title": "Education, social, santé",
+        "color": "#ad1457"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "label": "nothing changed but the main colour and the menu",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the menu links the page \"Nos actions pour la jeunesse\"",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 13,
+    "outputBytes": 24154
+  }
+}

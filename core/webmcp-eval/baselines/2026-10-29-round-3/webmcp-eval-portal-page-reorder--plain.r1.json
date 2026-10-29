@@ -1,0 +1,1320 @@
+{
+  "case": "portal-page-reorder",
+  "goal": "Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».",
+  "arm": "plain",
+  "startedAt": "2026-10-29T16:05:52.064Z",
+  "start": {
+    "title": "Découvrir nos données",
+    "description": "Le portail open data du Val de Loue : jeux de données, visualisations et réutilisations de l'agglomération, librement réutilisables.",
+    "showBreadcrumbs": true,
+    "fluid": false,
+    "elements": [
+      {
+        "uuid": "3f2a9c01",
+        "type": "title",
+        "content": "Les données ouvertes du Val de Loue",
+        "titleSize": "h1",
+        "centered": true,
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c02",
+        "type": "text",
+        "content": "Depuis 2019, la Communauté d'agglomération du Val de Loue publie ses données en open data. Transports, environnement, budget, équipements publics : **plus de 180 jeux de données** sont librement réutilisables sous Licence Ouverte 2.0.\n\nCe portail vous permet de les explorer, de les visualiser sous forme de cartes et de graphiques, et de les télécharger dans les formats les plus courants.",
+        "centered": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c03",
+        "type": "alert",
+        "alertType": "info",
+        "title": "Nouveau",
+        "content": "Les mesures de qualité de l'air de nos six stations sont désormais publiées chaque jour avant 9 h, avec l'historique complet depuis 2015.",
+        "variant": "default",
+        "closable": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c04",
+        "type": "two-columns",
+        "disposition": "left",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c05",
+            "type": "title",
+            "content": "Nos engagements",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c06",
+            "type": "text",
+            "content": "- **Ouvrir par défaut** : toute donnée publique non personnelle a vocation à être publiée.\n- **Mettre à jour** : chaque jeu de données indique sa fréquence de mise à jour et la respecte.\n- **Documenter** : chaque colonne est décrite, chaque source est citée.\n- **Écouter** : vos demandes de publication reçoivent une réponse sous quinze jours.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c07",
+            "type": "button",
+            "link": {
+              "type": "standard",
+              "subtype": "datasets",
+              "title": "Voir tout le catalogue"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c08",
+            "type": "card",
+            "title": "Un jeu de données vous manque ?",
+            "children": [
+              {
+                "uuid": "3f2a9c09",
+                "type": "text",
+                "content": "Dites-nous quelles données vous seraient utiles et pour quel usage : nous étudions chaque demande avec les services concernés.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [
+              {
+                "type": "standard",
+                "subtype": "contact",
+                "title": "Nous écrire"
+              }
+            ],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c0a",
+            "type": "text",
+            "content": "Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr.",
+            "centered": false,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c0b",
+        "type": "divider",
+        "rounded": true,
+        "opacity": 0.1,
+        "thickness": 1
+      },
+      {
+        "uuid": "3f2a9c0c",
+        "type": "title",
+        "content": "Thématiques à la une",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c0d",
+        "type": "responsive-grid",
+        "columns": 3,
+        "children": [
+          {
+            "uuid": "3f2a9c0e",
+            "type": "card",
+            "title": "Mobilité",
+            "children": [
+              {
+                "uuid": "3f2a9c0f",
+                "type": "text",
+                "content": "Horaires et arrêts du réseau de bus Loue'Bus, stations de vélos en libre-service, comptages routiers et places de stationnement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c10",
+            "type": "card",
+            "title": "Environnement",
+            "children": [
+              {
+                "uuid": "3f2a9c11",
+                "type": "text",
+                "content": "Qualité de l'air, points d'apport volontaire, collecte des déchets, espaces verts et arbres d'alignement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c12",
+            "type": "card",
+            "title": "Budget et finances",
+            "children": [
+              {
+                "uuid": "3f2a9c13",
+                "type": "text",
+                "content": "Budget primitif et compte administratif depuis 2016, subventions versées aux associations, marchés publics attribués.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c14",
+            "type": "card",
+            "title": "Culture et patrimoine",
+            "children": [
+              {
+                "uuid": "3f2a9c15",
+                "type": "text",
+                "content": "Équipements culturels, fréquentation des médiathèques, monuments protégés et programmation des saisons culturelles.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c16",
+            "type": "card",
+            "title": "Équipements sportifs",
+            "children": [
+              {
+                "uuid": "3f2a9c17",
+                "type": "text",
+                "content": "Gymnases, piscines, stades et terrains de proximité, avec leurs horaires d'ouverture et leurs équipements.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          }
+        ],
+        "gutter": "dense",
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c18",
+        "type": "title",
+        "content": "Questions fréquentes",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c19",
+        "type": "expansion-panels",
+        "panels": [
+          {
+            "title": "Sous quelle licence les données sont-elles publiées ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1a",
+                "type": "text",
+                "content": "Toutes les données de ce portail sont publiées sous Licence Ouverte 2.0 (Etalab) : vous pouvez les réutiliser librement, y compris à des fins commerciales, en citant la source.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "À quelle fréquence sont-elles mises à jour ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1b",
+                "type": "text",
+                "content": "Chaque jeu de données indique sa fréquence de mise à jour : quotidienne pour la qualité de l'air et les vélos, mensuelle pour les comptages routiers, annuelle pour le budget.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment utiliser l'API ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1c",
+                "type": "text",
+                "content": "Chaque jeu de données dispose d'une API documentée, accessible sans clé pour les données publiques. La documentation interactive est disponible depuis la page de chaque jeu de données.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment signaler une erreur ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1d",
+                "type": "text",
+                "content": "Utilisez le bouton « Signaler un problème » de la page du jeu de données, ou écrivez-nous : chaque signalement est transmis au service producteur de la donnée.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          }
+        ],
+        "mb": 0,
+        "multiple": true
+      },
+      {
+        "uuid": "3f2a9c1e",
+        "type": "two-columns",
+        "disposition": "equal",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c1f",
+            "type": "title",
+            "content": "Jeunesse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c20",
+            "type": "text",
+            "content": "Accueils de loisirs, conseil des jeunes, aides au permis de conduire et au BAFA : découvrez les actions de l'agglomération pour les 11-25 ans.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c21",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "jeunesse",
+                "title": "Nos actions pour la jeunesse"
+              },
+              "title": "Voir les actions jeunesse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c22",
+            "type": "title",
+            "content": "Presse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c23",
+            "type": "text",
+            "content": "Journalistes : retrouvez nos communiqués, nos visuels et les contacts du service communication.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c24",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "contact-presse",
+                "title": "Contact presse"
+              },
+              "title": "Contacter le service presse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c25",
+        "type": "text",
+        "content": "Les données de ce portail sont mises à disposition par la Communauté d'agglomération du Val de Loue, 2 place de la Mairie, 25290 Ornans. Pour toute question : opendata@valdeloue.fr.",
+        "centered": false,
+        "mb": 0
+      }
+    ]
+  },
+  "calls": [
+    {
+      "tool": "readDocument",
+      "args": {},
+      "response": "{\"title\":\"Découvrir nos données\",\"description\":\"Le portail open data du Val de Loue : jeux de données, visualisations et réutilisations de l'agglomération, librement réutilisables.\",\"showBreadcrumbs\":true,\"fluid\":false,\"elements\":[{\"uuid\":\"3f2a9c01\",\"type\":\"title\",\"content\":\"Les données ouvertes du Val de Loue\",\"titleSize\":\"h1\",\"centered\":true,\"line\":{\"position\":\"none\"}},{\"uuid\":\"3f2a9c02\",\"type\":\"text\",\"content\":\"Depuis 2019, la Communauté d'agglomération du Val de Loue publie ses données en open data. Transports, environnement, budget, équipements publics : **plus de 180 jeux de données** sont librement réutilisables sous Licence Ouverte 2.0.\\n\\nCe portail vous permet de les explorer, de les visualiser sous forme de cartes et de graphiques, et de les télécharger dans les formats les plus courants.\",\"centered\":false,\"mb\":0},{\"uuid\":\"3f2a9c03\",\"type\":\"alert\",\"alertType\":\"info\",\"title\":\"Nouveau\",\"content\":\"Les mesures de qualité de l'air de nos six stations sont désormais publiées chaque jour avant 9 h, avec l'historique complet depuis 2015.\",\"variant\":\"default\",\"closable\":false,\"mb\":0},{\"uuid\":\"3f2a9c04\",\"type\":\"two-columns\",\"disposition\":\"left\",\"gutter\":\"default\",\"children\":[{\"uuid\":\"3f2a9c05\",\"type\":\"title\",\"content\":\"Nos engagements\",\"titleSize\":\"h3\",\"line\":{\"position\":\"none\"}},{\"uuid\":\"3f2a9c06\",\"type\":\"text\",\"content\":\"- **Ouvrir par défaut** : toute donnée publique non personnelle a vocation à être publiée.\\n- **Mettre à jour** : chaque jeu de données indique sa fréquence de mise à jour et la respecte.\\n- **Documenter** : chaque colonne est décrite, chaque source est citée.\\n- **Écouter** : vos demandes de publication reçoivent une réponse sous quinze jours.\",\"centered\":false,\"mb\":0},{\"uuid\":\"3f2a9c07\",\"type\":\"button\",\"link\":{\"type\":\"standard\",\"subtype\":\"datasets\",\"title\":\"Voir tout le catalogue\"},\"usePortalConfig\":true,\"centered\":true,\"mb\":0}],\"children2\":[{\"uuid\":\"3f2a9c08\",\"type\":\"card\",\"title\":\"Un jeu de données vous manque ?\",\"children\":[{\"uuid\":\"3f2a9c09\",\"type\":\"text\",\"content\":\"Dites-nous quelles données vous seraient utiles et pour quel usage : nous étudions chaque demande avec les services concernés.\",\"centered\":false,\"mb\":0}],\"actions\":[{\"type\":\"standard\",\"subtype\":\"contact\",\"title\":\"Nous écrire\"}],\"border\":true,\"thumbnail\":{\"location\":\"center\",\"crop\":true},\"actionStyle\":{\"usePortalConfig\":true},\"mb\":0},{\"uuid\":\"3f2a9c0a\",\"type\":\"text\",\"content\":\"Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr.\",\"centered\":false,\"mb\":0}],\"mb\":0},{\"uuid\":\"3f2a9c0b\",\"type\":\"divider\",\"rounded\":true,\"opacity\":0.1,\"thickness\":1},{\"uuid\":\"3f2a9c0c\",\"type\":\"title\",\"content\":\"Thématiques à la une\",\"titleSize\":\"h2\",\"line\":{\"position\":\"none\"}},{\"uuid\":\"3f2a9c0d\",\"type\":\"responsive-grid\",\"columns\":3,\"children\":[{\"uuid\":\"3f2a9c0e\",\"type\":\"card\",\"title\":\"Mobilité\",\"children\":[{\"uuid\":\"3f2a9c0f\",\"type\":\"text\",\"content\":\"Horaires et arrêts du réseau de bus Loue'Bus, stations de vélos en libre-service, comptages routiers et places de stationnement.\",\"centered\":false,\"mb\":0}],\"actions\":[],\"border\":true,\"thumbnail\":{\"location\":\"center\",\"crop\":true},\"actionStyle\":{\"usePortalConfig\":true},\"mb\":0},{\"uuid\":\"3f2a9c10\",\"type\":\"card\",\"title\":\"Environnement\",\"children\":[{\"uuid\":\"3f2a9c11\",\"type\":\"text\",\"content\":\"Qualité de l'air, points d'apport volontaire, collecte des déchets, espaces verts et arbres d'alignement.\",\"centered\":false,\"mb\":0}],\"actions\":[],\"border\":true,\"thumbnail\":{\"location\":\"center\",\"crop\":true},\"actionStyle\":{\"usePortalConfig\":true},\"mb\":0},{\"uuid\":\"3f2a9c12\",\"type\":\"card\",\"title\":\"Budget et finances\",\"children\":[{\"uuid\":\"3f2a9c13\",\"type\":\"text\",\"content\":\"Budget primitif et compte administratif depuis 2016, subventions versées aux associations, marchés publics attribués.\",\"centered\":false,\"mb\":0}],\"actions\":[],\"border\":true,\"thumbnail\":{\"location\":\"center\",\"crop\":true},\"actionStyle\":{\"usePortalConfig\":true},\"mb\":0},{\"uuid\":\"3f2a9c14\",\"type\":\"card\",\"title\":\"Culture et patrimoine\",\"children\":[{\"uuid\":\"3f2a9c15\",\"type\":\"text\",\"content\":\"Équipements culturels, fréquentation des médiathèques, monuments protégés et programmation des saisons culturelles.\",\"centered\":false,\"mb\":0}],\"actions\":[],\"border\":true,\"thumbnail\":{\"location\":\"center\",\"crop\":true},\"actionStyle\":{\"usePortalConfig\":true},\"mb\":0},{\"uuid\":\"3f2a9c16\",\"type\":\"card\",\"title\":\"Équipements sportifs\",\"children\":[{\"uuid\":\"3f2a9c17\",\"type\":\"text\",\"content\":\"Gymnases, piscines, stades et terrains de proximité, avec leurs horaires d'ouverture et leurs équipements.\",\"centered\":false,\"mb\":0}],\"actions\":[],\"border\":true,\"thumbnail\":{\"location\":\"center\",\"crop\":true},\"actionStyle\":{\"usePortalConfig\":true},\"mb\":0}],\"gutter\":\"dense\",\"mb\":0},{\"uuid\":\"3f2a9c18\",\"type\":\"title\",\"content\":\"Questions fréquentes\",\"titleSize\":\"h2\",\"line\":{\"position\":\"none\"}},{\"uuid\":\"3f2a9c19\",\"type\":\"expansion-panels\",\"panels\":[{\"title\":\"Sous quelle licence les données sont-elles publiées ?\",\"children\":[{\"uuid\":\"3f2a9c1a\",\"type\":\"text\",\"content\":\"Toutes les données de ce portail sont publiées sous Licence Ouverte 2.0 (Etalab) : vous pouvez les réutiliser librement, y compris à des fins commerciales, en citant la source.\",\"centered\":false,\"mb\":0}]},{\"title\":\"À quelle fréquence sont-elles mises à jour ?\",\"children\":[{\"uuid\":\"3f2a9c1b\",\"type\":\"text\",\"content\":\"Chaque jeu de données indique sa fréquence de mise à jour : quotidienne pour la qualité de l'air et les vélos, mensuelle pour les comptages routiers, annuelle pour le budget.\",\"centered\":false,\"mb\":0}]},{\"title\":\"Comment utiliser l'API ?\",\"children\":[{\"uuid\":\"3f2a9c1c\",\"type\":\"text\",\"content\":\"Chaque jeu de données dispose d'une API documentée, accessible sans clé pour les données publiques. La documentation interactive est disponible depuis la page de chaque jeu de données.\",\"centered\":false,\"mb\":0}]},{\"title\":\"Comment signaler une erreur ?\",\"children\":[{\"uuid\":\"3f2a9c1d\",\"type\":\"text\",\"content\":\"Utilisez le bouton « Signaler un problème » de la page du jeu de données, ou écrivez-nous : chaque signalement est transmis au service producteur de la donnée.\",\"centered\":false,\"mb\":0}]}],\"mb\":0,\"multiple\":true},{\"uuid\":\"3f2a9c1e\",\"type\":\"two-columns\",\"disposition\":\"equal\",\"gutter\":\"default\",\"children\":[{\"uuid\":\"3f2a9c1f\",\"type\":\"title\",\"content\":\"Jeunesse\",\"titleSize\":\"h3\",\"line\":{\"position\":\"none\"}},{\"uuid\":\"3f2a9c20\",\"type\":\"text\",\"content\":\"Accueils de loisirs, conseil des jeunes, aides au permis de conduire et au BAFA : découvrez les actions de l'agglomération pour les 11-25 ans.\",\"centered\":false,\"mb\":0},{\"uuid\":\"3f2a9c21\",\"type\":\"button\",\"link\":{\"type\":\"generic\",\"pageRef\":{\"slug\":\"jeunesse\",\"title\":\"Nos actions pour la jeunesse\"},\"title\":\"Voir les actions jeunesse\"},\"usePortalConfig\":true,\"centered\":true,\"mb\":0}],\"children2\":[{\"uuid\":\"3f2a9c22\",\"type\":\"title\",\"content\":\"Presse\",\"titleSize\":\"h3\",\"line\":{\"position\":\"none\"}},{\"uuid\":\"3f2a9c23\",\"type\":\"text\",\"content\":\"Journalistes : retrouvez nos communiqués, nos visuels et les contacts du service communication.\",\"centered\":false,\"mb\":0},{\"uuid\":\"3f2a9c24\",\"type\":\"button\",\"link\":{\"type\":\"generic\",\"pageRef\":{\"slug\":\"contact-presse\",\"title\":\"Contact presse\"},\"title\":\"Contacter le service presse\"},\"usePortalConfig\":true,\"centered\":true,\"mb\":0}],\"mb\":0},{\"uuid\":\"3f2a9c25\",\"type\":\"text\",\"content\":\"Les données de ce portail sont mises à disposition par la Communauté d'agglomération du Val de Loue, 2 place de la Mairie, 25290 Ornans. Pour toute question : opendata@valdeloue.fr.\",\"centered\":false,\"mb\":0}]}",
+      "outputBytes": 7639,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {},
+      "response": "The schema is too long to be read whole (type object). Its outline:\n\nproperties (key, type, title):\n- title: string — Title\n- description: string — Description\n- eventMetadata: object\n- newsMetadata: object\n- genericMetadata: object\n- thumbnail: object — Thumbnail\n- showBreadcrumbs: boolean — Show breadcrumbs\n- fluid: boolean — \n- elements: array\n- _toc: array\n\nrequired: title, elements\n\n$defs: slug, element\n\nRead a part with a pointer: /properties/<key>, /$defs/<name>.",
+      "outputBytes": 484,
+      "isError": false
+    },
+    {
+      "tool": "writeDocument",
+      "args": {
+        "document": {
+          "title": "Découvrir nos données",
+          "description": "Le portail open data du Val de Loue : jeux de données, visualisations et réutilisations de l'agglomération, librement réutilisables.",
+          "showBreadcrumbs": true,
+          "fluid": false,
+          "elements": [
+            {
+              "uuid": "3f2a9c03",
+              "type": "alert",
+              "alertType": "info",
+              "title": "Nouveau",
+              "content": "Les mesures de qualité de l'air de nos six stations sont désormais publiées chaque jour avant 9 h, avec l'historique complet depuis 2015.",
+              "variant": "default",
+              "closable": false,
+              "mb": 0
+            },
+            {
+              "uuid": "3f2a9c01",
+              "type": "title",
+              "content": "Les données ouvertes du Val de Loue",
+              "titleSize": "h1",
+              "centered": true,
+              "line": {
+                "position": "none"
+              }
+            },
+            {
+              "uuid": "3f2a9c02",
+              "type": "text",
+              "content": "Depuis 2019, la Communauté d'agglomération du Val de Loue publie ses données en open data. Transports, environnement, budget, équipements publics : **plus de 180 jeux de données** sont librement réutilisables sous Licence Ouverte 2.0.\n\nCe portail vous permet de les explorer, de les visualiser sous forme de cartes et de graphiques, et de les télécharger dans les formats les plus courants.",
+              "centered": false,
+              "mb": 0
+            },
+            {
+              "uuid": "3f2a9c04",
+              "type": "two-columns",
+              "disposition": "left",
+              "gutter": "default",
+              "children": [
+                {
+                  "uuid": "3f2a9c05",
+                  "type": "title",
+                  "content": "Nos engagements",
+                  "titleSize": "h3",
+                  "line": {
+                    "position": "none"
+                  }
+                },
+                {
+                  "uuid": "3f2a9c06",
+                  "type": "text",
+                  "content": "- **Ouvrir par défaut** : toute donnée publique non personnelle a vocation à être publiée.\n- **Mettre à jour** : chaque jeu de données indique sa fréquence de mise à jour et la respecte.\n- **Documenter** : chaque colonne est décrite, chaque source est citée.\n- **Écouter** : vos demandes de publication reçoivent une réponse sous quinze jours.",
+                  "centered": false,
+                  "mb": 0
+                }
+              ],
+              "children2": [
+                {
+                  "uuid": "3f2a9c08",
+                  "type": "card",
+                  "title": "Un jeu de données vous manque ?",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c09",
+                      "type": "text",
+                      "content": "Dites-nous quelles données vous seraient utiles et pour quel usage : nous étudions chaque demande avec les services concernés.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "standard",
+                      "subtype": "contact",
+                      "title": "Nous écrire"
+                    }
+                  ],
+                  "border": true,
+                  "thumbnail": {
+                    "location": "center",
+                    "crop": true
+                  },
+                  "actionStyle": {
+                    "usePortalConfig": true
+                  },
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c0a",
+                  "type": "text",
+                  "content": "Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr.",
+                  "centered": false,
+                  "mb": 0
+                }
+              ],
+              "mb": 0
+            },
+            {
+              "uuid": "3f2a9c0b",
+              "type": "divider",
+              "rounded": true,
+              "opacity": 0.1,
+              "thickness": 1
+            },
+            {
+              "uuid": "3f2a9c0c",
+              "type": "title",
+              "content": "Thématiques à la une",
+              "titleSize": "h2",
+              "line": {
+                "position": "none"
+              }
+            },
+            {
+              "uuid": "3f2a9c0d",
+              "type": "responsive-grid",
+              "columns": 3,
+              "children": [
+                {
+                  "uuid": "3f2a9c0e",
+                  "type": "card",
+                  "title": "Mobilité",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c0f",
+                      "type": "text",
+                      "content": "Horaires et arrêts du réseau de bus Loue'Bus, stations de vélos en libre-service, comptages routiers et places de stationnement.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ],
+                  "actions": [],
+                  "border": true,
+                  "thumbnail": {
+                    "location": "center",
+                    "crop": true
+                  },
+                  "actionStyle": {
+                    "usePortalConfig": true
+                  },
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c10",
+                  "type": "card",
+                  "title": "Environnement",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c11",
+                      "type": "text",
+                      "content": "Qualité de l'air, points d'apport volontaire, collecte des déchets, espaces verts et arbres d'alignement.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ],
+                  "actions": [],
+                  "border": true,
+                  "thumbnail": {
+                    "location": "center",
+                    "crop": true
+                  },
+                  "actionStyle": {
+                    "usePortalConfig": true
+                  },
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c12",
+                  "type": "card",
+                  "title": "Budget et finances",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c13",
+                      "type": "text",
+                      "content": "Budget primitif et compte administratif depuis 2016, subventions versées aux associations, marchés publics attribués.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ],
+                  "actions": [],
+                  "border": true,
+                  "thumbnail": {
+                    "location": "center",
+                    "crop": true
+                  },
+                  "actionStyle": {
+                    "usePortalConfig": true
+                  },
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c14",
+                  "type": "card",
+                  "title": "Culture et patrimoine",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c15",
+                      "type": "text",
+                      "content": "Équipements culturels, fréquentation des médiathèques, monuments protégés et programmation des saisons culturelles.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ],
+                  "actions": [],
+                  "border": true,
+                  "thumbnail": {
+                    "location": "center",
+                    "crop": true
+                  },
+                  "actionStyle": {
+                    "usePortalConfig": true
+                  },
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c16",
+                  "type": "card",
+                  "title": "Équipements sportifs",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c17",
+                      "type": "text",
+                      "content": "Gymnases, piscines, stades et terrains de proximité, avec leurs horaires d'ouverture et leurs équipements.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ],
+                  "actions": [],
+                  "border": true,
+                  "thumbnail": {
+                    "location": "center",
+                    "crop": true
+                  },
+                  "actionStyle": {
+                    "usePortalConfig": true
+                  },
+                  "mb": 0
+                }
+              ],
+              "gutter": "dense",
+              "mb": 0
+            },
+            {
+              "uuid": "3f2a9c26",
+              "type": "divider",
+              "rounded": true,
+              "opacity": 0.1,
+              "thickness": 1
+            },
+            {
+              "uuid": "3f2a9c18",
+              "type": "title",
+              "content": "Questions fréquentes",
+              "titleSize": "h2",
+              "line": {
+                "position": "none"
+              }
+            },
+            {
+              "uuid": "3f2a9c19",
+              "type": "expansion-panels",
+              "panels": [
+                {
+                  "title": "Sous quelle licence les données sont-elles publiées ?",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c1a",
+                      "type": "text",
+                      "content": "Toutes les données de ce portail sont publiées sous Licence Ouverte 2.0 (Etalab) : vous pouvez les réutiliser librement, y compris à des fins commerciales, en citant la source.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ]
+                },
+                {
+                  "title": "À quelle fréquence sont-elles mises à jour ?",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c1b",
+                      "type": "text",
+                      "content": "Chaque jeu de données indique sa fréquence de mise à jour : quotidienne pour la qualité de l'air et les vélos, mensuelle pour les comptages routiers, annuelle pour le budget.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ]
+                },
+                {
+                  "title": "Comment utiliser l'API ?",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c1c",
+                      "type": "text",
+                      "content": "Chaque jeu de données dispose d'une API documentée, accessible sans clé pour les données publiques. La documentation interactive est disponible depuis la page de chaque jeu de données.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ]
+                },
+                {
+                  "title": "Comment signaler une erreur ?",
+                  "children": [
+                    {
+                      "uuid": "3f2a9c1d",
+                      "type": "text",
+                      "content": "Utilisez le bouton « Signaler un problème » de la page du jeu de données, ou écrivez-nous : chaque signalement est transmis au service producteur de la donnée.",
+                      "centered": false,
+                      "mb": 0
+                    }
+                  ]
+                }
+              ],
+              "mb": 0,
+              "multiple": true
+            },
+            {
+              "uuid": "3f2a9c1e",
+              "type": "two-columns",
+              "disposition": "equal",
+              "gutter": "default",
+              "children": [
+                {
+                  "uuid": "3f2a9c1f",
+                  "type": "title",
+                  "content": "Jeunesse",
+                  "titleSize": "h3",
+                  "line": {
+                    "position": "none"
+                  }
+                },
+                {
+                  "uuid": "3f2a9c20",
+                  "type": "text",
+                  "content": "Accueils de loisirs, conseil des jeunes, aides au permis de conduire et au BAFA : découvrez les actions de l'agglomération pour les 11-25 ans.",
+                  "centered": false,
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c21",
+                  "type": "button",
+                  "link": {
+                    "type": "generic",
+                    "pageRef": {
+                      "slug": "jeunesse",
+                      "title": "Nos actions pour la jeunesse"
+                    },
+                    "title": "Voir les actions jeunesse"
+                  },
+                  "usePortalConfig": true,
+                  "centered": true,
+                  "mb": 0
+                }
+              ],
+              "children2": [
+                {
+                  "uuid": "3f2a9c22",
+                  "type": "title",
+                  "content": "Presse",
+                  "titleSize": "h3",
+                  "line": {
+                    "position": "none"
+                  }
+                },
+                {
+                  "uuid": "3f2a9c23",
+                  "type": "text",
+                  "content": "Journalistes : retrouvez nos communiqués, nos visuels et les contacts du service communication.",
+                  "centered": false,
+                  "mb": 0
+                },
+                {
+                  "uuid": "3f2a9c24",
+                  "type": "button",
+                  "link": {
+                    "type": "generic",
+                    "pageRef": {
+                      "slug": "contact-presse",
+                      "title": "Contact presse"
+                    },
+                    "title": "Contacter le service presse"
+                  },
+                  "usePortalConfig": true,
+                  "centered": true,
+                  "mb": 0
+                }
+              ],
+              "mb": 0
+            },
+            {
+              "uuid": "3f2a9c25",
+              "type": "text",
+              "content": "Les données de ce portail sont mises à disposition par la Communauté d'agglomération du Val de Loue, 2 place de la Mairie, 25290 Ornans. Pour toute question : opendata@valdeloue.fr.",
+              "centered": false,
+              "mb": 0
+            }
+          ]
+        }
+      },
+      "response": "200 OK\nstored 5 top-level key(s)",
+      "outputBytes": 32,
+      "isError": false
+    }
+  ],
+  "data": {
+    "title": "Découvrir nos données",
+    "description": "Le portail open data du Val de Loue : jeux de données, visualisations et réutilisations de l'agglomération, librement réutilisables.",
+    "showBreadcrumbs": true,
+    "fluid": false,
+    "elements": [
+      {
+        "uuid": "3f2a9c03",
+        "type": "alert",
+        "alertType": "info",
+        "title": "Nouveau",
+        "content": "Les mesures de qualité de l'air de nos six stations sont désormais publiées chaque jour avant 9 h, avec l'historique complet depuis 2015.",
+        "variant": "default",
+        "closable": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c01",
+        "type": "title",
+        "content": "Les données ouvertes du Val de Loue",
+        "titleSize": "h1",
+        "centered": true,
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c02",
+        "type": "text",
+        "content": "Depuis 2019, la Communauté d'agglomération du Val de Loue publie ses données en open data. Transports, environnement, budget, équipements publics : **plus de 180 jeux de données** sont librement réutilisables sous Licence Ouverte 2.0.\n\nCe portail vous permet de les explorer, de les visualiser sous forme de cartes et de graphiques, et de les télécharger dans les formats les plus courants.",
+        "centered": false,
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c04",
+        "type": "two-columns",
+        "disposition": "left",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c05",
+            "type": "title",
+            "content": "Nos engagements",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c06",
+            "type": "text",
+            "content": "- **Ouvrir par défaut** : toute donnée publique non personnelle a vocation à être publiée.\n- **Mettre à jour** : chaque jeu de données indique sa fréquence de mise à jour et la respecte.\n- **Documenter** : chaque colonne est décrite, chaque source est citée.\n- **Écouter** : vos demandes de publication reçoivent une réponse sous quinze jours.",
+            "centered": false,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c08",
+            "type": "card",
+            "title": "Un jeu de données vous manque ?",
+            "children": [
+              {
+                "uuid": "3f2a9c09",
+                "type": "text",
+                "content": "Dites-nous quelles données vous seraient utiles et pour quel usage : nous étudions chaque demande avec les services concernés.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [
+              {
+                "type": "standard",
+                "subtype": "contact",
+                "title": "Nous écrire"
+              }
+            ],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c0a",
+            "type": "text",
+            "content": "Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr.",
+            "centered": false,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c0b",
+        "type": "divider",
+        "rounded": true,
+        "opacity": 0.1,
+        "thickness": 1
+      },
+      {
+        "uuid": "3f2a9c0c",
+        "type": "title",
+        "content": "Thématiques à la une",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c0d",
+        "type": "responsive-grid",
+        "columns": 3,
+        "children": [
+          {
+            "uuid": "3f2a9c0e",
+            "type": "card",
+            "title": "Mobilité",
+            "children": [
+              {
+                "uuid": "3f2a9c0f",
+                "type": "text",
+                "content": "Horaires et arrêts du réseau de bus Loue'Bus, stations de vélos en libre-service, comptages routiers et places de stationnement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c10",
+            "type": "card",
+            "title": "Environnement",
+            "children": [
+              {
+                "uuid": "3f2a9c11",
+                "type": "text",
+                "content": "Qualité de l'air, points d'apport volontaire, collecte des déchets, espaces verts et arbres d'alignement.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c12",
+            "type": "card",
+            "title": "Budget et finances",
+            "children": [
+              {
+                "uuid": "3f2a9c13",
+                "type": "text",
+                "content": "Budget primitif et compte administratif depuis 2016, subventions versées aux associations, marchés publics attribués.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c14",
+            "type": "card",
+            "title": "Culture et patrimoine",
+            "children": [
+              {
+                "uuid": "3f2a9c15",
+                "type": "text",
+                "content": "Équipements culturels, fréquentation des médiathèques, monuments protégés et programmation des saisons culturelles.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c16",
+            "type": "card",
+            "title": "Équipements sportifs",
+            "children": [
+              {
+                "uuid": "3f2a9c17",
+                "type": "text",
+                "content": "Gymnases, piscines, stades et terrains de proximité, avec leurs horaires d'ouverture et leurs équipements.",
+                "centered": false,
+                "mb": 0
+              }
+            ],
+            "actions": [],
+            "border": true,
+            "thumbnail": {
+              "location": "center",
+              "crop": true
+            },
+            "actionStyle": {
+              "usePortalConfig": true
+            },
+            "mb": 0
+          }
+        ],
+        "gutter": "dense",
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c26",
+        "type": "divider",
+        "rounded": true,
+        "opacity": 0.1,
+        "thickness": 1
+      },
+      {
+        "uuid": "3f2a9c18",
+        "type": "title",
+        "content": "Questions fréquentes",
+        "titleSize": "h2",
+        "line": {
+          "position": "none"
+        }
+      },
+      {
+        "uuid": "3f2a9c19",
+        "type": "expansion-panels",
+        "panels": [
+          {
+            "title": "Sous quelle licence les données sont-elles publiées ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1a",
+                "type": "text",
+                "content": "Toutes les données de ce portail sont publiées sous Licence Ouverte 2.0 (Etalab) : vous pouvez les réutiliser librement, y compris à des fins commerciales, en citant la source.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "À quelle fréquence sont-elles mises à jour ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1b",
+                "type": "text",
+                "content": "Chaque jeu de données indique sa fréquence de mise à jour : quotidienne pour la qualité de l'air et les vélos, mensuelle pour les comptages routiers, annuelle pour le budget.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment utiliser l'API ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1c",
+                "type": "text",
+                "content": "Chaque jeu de données dispose d'une API documentée, accessible sans clé pour les données publiques. La documentation interactive est disponible depuis la page de chaque jeu de données.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          },
+          {
+            "title": "Comment signaler une erreur ?",
+            "children": [
+              {
+                "uuid": "3f2a9c1d",
+                "type": "text",
+                "content": "Utilisez le bouton « Signaler un problème » de la page du jeu de données, ou écrivez-nous : chaque signalement est transmis au service producteur de la donnée.",
+                "centered": false,
+                "mb": 0
+              }
+            ]
+          }
+        ],
+        "mb": 0,
+        "multiple": true
+      },
+      {
+        "uuid": "3f2a9c1e",
+        "type": "two-columns",
+        "disposition": "equal",
+        "gutter": "default",
+        "children": [
+          {
+            "uuid": "3f2a9c1f",
+            "type": "title",
+            "content": "Jeunesse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c20",
+            "type": "text",
+            "content": "Accueils de loisirs, conseil des jeunes, aides au permis de conduire et au BAFA : découvrez les actions de l'agglomération pour les 11-25 ans.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c21",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "jeunesse",
+                "title": "Nos actions pour la jeunesse"
+              },
+              "title": "Voir les actions jeunesse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "children2": [
+          {
+            "uuid": "3f2a9c22",
+            "type": "title",
+            "content": "Presse",
+            "titleSize": "h3",
+            "line": {
+              "position": "none"
+            }
+          },
+          {
+            "uuid": "3f2a9c23",
+            "type": "text",
+            "content": "Journalistes : retrouvez nos communiqués, nos visuels et les contacts du service communication.",
+            "centered": false,
+            "mb": 0
+          },
+          {
+            "uuid": "3f2a9c24",
+            "type": "button",
+            "link": {
+              "type": "generic",
+              "pageRef": {
+                "slug": "contact-presse",
+                "title": "Contact presse"
+              },
+              "title": "Contacter le service presse"
+            },
+            "usePortalConfig": true,
+            "centered": true,
+            "mb": 0
+          }
+        ],
+        "mb": 0
+      },
+      {
+        "uuid": "3f2a9c25",
+        "type": "text",
+        "content": "Les données de ce portail sont mises à disposition par la Communauté d'agglomération du Val de Loue, 2 place de la Mairie, 25290 Ornans. Pour toute question : opendata@valdeloue.fr.",
+        "centered": false,
+        "mb": 0
+      }
+    ]
+  },
+  "checks": [
+    {
+      "label": "nothing changed outside the blocks",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the first block is the alert « Nouveau »",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the alert moved to the top keeps its text",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "a divider is just before the title « Questions fréquentes »",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the column « Nos engagements » has lost one block",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the column « Nos engagements » keeps its title",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the column « Nos engagements » keeps its list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the right column of « Nos engagements » is unchanged",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the page has one top-level block more",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the page title is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the introduction is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the first divider is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the title « Thématiques à la une » is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the grid of themes is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the title « Questions fréquentes » is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the questions is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the section « Jeunesse » / « Presse » is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the closing paragraph is unchanged, at its shifted place",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 3,
+    "outputBytes": 8155
+  }
+}

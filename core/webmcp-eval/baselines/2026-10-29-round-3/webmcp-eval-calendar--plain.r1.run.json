@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.00480841,
+  "turns": 7,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 2366,
+    "cacheRead": 44861,
+    "cacheWrite": 15879
+  },
+  "answer": "The calendar is set up on \"Agenda-manifestations\" and the document now validates (`200 OK`).\n\nWhat I changed:\n- **Dataset:** added \"Agenda-manifestations\" (`hokfkn9ym3s9pr-yt1atgzl-`) as the calendar's source. It has a start-date field (`date_debut`), so it qualifies.\n- **Event label:** set `labelField` to the column `nomevenement` (\"Nom de l'évenement\"). The schema doesn't spell out the shape of this field, so I used the `key`/`label` pair its picker reads.\n- **Crowd sourcing:** turned on with `crowdSourcing: true`.\n\nNot set: `contribsDataset`. The schema marks it optional, and you didn't name a dataset to receive proposals. Visitors' proposals may have nowhere to go until one is chosen. If you give me the name of a REST dataset for proposals, I'll add it."
+}

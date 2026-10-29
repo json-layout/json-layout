@@ -1,0 +1,18 @@
+{
+  "case": "portal-menu-explain",
+  "arm": "form",
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0022362500000000004,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 1132,
+    "cacheRead": 18585,
+    "cacheWrite": 7419
+  },
+  "answer": "You can add six kinds of entry to the portal menu. I haven't changed anything.\n\n1. **Page standard** (`type: standard`): a built-in page. Required: **Type de page** (`subtype`), chosen from a fixed list: Accueil, Contact, Accessibilité, Conditions générales d'utilisation, Mentions légales, Politique de confidentialité, Politique de cookies, Catalogue de données, Catalogue de visualisations, Catalogue de réutilisations, Catalogue d'événements, Catalogue d'actualités, Plan du site, or Documentation d'API. Optional: Libellé, Ouvrir dans un nouvel onglet, and icon settings.\n\n2. **Page libre** (`type: generic`): one of the portal's existing free pages. Required: **Page** (`pageRef`), picked from suggestions. Optional: Libellé, new-tab toggle, and icon.\n\n3. **Page d'événements** (`type: event`): a link to an event page. Required: **Page** (`pageRef`), chosen from a fixed list. Optional: Libellé, new-tab toggle, and icon.\n\n4. **Page d'actualités** (`type: news`): a link to a news page. Required: **Page** (`pageRef`), chosen from a fixed list. Optional: Libellé, new-tab toggle, and icon.\n\n5. **Sous-menu** (`type: submenu`): a group of entries. Required: **Libellé** (`title`) and at least one child entry. Each child is one of the six kinds above, except that I haven't checked whether a sub-menu can nest another sub-menu. Optional: icon.\n\n6. **Lien** (`type: external`): an external URL. Required: **Lien** (`href`) and **Libellé** (`title`). Optional: new-tab toggle and icon.\n\nFor every kind, the icon is optional. It can be an MDI icon (suggestions), or a custom SVG path (square paths only), plus a colour from Primaire, Secondaire, Accentuée, Information, Succès, Erreur, or Avertissement.\n\nThe current menu has two items, both standard pages: Accueil (`home`) and Catalogue de données (`datasets`). The form is valid as it stands."
+}
