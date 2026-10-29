@@ -315,6 +315,19 @@ describe('webmcp values picked, not invented', () => {
     return { layout, webmcp, tools: Object.fromEntries(webmcp.getTools().map((t) => [t.name, t])) }
   }
 
+  it('should count a number offered for a text field as picked once written as text', async () => {
+    const schema = { type: 'object', properties: { place: { type: 'string', layout: { getItems: { url: 'http://example.com/places?q={q}', itemsResults: 'data.results', itemKey: 'item.code', itemTitle: 'item.label' } } } } }
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0, fetch: async () => ({ results: [{ code: 44109, label: 'Nantes' }, { code: 44190, label: 'Saint-Sébastien' }] }) }, {})
+    const webmcp = new WebMCP(layout)
+    const tools = Object.fromEntries(webmcp.getTools().map((t) => [t.name, t]))
+    await run(tools, 'getFieldSuggestions', { path: '/place' })
+    const text = await run(tools, 'setFieldValue', { path: '/place', suggestionIndex: 1 })
+    assert.ok(!text.includes('was not among'), text)
+    assert.equal(/** @type {any} */(layout.data).place, '44190')
+    assert.deepEqual(webmcp.unpickedValues(), [])
+  })
+
   it('should keep a pick with its item when items are removed or moved', async () => {
     const { tools, webmcp, layout } = placesForm()
     await run(tools, 'getFieldSuggestions', { path: '/l/2/place' })

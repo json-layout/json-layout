@@ -63,7 +63,7 @@ To fill an array, call ${prefixName}editArray with action "add": the new item is
 
 ${sections}${prefixName}getData returns the data document itself, whole or one part of it by path, for when you need the values rather than a description of them.
 
-The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are only counted.
+The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are counted, and the first ones listed when this node has none.
 
 When you report what you did, say only what the data now holds: a field still empty is not something the form does.
 `

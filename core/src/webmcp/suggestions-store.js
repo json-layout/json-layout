@@ -227,12 +227,14 @@ export class SuggestionsStore {
    * @param {unknown} [itemKey] - the value's item key, for an object value the form stores
    * trimmed to its schema (a data-fair dataset loses its owner, id, slug...): the key is how
    * the state layer itself recognizes the selected item
+   * @param {(offered: unknown) => unknown} [asWritten] - how an offered value is stored once
+   * written (tolerant input turns a number offered for a text field into its text)
    * @returns {boolean}
    */
-  wasOffered (path, cacheKey, value, itemKey) {
+  wasOffered (path, cacheKey, value, itemKey, asWritten) {
     const offered = this._offered.get(offeredKeyOf(path, cacheKey))
     if (!offered) return false
-    return (itemKey !== undefined && offered.keys.has(itemKey)) || offered.values.some((o) => equal(o, value))
+    return (itemKey !== undefined && offered.keys.has(itemKey)) || offered.values.some((o) => equal(o, value) || (asWritten !== undefined && equal(asWritten(o), value)))
   }
 
   /**

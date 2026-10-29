@@ -17,6 +17,8 @@ import equal from 'fast-deep-equal'
 
 import { formatMutationResult, formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource, suggestionsMatchQuery } from './project.js'
 import { resolveNode } from './resolve.js'
+import { coerceForNode } from './coerce.js'
+import { resolveNodeSchema } from './schema.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
 import { reshapesFromOtherData } from '../state/index.js'
@@ -326,12 +328,14 @@ export class WebMCP {
     // the schema's default is not typed by the agent either
     const defaultData = /** @type {any} */(node.layout).defaultData
     const loaded = [...loadedValuesAt(this._baseline, node.dataPath), ...(defaultData !== undefined ? [defaultData] : [])]
+    /** @param {unknown} offered */
+    const asWritten = (offered) => coerceForNode(node, offered, resolveNodeSchema(node, this._statefulLayout)).value
     /** @param {unknown} value */
     const picked = (value) => {
       const key = this._itemKeyOf(node, value)
       /** @param {unknown} l */
       const same = (l) => equal(l, value) || (key !== undefined && this._itemKeyOf(node, l) === key)
-      return this._suggestionsStore.wasOffered(node.fullKey, this._freshnessKey(node), value, key) ||
+      return this._suggestionsStore.wasOffered(node.fullKey, this._freshnessKey(node), value, key, asWritten) ||
         loaded.some((l) => same(l) || (Array.isArray(l) && l.some(same)))
     }
     if (picked(data)) return undefined
