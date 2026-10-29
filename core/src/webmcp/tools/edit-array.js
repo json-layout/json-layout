@@ -43,7 +43,7 @@ export const inputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Add, remove or move items in an array field of "${dataTitle}". Use describeState to see current array contents. When adding an item it is activated for edition and its children fields are returned, they can then be filled with setFieldValue. The returned errors are scoped to this array. Moving an item keeps its data, so reorder with move rather than adding and removing.`
+  return `Add, remove or move items in an array field of "${dataTitle}". Use describeState to see current array contents. When adding an item it is activated for edition and its children fields are returned, they can then be filled with setFieldValue. The returned errors are scoped to this array. Moving an item keeps its data, so reorder with move rather than adding and removing. For several changes to the same list at once, write the whole list with setData instead.`
 }
 
 /**
