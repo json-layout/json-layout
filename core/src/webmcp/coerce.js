@@ -25,6 +25,20 @@ function isChoiceBetweenSchemas (schema) {
 }
 
 /**
+ * The closed set of values an item schema allows: its enum, or a oneOf of constants.
+ * @param {Record<string, any>|undefined} items
+ * @returns {unknown[]|undefined}
+ */
+function allowedValues (items) {
+  if (!items) return undefined
+  if (Array.isArray(items.enum)) return items.enum
+  if (Array.isArray(items.oneOf) && items.oneOf.length && items.oneOf.every((/** @type {any} */ item) => item && 'const' in item)) {
+    return items.oneOf.map((/** @type {any} */ item) => item.const)
+  }
+  return undefined
+}
+
+/**
  * A number as the text a string field holds. An unsafe integer or an exponent spelling
  * would store something else than what was meant, so those stay refused.
  * @param {unknown} value
@@ -79,6 +93,14 @@ export function coerceForNode (node, value, schema) {
     if (typeof value === 'string') {
       if (value === '') return { value }
       const separator = separatorOf(node, schema)
+      // a closed set of allowed values tells where a list of them was written as one text
+      const allowed = allowedValues(schema.items)
+      if (allowed && !allowed.includes(value)) {
+        const delimiters = separator && separator !== ',' ? [',', separator] : [',']
+        const parts = delimiters.reduce((/** @type {string[]} */ pieces, delimiter) => pieces.flatMap((piece) => piece.split(delimiter)), [value])
+          .map((part) => part.trim()).filter(Boolean)
+        if (parts.length > 1 && parts.every((part) => allowed.includes(part))) return { value: parts, coerced: 'text → list' }
+      }
       if (separator && value.includes(separator)) {
         const parts = value.split(separator).map((part) => part.trim()).filter(Boolean)
         return { value: parts, coerced: `split on "${separator}"` }

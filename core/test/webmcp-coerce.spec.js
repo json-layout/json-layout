@@ -50,6 +50,17 @@ describe('coerceForNode', () => {
     // a text field joined by its separator keeps its string
     assert.deepEqual(coerceForNode(multi, 'a,b', { type: 'string' }), { value: 'a,b' })
   })
+  it('splits a text into the allowed values it lists', () => {
+    const items = { type: 'string', oneOf: [{ const: 'judo' }, { const: 'yoga' }, { const: 'a, b' }] }
+    const schema = { type: 'array', items }
+    assert.deepEqual(coerceForNode(node(), 'judo, yoga', schema), { value: ['judo', 'yoga'], coerced: 'text → list' })
+    assert.deepEqual(coerceForNode(node({ separator: ';' }), 'judo; yoga', schema), { value: ['judo', 'yoga'], coerced: 'text → list' })
+    assert.deepEqual(coerceForNode(node(), 'judo, yoga', { type: 'array', items: { type: 'string', enum: ['judo', 'yoga'] } }), { value: ['judo', 'yoga'], coerced: 'text → list' })
+    // one unknown part: no split
+    assert.deepEqual(coerceForNode(node(), 'judo, tennis', schema), { value: ['judo, tennis'], coerced: 'single value → list' })
+    // the whole text is an allowed value that holds a comma
+    assert.deepEqual(coerceForNode(node(), 'a, b', schema), { value: ['a, b'], coerced: 'single value → list' })
+  })
   it('turns the numbers of a list of texts into texts', () => {
     assert.deepEqual(coerceForNode(node(), [1, 'b'], { type: 'array', items: { type: 'string' } }), { value: ['1', 'b'], coerced: 'number → string' })
   })
@@ -75,6 +86,13 @@ describe('tolerant write tools', () => {
     const result = setFieldValue.execute(layout, { path: '/activites', value: 'judo' })
     assert.deepEqual(/** @type {any} */(layout.data).activites, ['judo'])
     assert.deepEqual(result.coerced, ['/activites single value → list'])
+  })
+  it('setFieldValue splits a text listing allowed values', () => {
+    const layout = setup()
+    const result = setFieldValue.execute(layout, { path: '/activites', value: 'football, judo' })
+    assert.deepEqual(/** @type {any} */(layout.data).activites, ['football', 'judo'])
+    assert.deepEqual(result.coerced, ['/activites text → list'])
+    assert.equal(result.errors.filter(e => e.path === '/activites').length, 0)
   })
   it('setFieldValue reports nothing when nothing was coerced', () => {
     const layout = setup()
