@@ -22,16 +22,16 @@ anything you could not complete.`
  * Same spirit as the page runner's, for a document the user manages rather than a page
  * they are viewing. The form-filling guide is appended after it.
  */
-export const SESSION_RUNNER_PROMPT = sessionRunnerPrompt('save the record when your changes are complete')
+export const SESSION_RUNNER_PROMPT = sessionRunnerPrompt('and save the record when your changes are complete.')
 
 /**
  * The same, for a record that saves by itself (an auto-save session): only the saving
  * clause differs.
  */
-export const SESSION_RUNNER_PROMPT_AUTO = sessionRunnerPrompt('your changes are saved as you make them')
+export const SESSION_RUNNER_PROMPT_AUTO = sessionRunnerPrompt('and keep in mind that your changes are saved as you make them.')
 
 /**
- * @param {string} saving - the clause on saving that ends the second paragraph
+ * @param {string} saving - the clause on saving that ends the second paragraph, with its conjunction
  * @returns {string}
  */
 function sessionRunnerPrompt (saving) {
@@ -39,7 +39,7 @@ function sessionRunnerPrompt (saving) {
 
 Use the tools available to you to inspect the form and fill it in according to what the
 user asks for. Work carefully: read the form's structure before writing to it, check that
-the values you write were accepted, and ${saving}.
+the values you write were accepted, ${saving}
 
 If you cannot determine a value from what the tools tell you, say so in your final
 answer rather than guessing. When you are done, summarise what you changed and
