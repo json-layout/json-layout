@@ -391,8 +391,8 @@ const communes = JSON.parse(readFileSync(join(here, 'data', 'communes.json'), 'u
 
 /**
  * The referential's single search as data-fair answers it
- * (api/src/datasets/routes/master-data.ts): every word of `q` in the name, sorted on the
- * code, ten results, each labelled "code (name)".
+ * (api/src/datasets/routes/master-data.ts): every word of `q` in the name or starting the
+ * code, sorted on the code, ten results, each labelled "code (name)".
  * @param {URL} url
  * @returns {unknown}
  */
@@ -400,7 +400,7 @@ function communesRemote (url) {
   if (url.pathname !== '/communes') return undefined
   const words = fold(url.searchParams.get('q') ?? '').split(/\s+/).filter(Boolean)
   const found = communes
-    .filter((c) => words.every((w) => fold(c.nom).includes(w)))
+    .filter((c) => words.every((w) => fold(c.nom).includes(w) || c.code.startsWith(w)))
     .sort((a, b) => a.code.localeCompare(b.code))
   return {
     total: found.length,
@@ -435,9 +435,9 @@ function lineApiAccepts (doc) {
  *
  * Every value the goal gives is in a shape the register does not take as is. The commune
  * is a code INSEE picked from a referential, and "St-Sébastien" matches nothing there
- * while the full name matches several homonyms; the phone is grouped by twos; the
- * activities and audiences are closed lists, and "ju-jitsu" and "self-défense" are not in
- * them; the date is written out in French. The line API's own tolerances (a joined string
+ * while the full name matches several homonyms, the one near Nantes being the right one;
+ * the phone is grouped by twos; the activities and audiences are closed lists the prose
+ * has to be mapped onto; the date is written out in French. The line API's own tolerances (a joined string
  * for a multi-valued column, a number for a string column) are the plain API's, so the
  * comparison measures the referential and the formats rather than the encoding.
  *
@@ -454,8 +454,8 @@ const dataFairLine = {
   name: 'data-fair-line',
   title: 'dataset line',
   goal: 'Peux-tu ajouter ce lieu à notre liste des lieux d\'activité des associations ? Je te transfère le mail du club :\n\n' +
-    '« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien. ' +
-    'On y fera du judo, ju-jitsu et self-défense, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. ' +
+    '« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. ' +
+    'On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. ' +
     'Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »',
   schema: lineEditorSchema(lineSchema),
   data: {},
@@ -466,7 +466,7 @@ const dataFairLine = {
     { path: '/commune', equals: '44190' },
     { path: '/telephone', equals: '02 40 80 12 34' },
     { path: '/siret', equals: '52348761900017' },
-    { path: '/activites', values: ['judo'] },
+    { path: '/activites', values: ['judo', 'yoga', 'handisport'] },
     { path: '/publics', values: ['enfants', 'adultes', 'personnes handicapées'] },
     { path: '/date_ouverture', equals: '2025-03-03' }
   ]

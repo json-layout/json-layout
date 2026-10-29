@@ -187,12 +187,12 @@ describe('webmcp eval line form case', () => {
     adresse: '12 rue des Grands Bois',
     telephone: '02 40 80 12 34',
     siret: 52348761900017,
-    activites: 'judo',
+    activites: 'judo, yoga, handisport',
     publics: 'enfants, adultes, personnes handicapées',
     date_ouverture: '2025-03-03'
   }
 
-  it('should search communes offline, every word of the query in the name', async () => {
+  it('should search communes offline, every word of the query in the name or the code', async () => {
     // The referential is searched the way data-fair's single search does it: the user's
     // abbreviation finds nothing, the full word finds the commune among its homonyms.
     const session = new EvalSession(getCase('data-fair-line'))
@@ -216,6 +216,9 @@ describe('webmcp eval line form case', () => {
     const reze = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=REZE')))
     // a prefix of the homonym too, and it sorts first
     assert.deepEqual(reze.results, [{ output: '15161', label: '15161 (Rézentières)' }, { output: '44143', label: '44143 (Rezé)' }])
+    // a code, or its start, finds the commune as data-fair's q_fields do
+    const byCode = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=44190')))
+    assert.deepEqual(byCode.results, [{ output: '44190', label: '44190 (Saint-Sébastien-sur-Loire)' }])
     assert.equal(remote(new URL('http://eval.local/unknown')), undefined)
   })
 
