@@ -203,7 +203,11 @@ const chartsEdit = {
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
   context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
   // the goal changes the metric and the legend position; everything else stays
-  checks: [{ unchangedExcept: ['/chart/config/valueCalc/metric', '/legendPosition'] }]
+  checks: [
+    { unchangedExcept: ['/chart/config/valueCalc/metric', '/legendPosition'] },
+    { path: '/chart/config/valueCalc/metric', equals: 'max', label: 'the chart shows the maximum' },
+    { path: '/legendPosition', equals: 'bottom', label: 'the legend is at the bottom' }
+  ]
 }
 
 /**
@@ -223,8 +227,12 @@ const portalPageEdit = {
   schema: loadSchema('portal-page.json'),
   data: loadData('portal-page-edit.json'),
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
-  // "Mentions légales" is the third block; the other two keep their place and content
-  checks: [{ unchangedExcept: ['/elements/2', '/title'] }]
+  // "Mentions légales" is the third block; the other two keep their place and content.
+  // No check kind states an absence, so the removal itself is left to the judge.
+  checks: [
+    { unchangedExcept: ['/elements/2', '/title'] },
+    { path: '/title', equals: 'Données ouvertes', label: 'the page is titled "Données ouvertes"' }
+  ]
 }
 
 /**

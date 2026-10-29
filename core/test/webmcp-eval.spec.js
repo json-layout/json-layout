@@ -341,8 +341,9 @@ describe('webmcp eval coherence and large-document checks', () => {
 
   it('should check the chart edit against exactly the two settings it changes', () => {
     const evalCase = getCase('charts-edit')
-    assert.equal(evalCase.checks?.length, 1)
+    assert.equal(evalCase.checks?.length, 3)
     const start = evalCase.data
+    assert.ok(outcome('charts-edit', start, start).failed.length > 0, 'doing nothing must not pass')
     const changed = structuredClone(/** @type {any} */ (start))
     changed.chart.config.valueCalc.metric = 'max'
     changed.legendPosition = 'bottom'
@@ -352,12 +353,17 @@ describe('webmcp eval coherence and large-document checks', () => {
     assert.equal(outcome('charts-edit', otherGrouping, start).failed.length, 1)
     const otherTitle = { ...changed, title: 'Pollution' }
     assert.equal(outcome('charts-edit', otherTitle, start).failed.length, 1)
+    assert.deepEqual(outcome('charts-edit', { ...changed, legendPosition: 'top' }, start).failed, ['the legend is at the bottom'])
+    const minimum = structuredClone(changed)
+    minimum.chart.config.valueCalc.metric = 'min'
+    assert.deepEqual(outcome('charts-edit', minimum, start).failed, ['the chart shows the maximum'])
   })
 
   it('should check the page edit against the removed block and the title only', () => {
     const evalCase = getCase('portal-page-edit')
-    assert.equal(evalCase.checks?.length, 1)
+    assert.equal(evalCase.checks?.length, 2)
     const start = evalCase.data
+    assert.ok(outcome('portal-page-edit', start, start).failed.length > 0, 'doing nothing must not pass')
     const changed = structuredClone(/** @type {any} */ (start))
     changed.elements.splice(2, 1)
     changed.title = 'Données ouvertes'
@@ -369,6 +375,7 @@ describe('webmcp eval coherence and large-document checks', () => {
     const unrelated = structuredClone(changed)
     unrelated.showBreadcrumbs = false
     assert.equal(outcome('portal-page-edit', unrelated, start).failed.length, 1)
+    assert.deepEqual(outcome('portal-page-edit', { ...changed, title: 'Données' }, start).failed, ['the page is titled "Données ouvertes"'])
   })
 })
 
