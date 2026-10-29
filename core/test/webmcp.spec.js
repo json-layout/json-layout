@@ -2952,6 +2952,31 @@ describe('webmcp describeState query', () => {
   })
 })
 
+// Round 3, portal-page-reorder form runs call 4: describeState on one page block printed the
+// 40 options of its union again before its fields (6.2 KB), judged bulky.
+describe('webmcp describeState on one item of a list of unions', () => {
+  const caseLayout = () => {
+    const evalCase = getCase('portal-page-reorder')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+  }
+
+  it('names the chosen option and where the options are listed, and lists only its fields', () => {
+    const markdown = describeState.toMarkdown(caseLayout(), { path: '/$comp-2/elements/7' })
+    assert.match(markdown, /- variant 0: Titre \(active\), one of the 40 options listed under \/\$comp-2\/elements$/m)
+    assert.ok(!markdown.includes('variant 1: Texte'), markdown)
+    assert.match(markdown, /\/\$comp-2\/elements\/7\/\$oneOf\/0\/content \(text\)/)
+    // 6210 bytes before, the 40 options printed again
+    assert.ok(Buffer.byteLength(markdown) < 4500, `${Buffer.byteLength(markdown)} bytes`)
+  })
+
+  it('still lists every option on the selector itself', () => {
+    const markdown = describeState.toMarkdown(caseLayout(), { path: '/$comp-2/elements/7/$oneOf' })
+    assert.match(markdown, /variant 39: /)
+  })
+})
+
 // Round 2 of the webmcp eval (baselines/2026-10-29-round-2): the root describeState of a 7.5 KB
 // portal page answered 95 KB and `/elements` 91 KB, cut before the model read them.
 describe('webmcp outline of a large form', () => {

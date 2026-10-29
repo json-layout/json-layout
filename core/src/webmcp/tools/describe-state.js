@@ -2,7 +2,7 @@
  * @file describeState tool
  */
 
-import { collectScopedErrors, projectQueryMatches, QUERY_MATCHES_MAX, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
+import { collectScopedErrors, recordItemOptionsUnderList, projectQueryMatches, QUERY_MATCHES_MAX, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
 import { resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 import { describeFormSchema, resolveSchemaPath } from '../form-schema.js'
@@ -62,6 +62,7 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
     const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, node)
     /** @param {string} description */
     const answer = (description) => formatMutationResult(statefulLayout.valid, errors, description, otherErrors, elsewhere)
+    recordItemOptionsUnderList(node, statefulLayout, listed)
     const markdown = answer(projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen, true))
     if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
       variantsMemo?.merge(listed)

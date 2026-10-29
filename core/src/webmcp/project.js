@@ -692,6 +692,25 @@ function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, po
 }
 
 /**
+ * An item of a list of unions asked for alone holds one option of the union every item holds:
+ * record the options as listed under the list, so the item says which one it holds and shows
+ * only that option's fields, as the outline does. Round 3: one page block answered its 40
+ * options again before its fields, 6.2 KB judged bulky. An item with no option chosen yet
+ * still lists them, it is where one is chosen.
+ * @param {import('../state/types.js').StateNode} item
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
+ */
+export function recordItemOptionsUnderList (item, statefulLayout, variantsMemo) {
+  if (typeof item.key !== 'number' || item.parentFullKey == null) return
+  const list = resolveNode(statefulLayout.stateTree.root, item.parentFullKey)
+  if (!list || list.layout.comp !== 'list') return
+  const selector = itemSelector(item)
+  if (!selector || !activeVariant(selector)) return
+  variantsMemo.record(selector.skeleton.pointer, list.fullKey || '/', true)
+}
+
+/**
  * Format a state tree as markdown for LLM-readable output.
  * @param {import('../state/types.js').StateTree} stateTree
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
