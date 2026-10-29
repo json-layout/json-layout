@@ -48,6 +48,11 @@ export type EvalCase = {
    * large by node count while its schema still fits under SCHEMA_MAX_LENGTH.
    */
   expectedSchemaFits: boolean
+  /**
+   * The plain API's input tolerance, applied to a write before validation, where the real
+   * API has one (data-fair's line API accepts a joined string for a multi-valued column).
+   */
+  apiAccepts?: (doc: unknown) => unknown
   /** Checks run on the final data of each arm, whatever path the agent took. */
   checks?: EvalCheck[]
 }
