@@ -175,3 +175,27 @@ variant is reported as not runnable rather than faked.
 - The check syntax in a case, and how the report prints failures.
 - The referential fixture's content and how it is served.
 - Whether the coherence case extends `calendar` or is new.
+
+## Round 2 (2026-10-29, after the first comparison)
+
+User decisions after reading the first baseline:
+
+- **Nested documents are the editor tools' main target** (portal pages, application
+  configurations). REST line edition is the simple reference case; break-even there is not
+  required, but the eval must show clearly what is costlier and why, to point at improvements.
+- **No generic HTTP tool.** Agents only get targeted MCP tools, never a plain HTTP client, so
+  "the plain arm built the lookup URLs itself" was an artefact. The plain arm loses `httpGet`.
+  Each case declares the targeted lookup tools a real MCP server would offer for its remote lists,
+  loosely modelled on data-fair/mcp (`list_account_datasets`, `describe_dataset`,
+  `get_field_values`; a portal pages listing for portal cases). A remote list with no plausible
+  targeted tool gets none. The lookup tools build their URLs themselves.
+- **Patch is single-level**, like data-fair's own APIs: a patch replaces each top-level key it
+  names entirely (object and array values included). No nested merge patch. Its description says
+  so, as data-fair's `patch_dataset` does.
+- **New nested cases**: edit an item in the middle of a list, insert / move / remove a block,
+  switch a block's type, several scattered edits in one request; checks pin the stated facts and
+  that nothing else changed.
+- **Cost breakdown** in the report: calls, output bytes and failures per kind of call (state or
+  document read, schema read, write, lookup or suggestion, other), and a flag when a response was
+  too large to reach the model whole.
+- The first round's `httpGet` / deep-merge results stay in their baseline as what they were.
