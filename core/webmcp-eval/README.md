@@ -114,8 +114,9 @@ error texts, and nothing a runner reads may say it is being evaluated. Two cases
   URLs captured, so a URL a runner spells its own way works as on the real API:
   `api/v1/datasets` filters the captured datasets (merged across listings) on the words of
   `q` (all in the title, accents and case folded; no `q` lists them all) and on
-  `rest=true`, ignoring the projection and paging parameters except a `size` below the
-  count; `api/v1/datasets/<id>` and its captured sub-paths (`/schema`) are served whatever
+  `rest=true`, projects each result on `select` (its fields plus those data-fair always
+  adds: `id`, `slug`, `href`, `page`, `owner`, `public`, `visibility`, `previews`), and
+  ignores the other projection and paging parameters except a `size` below the count; `api/v1/datasets/<id>` and its captured sub-paths (`/schema`) are served whatever
   their query. Any other path answers 404.
 - `data-fair-line`: the commune referential is a function of the URL
   (`cases/data/communes.json`, real communes from geo.api.gouv.fr), answering as data-fair's

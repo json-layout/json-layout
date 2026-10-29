@@ -133,14 +133,33 @@ function calendarDatasets () {
 const calendarPool = calendarDatasets()
 
 /**
+ * The fields data-fair adds to every listed dataset whatever `select` asks: every capture
+ * (each made with the picker's own `select`) carries exactly these beyond the selected ones.
+ */
+const ALWAYS_LISTED = ['id', 'slug', 'href', 'page', 'owner', 'public', 'visibility', 'previews']
+
+/**
+ * A dataset as a listing returns it under `select`: the selected top-level fields, plus
+ * the ones data-fair always adds.
+ * @param {Record<string, any>} dataset
+ * @param {string[]} select
+ * @returns {Record<string, any>}
+ */
+function project (dataset, select) {
+  return Object.fromEntries(Object.entries(dataset).filter(([key]) => select.includes(key) || ALWAYS_LISTED.includes(key)))
+}
+
+/**
  * The calendar's remote, answered on the path rather than on the exact URLs captured: a
  * runner writing its own URL spells the projection and paging parameters its own way, and
  * a real API answers it all the same.
  *
  * - `api/v1/datasets` filters the captured datasets on the words of `q` (every word in the
- *   title, accents and case folded; no `q` lists them all) and on `rest=true`. The
- *   projection and paging parameters (`select`, `short-concept`, `status`, `owner`, ...) are
- *   ignored, except a `size` below the count, which truncates the results.
+ *   title, accents and case folded; no `q` lists them all) and on `rest=true`. `select`
+ *   projects each result to its fields plus those data-fair always adds (ALWAYS_LISTED);
+ *   without it the merged objects are returned whole. The other projection and paging
+ *   parameters (`short-concept`, `status`, `owner`, ...) are ignored, except a `size` below
+ *   the count, which truncates the results.
  * - `api/v1/datasets/<id>` answers a captured dataset, and any other per-dataset path that
  *   was captured (`/schema`) is served whatever its query: the exact capture when the URL
  *   matches one, else the capture of that path with the fewest parameters.
@@ -159,7 +178,8 @@ function calendarRemote (url) {
     })
     const size = Number(url.searchParams.get('size'))
     const results = url.searchParams.has('size') && Number.isInteger(size) && size >= 0 && size < found.length ? found.slice(0, size) : found
-    return { count: found.length, results: structuredClone(results) }
+    const select = url.searchParams.get('select')?.split(',').map((f) => f.trim()).filter(Boolean)
+    return { count: found.length, results: structuredClone(select?.length ? results.map((d) => project(d, select)) : results) }
   }
   const exact = calendarIndex[remoteKey(url)]
   if (exact) return calendarCapture(exact)

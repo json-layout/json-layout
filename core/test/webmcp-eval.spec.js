@@ -327,6 +327,12 @@ describe('webmcp eval coherence and large-document checks', () => {
     // every word required, in any order, accents and case folded
     assert.deepEqual(titles(await body('api/v1/datasets?q=manifestations agenda')), ['Agenda-manifestations'])
     assert.ok(titles(await body('api/v1/datasets?q=agenda&select=title')).includes('Agenda-manifestations'))
+    // select projects each result, as data-fair does: the selected fields plus those it always adds
+    const always = ['id', 'slug', 'href', 'page', 'owner', 'public', 'visibility', 'previews']
+    const projected = await body('api/v1/datasets?q=Agenda-manifestations&select=title,href')
+    assert.deepEqual(Object.keys(projected.results[0]).sort(), [...new Set(['title', 'href', ...always])].sort())
+    // without select, the captured object whole
+    assert.ok(Object.keys(found.results[0]).length > always.length + 2)
     // no q: the whole captured listing; a smaller size truncates, the count stays
     const all = await body('api/v1/datasets?status=finalized&size=100')
     assert.ok(all.count >= 27 && all.results.length === all.count, JSON.stringify(all.count))
