@@ -158,6 +158,55 @@ describe('PlainApiSession', () => {
     assert.deepEqual(session.data, { a: 'x', b: 1, tags: ['a', 'b'] })
   })
 
+  it('names each missing property in a 400, under the form\'s short error messages', async () => {
+    const session = new PlainApiSession(getCase('contact'))
+    const partial = text(await session.call('writeDocument', { document: { name: 'Ada Lovelace' } }))
+    assert.match(partial, /^400 Bad Request\n/)
+    assert.match(partial, /email/)
+    assert.ok(!partial.includes('required information'), partial)
+    const empty = /** @type {string[]} */ (text(await session.call('writeDocument', { document: {} })).split('\n').slice(1))
+    assert.equal(empty.length, 2, empty.join('\n'))
+    assert.ok(empty.some((line) => line.includes('name')) && empty.some((line) => line.includes('email')), empty.join('\n'))
+  })
+
+  it('lists the allowed values of a closed list in one line', async () => {
+    const session = new PlainApiSession(getCase('data-fair-line'))
+    const result = await session.call('patchDocument', { patch: { activites: ['judo', 'ju-jitsu'], type_lieu: 'dojo' } })
+    const lines = /** @type {string[]} */ (text(result).split('\n'))
+    const activites = lines.filter((line) => line.startsWith('/activites/1'))
+    assert.equal(activites.length, 1, lines.join('\n'))
+    for (const value of ['football', 'judo', 'yoga', 'handisport']) assert.ok(activites[0].includes(`"${value}"`), activites[0])
+    assert.equal(lines.filter((line) => line.startsWith('/type_lieu')).length, 1, lines.join('\n'))
+    assert.ok(lines.find((line) => line.startsWith('/type_lieu'))?.includes('"salle polyvalente"'))
+    assert.ok(!lines.some((line) => /must be equal to constant|exactly one schema|chose one/.test(line)), lines.join('\n'))
+  })
+
+  it('stores a __proto__ key of a merge patch as data', () => {
+    const merged = /** @type {any} */ (mergePatch({ a: 1 }, JSON.parse('{"__proto__": {"polluted": true}, "b": {"__proto__": {"x": 1}}}')))
+    assert.equal(Object.getPrototypeOf(merged), Object.prototype)
+    assert.equal(merged.polluted, undefined)
+    assert.ok(Object.hasOwn(merged, '__proto__'))
+    assert.deepEqual(Object.keys(merged), ['a', '__proto__', 'b'])
+    assert.equal(/** @type {any} */ ({}).polluted, undefined)
+  })
+
+  it('hands the input tolerance a copy, so a refused write leaves the stored document as it was', async () => {
+    // a merge patch copies the top level only: the stored array is shared with the candidate
+    const evalCase = makeCase({
+      data: { a: 'x', b: 1, tags: ['t'] },
+      apiAccepts: (doc) => {
+        const d = /** @type {any} */ (doc)
+        d.tags.push('added')
+        d.a = 'far too long a code'
+        return d
+      }
+    })
+    const session = new PlainApiSession(evalCase)
+    const result = await session.call('patchDocument', { patch: { b: 2 } })
+    assert.equal(result.isError, true)
+    assert.deepEqual(session.data, { a: 'x', b: 1, tags: ['t'] })
+  })
+
   it('prompts with the API and the schema guide, never the form tools', () => {
     const session = new PlainApiSession(makeCase())
     assert.ok(session.prompt.includes('Records hold a short code and a list of tags.'))

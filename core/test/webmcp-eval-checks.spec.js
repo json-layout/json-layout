@@ -69,4 +69,10 @@ describe('runChecks', () => {
     assert.equal(r.ok, false)
     assert.match(r.detail, /not an array/)
   })
+
+  it('reads own properties only', () => {
+    assert.equal(one({ path: '/constructor', equals: Object }, {}).ok, false)
+    assert.equal(one({ path: '/a/toString', equals: 'x' }, { a: {} }).detail, '/a/toString is missing')
+    assert.equal(one({ path: '/list', contains: { constructor: Object } }, { list: [{}] }).ok, false)
+  })
 })

@@ -25,13 +25,15 @@ const MISSING = Symbol('missing')
 const tokens = (pointer) => pointer.split('/').slice(1).map(t => t.replace(/~1/g, '/').replace(/~0/g, '~'))
 
 /**
+ * Own properties only: a pointer to `/constructor` or `/__proto__` must not find what every
+ * object inherits.
  * @param {any} data
  * @param {string} pointer
  */
 const resolve = (data, pointer) => {
   let cur = data
   for (const t of tokens(pointer)) {
-    if (cur === null || typeof cur !== 'object' || !(t in cur)) return MISSING
+    if (cur === null || typeof cur !== 'object' || !Object.hasOwn(cur, t)) return MISSING
     cur = cur[t]
   }
   return cur
@@ -80,7 +82,7 @@ const equalsNormalized = (expected, actual) => {
  */
 const includes = (item, partial) => {
   if (isObject(partial)) {
-    return isObject(item) && Object.keys(partial).every(k => k in item && includes(item[k], partial[k]))
+    return isObject(item) && Object.keys(partial).every(k => Object.hasOwn(item, k) && includes(item[k], partial[k]))
   }
   return firstDiff(item, partial) === null
 }

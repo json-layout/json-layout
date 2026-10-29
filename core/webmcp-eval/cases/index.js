@@ -561,7 +561,11 @@ function lineApiAccepts (doc) {
   const properties = /** @type {Record<string, any>} */ (lineSchema.properties)
   for (const [key, value] of Object.entries(line)) {
     const property = properties[key]
-    if (property?.type === 'array' && typeof value === 'string') line[key] = value.split(',').map((v) => v.trim()).filter(Boolean)
+    // split on the column's own separator when the schema declares one (`separator`, read
+    // from the vendored schema since v2compat moves it into the layout), as data-fair does;
+    // the vendored register declares none, so `,`
+    const separator = property?.separator ?? property?.['x-separator'] ?? ','
+    if (property?.type === 'array' && typeof value === 'string') line[key] = value.split(separator).map((v) => v.trim()).filter(Boolean)
     else if (property?.type === 'string' && typeof value === 'number') line[key] = String(value)
   }
   return line

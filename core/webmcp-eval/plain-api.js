@@ -75,17 +75,22 @@ export function resolvePointer (root, pointer) {
 }
 
 /**
- * RFC 7396 JSON merge patch.
+ * RFC 7396 JSON merge patch. Keys are defined, not assigned, so a `__proto__` key in a
+ * patch is stored as data rather than replacing the result's prototype.
  * @param {unknown} target
  * @param {unknown} patch
  * @returns {unknown}
  */
 export function mergePatch (target, patch) {
   if (!isObject(patch)) return structuredClone(patch)
+  /** @type {Record<string, unknown>} */
   const result = isObject(target) ? { ...target } : {}
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete result[key]
-    else result[key] = mergePatch(result[key], value)
+    else {
+      const merged = mergePatch(Object.hasOwn(result, key) ? result[key] : undefined, value)
+      Object.defineProperty(result, key, { value: merged, enumerable: true, writable: true, configurable: true })
+    }
   }
   return result
 }
@@ -111,8 +116,60 @@ const pathInput = (/** @type {string} */ description) => ({
 function errorLine (error) {
   let line = `${error.instancePath || '(root)'} ${error.message}`
   if (error.params?.additionalProperty !== undefined) line += `: ${error.params.additionalProperty}`
+  const missing = error.keyword === 'required' ? error.params?.missingProperty : undefined
+  if (missing !== undefined && !String(error.message).includes(missing)) line += `: ${missing}`
   if (Array.isArray(error.params?.allowedValues)) line += `: ${error.params.allowedValues.map((v) => JSON.stringify(v)).join(', ')}`
   return line
+}
+
+/**
+ * The lines of a 400 answer, from ajv's errors as the form's validate function reports them.
+ *
+ * json-layout's `errorMessage` keyword replaces errors with its own short texts ("required
+ * information", "chose one") and no property, which suits a field under the form's eye but
+ * tells an API caller nothing; the errors it wraps are reported instead. A closed list
+ * written as `oneOf` of `const` fails once per option ("must be equal to constant") and
+ * once on the `oneOf`: those fold into one line listing the allowed values, the generic
+ * `oneOf` line dropped.
+ * @param {import('ajv').ErrorObject[]} errors
+ * @returns {string[]}
+ */
+export function errorLines (errors) {
+  /** @type {import('ajv').ErrorObject[]} */
+  const flat = []
+  for (const error of errors) {
+    if (error.keyword === 'errorMessage' && Array.isArray(error.params?.errors) && error.params.errors.length) flat.push(...error.params.errors)
+    else flat.push(error)
+  }
+  /** @type {Map<string, { instancePath: string, values: unknown[] }>} */
+  const enums = new Map()
+  for (const error of flat) {
+    const oneOf = error.keyword === 'const' && /^(.*\/oneOf)\/\d+\/const$/.exec(error.schemaPath)?.[1]
+    if (!oneOf) continue
+    const key = `${error.instancePath}\u0000${oneOf}`
+    const group = enums.get(key) ?? { instancePath: error.instancePath, values: [] }
+    group.values.push(error.params.allowedValue)
+    enums.set(key, group)
+  }
+  /** @type {string[]} */
+  const lines = []
+  for (const error of flat) {
+    if (error.keyword === 'const' && /\/oneOf\/\d+\/const$/.test(error.schemaPath)) continue
+    if (error.keyword === 'oneOf') {
+      const group = enums.get(`${error.instancePath}\u0000${error.schemaPath}`)
+      if (group) {
+        lines.push(`${group.instancePath || '(root)'} must be one of the allowed values: ${group.values.map((v) => JSON.stringify(v)).join(', ')}`)
+        enums.delete(`${error.instancePath}\u0000${error.schemaPath}`)
+        continue
+      }
+    }
+    lines.push(errorLine(error))
+  }
+  // const failures whose oneOf line was not reported still name their values
+  for (const group of enums.values()) {
+    lines.push(`${group.instancePath || '(root)'} must be one of the allowed values: ${group.values.map((v) => JSON.stringify(v)).join(', ')}`)
+  }
+  return [...new Set(lines)]
 }
 
 export const API_TOOL_NAMES = ['readDocument', 'readSchema', 'writeDocument', 'patchDocument', 'httpGet']
@@ -269,9 +326,10 @@ export class PlainApiSession {
    * @returns {ToolResult}
    */
   _store (candidate) {
-    const document = this._case.apiAccepts ? this._case.apiAccepts(candidate) : candidate
+    // a clone, so a tolerance that edits in place cannot touch the stored document
+    const document = this._case.apiAccepts ? this._case.apiAccepts(structuredClone(candidate)) : candidate
     if (!this._validate(document)) {
-      const errors = (this._validate.errors ?? []).map(errorLine)
+      const errors = errorLines(this._validate.errors ?? [])
       return answer(['400 Bad Request', ...errors].join('\n'), true)
     }
     this._data = document
