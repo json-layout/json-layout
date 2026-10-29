@@ -36,6 +36,11 @@ export type EvalCase = {
    * compiled layout ships without the schema, so its agent has no getSchema.
    */
   withSchema?: boolean
+  /**
+   * Serves the case's remote lists (getItems URLs) offline: receives the URL resolved
+   * against http://eval.local/ and returns the parsed JSON body, or undefined for a 404.
+   */
+  remote?: (url: URL) => unknown
   /** Band getComplexity must report. Asserted in CI, never read at runtime. */
   expectedComplexity: ComplexityBand
   /**

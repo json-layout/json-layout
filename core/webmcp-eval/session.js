@@ -13,6 +13,7 @@
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
+import { caseFetch, FIXTURE_BASE_URL } from './remote.js'
 import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
@@ -123,7 +124,9 @@ export class EvalSession {
       fetchBaseURL: options.dataFairURL ?? process.env.JL_WEBMCP_EVAL_DATA_FAIR ?? DEFAULT_DATA_FAIR_URL,
       context: evalCase.context ?? {}
     }
-    if (options.fetch) layoutOptions.fetch = options.fetch
+    const fetch = caseFetch(evalCase, options)
+    if (fetch) layoutOptions.fetch = fetch
+    if (evalCase.remote) layoutOptions.fetchBaseURL = FIXTURE_BASE_URL
     this._layout = new StatefulLayout(
       compiled,
       mainTree,
