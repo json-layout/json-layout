@@ -3,6 +3,7 @@
  */
 
 import { collectErrors, visibilitySnapshot, diffVisibility } from '../project.js'
+import { coerceDataForTree } from '../coerce.js'
 import { assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
@@ -74,7 +75,7 @@ function deepMerge (target, source) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ data: unknown, merge?: boolean }} args
- * @returns {{ valid: boolean, written: string[], removed: string[], unknownKeys: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, written: string[], removed: string[], unknownKeys: string[], coerced?: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args) {
   const current = statefulLayout.data
@@ -84,11 +85,21 @@ export function execute (statefulLayout, args) {
     throw new Error(`data must be a JSON object (got ${typeof args.data === 'string' ? 'a string that is not valid JSON' : Array.isArray(args.data) ? 'an array' : typeof args.data}); nothing was written`)
   }
   assertNoStructuralKey(args.data, 'data')
+  // JSON spellings that differ from the type of their field (a SIRET as a number), read as
+  // what they meant before the data is merged and validated
+  /** @type {string[]} */
+  let coerced = []
+  let given = args.data
+  if (isPlainObject(args.data)) {
+    const result = coerceDataForTree(statefulLayout, /** @type {Record<string, unknown>} */(args.data))
+    given = result.data
+    coerced = result.coerced
+  }
   const mergeable = isPlainObject(current) && isPlainObject(args.data)
 
   /** @type {string[]} */
   let removed = []
-  let next = args.data
+  let next = given
 
   if (mergeable) {
     if (args.merge === false) {
@@ -102,7 +113,7 @@ export function execute (statefulLayout, args) {
       // Merging is the default because an agent asking to set some keys means to set
       // those keys, not to delete everything else — at every depth: a shallow merge of
       // { theme: { colors: { primary } } } replaced a portal's whole theme.
-      next = deepMerge(/** @type {Record<string, unknown>} */(current), /** @type {Record<string, unknown>} */(args.data))
+      next = deepMerge(/** @type {Record<string, unknown>} */(current), /** @type {Record<string, unknown>} */(given))
     }
   }
 
@@ -130,6 +141,7 @@ export function execute (statefulLayout, args) {
     written: isPlainObject(args.data) ? Object.keys(/** @type {Record<string, unknown>} */(args.data)) : [],
     removed,
     unknownKeys,
+    ...(coerced.length ? { coerced } : {}),
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
     errors: collectErrors(statefulLayout)
   }

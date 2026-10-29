@@ -82,6 +82,15 @@ function parseIfJsonString (value) {
 }
 
 /**
+ * The one line telling an agent which of its values were read as another JSON spelling.
+ * @param {string[]|undefined} coerced
+ * @returns {string}
+ */
+function coercedLine (coerced) {
+  return coerced?.length ? `\ncoerced: ${coerced.join('; ')}` : ''
+}
+
+/**
  * @typedef {object} WebMCPOptions
  * @property {string} [prefixName] - Prefix for all tool names
  * @property {string} [dataTitle] - Title used in descriptions (default: 'form')
@@ -250,7 +259,7 @@ export class WebMCP {
             }
             const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
             const stored = result.written.length ? `stored ${result.written.length} key(s): ${result.written.join(', ')}` : ''
-            const text = [formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
+            const text = [formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(result.coerced ? [`coerced: ${result.coerced.join('; ')}`] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
             return {
               content: [{ type: 'text', text }]
             }
@@ -336,7 +345,7 @@ export class WebMCP {
             }
             if (this._screen) fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -411,7 +420,7 @@ export class WebMCP {
             }
             if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)

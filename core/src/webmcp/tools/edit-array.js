@@ -3,6 +3,8 @@
  */
 
 import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
+import { coerceForNode } from '../coerce.js'
+import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
@@ -76,7 +78,7 @@ function assertKnownVariant (statefulLayout, listNode, value) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -92,6 +94,8 @@ export function execute (statefulLayout, args, variantsMemo) {
   // input() drops the activation when the array shrinks, so it has to be read before
   const activatedBefore = statefulLayout.activatedItems[node.fullKey]
   let index
+  /** @type {string[]|undefined} */
+  let coerced
 
   if (args.action === 'add') {
     assertNoStructuralKey(args.value, 'value')
@@ -102,7 +106,15 @@ export function execute (statefulLayout, args, variantsMemo) {
     if (!Number.isInteger(index) || index < 0 || index > currentData.length) {
       throw new Error(`index ${index} out of bounds (array length: ${currentData.length}, an item can be added at 0 to ${currentData.length})`)
     }
-    currentData.splice(index, 0, args.value !== undefined ? args.value : undefined)
+    // a scalar item only: the fields of an object item are not hydrated before it is added
+    let item = args.value
+    const itemSchema = /** @type {any} */(resolveNodeSchema(node, statefulLayout))?.items
+    if (item !== undefined && itemSchema && !(item && typeof item === 'object')) {
+      const result = coerceForNode(node, item, itemSchema)
+      item = result.value
+      if (result.coerced) coerced = [`${args.path}/${index} ${result.coerced}`]
+    }
+    currentData.splice(index, 0, item)
   } else if (args.action === 'remove') {
     if (currentData.length === 0) {
       throw new Error('cannot remove from an empty array')
@@ -158,14 +170,15 @@ export function execute (statefulLayout, args, variantsMemo) {
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
   const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
+  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
     index,
     errors,
     otherErrors,
-    ...(elsewhere ? { elsewhere } : {})
+    ...(elsewhere ? { elsewhere } : {}),
+    ...(coerced ? { coerced } : {})
   }
 
   if (args.action === 'add') {
