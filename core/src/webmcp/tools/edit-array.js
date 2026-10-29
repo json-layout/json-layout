@@ -2,7 +2,7 @@
  * @file editArray tool
  */
 
-import { collectScopedErrors, projectNodeToMarkdown } from '../project.js'
+import { collectScopedErrors, projectNodeToMarkdown, projectListItems } from '../project.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
@@ -78,7 +78,7 @@ function assertKnownVariant (statefulLayout, listNode, value) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, items?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -170,11 +170,13 @@ export function execute (statefulLayout, args, variantsMemo) {
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
   const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
+  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, items?: string[], coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
     index,
+    // the list as it now stands, so that its order and content are checked without another read
+    items: projectListItems(listNode, statefulLayout),
     errors,
     otherErrors,
     ...(elsewhere ? { elsewhere } : {}),

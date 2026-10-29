@@ -726,7 +726,7 @@ export class WebMCP {
             }
             if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(this._unpickedWarnings(referentialBefore, editArrayEligible(listPath, args.action === 'add' ? result.index : undefined))) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(this._unpickedWarnings(referentialBefore, editArrayEligible(listPath, args.action === 'add' ? result.index : undefined))) + (result.items ? `\nThe list now:\n${result.items.join('\n')}` : '') }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)

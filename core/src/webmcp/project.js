@@ -1024,6 +1024,47 @@ function fieldsOf (node) {
 }
 
 /**
+ * One item of a list as an outline names it: its path, the option it holds and what tells it
+ * apart from its siblings.
+ * @param {import('../state/types.js').StateNode} item
+ * @param {string} indent
+ * @param {Record<string, string>} errorsByPath
+ * @returns {string}
+ */
+function outlineItemLine (item, indent, errorsByPath) {
+  const selector = itemSelector(item)
+  const variant = selector && activeVariant(selector)
+  const label = itemLabel(item, selector)
+  const what = [variant?.title, label].filter(Boolean).join(' — ')
+  return `${indent}- ${item.fullKey}${what ? `: ${what}` : ''}${nodeError(item, errorsByPath) ? ' (error)' : ''}`
+}
+
+/**
+ * @param {number} count - items of the list
+ * @param {string} path
+ * @param {string} indent
+ * @returns {string}
+ */
+function outlineMoreItems (count, path, indent) {
+  return `${indent}- and ${count - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`
+}
+
+/**
+ * The items of a list one per line, as the outline names them: what an edit of the list
+ * answers with, so that the order and content can be checked without reading the form again.
+ * @param {import('../state/types.js').StateNode} listNode
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {string[]}
+ */
+export function projectListItems (listNode, statefulLayout) {
+  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
+  const items = visibleChildren(listNode)
+  const lines = items.slice(0, OUTLINE_ITEMS_MAX).map((item) => outlineItemLine(item, '', errorsByPath))
+  if (items.length > OUTLINE_ITEMS_MAX) lines.push(outlineMoreItems(items.length, listNode.fullKey || '/', ''))
+  return lines
+}
+
+/**
  * The live state of a node, shallower: sections and their direct fields with values cut
  * short, each list as its item count and one line per item naming the option it holds, the
  * options of the items once under the list. For a form whose full description would not
@@ -1099,11 +1140,7 @@ export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo
         if (selector && listedAt !== undefined) lines.push(`${indent}  - each item is one of the ${variantsOf(selector).length} options listed under ${listedAt}`)
       }
       for (const item of children.slice(0, OUTLINE_ITEMS_MAX)) {
-        const selector = itemSelector(item)
-        const variant = selector && activeVariant(selector)
-        const label = itemLabel(item, selector)
-        const what = [variant?.title, label].filter(Boolean).join(' — ')
-        lines.push(`${indent}  - ${item.fullKey}${what ? `: ${what}` : ''}${nodeError(item, errorsByPath) ? ' (error)' : ''}`)
+        lines.push(outlineItemLine(item, `${indent}  `, errorsByPath))
         shown = Math.max(shown, level + 2)
         candidates.push({ path: item.fullKey, level: level + 1 })
         if (expanded.has(item.fullKey)) {
@@ -1111,9 +1148,7 @@ export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo
           for (const field of fieldsOf(item)) walk(field, depth + 2, level + 2, level + 2)
         }
       }
-      if (children.length > OUTLINE_ITEMS_MAX) {
-        lines.push(`${indent}  - and ${children.length - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`)
-      }
+      if (children.length > OUTLINE_ITEMS_MAX) lines.push(outlineMoreItems(children.length, path, `${indent}  `))
       return
     }
 

@@ -1124,6 +1124,55 @@ describe('webmcp editArray move', () => {
   })
 })
 
+// Round 4, portal-page-reorder form runs: after three editArray calls the agents read the page
+// again with describeState (16 KB) and sometimes getData (7 KB) only to check the order.
+describe('webmcp editArray answers with the list as it now stands', () => {
+  const pageTools = () => {
+    const evalCase = getCase('portal-page-reorder')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout).getTools()
+    return { layout, tool: /** @type {any} */(tools.find((t) => t.name === 'editArray')) }
+  }
+  /** @param {string} text */
+  const itemLines = (text) => text.split('\n').filter((l) => /^- \/\$comp-2\/elements\/\d+: /.test(l))
+
+  it('ends a move with each item in its new place, in the outline format', async () => {
+    const { tool } = pageTools()
+    const text = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'move', from: 0, to: 2 }))
+    assert.match(text, /^moved item from 0 to 2, 11 total/)
+    const lines = itemLines(text)
+    assert.equal(lines.length, 11, text)
+    assert.match(lines[0], /^- \/\$comp-2\/elements\/0: Texte/)
+    assert.match(lines[2], /^- \/\$comp-2\/elements\/2: Titre/)
+    assert.match(lines[6], /^- \/\$comp-2\/elements\/6: Grille responsive/)
+    assert.ok(text.endsWith(lines[10]), 'the list ends the answer')
+  })
+
+  it('ends a remove and an add with the list, the new item fields kept', async () => {
+    const { tool } = pageTools()
+    const removed = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'remove', index: 4 }))
+    assert.equal(itemLines(removed).length, 10, removed)
+    assert.ok(!removed.includes('Séparateur'), removed)
+    const added = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'add', index: 0, value: { type: 'divider' } }))
+    assert.match(added, /Fields of the new item/)
+    assert.match(itemLines(added)[0], /^- \/\$comp-2\/elements\/0: Séparateur/)
+    assert.equal(itemLines(added).length, 11)
+  })
+
+  it('names at most 50 items and counts the rest', async () => {
+    const compiled = compile(listModeSchema('menu'))
+    const filters = Array.from({ length: 60 }, (_, i) => ({ type: 'in', field: `field number ${i}` }))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters })
+    const tool = /** @type {any} */(new WebMCP(layout).getTools().find((t) => t.name === 'editArray'))
+    const text = textOf(await tool.execute({ path: '/filters', action: 'remove', index: 0 }))
+    assert.equal(text.split('\n').filter((l) => /^- \/filters\/\d+: /.test(l)).length, 50, text)
+    assert.match(text, /^- \/filters\/0: "field number 1"$/m)
+    assert.match(text, /and 9 more items/)
+  })
+})
+
 describe('webmcp suggestions invalidation', () => {
   const suggestionsSchema = {
     type: 'object',

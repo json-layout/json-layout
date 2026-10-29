@@ -124,7 +124,7 @@ prompt via `includeSubAgent`.
 | `describeState` | every field with path, type, constraints, current value, errors; an outline past 16 KB, or the fields matching the words of `query`. The starting point and the only way to see the form. |
 | `setFieldValue` | write one field; switch a variant by writing its index. |
 | `setData` | write the whole document at once, for when the goal already contains every value. |
-| `editArray` | add, remove or move an item; an added item is activated and its fields returned. |
+| `editArray` | add, remove or move an item; an added item is activated and its fields returned, and every answer ends with the list as it now stands, one line per item (at most 50). |
 | `getFieldSuggestions` | fetch the accepted values of a field whose list is remote. |
 | `getData` | the data itself, whole or at a path, for when the values are wanted rather than a description of them. |
 
