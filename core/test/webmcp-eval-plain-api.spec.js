@@ -56,6 +56,44 @@ describe('PlainApiSession schema reads', () => {
     assert.equal(text(await small.call('readSchema', {})), JSON.stringify(getCase('contact').schema))
   })
 
+  it('outlines an allOf root with its members\' properties and the definitions it uses', async () => {
+    const session = new PlainApiSession(getCase('charts-edit'))
+    const outline = text(await session.call('readSchema', {}))
+    assert.ok(Buffer.byteLength(outline) <= OUTLINE_BUDGET_BYTES, `${Buffer.byteLength(outline)} bytes`)
+    for (const key of ['datasets', 'chart']) assert.match(outline, new RegExp(`^- ${key}: `, 'm'), key)
+    // every pointer the outline names resolves in the schema
+    assert.match(outline, /\/allOf\/1\/properties\/<key>/)
+    assert.ok(!outline.includes('$defs'), 'charts uses definitions, not $defs')
+    assert.match(outline, /^definitions: .*datasets/m)
+    assert.match(outline, /\/definitions\/<name>/)
+    const schema = /** @type {any} */ (getCase('charts-edit').schema)
+    const chart = await session.call('readSchema', { path: '/allOf/1/properties/chart' })
+    assert.equal(chart.isError, false)
+    assert.deepEqual(JSON.parse(text(chart)), schema.allOf[1].properties.chart)
+    // the same kind of facts for a root with properties and $defs
+    const page = text(await new PlainApiSession(getCase('portal-page')).call('readSchema', {}))
+    assert.match(page, /^- elements: /m)
+    assert.match(page, /^\$defs: /m)
+    assert.match(page, /\/properties\/<key>/)
+    assert.ok(!page.includes('/definitions/'), page)
+  })
+
+  it('outlines an allOf member given as a local $ref with the properties of its target', async () => {
+    const description = 'x'.repeat(OUTLINE_BUDGET_BYTES)
+    const session = new PlainApiSession(makeCase({
+      schema: {
+        type: 'object',
+        allOf: [{ $ref: '#/definitions/base' }, { properties: { b: { type: 'number', title: 'B' } } }],
+        definitions: { base: { required: ['a'], properties: { a: { type: 'string', title: 'A', description } } } }
+      }
+    }))
+    const outline = text(await session.call('readSchema', {}))
+    assert.match(outline, /^- a: string — A$/m)
+    assert.match(outline, /^- b: number — B$/m)
+    assert.match(outline, /\/definitions\/base\/properties\/<key>/)
+    assert.match(outline, /required: a/)
+  })
+
   it('counts an oversized call among the recorded bytes', async () => {
     const huge = 'x'.repeat(70_000)
     const session = new PlainApiSession(makeCase({ schema: { type: 'object', properties: { a: { type: 'string', description: huge } } } }))

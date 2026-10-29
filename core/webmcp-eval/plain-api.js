@@ -200,21 +200,64 @@ function notFound (root, path) {
 }
 
 /**
- * An oversized schema, as its outline: each top-level property, `required` and the `$defs`
- * names, with how to read a part.
+ * One outline line per property: key, type, title.
+ * @param {Record<string, unknown>} properties
+ * @returns {string[]}
+ */
+function propertyLines (properties) {
+  return Object.entries(properties).map(([key, property]) => {
+    const p = /** @type {Record<string, any>} */ (isObject(property) ? property : {})
+    const type = Array.isArray(p.type) ? p.type.join('|') : (p.type ?? (p.$ref ? `$ref ${p.$ref}` : p.oneOf ? 'oneOf' : p.anyOf ? 'anyOf' : 'unspecified'))
+    return `- ${key}: ${type}${typeof p.title === 'string' ? ` — ${p.title}` : ''}`
+  })
+}
+
+/**
+ * An oversized schema, as its outline: each property the root declares, `required` and the
+ * names of its reusable definitions, with the pointers that read each part. A root written
+ * as `allOf` declares its properties in the members (a member given as a local `$ref` is
+ * followed one level), so their properties are listed under the member's own pointer; the
+ * definitions are listed under the key the schema uses, `$defs` or `definitions`.
  * @param {Record<string, any>} schema
  * @returns {string}
  */
 function schemaOutline (schema) {
-  const lines = [`The schema is too long to be read whole (type ${schema.type ?? 'unspecified'}). Its outline:`, '', 'properties (key, type, title):']
-  for (const [key, property] of Object.entries(isObject(schema.properties) ? schema.properties : {})) {
-    const p = /** @type {Record<string, any>} */ (isObject(property) ? property : {})
-    const type = Array.isArray(p.type) ? p.type.join('|') : (p.type ?? (p.$ref ? `$ref ${p.$ref}` : p.oneOf ? 'oneOf' : p.anyOf ? 'anyOf' : 'unspecified'))
-    lines.push(`- ${key}: ${type}${typeof p.title === 'string' ? ` — ${p.title}` : ''}`)
+  const lines = [`The schema is too long to be read whole (type ${schema.type ?? 'unspecified'}). Its outline:`]
+  /** @type {string[]} */
+  const pointers = []
+  const required = new Set(Array.isArray(schema.required) ? schema.required : [])
+  /** @type {{ at: string, title?: string, properties: Record<string, unknown> }[]} */
+  const members = []
+  for (const [i, raw] of (Array.isArray(schema.allOf) ? schema.allOf : []).entries()) {
+    let at = `/allOf/${i}`
+    let member = raw
+    if (isObject(member) && typeof member.$ref === 'string' && member.$ref.startsWith('#/')) {
+      const target = resolvePointer(schema, member.$ref.slice(1))
+      if (target.found && isObject(target.value)) {
+        at = member.$ref.slice(1)
+        member = target.value
+      }
+    }
+    if (!isObject(member)) continue
+    if (Array.isArray(member.required)) for (const key of member.required) required.add(key)
+    if (isObject(member.properties)) members.push({ at, title: typeof member.title === 'string' ? member.title : undefined, properties: member.properties })
   }
-  if (Array.isArray(schema.required)) lines.push('', `required: ${schema.required.join(', ')}`)
-  if (isObject(schema.$defs)) lines.push('', `$defs: ${Object.keys(schema.$defs).join(', ')}`)
-  lines.push('', 'Read a part with a pointer: /properties/<key>, /$defs/<name>.')
+  if (isObject(schema.properties) || !members.length) {
+    lines.push('', 'properties (key, type, title):', ...propertyLines(isObject(schema.properties) ? schema.properties : {}))
+    pointers.push('/properties/<key>')
+  }
+  if (members.length) lines.push('', 'allOf: the document must match every member; their properties (key, type, title):')
+  for (const member of members) {
+    lines.push('', `${member.at}${member.title ? ` — ${member.title}` : ''}:`, ...propertyLines(member.properties))
+    pointers.push(`${member.at}/properties/<key>`)
+  }
+  if (required.size) lines.push('', `required: ${[...required].join(', ')}`)
+  for (const key of ['$defs', 'definitions']) {
+    if (!isObject(schema[key])) continue
+    lines.push('', `${key}: ${Object.keys(schema[key]).join(', ')}`)
+    pointers.push(`/${key}/<name>`)
+  }
+  lines.push('', `Read a part with a pointer: ${pointers.join(', ')}.`)
   return lines.join('\n')
 }
 

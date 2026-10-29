@@ -297,7 +297,9 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
 The harness reads the same on both sides. A lookup takes a dataset id as a schema writes it
 (`dataset:communes`) or bare, and an unknown one names the ids it knows. The plain arm's 404
 names the deepest level that exists and its keys, and `readSchema` without a path is an outline
-on a large schema, within the form's own budget. Judges have only `Read` and are told to read
+on a large schema, within the form's own budget: the properties of the root and of its `allOf`
+members (a member's local `$ref` followed one level), each under the pointer that reads it, and
+the definitions under the key the schema uses (`$defs` or `definitions`). Judges have only `Read` and are told to read
 only their transcript copy and the schema. The session runner's prompt follows the case's save mode: a case
 that auto-saves is told its edits are saved, one that does not is told to save.
 
