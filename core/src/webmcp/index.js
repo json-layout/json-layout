@@ -336,7 +336,7 @@ export class WebMCP {
             }
             if (this._screen) fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -407,7 +407,7 @@ export class WebMCP {
             }
             if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)

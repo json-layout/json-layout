@@ -1239,6 +1239,55 @@ describe('webmcp scoped mutation errors', () => {
   })
 })
 
+describe('webmcp invalid form always located', () => {
+  const twoFieldsSchema = {
+    type: 'object',
+    required: ['a'],
+    properties: { a: { type: 'string', title: 'A' }, b: { type: 'string', title: 'B' } }
+  }
+
+  it('should list the errors of the rest of the form when the written field has none', async () => {
+    const compiled = compile(twoFieldsSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input', initialValidation: 'always' }, {})
+    layout.validate()
+    const tool = new WebMCP(layout).getTools().find((t) => t.name === 'setFieldValue')
+    assert.ok(tool)
+    const text = (await /** @type {any} */(tool).execute({ path: '/b', value: 'x' })).content[0].text
+    assert.match(text, /no error here/)
+    assert.match(text, /^- \/a: /m, `the error elsewhere must be listed with its path, got:\n${text}`)
+  })
+
+  it('should list at most 3 errors from elsewhere', async () => {
+    const compiled = compile({
+      type: 'object',
+      required: ['a', 'c', 'd', 'e'],
+      properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' }, d: { type: 'string' }, e: { type: 'string' } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input', initialValidation: 'always' }, {})
+    layout.validate()
+    const tool = new WebMCP(layout).getTools().find((t) => t.name === 'setFieldValue')
+    assert.ok(tool)
+    const text = (await /** @type {any} */(tool).execute({ path: '/b', value: 'x' })).content[0].text
+    assert.equal(text.match(/^- /gm)?.length, 3, text)
+    assert.match(text, /4 other error\(s\) elsewhere/, text)
+  })
+
+  it('should locate by its data pointer an error no node carries', () => {
+    // the state tree can fail to attach an error to a node (round 2: a property the new
+    // option of a nested union refused); the form is then invalid with nothing on any node
+    const error = { instancePath: '/elements/3/children2/1', schemaPath: '#/additionalProperties', keyword: 'additionalProperties', params: { additionalProperty: 'centered' }, message: 'must NOT have additional properties' }
+    const root = { fullKey: '', dataPath: '', key: '', children: [], layout: { comp: 'section' }, skeleton: { pointer: '#' } }
+    const layout = /** @type {any} */ ({ valid: false, stateTree: { root, valid: false }, validationErrors: [error] })
+    const { errors, elsewhere } = collectScopedErrors(layout, /** @type {any} */ (root).children[0] ?? { fullKey: '/elements/0' })
+    assert.deepEqual(errors, [])
+    assert.deepEqual(elsewhere, [{ path: '/elements/3/children2/1', message: 'must NOT have additional properties: centered' }])
+
+    // the same error from a union branch the form does not show is still given, rather than nothing
+    const hiddenBranch = /** @type {any} */ ({ ...layout, validationErrors: [{ ...error, schemaPath: '#/oneOf/1/additionalProperties' }] })
+    assert.deepEqual(collectErrors(hiddenBranch), [{ path: '/elements/3/children2/1', message: 'must NOT have additional properties: centered' }])
+  })
+})
+
 describe('webmcp setData merge semantics', () => {
   const dashboardSchema = {
     type: 'object',

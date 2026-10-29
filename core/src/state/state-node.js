@@ -673,12 +673,16 @@ export function createStateNode (
           if (!matchDataPathError(error, dataPath)) return true
           // keep errors from the active child's schema
           if (matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) return true
+          // keep the errors the active child raises on its own, before the schema path test below: in a recursive
+          // definition (a block nesting blocks) an error deeper in the active child's data can point at the schema
+          // of another child, the nested object being described by that same definition
+          if (activeChildErrors?.some(childError => matchSameAdditionalError(childError, error, dataPath))) return true
           // remove errors from other children
           if (matchChildError(compiledLayout, error, skeleton, dataPath, parentDataPath) && !matchPointerError(error, activeChildNode.pointer, activeChildNode.refPointer, dataPath, parentDataPath)) return false
           // ignore unevaluatedProperties errors from higher level that can be triggered because the active element is not yet valid
           // TODO: should the last check include comparing with activeChildNode.propertyKeys ?
-          // the errors the active child raises on its own are kept, not those of a higher level
-          if (activeChildErrors) return activeChildErrors.some(childError => matchSameAdditionalError(childError, error, dataPath))
+          // the errors the active child raises on its own were kept above, not those of a higher level
+          if (activeChildErrors) return false
           return true
         })
       }

@@ -62,7 +62,7 @@ function listVariants (node) {
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the activated branch
  * may nest the same union again; the memo keeps the response from printing it twice
- * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
+ * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
  */
 export function execute (statefulLayout, args, store, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -114,7 +114,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
 
   // Re-resolve node from updated state tree
   const updatedNode = resolveNode(statefulLayout.stateTree.root, args.path)
-  const { errors, otherErrors } = collectScopedErrors(statefulLayout, updatedNode || node)
+  const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, updatedNode || node)
 
   // Switching a variant replaces a whole subtree, so answering with only the value that
   // was written leaves the agent knowing a branch appeared but not what is in it. This
@@ -127,6 +127,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     field: projectFieldResult(updatedNode || node, statefulLayout),
     errors,
     otherErrors,
+    ...(elsewhere ? { elsewhere } : {}),
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
     ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, variantsMemo, undefined, true) } : {})
   }

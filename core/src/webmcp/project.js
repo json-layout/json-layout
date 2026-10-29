@@ -600,9 +600,10 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsM
  * @param {Array<{path: string, message: string}>} errors - errors of the mutated subtree
  * @param {string} [prefix] - optional prefix line (e.g. field info)
  * @param {number} [otherErrors] - number of errors of the form outside of the mutated subtree
+ * @param {Array<{path: string, message: string}>} [elsewhere] - the first of them, given when the subtree has none
  * @returns {string}
  */
-export function formatMutationResult (valid, errors, prefix, otherErrors) {
+export function formatMutationResult (valid, errors, prefix, otherErrors, elsewhere) {
   const lines = []
   if (prefix) lines.push(prefix)
 
@@ -615,7 +616,13 @@ export function formatMutationResult (valid, errors, prefix, otherErrors) {
         lines.push(`- ${e.path}: ${e.message}`)
       }
     }
-    if (otherErrors > 0) {
+    if (otherErrors > 0 && elsewhere?.length) {
+      lines.push(`form has ${otherErrors} other error(s) elsewhere:`)
+      for (const e of elsewhere) {
+        lines.push(`- ${e.path}: ${e.message}`)
+      }
+      if (otherErrors > elsewhere.length) lines.push('use describeState to list them all')
+    } else if (otherErrors > 0) {
       lines.push(`form has ${otherErrors} other error(s) elsewhere, use describeState to list them`)
     } else if (!valid) {
       lines.push('form is invalid')
@@ -716,6 +723,19 @@ function dataPointerOf (error) {
 }
 
 /**
+ * The message of an ajv error, naming the refused property of an additional properties error:
+ * ajv's own message ("must NOT have additional properties") does not say which one.
+ * @param {any} error
+ * @returns {string}
+ */
+function messageOf (error) {
+  const message = error?.message ?? 'invalid'
+  const original = error?.params?.errors?.[0] ?? error
+  const property = original?.params?.additionalProperty ?? original?.params?.unevaluatedProperty
+  return property !== undefined ? `${message}: ${property}` : message
+}
+
+/**
  * Whether an error belongs to a branch of a union the form is actually showing.
  *
  * ajv validates every branch of a `oneOf` and reports the failures of all of them, so
@@ -777,7 +797,7 @@ export function collectErrors (statefulLayout) {
   const named = new Set(nodeErrors.map((e) => e.dataPath))
   const unnamed = statefulLayout.validationErrors
     .filter((error) => isRenderedBranch(error, renderedPointers))
-    .map((error) => ({ pointer: dataPointerOf(error), message: error.message ?? 'invalid' }))
+    .map((error) => ({ pointer: dataPointerOf(error), message: messageOf(error) }))
     .filter((error) => !named.has(error.pointer))
 
   // a hidden node (comp "none") can carry an echo of an error a visible node already reports:
@@ -794,14 +814,30 @@ export function collectErrors (statefulLayout) {
     if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })
   }
   for (const error of unnamed) errors.push({ path: error.pointer, message: error.message })
+
+  // an invalid form always says where: when the state tree attached nothing to any node and the
+  // filter above kept nothing (round 2: a property the new option of a nested union refused), the
+  // raw errors are given by data pointer
+  if (errors.length === 0 && !statefulLayout.valid) {
+    for (const error of statefulLayout.validationErrors) {
+      errors.push({ path: dataPointerOf(error) || '/', message: messageOf(error) })
+    }
+  }
   return errors
 }
 
+/** how many errors from elsewhere a write result lists when it has none of its own */
+const ELSEWHERE_MAX = 3
+
 /**
  * Errors of the subtree of a node, and count of the errors of the rest of the form.
+ *
+ * When the subtree has none but the form is invalid, the first errors of the rest of the
+ * form come along (`elsewhere`), each with its path: "form is invalid" alone sent round 2's
+ * agents looking for an error for the rest of their run.
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {import('../state/types.js').StateNode} node
- * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number }}
+ * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }}
  */
 export function collectScopedErrors (statefulLayout, node) {
   // the path index is used rather than a walk of the subtree: an activated list item is kept
@@ -818,6 +854,12 @@ export function collectScopedErrors (statefulLayout, node) {
   for (const [path, message] of Object.entries(errorsByPath)) {
     if (isInScope(path)) errors.push({ path, message })
     else otherErrors++
+  }
+  if (errors.length === 0 && !statefulLayout.valid) {
+    const others = collectErrors(statefulLayout)
+    if (others.length) {
+      return { errors, otherErrors: Math.max(otherErrors, others.length), elsewhere: others.slice(0, ELSEWHERE_MAX) }
+    }
   }
   return { errors, otherErrors }
 }

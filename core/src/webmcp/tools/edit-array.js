@@ -68,7 +68,7 @@ function assertKnownVariant (statefulLayout, listNode, value) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -126,15 +126,16 @@ export function execute (statefulLayout, args, variantsMemo) {
   }
 
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
-  const { errors, otherErrors } = collectScopedErrors(statefulLayout, listNode)
+  const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number }} */
+  /** @type {{ valid: boolean, itemCount: number, index: number, itemMarkdown?: string, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
     index,
     errors,
-    otherErrors
+    otherErrors,
+    ...(elsewhere ? { elsewhere } : {})
   }
 
   if (args.action === 'add') {

@@ -53,10 +53,11 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
       }
       throw nodeNotFoundError(statefulLayout, args.path)
     }
-    const { errors, otherErrors } = collectScopedErrors(statefulLayout, node)
+    const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, node)
     const markdown = formatMutationResult(statefulLayout.valid, errors,
       projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen, true),
-      otherErrors
+      otherErrors,
+      elsewhere
     )
     variantsMemo?.merge(listed)
     return markdown

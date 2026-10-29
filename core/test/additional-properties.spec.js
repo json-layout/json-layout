@@ -2,6 +2,19 @@ import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { compile, StatefulLayout } from '../src/index.js'
 
+/**
+ * @param {import('../src/index.js').StateNode} node
+ * @param {(node: import('../src/index.js').StateNode) => boolean} predicate
+ * @returns {import('../src/index.js').StateNode | undefined}
+ */
+function findNode (node, predicate) {
+  if (predicate(node)) return node
+  for (const child of node.children ?? []) {
+    const found = findNode(child, predicate)
+    if (found) return found
+  }
+}
+
 describe('Management of additional properties', () => {
   const defaultOptions = { debounceInputMs: 0 }
 
@@ -175,6 +188,80 @@ describe('Management of additional properties', () => {
     assert.ok(oneOf)
     statefulLayout.activateItem(oneOf, 1)
     assert.deepEqual(statefulLayout.data, { type: 'pie', config: { field: 'f' } })
+    assert.ok(statefulLayout.valid)
+  })
+
+  // A page editor switched a text block nested in a two-columns block to an alert: the text's
+  // centered stayed in the data and the form was invalid with no error located anywhere. The
+  // nested block is described by the same definition as the blocks around it, so the error it
+  // raises points at a sibling option of the enclosing block's oneOf, which dropped it as its own.
+  it('should remove a property of the previous option of a oneOf nested in the same recursive definition', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: { elements: { type: 'array', items: { $ref: '#/$defs/element' } } },
+      $defs: {
+        element: {
+          type: 'object',
+          discriminator: { propertyName: 'type' },
+          oneOf: [{
+            title: 'Text',
+            required: ['type'],
+            additionalProperties: false,
+            properties: { type: { const: 'text' }, content: { type: 'string' }, centered: { type: 'boolean' } }
+          }, {
+            title: 'Alert',
+            required: ['type'],
+            additionalProperties: false,
+            properties: { type: { const: 'alert' }, content: { type: 'string' } }
+          }, {
+            title: 'Columns',
+            required: ['type'],
+            additionalProperties: false,
+            properties: { type: { const: 'columns' }, children: { type: 'array', items: { $ref: '#/$defs/element' } } }
+          }]
+        }
+      }
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      { ...defaultOptions, removeAdditional: 'error' },
+      { elements: [{ type: 'columns', children: [{ type: 'text', content: 'help', centered: false }] }] }
+    )
+    assert.ok(statefulLayout.valid)
+    const nestedOneOf = findNode(statefulLayout.stateTree.root, n => n.key === '$oneOf' && n.dataPath === '/elements/0/children/0')
+    assert.ok(nestedOneOf)
+    statefulLayout.activateItem(nestedOneOf, 1)
+    assert.deepEqual(statefulLayout.data, { elements: [{ type: 'columns', children: [{ type: 'alert', content: 'help' }] }] })
+    assert.ok(statefulLayout.valid)
+  })
+
+  it('should remove a property the previous option of a oneOf declared through an allOf', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      discriminator: { propertyName: 'type' },
+      oneOf: [{
+        title: 'Text',
+        required: ['type'],
+        allOf: [{ properties: { centered: { type: 'boolean' } } }],
+        properties: { type: { const: 'text' }, content: { type: 'string' } },
+        unevaluatedProperties: false
+      }, {
+        title: 'Alert',
+        required: ['type'],
+        additionalProperties: false,
+        properties: { type: { const: 'alert' }, content: { type: 'string' } }
+      }]
+    })
+    const statefulLayout = new StatefulLayout(
+      compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree],
+      { ...defaultOptions, removeAdditional: 'error' },
+      { type: 'text', content: 'help', centered: true }
+    )
+    assert.ok(statefulLayout.valid)
+    const oneOf = statefulLayout.stateTree.root.children?.find(c => c.key === '$oneOf')
+    assert.ok(oneOf)
+    statefulLayout.activateItem(oneOf, 1)
+    assert.deepEqual(statefulLayout.data, { type: 'alert', content: 'help' })
     assert.ok(statefulLayout.valid)
   })
 })

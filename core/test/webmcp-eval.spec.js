@@ -597,9 +597,9 @@ describe('webmcp eval nested-document cases', () => {
     assert.equal(paragraph.type, 'text')
     assert.ok(paragraph.content.startsWith('Besoin d\'aide ?'))
     assert.ok('centered' in paragraph)
-    // Switching with the item's option selector carries `centered` over into the alert, which
-    // refuses it: the form is invalid with no error on any node. Replacing the block is the
-    // path that ends valid, and the `absent` check is what tells the two apart.
+    // Replacing the block is one path that ends valid; switching its option selector is the
+    // other (next test). The `absent` check tells either apart from a switch that kept the
+    // paragraph's own field.
     await call('editArray', { path: '/elements/3/children2', action: 'remove', index: 1 })
     await call('editArray', { path: '/elements/3/children2', action: 'add', index: 1, value: { uuid: paragraph.uuid, type: 'alert', alertType: 'info', content: paragraph.content } })
     assert.equal(session.valid, true)
@@ -615,6 +615,25 @@ describe('webmcp eval nested-document cases', () => {
     const warning = structuredClone(/** @type {any} */ (session.data))
     warning.elements[3].children2[1].alertType = 'warning'
     assert.equal(failed(name, warning, session.start).length, 1)
+  })
+
+  // Round 2: switching the nested paragraph with its option selector carried `centered` over
+  // into the alert, which refuses it, and the form ended invalid with no error on any node.
+  it('should switch a nested block to another type with its option selector, its old fields gone', async () => {
+    const name = 'portal-page-switch'
+    const { session, call } = form(name)
+    const paragraph = /** @type {any} */ (session.start).elements[3].children2[1]
+    const result = await call('setFieldValue', { path: '/elements/3/children2/1/$oneOf', value: 2 })
+    const text = result.content[0].text
+    const block = /** @type {any} */ (session.data).elements[3].children2[1]
+    assert.equal(block.type, 'alert')
+    assert.equal(block.content, paragraph.content)
+    assert.ok(!('centered' in block), `the paragraph's own field must be gone, got ${JSON.stringify(block)}`)
+    assert.equal(session.valid, true, text)
+    assert.match(text, /form is valid/)
+    await call('setFieldValue', { path: '/elements/3/children2/1/$oneOf/2/alertType', value: 'info' })
+    assert.equal(session.valid, true)
+    assert.deepEqual(failed(name, session.data, session.start), [])
   })
 
   it('should check four scattered changes of the portal configuration', async () => {
