@@ -16,7 +16,7 @@ export const inputSchema = {
     },
     query: {
       type: 'string',
-      description: 'Words to look for instead of describing: lists the fields (under "path" if given) whose key, title or help holds all of them, accents and case apart.'
+      description: 'Words to look for instead of describing: lists the fields (under "path" if given) whose key, title, help or short text value holds all of them, accents and case apart, including those a condition hides.'
     }
   }
 }

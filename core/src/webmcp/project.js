@@ -761,11 +761,45 @@ function searchWords (text) {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
 }
 
+/** Longest current value a query also looks into: a title, a label, not a page of text. */
+const QUERY_VALUE_MAX_LENGTH = 200
+
 /**
- * The visible fields under a node whose key, title, label or help holds every word of a
- * query: round 2 agents walked 9 to 11 tabs to find four settings. Words are looked for as
- * parts of words, so "department" finds a key "showDepartment". Nodes are told by their form
- * path, as describeState lists them.
+ * The condition that hides a node the form could show, as its expression: the node's own
+ * `if`, or the one its parent's layout puts on it. Undefined for a node hidden for good (a
+ * constant discriminator, a `comp: none`), which no query should offer.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/types.js').StateNode} parent
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {string | undefined}
+ */
+function hidingCondition (node, parent, statefulLayout) {
+  const layouts = /** @type {Record<string, any>} */(statefulLayout.compiledLayout.normalizedLayouts)
+  /** @param {any} cond */
+  const exprOf = (cond) => typeof cond?.expr === 'string' ? cond.expr : typeof cond === 'string' ? cond : undefined
+  const own = layouts[node.skeleton.pointer]
+  if (own && !Array.isArray(own.switch)) {
+    const expr = exprOf(own.if)
+    if (expr) return expr
+  }
+  const parentLayout = layouts[parent.skeleton.pointer]
+  const parentComps = parentLayout && (Array.isArray(parentLayout.switch) ? parentLayout.switch : [parentLayout])
+  for (const comp of parentComps ?? []) {
+    const child = Array.isArray(comp?.children) ? comp.children.find((/** @type {any} */ c) => c?.key === node.key) : undefined
+    const expr = exprOf(child?.if)
+    if (expr) return expr
+  }
+  return undefined
+}
+
+/**
+ * The fields under a node, visible or hidden by a condition, whose key, title, label, help
+ * or current short text holds every word of a query: round 2 agents walked 9 to 11 tabs to
+ * find four settings, and round 3 ones searched a card by its title ("Thématiques à la une")
+ * and a setting whose section a condition hid ("crowd sourcing"), both answered "no field
+ * matches". Words are looked for as parts of words, so "department" finds a key
+ * "showDepartment". Nodes are told by their form path, as describeState lists them; a
+ * hidden one says the condition that reveals it, and comes after the visible ones.
  * @param {import('../state/types.js').StateNode} root
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {string} query
@@ -775,8 +809,15 @@ export function projectQueryMatches (root, statefulLayout, query) {
   const words = searchWords(query)
   /** @type {string[]} */
   const lines = []
+  /** @type {string[]} */
+  const hiddenLines = []
   let total = 0
   if (!words.length) return { lines, total }
+  /** @param {string} text */
+  const matches = (text) => {
+    const haystack = searchWords(text).join(' ')
+    return words.every((w) => haystack.includes(w))
+  }
   /** @param {import('../state/types.js').StateNode} node */
   const visit = (node) => {
     const layout = /** @type {Record<string, unknown>} */(node.layout)
@@ -784,26 +825,57 @@ export function projectQueryMatches (root, statefulLayout, query) {
     if (comp === 'slot' || comp === 'none') return
     const titled = [layout.label, layout.title].find((t) => typeof t === 'string' && t.trim())
     const named = typeof node.key === 'string' && node.key && !node.key.startsWith('$')
+    const children = visibleChildren(node)
     if (named || titled || comp === 'list') {
       const help = typeof layout.help === 'string' && layout.help ? helpToText(layout.help) : ''
-      const haystack = searchWords(`${named ? node.key : ''} ${titled ?? ''} ${help}`).join(' ')
-      if (words.every((w) => haystack.includes(w))) {
+      const multiValued = isMultiValued(node)
+      const current = multiValued ? multiValuedData(node) : node.data
+      const valueText = children.length === 0 && typeof current === 'string' && current.length <= QUERY_VALUE_MAX_LENGTH ? current : ''
+      if (matches(`${named ? node.key : ''} ${titled ?? ''} ${help} ${valueText}`)) {
         total++
         if (lines.length < QUERY_MATCHES_MAX) {
-          const multiValued = isMultiValued(node)
           const type = multiValued ? `list of ${multiValuedItemType(node, statefulLayout)}` : (compToType[comp] || comp)
-          const children = visibleChildren(node)
           const count = comp === 'list' && Array.isArray(node.data) ? `, ${node.data.length} items` : ''
-          const current = multiValued ? multiValuedData(node) : node.data
           const value = children.length === 0 ? ` = ${current === undefined ? 'not set' : outlineValue(current)}` : ''
           lines.push(`${node.fullKey || '/'} (${type}${count})${value}${titled ? ` — ${titled}` : ''}`)
         }
       }
     }
-    for (const child of visibleChildren(node)) visit(child)
+    for (const child of node.children ?? []) {
+      if (child.layout.comp !== 'none') continue
+      const condition = hidingCondition(child, node, statefulLayout)
+      if (condition) visitHidden(child.skeleton.pointer, child.fullKey, `hidden until ${condition.length > QUERY_VALUE_MAX_LENGTH ? `${condition.slice(0, QUERY_VALUE_MAX_LENGTH - 1)}…` : condition}`)
+    }
+    for (const child of children) visit(child)
+  }
+  /**
+   * A hidden node has no state below it: its fields are read from the compiled skeleton.
+   * @param {string} pointer
+   * @param {string} path
+   * @param {string} reveal
+   */
+  const visitHidden = (pointer, path, reveal) => {
+    const compiled = statefulLayout.compiledLayout
+    const skeleton = compiled.skeletonNodes[pointer]
+    const normalized = /** @type {any} */(compiled.normalizedLayouts[pointer])
+    const layout = Array.isArray(normalized?.switch) ? normalized.switch[0] : normalized
+    if (!skeleton || !layout || layout.comp === 'none') return
+    const titled = [layout.label, layout.title, skeleton.title].find((t) => typeof t === 'string' && t.trim())
+    const named = typeof skeleton.key === 'string' && skeleton.key && !skeleton.key.startsWith('$')
+    if (named || titled) {
+      const help = typeof layout.help === 'string' && layout.help ? helpToText(layout.help) : ''
+      if (matches(`${named ? skeleton.key : ''} ${titled ?? ''} ${help}`)) {
+        total++
+        hiddenLines.push(`${path} (${compToType[layout.comp] || layout.comp})${titled ? ` — ${titled}` : ''} — ${reveal}`)
+      }
+    }
+    for (const child of skeleton.children ?? []) {
+      const key = compiled.skeletonNodes[child]?.key
+      if (key !== undefined) visitHidden(child, `${path}/${key}`, reveal)
+    }
   }
   visit(root)
-  return { lines, total }
+  return { lines: [...lines, ...hiddenLines].slice(0, QUERY_MATCHES_MAX), total }
 }
 
 /** Levels of nested sections an outline expands at most, fewer when that does not fit. */

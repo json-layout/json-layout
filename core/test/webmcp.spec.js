@@ -2896,7 +2896,8 @@ describe('webmcp describeState query', () => {
   it('searches under a path only', () => {
     const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'department', path: '/datasets/page' })
     assert.match(markdown, /\/page\/metadata\/showDepartment/)
-    assert.ok(!markdown.includes('/card/'), markdown)
+    // the global card lives outside the path; the page's own cards are under it, hidden
+    assert.ok(!markdown.includes('/datasets/$comp-1/card/'), markdown)
   })
 
   it('says so when nothing matches', () => {
@@ -2911,6 +2912,38 @@ describe('webmcp describeState query', () => {
     assert.equal(lines.length, 30)
     assert.match(markdown, /\d+ fields match "e", the first 30 are listed/)
     assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('finds a field by its current value when it is a short text', () => {
+    // round 3: "Thématiques à la une", a card title, missed in 5 of 6 list-edit runs
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { query: 'Thématiques à la une' })
+    assert.match(markdown, /^\/\$comp-2\/elements\/5\/\$oneOf\/0\/content \([^)]*\) = "Thématiques à la une"/m)
+    const card = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { query: 'budget finances' })
+    assert.match(card, /^\/\$comp-2\/elements\/6\/\$oneOf\/14\/children\/2\/\$oneOf\/12\/title \(/m)
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('does not match a long text value', () => {
+    const compiled = compile({ type: 'object', properties: { body: { type: 'string', layout: 'textarea' } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { body: 'needle ' + 'x'.repeat(300) })
+    assert.match(describeState.toMarkdown(layout, { query: 'needle' }), /no field matches/)
+    const short = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { body: 'needle' })
+    assert.match(describeState.toMarkdown(short, { query: 'needle' }), /^\/body \(textarea\) = "needle"/m)
+  })
+
+  it('lists a field hidden by a condition and says what reveals it', () => {
+    // round 3: "crowd sourcing" missed in 5 of 6 calendar runs, its section hidden until a
+    // dataset that accepts edits is chosen
+    const markdown = describeState.toMarkdown(caseLayout('calendar'), { query: 'crowd sourcing' })
+    assert.ok(!markdown.includes('no field matches'), markdown)
+    assert.match(markdown, /crowdSourcing \([^)]*\)[^\n]* — hidden until rootData\.datasets\[0\]\.isRest/)
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('does not list a field the form never shows', () => {
+    // a const discriminator is layout none with no condition: nothing reveals it
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { query: 'uuid' })
+    assert.match(markdown, /no field matches "uuid"/)
   })
 
   it('is described by the tool', () => {
