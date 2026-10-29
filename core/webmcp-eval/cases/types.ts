@@ -53,6 +53,11 @@ export type EvalCase = {
    * API has one (data-fair's line API accepts a joined string for a multi-valued column).
    */
   apiAccepts?: (doc: unknown) => unknown
+  /**
+   * When the edited document persists: on an explicit save call (default) or by itself
+   * after each change. Only the server form session arm distinguishes them.
+   */
+  saveMode?: 'explicit' | 'auto'
   /** Checks run on the final data of each arm, whatever path the agent took. */
   checks?: EvalCheck[]
 }
