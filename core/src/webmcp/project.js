@@ -811,7 +811,51 @@ function itemLabel (item, selector) {
     return undefined
   }
   const found = find(data, 0)
-  return found === undefined ? undefined : JSON.stringify(shortText(found))
+  if (found !== undefined) return JSON.stringify(shortText(found))
+  // nothing worded: a small item says itself (a menu entry is { type, subtype })
+  const json = JSON.stringify(data)
+  return json.length <= OUTLINE_TEXT_MAX_LENGTH ? json : undefined
+}
+
+/**
+ * @typedef {{ text: string, shown: number, candidates: Array<{ path: string, level: number }> }} RenderedOutline
+ */
+
+/**
+ * A wrapper that holds no data of its own and says nothing to a person: an untitled `$comp-*`
+ * section, or the root when it has no title. Expanding one costs a line and no level.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {boolean}
+ */
+function isUnnamedWrapper (node) {
+  if (node.layout.comp === 'list' || node.layout.comp === 'one-of-select') return false
+  if (!(node.fullKey === '' || (typeof node.key === 'string' && node.key.startsWith('$')))) return false
+  const layout = /** @type {Record<string, unknown>} */(node.layout)
+  return !(typeof layout.label === 'string' && layout.label.trim()) && !(typeof layout.title === 'string' && layout.title.trim())
+}
+
+/**
+ * A slot bound to its parent's data is a preview: its "value" is the whole section again.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {boolean}
+ */
+function isPreviewSlot (node) {
+  return node.layout.comp === 'slot' && node.dataPath === node.parentDataPath
+}
+
+/**
+ * The fields an item of a list holds, through the wrappers between them: unnamed sections,
+ * the item's choice and the section of the option it holds.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {import('../state/types.js').StateNode[]}
+ */
+function fieldsOf (node) {
+  return visibleChildren(node).flatMap((child) => {
+    if (isPreviewSlot(child)) return []
+    if (child.layout.comp === 'one-of-select') return child.children?.[0] ? fieldsOf(child.children[0]) : []
+    if (isUnnamedWrapper(child) && child.children?.length) return fieldsOf(child)
+    return [child]
+  })
 }
 
 /**
@@ -821,32 +865,45 @@ function itemLabel (item, selector) {
  * reach the agent whole — round 2's MCP client cut 95 KB for a 7.5 KB page. Not a static
  * overview of the form (removed in 3942850): the values, the open section and the errors
  * are the live ones.
+ *
+ * Unnamed wrappers and a choice with its option's section are not levels: on the portal
+ * configuration they stood between the root and the menu, which a level budget then never
+ * reached.
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {number} maxDepth - levels of nested nodes expanded, deeper sections are only named
  * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
  * @param {boolean} [screen]
- * @returns {string}
+ * @param {Set<string>} [expanded] - sections and lists past the level limit shown one level
+ * more, and items of lists whose own fields are shown under their line
+ * @returns {RenderedOutline} with the levels actually shown, and what could be expanded
+ * further, in the order it appears
  */
-export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo, screen = true) {
+export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo, screen = true, expanded = new Set()) {
   const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
   /** @type {string[]} */
   const lines = []
+  /** @type {Array<{ path: string, level: number }>} */
+  const candidates = []
+  let shown = 0
 
   /**
    * @param {import('../state/types.js').StateNode} node
-   * @param {number} depth
+   * @param {number} depth - indentation
+   * @param {number} level - levels above this node that count
+   * @param {number} limit - the level from which a node is only named
    * @param {string} [suffix]
    */
-  const walk = (node, depth, suffix = '') => {
-    // a slot bound to its parent's data is a preview: its "value" is the whole section again
-    if (node.layout.comp === 'slot' && node.dataPath === node.parentDataPath) return
+  const walk = (node, depth, level, limit, suffix = '') => {
+    if (isPreviewSlot(node)) return
     const indent = '  '.repeat(depth)
     const path = node.fullKey || '/'
     const layout = /** @type {Record<string, unknown>} */(node.layout)
     const children = visibleChildren(node)
     const multiValued = isMultiValued(node)
     const isList = node.layout.comp === 'list'
+    const wrapper = isUnnamedWrapper(node) && children.length > 0
+    if (!wrapper) shown = Math.max(shown, level + 1)
     /** @type {string[]} */
     const meta = []
     if (multiValued) meta.push(`list of ${multiValuedItemType(node, statefulLayout)}`)
@@ -861,27 +918,36 @@ export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo
     const head = `${indent}- ${path} (${meta.join(', ')})${label ? ` label="${shortText(label)}"` : ''}${suffix}`
 
     if (isList) {
-      if (depth >= maxDepth) {
+      if (level >= limit && !expanded.has(node.fullKey)) {
         lines.push(`${head} — describeState on this path to see its items`)
+        candidates.push({ path: node.fullKey, level })
         return
       }
       lines.push(head)
-      for (const item of children.slice(0, OUTLINE_ITEMS_MAX)) {
-        const selector = itemSelector(item)
-        const variant = selector && activeVariant(selector)
-        const label = itemLabel(item, selector)
-        const what = [variant?.title, label].filter(Boolean).join(' — ')
-        lines.push(`${indent}  - ${item.fullKey}${what ? `: ${what}` : ''}${nodeError(item, errorsByPath) ? ' (error)' : ''}`)
-      }
-      if (children.length > OUTLINE_ITEMS_MAX) {
-        lines.push(`${indent}  - and ${children.length - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`)
-      }
+      // the options first, as the full description gives them: an expanded item's own lists
+      // of the same elements then point back here instead of listing them again
       const options = listOptionsLines(node, statefulLayout, `${indent}  `, variantsMemo, children, false)
       if (options.length) lines.push(...options)
       else {
         const selector = children.map(itemSelector).find(Boolean)
         const listedAt = selector && variantsMemo.listedAt(selector.skeleton.pointer)
         if (selector && listedAt !== undefined) lines.push(`${indent}  - each item is one of the ${variantsOf(selector).length} options listed under ${listedAt}`)
+      }
+      for (const item of children.slice(0, OUTLINE_ITEMS_MAX)) {
+        const selector = itemSelector(item)
+        const variant = selector && activeVariant(selector)
+        const label = itemLabel(item, selector)
+        const what = [variant?.title, label].filter(Boolean).join(' — ')
+        lines.push(`${indent}  - ${item.fullKey}${what ? `: ${what}` : ''}${nodeError(item, errorsByPath) ? ' (error)' : ''}`)
+        shown = Math.max(shown, level + 2)
+        candidates.push({ path: item.fullKey, level: level + 1 })
+        if (expanded.has(item.fullKey)) {
+          // the item's own fields, each only named when it holds more
+          for (const field of fieldsOf(item)) walk(field, depth + 2, level + 2, level + 2)
+        }
+      }
+      if (children.length > OUTLINE_ITEMS_MAX) {
+        lines.push(`${indent}  - and ${children.length - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`)
       }
       return
     }
@@ -897,36 +963,48 @@ export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo
       } else {
         lines.push(`${indent}  - one of the ${variantsOf(node).length} options listed under ${listedAt}`)
       }
-      if (depth < maxDepth) for (const child of children) walk(child, depth + 1)
+      // the choice and its option's section are one level with the fields they hold
+      const branch = children[0]
+      if (branch) {
+        lines.push(`${indent}  - ${branch.fullKey} (option ${branch.key})`)
+        for (const child of visibleChildren(branch)) walk(child, depth + 2, level, limit)
+      }
       return
     }
 
     if (children.length) {
-      if (depth >= maxDepth) {
+      if (!wrapper && children.length > 1 && level >= limit && !expanded.has(node.fullKey)) {
         lines.push(`${head} — ${children.length} part(s), describeState on this path to see them`)
+        candidates.push({ path: node.fullKey, level })
         return
       }
       lines.push(head)
       const openIndex = screen && SECTION_CONTAINERS.includes(node.layout.comp) ? statefulLayout.activeSectionIndex(node) : undefined
       const openKey = openIndex !== undefined ? node.children?.[openIndex]?.fullKey : undefined
-      for (const child of children) walk(child, depth + 1, child.fullKey === openKey ? ' (open)' : '')
+      // a section of a single part is one level with it: the portal menu's only part is its list
+      const flat = wrapper || children.length === 1
+      const childLevel = flat ? level : level + 1
+      // an expanded section past the limit shows its parts, each only named
+      const childLimit = Math.max(limit, childLevel)
+      for (const child of children) walk(child, depth + 1, childLevel, childLimit, child.fullKey === openKey ? ' (open)' : '')
       return
     }
 
-    lines.push(`${head} value=${outlineValue(multiValued ? multiValuedData(node) : node.data)}`)
+    const value = multiValued ? multiValuedData(node) : node.data
+    lines.push(value === undefined ? `${head} not set` : `${head} value=${outlineValue(value)}`)
   }
 
-  walk(node, 0)
-  return lines.join('\n')
+  walk(node, 0, 0, maxDepth)
+  return { text: lines.join('\n'), shown, candidates }
 }
 
 /**
  * The end of an outline: what was left out, and how to read it.
- * @param {number} depth
+ * @param {number} levels - the levels the outline actually shows
  * @returns {string}
  */
-export function outlineFooter (depth) {
-  return `(an outline, ${depth + 1} level(s) deep with values cut short, the full description being over ${OUTLINE_BUDGET_BYTES} bytes — call describeState with the path of a part to see it in full)`
+export function outlineFooter (levels) {
+  return `(an outline, ${levels} level(s) deep with values cut short, the full description being over ${OUTLINE_BUDGET_BYTES} bytes — call describeState with the path of a part to see it in full)`
 }
 
 /**
@@ -953,22 +1031,59 @@ export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo
 }
 
 /**
- * The deepest outline of a node that fits the budget once wrapped into the answer.
+ * The deepest outline of a node that fits the budget once wrapped into the answer, then with
+ * the fields of as many list items as still fit, breadth first: an agent that sees the cards
+ * of a grid with their titles and links finds the one to edit without another call. When
+ * nothing more fits, one line per item stays the floor.
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {import('./variants-memo.js').VariantsMemo} variantsMemo - the options listed are recorded in it
  * @param {boolean} screen
- * @param {(outline: string, depth: number) => string} wrap - the whole answer around the outline
+ * @param {(outline: string, levels: number) => string} wrap - the whole answer around the outline
  * @returns {string}
  */
 export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wrap) {
-  const { text, memo } = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => {
+  /**
+   * @param {number} maxDepth
+   * @param {Set<string>} [expanded]
+   */
+  const render = (maxDepth, expanded) => {
     const memo = new VariantsMemo()
-    const text = wrap(projectNodeOutline(node, statefulLayout, maxDepth, memo, screen), maxDepth)
-    return { text, memo, fits: byteLength(text) <= OUTLINE_BUDGET_BYTES }
-  })
-  variantsMemo.merge(memo)
-  return text
+    const outline = projectNodeOutline(node, statefulLayout, maxDepth, memo, screen, expanded)
+    const text = wrap(outline.text, outline.shown)
+    return { text, memo, candidates: outline.candidates, fits: byteLength(text) <= OUTLINE_BUDGET_BYTES }
+  }
+  let best = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => render(maxDepth))
+  if (!best.fits) {
+    variantsMemo.merge(best.memo)
+    return best.text
+  }
+  // what is left of the budget opens what was only named, breadth first: every part of a
+  // level before any of the next, in the order they appear. Each round opens the largest
+  // prefix that fits, found by bisection, and a round that cannot open all of its parts is
+  // the last: the portal configuration's menu sits one level below what a uniform depth
+  // could afford, and opening it saves the agent a call.
+  const depth = best.depth
+  /** @type {Set<string>} */
+  const expanded = new Set()
+  for (;;) {
+    const order = best.candidates.filter((c) => !expanded.has(c.path)).sort((a, b) => a.level - b.level).map((c) => c.path)
+    if (!order.length) break
+    let low = 0
+    let high = order.length
+    while (low < high) {
+      const count = Math.ceil((low + high) / 2)
+      const attempt = render(depth, new Set([...expanded, ...order.slice(0, count)]))
+      if (attempt.fits) {
+        low = count
+        best = { ...attempt, depth }
+      } else high = count - 1
+    }
+    for (const path of order.slice(0, low)) expanded.add(path)
+    if (low < order.length) break
+  }
+  variantsMemo.merge(best.memo)
+  return best.text
 }
 
 /**

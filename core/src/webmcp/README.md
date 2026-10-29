@@ -129,10 +129,13 @@ answered 95 KB for the root of a 7.5 KB portal page and 91 KB for its `/elements
 eval's MCP client cut both before the model read them. Past `OUTLINE_BUDGET_BYTES` (16 KB, the
 plain arm's value) the answer is the live state shallower — sections and their fields with
 values cut short, each list as its item count and one line per item with the option it holds
-and a label — at the deepest level that fits, as `describeFormSchema` already did. The union
+and a label — at the deepest level that fits, as `describeFormSchema` already did. Untitled
+wrappers, a choice with its option's section, and a section of a single part are not levels.
+What is left of the budget then opens what was only named, breadth first, so the root of the
+page shows the grid's cards and the portal configuration's root its menu entries. The union
 every item of a list holds is listed once, under the list, in full descriptions too. Measured:
-root 95,798 → 4,308 bytes, `/elements` 92,173 → 3,538, the portal configuration's root
-62,571 → 8,183.
+root 95,798 → 15,958 bytes, `/elements` 92,173 → 15,441, the portal configuration's root
+62,571 → 15,631.
 
 **One representation, one home per fact.** The suggestion protocol was once stated four times
 — in two tool descriptions, a parameter, and the guide. Copies drift: a stale duplicate of

@@ -2783,6 +2783,38 @@ describe('webmcp outline of a large form', () => {
     assert.match(markdown.trim().split('\n').at(-1) ?? '', /describeState with the path/)
   })
 
+  it('spends what is left of the budget on the parts it only named, breadth first', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), {})
+    // the card the list-edit case asks for, two lists down, without another call
+    assert.match(markdown, /\/elements\/6\/\$oneOf\/14\/children\/2: Boite — "Budget et finances"/)
+    // every top-level element opened before anything deeper
+    for (const i of [0, 4, 10]) assert.match(markdown, new RegExp(`/elements/${i}: [^\\n]*\\n\\s+- /\\$comp-2/elements/${i}/\\$oneOf/\\d+/`), `element ${i} shows its fields`)
+    // an unset field says so
+    assert.match(markdown, /\/\$comp-1\/thumbnail \(slot\) not set/)
+    assert.ok(!markdown.includes('value=undefined'))
+  })
+
+  it('reaches the menu of the portal configuration from its root', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-edit'), {})
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES, `${Buffer.byteLength(markdown)} bytes`)
+    assert.match(markdown, /\/menu\/children\/0: \{"type":"standard","subtype":"home"\}/)
+    assert.match(markdown, /\/menu\/children\/1: /)
+  })
+
+  it('says how many levels the outline actually shows', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: { rows: { type: 'array', items: { type: 'object', properties: { text: { type: 'string' }, n: { type: 'number' } } } } }
+    })
+    const rows = Array.from({ length: 300 }, (_, i) => ({ text: `row ${i} ${'with some words '.repeat(6)}`, n: i }))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { rows })
+    const markdown = describeState.toMarkdown(layout, {})
+    const levels = Number(markdown.match(/an outline, (\d+) level\(s\) deep/)?.[1])
+    // the root is an untitled wrapper: each level shown is one more indentation under it
+    const deepest = Math.max(...markdown.split('\n').filter((l) => /^\s*- \//.test(l)).map((l) => (l.match(/^ */)?.[0].length ?? 0) / 2))
+    assert.equal(levels, deepest, markdown.slice(-300))
+  })
+
   it('answers a large list shallower, naming the option each item holds', () => {
     const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { path: '/elements' })
     assert.ok(Buffer.byteLength(markdown) <= 91_000 / 5, `${Buffer.byteLength(markdown)} bytes`)
