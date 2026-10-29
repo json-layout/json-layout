@@ -553,6 +553,50 @@ describe('webmcp eval nested-document cases', () => {
     assert.equal(failed(name, collateral, session.start).length, 1)
   })
 
+  it('should resolve a path mixing layout and data segments', async () => {
+    const { session, call } = form('portal-page-list-edit')
+    await call('setFieldValue', { path: '/$comp-2/elements/6/children/2/title', value: 'Budget et fiscalité' })
+    assert.equal(/** @type {any} */ (session.data).elements[6].children[2].title, 'Budget et fiscalité')
+    const described = await call('describeState', { path: '/$comp-2/elements/6/children/2/title' })
+    assert.match(described.content[0].text, /title/)
+  })
+
+  it('should resolve a key under a $oneOf without the variant index, in the active variant only', async () => {
+    const { session, call } = form('portal-config-edit')
+    await call('editArray', { path: '/menu/children', action: 'add' })
+    await call('setFieldValue', { path: '/menu/children/2/$oneOf', value: 1 })
+    for (const path of ['/menu/children/2/$oneOf/pageRef', '/menu/children/2/pageRef']) {
+      const suggestions = await call('getFieldSuggestions', { path, query: 'jeunesse' })
+      assert.match(suggestions.content[0].text, /jeunesse/, path)
+    }
+    await call('setFieldValue', { path: '/menu/children/2/$oneOf/pageRef', suggestionIndex: 0 })
+    assert.equal(/** @type {any} */ (session.data).menu.children[2].pageRef.slug, 'jeunesse')
+    // a key of another variant must not resolve to the active one
+    const other = await session.call('setFieldValue', { path: '/menu/children/2/$oneOf/0/subtype', value: 'home' })
+    assert.equal(other.isError, true)
+    assert.equal(/** @type {any} */ (session.data).menu.children[2].subtype, undefined)
+  })
+
+  it('should say where a path leads when it does not resolve', async () => {
+    const page = form('portal-page-list-edit')
+    const typo = await page.session.call('describeState', { path: '/$comp-2/elements/6/children/2/titel' })
+    assert.equal(typo.isError, true)
+    const text = typo.content[0].text
+    assert.match(text, /leads as far as \/\$comp-2\/elements\/6\/children\/2\b/)
+    assert.match(text, /children\/2\/\$oneOf\/12\/title/)
+
+    const { call, session } = form('portal-config-edit')
+    await call('editArray', { path: '/menu/children', action: 'add' })
+    const before = await session.call('getFieldSuggestions', { path: '/menu/children/2/$oneOf/pageRef', query: 'x' })
+    assert.equal(before.isError, true)
+    assert.match(before.content[0].text, /\/menu\/children\/2\/\$oneOf\/1\/pageRef/)
+    assert.match(before.content[0].text, /switch/i)
+    await call('setFieldValue', { path: '/menu/children/2/$oneOf', value: 4 })
+    const other = await session.call('getFieldSuggestions', { path: '/menu/children/2/pageRef', query: 'x' })
+    assert.equal(other.isError, true)
+    assert.match(other.content[0].text, /\/\$oneOf\/1\/pageRef/)
+  })
+
   it('should check an insertion, a move and a removal on the same page', async () => {
     const name = 'portal-page-reorder'
     const { session, call } = form(name)
