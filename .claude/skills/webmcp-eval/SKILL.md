@@ -55,11 +55,11 @@ run any number of times and always reflects the current `core/src` and case regi
    `.run.json` sidecar, is a separate run to judge.
 
    An arm that cannot take a case writes only a sidecar with `notRunnable` and the reason
-   (today the `session` arm on the cases that auto-save: `calendar`, `charts-edit`,
-   `portal-config-edit` and the four nested-document cases `portal-page-list-edit`,
-   `portal-page-reorder`, `portal-page-switch` and `portal-config-multi`, until
-   `FormSession` has that mode). Nothing was launched, so there is nothing to judge: **do not dispatch a
-   judge for it**. The report prints it as `not runnable` and does not fail on it.
+   (for example the `session` arm against an `@json-layout/agents` build without the save
+   mode the case asks for). Nothing was launched, so there is nothing to judge: **do not
+   dispatch a judge for it**. The report prints it as `not runnable` and does not fail on it.
+   The `session` arm runs auto-save cases (`saveMode: 'auto'`) with an auto-save session:
+   no `saveForm`, each valid write persisted.
 
    At most 6 subprocesses run at once; the rest queue.
 
@@ -94,7 +94,7 @@ run any number of times and always reflects the current `core/src` and case regi
      `cd core && node --input-type=module -e "const {createArm}=await import('./webmcp-eval/arms.js');const {cases}=await import('./webmcp-eval/cases/index.js');console.log((await createArm(cases.find(c=>c.name==='<case>'),'<arm>')).toolNames.join(', '))"`
      — e.g. `getData, setData, describeState, openSection, setFieldValue,
      getFieldSuggestions, editArray` for `form`, for `session` the same without
-     `openSection` plus `saveForm` and `reloadForm`, and for `plain` `readDocument,
+     `openSection` plus `saveForm` and `reloadForm` (auto-save cases: `reloadForm` only), and for `plain` `readDocument,
      readSchema, writeDocument, patchDocument` followed by the case's lookups
      (`list_account_datasets`, `describe_dataset`, `get_field_values`, `list_portal_pages`);
      `patchDocument` is single level, each top-level key replaced whole. The runner saw them under a server named after
@@ -143,7 +143,7 @@ run any number of times and always reflects the current `core/src` and case regi
    counts. Under each row, a cache line (uncached input, cache reads, cache writes) and a
    breakdown per kind of call (`read-state`, `read-schema`, `write`, `lookup`, `other`:
    calls, bytes, failed), ending with `oversized`, the calls that answered more than
-   100 000 bytes, which Claude Code probably cut for the agent. It is context, not a verdict; a difference counts only if it repeats across
+   60 000 bytes, which Claude Code probably cut for the agent. It is context, not a verdict; a difference counts only if it repeats across
    runs and is large. Exit code is non-zero if any run was unsatisfactory, invalid, not
    judged, never ran, or failed a check. A `satisfactory` verdict printed with
    `CHECK FAILED` is the finding the checks exist for: a run that read well and ended with
@@ -151,10 +151,7 @@ run any number of times and always reflects the current `core/src` and case regi
 
    Two cautions when reading checks. `portal-page-reorder` carries many collateral checks
    (one per untouched top-level block), so its pass ratio is not comparable with other
-   cases'. And on `portal-page-switch`, a failed `absent` check on the form arm
-   (`/elements/3/children2/1/centered`) is a known library defect, not an agent failure: the
-   form's natural switch path, `setFieldValue` on the `$oneOf` selector, leaves the old
-   option's `centered` field and the form reports invalid with no node error.
+   cases'.
 
 ## If something goes wrong
 
