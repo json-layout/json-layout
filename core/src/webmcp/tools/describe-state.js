@@ -2,7 +2,7 @@
  * @file describeState tool
  */
 
-import { collectScopedErrors, recordItemOptionsUnderList, projectQueryMatches, QUERY_MATCHES_MAX, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
+import { collectScopedErrors, recordItemOptionsUnderList, projectHiddenField, projectQueryMatches, QUERY_MATCHES_MAX, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
 import { resolveNodeForEdit, nodeNotFoundError, inactiveOptionNote } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 import { describeFormSchema, resolveSchemaPath } from '../form-schema.js'
@@ -51,6 +51,9 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
   if (args.path) {
     const node = resolveNodeForEdit(statefulLayout, args.path)
     if (!node) {
+      // a part hidden by a condition holds it: say so, and what it holds now
+      const hidden = projectHiddenField(statefulLayout, args.path)
+      if (hidden) return hidden
       // what does not exist yet: an option not chosen, an item not added
       let resolved
       try { resolved = resolveSchemaPath(statefulLayout, args.path) } catch { resolved = undefined }

@@ -2880,6 +2880,36 @@ describe('webmcp frictions of the portal-config-edit eval', () => {
   })
 })
 
+// Round 3, portal-config-edit form r3 #9: describeState /theme/colors answered "not in the
+// form yet" although the data holds it, its tabs hidden while the assisted colour mode is on.
+describe('webmcp describeState of a field hidden by a condition', () => {
+  const portalLayout = () => {
+    const evalCase = getCase('portal-config-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+  }
+
+  it('says a condition hides it, which field drives it, and its current value', () => {
+    const markdown = describeState.toMarkdown(portalLayout(), { path: '/theme/colors' })
+    assert.ok(!markdown.includes('not in the form yet'), markdown)
+    assert.match(markdown, /hidden by a condition/)
+    assert.match(markdown, /!data\.assistedMode/)
+    assert.match(markdown, /\/\$comp-2\/\$comp-2\/theme\/assistedMode[^\n]*= true/, markdown)
+    assert.match(markdown, /"primary":"#1976D2"/)
+  })
+
+  it('gives the value of a field under the hidden part', () => {
+    const markdown = describeState.toMarkdown(portalLayout(), { path: '/theme/colors/primary' })
+    assert.match(markdown, /hidden by a condition/)
+    assert.match(markdown, /value="#1976D2"/)
+  })
+
+  it('still describes what an option not chosen would hold', () => {
+    assert.match(describeState.toMarkdown(portalLayout(), { path: '/menu/children/0/$oneOf/1' }), /not in the form yet/)
+  })
+})
+
 describe('webmcp data path of a hidden field', () => {
   it('says the value exists but its field is not shown right now', () => {
     const compiled = compile({

@@ -989,6 +989,84 @@ function outlineValue (value) {
   return `<${typeof value}, ${json.length} chars>`
 }
 
+/**
+ * The data path an expression of a condition reads, when it names one: `data.x` is a key of
+ * the hidden node's own data, `parent.data.x` of its parent's, `rootData.x` of the root's.
+ * @param {string} expr
+ * @param {string} ownPath - data path of the hidden node
+ * @param {string} parentPath - data path of its parent node
+ * @returns {string | undefined}
+ */
+function conditionDataPath (expr, ownPath, parentPath) {
+  const match = expr.match(/\b(rootData|parent\.data|data)((?:\??\.[A-Za-z_$][\w$]*)+)/)
+  if (!match) return undefined
+  const base = match[1] === 'rootData' ? '' : match[1] === 'data' ? ownPath : parentPath
+  const keys = match[2].split('.').map((key) => key.replace(/\?$/, '')).filter(Boolean)
+  return `${base}/${keys.join('/')}`
+}
+
+/**
+ * A path the form does not show because a condition hides the part that holds it: what the
+ * condition is, the field it reads when it names one, and the value at the path. Round 3,
+ * portal-config-edit: describeState /theme/colors, hidden while the assisted colour mode is
+ * on, answered "not in the form yet" although the data held it.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path - a data path, or a form path through the hidden part
+ * @returns {string | undefined}
+ */
+export function projectHiddenField (statefulLayout, path) {
+  const target = '/' + path.replace(/^\/+/, '').replace(/\/+$/, '')
+  const compiled = statefulLayout.compiledLayout
+  /** @type {Array<{ dataPath: string, condition: string, driver?: import('../state/types.js').StateNode, driverPath?: string }>} */
+  const holders = []
+  /**
+   * @param {string} pointer
+   * @param {string} formPath
+   * @param {string} dataPath
+   * @returns {string | undefined} the data path of the target when this part holds it
+   */
+  const holds = (pointer, formPath, dataPath) => {
+    if (formPath === target || dataPath === target) return dataPath
+    if (!target.startsWith(`${dataPath === '/' ? '' : dataPath}/`) && !target.startsWith(`${formPath}/`)) return undefined
+    for (const child of compiled.skeletonNodes[pointer]?.children ?? []) {
+      const key = compiled.skeletonNodes[child]?.key
+      if (key === undefined) continue
+      const found = holds(child, `${formPath}/${key}`, String(key).startsWith('$') ? dataPath : `${dataPath === '/' ? '' : dataPath}/${key}`)
+      if (found) return found
+    }
+    return undefined
+  }
+  /** @param {import('../state/types.js').StateNode} node */
+  const visit = (node) => {
+    for (const child of node.children ?? []) {
+      if (child.layout.comp !== 'none') {
+        visit(child)
+        continue
+      }
+      const condition = hidingCondition(child, node, statefulLayout)
+      if (!condition) continue
+      const dataPath = holds(child.skeleton.pointer, child.fullKey, child.dataPath || '/')
+      if (!dataPath) continue
+      const driverPath = conditionDataPath(condition, child.dataPath, node.dataPath)
+      const driver = driverPath ? resolveNode(statefulLayout.stateTree.root, driverPath) : undefined
+      holders.push({ dataPath, condition, driver: driver?.layout.comp === 'none' ? undefined : driver, driverPath })
+    }
+  }
+  visit(statefulLayout.stateTree.root)
+  // a condition that reads a field of the form first: the one a person changes
+  const holder = holders.find((h) => h.driver) ?? holders[0]
+  if (!holder) return undefined
+  const { dataPath, condition, driver, driverPath } = holder
+  const reads = driver
+    ? `, which reads ${driver.fullKey} (${compToType[driver.layout.comp] || driver.layout.comp}) = ${outlineValue(driver.data)}. It can be edited once that field changes; the form may show another field in its place meanwhile`
+    : driverPath ? `, which reads ${driverPath}` : ''
+  /** @type {any} */
+  let value = statefulLayout.data
+  for (const key of dataPath.split('/').filter(Boolean)) value = value && typeof value === 'object' ? value[key] : undefined
+  const current = value === undefined ? 'not set' : `value=${abbreviateValue(value)}`
+  return `${dataPath} is not shown: the part of the form that holds it is hidden by a condition, shown when ${condition}${reads}.\ncurrent ${current}`
+}
+
 /** keys of identifiers, which tell an item apart for a program but not for a person */
 const ID_KEY = /^_|^(id|uuid|key|ID|UUID)$|_(id|uuid|key)$|[a-z]Id$/
 
