@@ -1,0 +1,19 @@
+{
+  "case": "calendar",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.004027609999999999,
+  "turns": 7,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 1906,
+    "cacheRead": 43301,
+    "cacheWrite": 13203
+  },
+  "answer": "The calendar is set up on the \"Agenda-manifestations\" dataset. The write was accepted (200 OK) and I read the document back to confirm.\n\n- **Dataset:** linked as the calendar's source (`https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-`).\n- **Event label:** set to the `nomevenement` column (\"Nom de l'évenement\"), so each event shows its name.\n- **Crowd sourcing:** turned on, so visitors can propose new events.\n\nTwo things I didn't do:\n- **Contribution dataset:** I didn't set one. Proposals from visitors need a dataset to be stored in. The schema allows leaving it empty, but I'd expect proposals to have nowhere to go until one is chosen. If you name the dataset to use, I'll add it.\n- **Other calendar options:** I left colours, the event detail fields and the form options at their defaults."
+}

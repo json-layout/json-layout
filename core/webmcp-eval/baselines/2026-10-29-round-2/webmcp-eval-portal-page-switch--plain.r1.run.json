@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-switch",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0056903200000000004,
+  "turns": 7,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 12,
+    "output": 4743,
+    "cacheRead": 54142,
+    "cacheWrite": 13881
+  },
+  "answer": "Le paragraphe « Besoin d'aide ? » de la colonne de droite de « Nos engagements » est maintenant un encadré d'information (`alert`, type `info`). Le document a été accepté (200 OK), et la relecture confirme le bloc à sa place.\n\nLe texte est repris à l'identique. Le bloc n'a pas de titre, car le paragraphe d'origine n'en avait pas. Les autres réglages suivent ceux des encadrés existants de la page : variante par défaut, non fermable, marge 0. Le reste du document n'a pas changé.\n\nJe n'ai pas pu lire le schéma complet, trop volumineux pour l'outil. La validation a donc été faite par l'API à l'écriture."
+}

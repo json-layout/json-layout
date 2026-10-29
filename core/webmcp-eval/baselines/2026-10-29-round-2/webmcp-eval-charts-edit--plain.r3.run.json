@@ -1,0 +1,19 @@
+{
+  "case": "charts-edit",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.004839720000000001,
+  "turns": 6,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 8,
+    "output": 776,
+    "cacheRead": 51272,
+    "cacheWrite": 19691
+  },
+  "answer": "The chart now shows the maximum pollutant value per commune instead of the average, and the legend is at the bottom. The write was accepted (200 OK), and reading the document back confirms both changes.\n\n- **Aggregation:** `chart.config.valueCalc.metric` changed from `avg` to `max`. It still applies to the `valeur` column.\n- **Legend:** `legendPosition` changed from `right` to `bottom`.\n\nEverything else is unchanged: the bar type, grouping by `nom_com`, the top-10 size, ascending label sort, and the primary colour."
+}

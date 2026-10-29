@@ -1,0 +1,124 @@
+{
+  "case": "calendar",
+  "goal": "Set up the calendar on the \"Agenda-manifestations\" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.",
+  "arm": "plain",
+  "startedAt": "2026-10-29T11:24:04.036Z",
+  "start": {},
+  "calls": [
+    {
+      "tool": "list_account_datasets",
+      "args": {
+        "q": "Agenda-manifestations"
+      },
+      "response": "{\"count\":1,\"results\":[{\"id\":\"hokfkn9ym3s9pr-yt1atgzl-\",\"slug\":\"agenda-manifestations\",\"title\":\"Agenda-manifestations\",\"href\":\"https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-\",\"isRest\":true}]}",
+      "outputBytes": 214,
+      "isError": false
+    },
+    {
+      "tool": "readDocument",
+      "args": {},
+      "response": "{}",
+      "outputBytes": 2,
+      "isError": false
+    },
+    {
+      "tool": "readSchema",
+      "args": {},
+      "response": "{\"type\":\"object\",\"required\":[\"datasets\"],\"allOf\":[{\"title\":\"Source de données\",\"properties\":{\"datasets\":{\"type\":\"array\",\"items\":[{\"title\":\"Jeu de données\",\"description\":\"Ce jeu doit contenir au moins un champ avec le concept de date\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"href\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"isRest\":{\"type\":\"boolean\"},\"schema\":{\"type\":\"array\"},\"timePeriod\":{\"type\":\"object\"},\"attachmentsAsImage\":{\"type\":\"boolean\"},\"userPermissions\":{\"type\":\"array\"}},\"layout\":{\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"api/v1/datasets?status=finalized&q={q}&select=title,isRest,schema,timePeriod,attachmentsAsImage,userPermissions&${context.datasetFilter}&short-concept=date,startDate,endDate&size=100\",\"pure\":true},\"itemKey\":\"data[\\\"href\\\"]\",\"itemTitle\":\"data[\\\"title\\\"]\",\"itemsResults\":\"data[\\\"results\\\"]\"}}},{\"$ref\":\"#/definitions/contribsDataset\"}]}}},{\"title\":\"Affichage\",\"description\":\"Gérer l'affichage du calendrier\",\"properties\":{\"labelField\":{\"type\":\"object\",\"title\":\"Champ de libellé\",\"description\":\"Choisissez le champ représentant le libellé d'un événement.\",\"layout\":{\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"${rootData.datasets[0].href}/schema?calculated=false\",\"pure\":false},\"itemKey\":\"data[\\\"key\\\"]\",\"itemTitle\":\"data[\\\"label\\\"]\"}}},\"color\":{\"type\":\"object\",\"title\":\"Réglage des couleurs\",\"required\":[],\"oneOf\":[{\"title\":\"Calendrier multicolore\",\"additionalProperties\":false,\"required\":[\"field\"],\"properties\":{\"type\":{\"const\":\"multicolor\"},\"field\":{\"type\":\"string\",\"title\":\"Champ de catégorie\",\"description\":\"Choisissez le champ permettant de distinguer les catégories d'événements suivant des couleurs distinctes.\",\"layout\":{\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"${rootData.datasets[0].href}/schema?calculated=false\",\"pure\":false},\"itemKey\":\"data[\\\"key\\\"]\",\"itemTitle\":\"data[\\\"category\\\"]\"}}},\"colors\":{\"type\":\"object\",\"title\":\"Couleurs\",\"oneOf\":[{\"title\":\"Palette précalculée\",\"required\":[\"type\",\"name\"],\"additionalProperties\":false,\"properties\":{\"type\":{\"const\":\"palette\"},\"name\":{\"title\":\"Palette\",\"type\":\"string\",\"oneOf\":[{\"const\":\"Accent\",\"title\":\"Accent\"},{\"const\":\"Dark2\",\"title\":\"Foncé\"},{\"const\":\"Paired\",\"title\":\"Paires\"},{\"const\":\"Set1\",\"title\":\"Ensemble 1\"},{\"const\":\"Set2\",\"title\":\"Ensemble 2\"},{\"const\":\"Set3\",\"title\":\"Ensemble 3\"},{\"const\":\"Pastel1\",\"title\":\"Pastel 1\"},{\"const\":\"Pastel2\",\"title\":\"Pastel 2\"}],\"default\":\"Accent\"},\"offset\":{\"type\":\"integer\",\"title\":\"Décallage\",\"default\":0}}},{\"title\":\"Palette personnalisée\",\"required\":[\"type\",\"categories\"],\"additionalProperties\":false,\"properties\":{\"type\":{\"const\":\"manual\"},\"categories\":{\"title\":\"Couleurs\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"value\"],\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\",\"layout\":\"none\"},\"color\":{\"type\":\"string\",\"title\":\"Couleur\",\"default\":\"#828282\",\"layout\":\"color-picker\"}}},\"layout\":{\"comp\":\"list\",\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"${rootData.datasets[0].href}/values_agg?field=${parent.parent.parent.data.field}&size=0&agg_size=15\",\"pure\":false},\"itemKey\":\"data[\\\"value\\\"]\",\"itemTitle\":\"data[\\\"value\\\"]\",\"itemsResults\":\"data[\\\"aggs\\\"]\"}}}}}],\"default\":{\"type\":\"palette\",\"name\":\"Accent\",\"offset\":0}}}},{\"title\":\"Calendrier monochrome\",\"additionalProperties\":false,\"properties\":{\"type\":{\"const\":\"monochrome\"},\"colors\":{\"type\":\"object\",\"title\":\"Couleur\",\"required\":[],\"oneOf\":[{\"title\":\"Thème\",\"additionalProperties\":false,\"properties\":{\"type\":{\"const\":\"theme\"},\"strValue\":{\"title\":\"Couleur\",\"type\":\"string\",\"oneOf\":[{\"const\":\"primary\",\"title\":\"Primaire\"},{\"const\":\"secondary\",\"title\":\"Secondaire\"}]}}},{\"title\":\"Personnalisée\",\"additionalProperties\":false,\"properties\":{\"type\":{\"const\":\"custom\"},\"hexValue\":{\"type\":\"string\",\"title\":\"Couleur\",\"default\":\"#828282\",\"layout\":\"color-picker\"}}}],\"default\":{\"type\":\"theme\",\"strValue\":\"primary\"}}}}],\"default\":{\"type\":\"monochrome\"}}}},{\"title\":\"Détails d'un événement\",\"description\":\"Gérer le contenu de l'affichage lors du clic sur un événement\",\"properties\":{\"descriptionField\":{\"type\":\"object\",\"title\":\"Champ de description\",\"description\":\"Choisissez le champ permettant de fournir une description de l'événement, interprète le html et le markdown.\",\"layout\":{\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"${rootData.datasets[0].href}/schema?calculated=false\",\"pure\":false},\"itemKey\":\"data[\\\"key\\\"]\",\"itemTitle\":\"data[\\\"description\\\"]\"}}},\"additionalFields\":{\"title\":\"Champs supplémentaires à afficher.\",\"type\":\"array\",\"items\":{\"type\":\"string\"},\"layout\":{\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"${rootData.datasets[0].href}/schema?calculated=false\",\"pure\":false},\"itemKey\":\"data[\\\"key\\\"]\",\"itemTitle\":\"data[\\\"label\\\"]\"}}}}},{\"title\":\"Edition\",\"properties\":{\"formDensity\":{\"title\":\"Densité du formulaire\",\"type\":\"string\",\"oneOf\":[{\"const\":\"default\",\"title\":\"Normale\"},{\"const\":\"compact\",\"title\":\"Compacte\"},{\"const\":\"comfortable\",\"title\":\"Aérée\"}],\"default\":\"default\"},\"formVariant\":{\"title\":\"Style du formulaire\",\"type\":\"string\",\"oneOf\":[{\"const\":\"outlined\",\"title\":\"Bordure\"},{\"const\":\"underlined\",\"title\":\"Souligné\"},{\"const\":\"filled\",\"title\":\"Rempli\"},{\"const\":\"solo\",\"title\":\"Solo\"},{\"const\":\"solo-inverted\",\"title\":\"Solo inversé\"},{\"const\":\"solo-filled\",\"title\":\"Solo rempli\"}],\"default\":\"underlined\"},\"showHelpMessages\":{\"type\":\"boolean\",\"title\":\"Afficher les descriptions des champs en bulles d'aide\",\"default\":false},\"crowdSourcing\":{\"type\":\"boolean\",\"title\":\"Activer le crowd sourcing\"},\"contribsDataset\":{\"$ref\":\"#/definitions/contribsDataset\"},\"deleteValidatedContribs\":{\"title\":\"Supprimer les contributions après validation\",\"type\":\"boolean\",\"default\":false,\"layout\":{\"if\":{\"type\":\"js-eval\",\"expr\":\"parent.data.crowdSourcing\",\"pure\":false}}},\"colorContrib\":{\"type\":\"string\",\"title\":\"Couleur\",\"default\":\"#7AA95C\",\"layout\":{\"comp\":\"color-picker\",\"if\":{\"type\":\"js-eval\",\"expr\":\"parent.data.crowdSourcing\",\"pure\":false}}}},\"layout\":{\"if\":{\"type\":\"js-eval\",\"expr\":\"rootData.datasets[0].isRest\",\"pure\":false}}}],\"definitions\":{\"contribsDataset\":{\"title\":\"Jeu de données des contributions externes\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"href\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"schema\":{\"type\":\"array\"},\"timePeriod\":{\"type\":\"object\"},\"userPermissions\":{\"type\":\"array\"}},\"layout\":{\"if\":{\"type\":\"js-eval\",\"expr\":\"rootData.crowdSourcing\",\"pure\":false},\"getItems\":{\"url\":{\"type\":\"js-tpl\",\"expr\":\"api/v1/datasets?rest=true&q={q}&select=title,schema,timePeriod,userPermissions&${context.datasetFilter}&short-concept=startDate,endDate&size=100\",\"pure\":true},\"itemKey\":\"data[\\\"href\\\"]\",\"itemTitle\":\"data[\\\"title\\\"]\",\"itemsResults\":\"data[\\\"results\\\"]\"}}}},\"$id\":\"_jl\"}",
+      "outputBytes": 6688,
+      "isError": false
+    },
+    {
+      "tool": "describe_dataset",
+      "args": {
+        "datasetId": "hokfkn9ym3s9pr-yt1atgzl-"
+      },
+      "response": "{\"id\":\"hokfkn9ym3s9pr-yt1atgzl-\",\"title\":\"Agenda-manifestations\",\"href\":\"https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-\",\"isRest\":true,\"schema\":[{\"key\":\"type_demandeur\",\"x-originalName\":\"Type demandeur\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":2,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"https://schema.org/DefinedTermSet\",\"x-labels\":{\"Particulier\":\"Particulier\",\"Association\":\"Association\",\"Personnes morales\":\"Entreprise/administration/école\"},\"x-concept\":{\"id\":\"tag\",\"title\":\"Étiquette\",\"primary\":true},\"enum\":[\"Association\",\"Particulier\"]},{\"key\":\"nom\",\"x-originalName\":\"Nom\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":20,\"description\":\"\",\"x-group\":\"Demandeur\",\"enum\":[\"CHEVAILLER\",\"FELLER\",\"DELHOMME\",\"FERRY\",\"FOUILLEUL\",\"Flavigny\",\"ABONNEAU\",\"PALOMARES\",\"BERTHOMIER\",\"BONNET\",\"BOURDERIOUX\",\"CROST\",\"FFFFFFFFFF\",\"GEOFFRAY\",\"MAHIEU\",\"REISSER\",\"REY\",\"ROQUE\",\"STELLITTANO\",\"TROCCON\"]},{\"key\":\"prenom\",\"x-originalName\":\"Prénom\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":20,\"description\":\"\",\"x-group\":\"Demandeur\",\"enum\":[\"André\",\"Sandrine\",\"Anaïs\",\"Bruno\",\"Eveline\",\"Pascal\",\"Jean-Pierre\",\"Patrice\",\"CAMILLE\",\"CATERINA\",\"Christophe\",\"DENISE\",\"DOLORES\",\"GASTON\",\"JANINE\",\"JEAN DENIS\",\"Julienne\",\"Marie\",\"RENE\",\"TTTTTTTTTT\"]},{\"key\":\"association\",\"x-originalName\":\"Association\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":11,\"description\":\"\",\"x-group\":\"Demandeur\",\"enum\":[\"LES EPICURIENS DE LA PHILATELIE\",\"LUEUR DE NUIT\",\"COMITE DES FETES DE NANTEUIL\",\"LES ATELIERS DE L'AUXANCES\",\"SHARKS POITIERS TAROT CLUB\",\"VERT LEZART\",\"ASSOCIATION DES AMIS DE MICHEL NOURY\",\"ACCA (Chasse)\",\"Acca\",\"BRASS BAND DE LA VIENNE\",\"LE 40 MARS\"]},{\"key\":\"siret\",\"x-originalName\":\"SIRET\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-numeric\",\"x-cardinality\":1,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"http://www.datatourisme.fr/ontology/core/1.0/#siret\",\"x-concept\":{\"id\":\"siret\",\"title\":\"SIRET\",\"primary\":true}},{\"key\":\"adresse\",\"x-originalName\":\"Adresse\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":11,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"http://schema.org/address\",\"x-concept\":{\"id\":\"address\",\"title\":\"Adresse\",\"primary\":true},\"enum\":[\"12 rue des Sorbiers\",\"64 rue de Nanteuil\",\"12 rue Marcelin Maury\",\"27 rue Brissot\",\"4 Les rets\",\"5 rue de Saumur\",\"40 rue du Dr Mesmain\",\"15 place Leclerc\",\"31 rue du Centre\",\"7 rue du Centre\",\"Les Roches de Vert\"]},{\"key\":\"comp_adresse\",\"x-originalName\":\"Comp adresse\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":1,\"description\":\"\",\"x-group\":\"Demandeur\"},{\"key\":\"cp\",\"x-originalName\":\"CP\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-numeric\",\"x-cardinality\":8,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"http://schema.org/postalCode\",\"x-concept\":{\"id\":\"postalCode\",\"title\":\"Code postal\",\"primary\":true},\"enum\":[\"86440\",\"86000\",\"86700\",\"86034\",\"86035\",\"86036\",\"86037\",\"86360\"]},{\"key\":\"ville\",\"x-originalName\":\"Ville\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":9,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"http://schema.org/City\",\"x-concept\":{\"id\":\"city\",\"title\":\"Commune\",\"primary\":true},\"enum\":[\"MIGNE AUXANCES\",\"POITIERS\",\"VOULON\",\"BOURESSE\",\"BOURG-ARCHAMBAULT\",\"BOURNAND\",\"BRIGUEIL-LE-CHANTRE\",\"CHASSENEUIL-DU-POITOU\",\"Poitiers\"]},{\"key\":\"telephone\",\"x-originalName\":\"Telephone\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-numeric\",\"x-cardinality\":10,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"https://www.w3.org/2006/vcard/ns#tel\",\"x-concept\":{\"id\":\"tel\",\"title\":\"N° de téléphone\",\"primary\":true},\"enum\":[\"0549511648\",\"0610693438\",\"0674705678\",\"0683202269\",\"0685468485\",\"0766884307\",\"0549525252\",\"0645410102\",\"0549415149\",\"0549523535\"]},{\"key\":\"mail\",\"x-originalName\":\"Mail\",\"type\":\"string\",\"x-display\":\"markdown\",\"title\":\"\",\"icon\":\"mdi-text-subject\",\"x-capabilities\":{\"index\":false,\"values\":false,\"textAgg\":false,\"insensitive\":false},\"maxLength\":1000,\"description\":\"\",\"x-group\":\"Demandeur\",\"x-refersTo\":\"https://www.w3.org/2006/vcard/ns#email\",\"x-concept\":{\"id\":\"email\",\"title\":\"Adresse e-mail\",\"primary\":true}},{\"key\":\"salle\",\"x-originalName\":\"Salle\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":4,\"description\":\"\",\"x-group\":\"Logistique\",\"x-labels\":{\"Jean Ferrat\":\"Salle jean Ferrat\",\"Pierre Saumon\":\"Salle Pierre Saumon\",\"Complexe sportif\":\"Salle coplexe sportif\",\"Van Gogh\":\"Salle Van Gogh\"},\"enum\":[\"Salle Pierre Saumon\",\"Complexe sportif\",\"Jean Ferrat\",\"Salle Van Gogh\"]},{\"key\":\"date_debut\",\"x-originalName\":\"Date debut\",\"type\":\"string\",\"format\":\"date-time\",\"title\":\"\",\"icon\":\"mdi-clock-outline\",\"x-refersTo\":\"https://schema.org/startDate\",\"x-concept\":{\"id\":\"startDate\",\"title\":\"Date de début\",\"primary\":true},\"x-cardinality\":45,\"description\":\"\",\"x-group\":\"Evenement\"},{\"key\":\"date_fin\",\"x-originalName\":\"Date fin\",\"type\":\"string\",\"format\":\"date-time\",\"title\":\"\",\"icon\":\"mdi-clock-outline\",\"x-refersTo\":\"https://schema.org/endDate\",\"x-concept\":{\"id\":\"endDate\",\"title\":\"Date de fin\",\"primary\":true},\"x-cardinality\":45,\"description\":\"\",\"x-group\":\"Evenement\"},{\"key\":\"date_debut_option\",\"x-originalName\":\"Date début option\",\"type\":\"string\",\"format\":\"date\",\"title\":\"\",\"icon\":\"mdi-calendar\",\"x-group\":\"Evenement\",\"x-cardinality\":3,\"description\":\"\"},{\"key\":\"date_fin_option\",\"x-originalName\":\"Date fin option\",\"type\":\"string\",\"format\":\"date\",\"title\":\"\",\"icon\":\"mdi-calendar\",\"x-group\":\"Evenement\",\"x-cardinality\":3,\"description\":\"\"},{\"key\":\"nomevenement\",\"x-originalName\":\"Nomevenement\",\"type\":\"string\",\"title\":\"Nom de l'évenement\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-refersTo\":\"http://www.w3.org/2000/01/rdf-schema#label\",\"x-concept\":{\"id\":\"label\",\"title\":\"Libellé\",\"primary\":true},\"x-cardinality\":32,\"description\":\"\",\"x-group\":\"Evenement\"},{\"key\":\"typeevenement\",\"x-originalName\":\"Type-evenement\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":21,\"description\":\"\",\"x-labels\":{\"Culture et loisirs\":\"Culture et loisirs\",\"Education et familles\":\"Education et familles\",\"Enseignement\":\"Enseignement\",\"Solidatité\":\"Solidarité\",\"Sport\":\"Sport\",\"Transports\":\"Transports\"},\"x-group\":\"Evenement\",\"enum\":[\"Jeune public\",\"Animation\",\"Le Palais, Patrimoine\",\"Musique\",\"Culture et loisirs\",\"Danse, Théâtre\",\"Animation, Conférence\",\"Animation, Jeune public\",\"Animations espaces verts, Jeune public\",\"Animations espaces verts, Nature\",\"Cinéma, Jeune public\",\"Conférence, Théâtre\",\"Humour\",\"Jeu\",\"Jeune public, Le Palais\",\"Jeune public, Patrimoine\",\"Musée\",\"Patrimoine\",\"Solidatité\",\"Sport\",\"Théâtre\"]},{\"key\":\"commentaire\",\"x-originalName\":\"Commentaire\",\"type\":\"string\",\"x-display\":\"textarea\",\"title\":\"\",\"icon\":\"mdi-text-subject\",\"x-capabilities\":{\"index\":false,\"values\":false,\"textAgg\":false,\"insensitive\":false},\"maxLength\":1000,\"description\":\"\",\"x-refersTo\":\"http://schema.org/description\",\"x-concept\":{\"id\":\"description\",\"title\":\"Description\",\"primary\":true},\"x-group\":\"Evenement\"},{\"key\":\"restauration\",\"x-originalName\":\"Restauration\",\"type\":\"boolean\",\"title\":\"\",\"icon\":\"mdi-checkbox-marked-circle-outline\",\"x-group\":\"Logistique\",\"x-cardinality\":1,\"description\":\"\",\"enum\":[\"true\"]},{\"key\":\"boissons_alooisees\",\"x-originalName\":\"Boissons alooisées\",\"type\":\"boolean\",\"title\":\"Boissons alcoolisées\",\"icon\":\"mdi-checkbox-marked-circle-outline\",\"x-group\":\"Logistique\",\"x-cardinality\":1,\"description\":\"\",\"enum\":[\"true\"]},{\"key\":\"image\",\"x-originalName\":\"Image\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-subject\",\"x-capabilities\":{\"index\":false,\"values\":false,\"textAgg\":false,\"insensitive\":false},\"maxLength\":1000,\"x-refersTo\":\"http://schema.org/image\",\"x-concept\":{\"id\":\"image\",\"title\":\"Image\",\"primary\":true},\"description\":\"\"},{\"key\":\"lien\",\"x-originalName\":\"Lien\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-refersTo\":\"https://schema.org/WebPage\",\"x-concept\":{\"id\":\"webPage\",\"title\":\"Page Web\",\"primary\":true},\"x-cardinality\":44,\"description\":\"\"},{\"key\":\"attachmentPath\",\"type\":\"string\",\"title\":\"Document numérique attaché\",\"x-refersTo\":\"http://schema.org/DigitalDocument\",\"x-concept\":{\"id\":\"attachment\",\"title\":\"Document numérique attaché\",\"primary\":true},\"description\":\"\",\"x-cardinality\":1},{\"key\":\"date_de_publication\",\"x-originalName\":\"Date de publication\",\"type\":\"string\",\"title\":\"\",\"icon\":\"mdi-text-short\",\"x-capabilities\":{\"textAgg\":false},\"maxLength\":200,\"x-cardinality\":16,\"description\":\"\",\"enum\":[\"Sat, 11 Jan 2025 09:00:00 +0100\",\"Sun, 12 Jan 2025 09:00:00 +0100\",\"Fri, 27 Dec 2024 09:00:00 +0100\",\"Thu, 02 Jan 2025 09:00:00 +0100\",\"Thu, 09 Jan 2025 09:00:00 +0100\",\"Fri, 03 Jan 2025 09:00:00 +0100\",\"Mon, 23 Dec 2024 09:00:00 +0100\",\"Mon, 30 Dec 2024 09:00:00 +0100\",\"Sun, 22 Dec 2024 09:00:00 +0100\",\"Wed, 08 Jan 2025 09:00:00 +0100\",\"Sun, 05 Jan 2025 09:00:00 +0100\",\"Tue, 31 Dec 2024 09:00:00 +0100\",\"Fri, 10 Jan 2025 09:00:00 +0100\",\"Sun, 29 Dec 2024 09:00:00 +0100\",\"Thu, 26 Dec 2024 09:00:00 +0100\",\"Tue, 07 Jan 2025 09:00:00 +0100\"]},{\"key\":\"_coords.lat\",\"x-originalName\":\"_coords.lat\",\"x-extension\":\"geocoder-koumoul/postCoords\",\"title\":\"Latitude\",\"description\":\"\",\"type\":\"number\",\"x-refersTo\":\"http://schema.org/latitude\",\"x-concept\":{\"id\":\"latitude\",\"title\":\"Latitude\",\"primary\":true}},{\"key\":\"_coords.lon\",\"x-originalName\":\"_coords.lon\",\"x-extension\":\"geocoder-koumoul/postCoords\",\"title\":\"Longitude\",\"description\":\"\",\"type\":\"number\",\"x-refersTo\":\"http://schema.org/longitude\",\"x-concept\":{\"id\":\"longitude\",\"title\":\"Longitude\",\"primary\":true}}]}",
+      "outputBytes": 10060,
+      "isError": false
+    },
+    {
+      "tool": "writeDocument",
+      "args": {
+        "document": {
+          "datasets": [
+            {
+              "href": "https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-",
+              "title": "Agenda-manifestations",
+              "isRest": true
+            }
+          ],
+          "labelField": {
+            "key": "nomevenement",
+            "x-originalName": "Nomevenement",
+            "type": "string",
+            "title": "Nom de l'évenement",
+            "x-refersTo": "http://www.w3.org/2000/01/rdf-schema#label",
+            "x-concept": {
+              "id": "label",
+              "title": "Libellé",
+              "primary": true
+            },
+            "x-group": "Evenement"
+          },
+          "crowdSourcing": true
+        }
+      },
+      "response": "200 OK\nstored 3 top-level key(s)",
+      "outputBytes": 32,
+      "isError": false
+    },
+    {
+      "tool": "readDocument",
+      "args": {},
+      "response": "{\"datasets\":[{\"href\":\"https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-\",\"title\":\"Agenda-manifestations\",\"isRest\":true}],\"labelField\":{\"key\":\"nomevenement\",\"x-originalName\":\"Nomevenement\",\"type\":\"string\",\"title\":\"Nom de l'évenement\",\"x-refersTo\":\"http://www.w3.org/2000/01/rdf-schema#label\",\"x-concept\":{\"id\":\"label\",\"title\":\"Libellé\",\"primary\":true},\"x-group\":\"Evenement\"},\"crowdSourcing\":true}",
+      "outputBytes": 418,
+      "isError": false
+    }
+  ],
+  "data": {
+    "datasets": [
+      {
+        "href": "https://koumoul.com/data-fair/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-",
+        "title": "Agenda-manifestations",
+        "isRest": true
+      }
+    ],
+    "labelField": {
+      "key": "nomevenement",
+      "x-originalName": "Nomevenement",
+      "type": "string",
+      "title": "Nom de l'évenement",
+      "x-refersTo": "http://www.w3.org/2000/01/rdf-schema#label",
+      "x-concept": {
+        "id": "label",
+        "title": "Libellé",
+        "primary": true
+      },
+      "x-group": "Evenement"
+    },
+    "crowdSourcing": true
+  },
+  "checks": [
+    {
+      "label": "the calendar is on \"Agenda-manifestations\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "the label is the event name column",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "crowd sourcing is on",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "valid": true,
+  "metrics": {
+    "toolCalls": 6,
+    "outputBytes": 17414
+  }
+}

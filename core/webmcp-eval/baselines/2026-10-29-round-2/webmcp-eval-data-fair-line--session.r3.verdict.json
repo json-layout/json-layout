@@ -1,0 +1,35 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The final saved data is complete and correct, and the commune was chosen from a three-candidate suggestion list using the mail's 'near Nantes' cue. But the agent needed 17 calls: it wrote the SIRET as a JSON number three times, got 'must be string', tried a string with embedded quotes (which produced a literal-quote value and a different error), and finally bypassed setFieldValue with setData to store the string. It recovered and saved, so the goal was reached, with significant friction on the SIRET field.",
+  "friction": [
+    {
+      "call": 6,
+      "tool": "setFieldValue",
+      "observed": "/siret (text) = 52348761900017\n1 error(s) here:\n- /siret: must be string",
+      "inferred": "The value was stored as a number in a text field and left invalid; the tool did not say how to pass a string through the call, so the agent kept trying alternatives.",
+      "severity": "high"
+    },
+    {
+      "call": 9,
+      "tool": "setFieldValue",
+      "observed": "/siret (text) = \"\\\"52348761900017\\\"\" ... /siret: Un SIRET compte 14 chiffres.",
+      "inferred": "The agent tried embedding quotes to force a string, which was taken literally and produced a different, pattern error, burning a call.",
+      "severity": "medium"
+    },
+    {
+      "call": 13,
+      "tool": "setFieldValue",
+      "observed": "/siret (text) = 52348761900017\n1 error(s) here:\n- /siret: must be string\nform is invalid",
+      "inferred": "The agent repeated the exact call 6 write, which bought no information; only setData with merge (call 14) finally stored a string.",
+      "severity": "medium"
+    },
+    {
+      "call": 2,
+      "tool": "setFieldValue",
+      "observed": "each write answers 'form has N other error(s) elsewhere, use describeState to list them'",
+      "inferred": "One field at a time cost 12 setFieldValue calls where one setData would do; the response style pushes field-by-field filling.",
+      "severity": "low"
+    }
+  ]
+}

@@ -11,7 +11,10 @@ This is the first question anyone asks, and for a small form it is the right ins
 The suite exists because real configuration forms are not that, and four properties break
 the blind approach. Under each, what the first comparison against a plain JSON API measured
 ([baseline 2026-10-29](../../webmcp-eval/baselines/2026-10-29-plain-json-arm/README.md): haiku only, 3 runs per arm, every run of every arm correct, so
-these are differences in effort and cost, not in outcome):
+these are differences in effort and cost, not in outcome). A second round on the same day
+([round 2](../../webmcp-eval/baselines/2026-10-29-round-2/README.md), same model and n) took the plain arm's HTTP client away for targeted lookup tools, made
+its patch single-level like data-fair's APIs, and added four nested-document cases on portal
+pages and configurations. That round did have outcome differences; they are noted below:
 
 **1. Half the schema does not apply until you have chosen something.** `charts` is five
 levels of nested `oneOf`: which fields are legal depends on the chart type, then on the
@@ -22,6 +25,11 @@ fields are legal; the tools let it activate a branch and be told what that branc
 *Measured: tie.* With the raw schema the plain arm wrote `calendar`'s `x-if` field together
 with the value that opens it, and a valid discriminated menu item on `portal-config-edit`, in
 every run; no case asked for a branch the document did not already make obvious.
+*Round 2: against the form on a branch change.* Turning a page's text block into an alert
+(`portal-page-switch`) took the plain arm one whole-page write in 3/3 runs. Through the form,
+the variant switch kept the old variant's `centered` key. It left the form invalid with no
+located error, and 2 of 3 runs ended that way. That is a library bug, not a limit of the
+approach, but it is the round's only form-side wrong result.
 
 **2. The accepted values are not in the schema at all.** `calendar`'s label field takes its
 options from `${rootData.datasets[0].href}/schema?calculated=false` — an HTTP request whose
@@ -30,6 +38,9 @@ URL is built from another field's current value. No amount of schema reading yie
 *Measured: tie, and "nothing else can" did not hold.* Given the URL templates in the raw
 schema and an HTTP GET, the plain arm built the lookups itself in 9 of 9 runs (communes,
 dataset listing, column listing, portal pages) and picked the same values.
+*Round 2, with targeted lookup tools instead of HTTP* (no agent gets a generic HTTP client in
+production), the plain arm again found every value. The exception was one run that a harness
+defect blocked: the referential lookup refused the id as the schema writes it.
 
 **3. The values can be far larger than the answer.** A picked data-fair dataset is a 12,486-
 character object of column definitions. The agent never handles it: it applies suggestion
@@ -48,6 +59,11 @@ the schema once would cost roughly forty times the entire interaction.
 schema into the conversation: token counts show neither arm's largest response (128 KB
 `readSchema`, 62 KB `describeState`) reached the model whole. On a small edit the form side
 is cheaper: `charts-edit` took about half the plain arm's input tokens in every run.
+*Round 2 measured `portal-page` (145 KB raw schema): the plain arm was cheaper* on all three
+page edits (3–7 calls and 29–84k input tokens, against 4–14 calls and 51–241k). The plain
+agent worked from the 7.5 KB document and wrote it back whole; the schema was cut before the
+model read it. The form's own description of the page was the larger read: `describeState`
+without a path answered 95 KB, and each block lists its union's full variant list.
 
 There is a fifth reason that matters in production: the form is *live*. Writes land in the
 state a user is looking at, validation runs on every one, and the errors come back scoped to
@@ -56,6 +72,11 @@ what just changed. The agent is editing a form, not drafting a file.
 one whole-document 400 was as useful to the plain arm, and the plain arm's only real miss —
 a write that cut a dataset's column list, accepted by the schema — is a value the form's
 suggestion would have stored whole; the agent caught it itself.
+*Round 2: still mixed, with failures on both sides.* The form: the variant switch above
+reported "form is invalid" without locating the error. The plain arm: whole-object resends
+were accepted with damage the schema cannot see. A mangled dataset `href` (`charts-edit`), and
+19 top-level sections copied inside the portal `theme`, whose schema accepts extra keys
+(`portal-config-edit`, one run kept them and failed its check).
 
 The comparison also showed what is not among these reasons. **On a flat record built from
 loose text, the plain arm wins clearly**: `data-fair-line` (15 columns, a remote referential)
@@ -64,6 +85,19 @@ for the page tools and 8–19 calls and 63–79k for `FormSession`. Two form-too
 most of the difference: a 14-digit SIRET reached `setFieldValue` as a JSON number in all six
 page-tool and session runs and was refused, the quoted retry stored the quotes, and only `setData` fixed it;
 and memorised suggestions were dropped by a `setData` that did not touch the field.
+In round 2 the gap narrowed: 5–6 calls and 40–49k for plain, its lookup tool costing calls.
+The causes on the form side were unchanged.
+
+Round 2 added a cost driver that none of the five reasons names: **where the edit sits
+relative to what a single-level patch must resend.** When the change is inside a large
+top-level object, the form is markedly cheaper. On `portal-config-edit` the colour sits in
+`theme`, 9.3 KB with a 5 KB font CSS string, and the form took 77–90k input tokens. The plain
+arm took 164–826k and 17–63k output tokens, and one run never managed to write `theme`. When
+the whole document is small enough to resend (a 7.5 KB portal page), the plain arm is cheaper
+than navigating the form. On nested documents, the form tools' main target, what made them
+costlier was reading and locating, not writing: root descriptions larger than the data, no
+field search, no array move, paths that need a variant index the agent does not know. The
+round-2 baseline lists these leads.
 
 ## The tools
 
@@ -161,22 +195,26 @@ they derive from is set. None of them bit.
   ignore them).
 - **n=1 per case per model** for the tier table above, against run-to-run variance that has
   reached 3× on cost for identical code. Single-run comparisons are noise; only repeated,
-  large effects are signal. The plain-JSON comparison has n=3 per arm, on haiku only: two
-  differences are repeated and large (`data-fair-line` for the plain arm, `charts-edit` for
-  the form), the rest are ties within the spread.
+  large effects are signal. The plain-JSON comparison has n=3 per arm, on haiku only. In
+  round 1, two differences were repeated and large (`data-fair-line` for the plain arm,
+  `charts-edit` for the form). In round 2: `charts-edit` and `portal-config-edit` for the form,
+  the three portal-page edits and `data-fair-line` for the plain arm.
 - **What the model actually read.** Responses above some size between 29 KB and 62 KB did not
-  reach the model whole in the 2026-10-29 runs (inferred from cache-write token counts; the
+  reach the model whole in the 2026-10-29 runs (in round 2, 95 KB `describeState` and 128–145 KB
+  `readSchema` answers were cut too) (inferred from cache-write token counts; the
   mechanism is the client's). Byte counts are what the tools answered, not what was read.
 - **The server session's auto-save** is not measured: `FormSession` has no auto mode yet, so
   its arm is not runnable on application configurations (`calendar`, `charts-edit`,
-  `portal-config-edit`).
+  `portal-config-edit`) nor on the round-2 portal cases. Only `data-fair-line` measures it.
 - **No branch-choice case.** Every `oneOf` in the comparison was either already chosen in the
   starting document or a discriminated union; reason 1 is untested where the right branch
   depends on reasoning.
 - **`setData` with `merge: false`** has unit tests and no behavioural evidence — no agent has
   ever called it.
-- Open findings are recorded per baseline in `core/webmcp-eval/baselines/`. All current ones
-  are clarity, not correctness: none has produced a wrong value or an invalid form.
+- Open findings are recorded per baseline in `core/webmcp-eval/baselines/`. Until round 2 all
+  were clarity, not correctness. Round 2 recorded one form-side correctness failure: a variant
+  switch keeps the previous variant's keys and leaves the form invalid (`portal-page-switch`,
+  2 of 3 runs).
 
 ## A note on measuring
 

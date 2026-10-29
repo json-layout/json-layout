@@ -1,0 +1,35 @@
+{
+  "case": "data-fair-line",
+  "verdict": "unsatisfactory",
+  "reasoning": "The agent never wrote anything: the final document is empty. Every get_field_values call used a dataset id built from x-master (with or without 'dataset:', with the '--masterData_singleSearch_commune' suffix) and all returned 404 with no indication of the id that exists. The agent never tried the bare id 'communes', stopped after four failed lookups and did not even save the other fields it could fill from the mail. The last call also searched code '44184', a value from memory rather than anything the tools surfaced.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset dataset:communes",
+      "inferred": "The id as the schema writes it is unknown; no hint of the valid form.",
+      "severity": "high"
+    },
+    {
+      "call": 4,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset communes--masterData_singleSearch_commune",
+      "inferred": "Guessed another spelling; the 404 repeated without any list of known datasets, leaving the agent guessing.",
+      "severity": "high"
+    },
+    {
+      "call": 5,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset dataset:communes--masterData_singleSearch_commune",
+      "inferred": "Combined both wrong forms; still no way to recover from the error.",
+      "severity": "medium"
+    },
+    {
+      "call": 6,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset communes--masterData_singleSearch_commune",
+      "inferred": "Retried with an INSEE code typed from memory (44184), a value it could not know from the tools, and the run ended without any write.",
+      "severity": "high"
+    }
+  ]
+}

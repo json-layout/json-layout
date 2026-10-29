@@ -1,0 +1,21 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document and schema, looked up the commune, and saved a complete document in one write. The commune code 44190 came from the lookup result (Saint-Sébastien-sur-Loire among three candidates), not from memory; picking it over 23239/27602 rests on the mail's 'next to Nantes' and the 44 prefix, which the agent could know. Phone was reformatted to the schema pattern, date to ISO, activities and publics mapped to the closed lists, SIRET kept. The only cost was two dead-end lookup calls with a wrongly spelled dataset id before the third succeeded with the bare id 'communes'.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset dataset:communes",
+      "inferred": "The id taken verbatim from x-master.remoteService ('dataset:communes') was rejected; the 404 gave no hint of the accepted id form, so the agent had to guess variants.",
+      "severity": "medium"
+    },
+    {
+      "call": 4,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset communes--masterData_singleSearch_commune",
+      "inferred": "Tried the x-master.id form; another blind guess, the error lists no valid ids.",
+      "severity": "low"
+    }
+  ]
+}

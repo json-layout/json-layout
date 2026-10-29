@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-reorder",
+  "arm": "form",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.006495590000000001,
+  "turns": 5,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 5239,
+    "cacheRead": 46149,
+    "cacheWrite": 17068
+  },
+  "answer": "Les trois modifications sont faites et le formulaire est valide.\n\n1. **Encadré « Nouveau »** (qualité de l'air) : il est maintenant le premier élément de la page, au-dessus du titre « Les données ouvertes du Val de Loue ». Son contenu n'a pas changé.\n2. **Séparateur** : un nouveau séparateur, de même style que les autres, est inséré juste avant le titre « Questions fréquentes ».\n3. **Bouton « Voir tout le catalogue »** : retiré de la colonne « Nos engagements ». La colonne ne contient plus que le titre et la liste des engagements.\n\nJe n'ai rien fait d'autre. Pour déplacer l'encadré, j'ai réécrit tout le tableau des éléments de la page, donc chaque autre bloc a été renvoyé à l'identique. J'ai vérifié la liste après écriture.\n\nLe fichier `describeState` complet était trop volumineux pour être affiché. Je ne dispose pas d'outil pour lire le fichier qu'il a produit, donc je me suis appuyé sur `getData`, qui contient les mêmes valeurs."
+}

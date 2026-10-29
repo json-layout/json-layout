@@ -1,0 +1,21 @@
+{
+  "case": "portal-page-list-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document, found the single card titled « Budget et finances » in the « Thématiques à la une » responsive-grid, and rewrote the document with only that title changed to « Budget et fiscalité ». A diff of the written document against the read one shows exactly one changed line, the targeted card title; the description and every sibling are intact. The write returned 200 OK. The value came straight from the goal, nothing was guessed. The agent then re-read the edited path and confirmed the new title. Five calls, no error.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "readSchema",
+      "observed": "A 145 KB schema returned in one piece with no way to read a part of it",
+      "inferred": "The agent reported it could not read the schema in full because of its size and wrote the document without it, relying on API validation",
+      "severity": "low"
+    },
+    {
+      "call": 4,
+      "tool": "readDocument",
+      "observed": "/elements/3 returned the two-columns block (Nos engagements), not the grid",
+      "inferred": "The agent guessed an element index, got an unrelated block, and needed call 5 for the correct path; one wasted call",
+      "severity": "low"
+    }
+  ]
+}

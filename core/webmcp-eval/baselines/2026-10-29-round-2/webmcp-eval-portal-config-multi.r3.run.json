@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "form",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0108406,
+  "turns": 21,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 20,
+    "output": 3138,
+    "cacheRead": 211320,
+    "cacheWrite": 35782
+  },
+  "answer": "All four changes are in the form, and it validates with no errors.\n\n- **Dataset cards:** \"Afficher le propriétaire\" is off in the dataset card settings (Jeux de données › Vignette d'un jeu de données).\n- **Sharing:** the shared networks are now Bluesky, LinkedIn and Facebook only (Paramètres généraux › Réseaux sociaux). X, Reddit, SMS and WhatsApp are removed.\n- **Breadcrumb:** the position is \"Au-dessus du pied de page\" (Fil d'Ariane).\n- **Footer link:** a \"Page libre\" entry pointing to the existing page \"Contact presse\" was added at the end of the footer links (Pied de page › Liens). It has no custom label, so it uses the page's own title.\n\nI left two things alone because you didn't mention them:\n- The department is still shown on the dataset page and on visualisation cards and pages. Say if you want those off too.\n- The footer link list also has a \"Contact\" link in it, which I did not change."
+}

@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-switch",
+  "arm": "form",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0069120200000000005,
+  "turns": 15,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 30,
+    "output": 3870,
+    "cacheRead": 175542,
+    "cacheWrite": 16093
+  },
+  "answer": "J'ai transformé le paragraphe « Besoin d'aide ? » en encadré d'information, mais le formulaire signale maintenant une erreur de validité que je n'ai pas réussi à lever.\n\n**Ce qui est fait**\n- Le bloc de la colonne de droite de « Nos engagements » est passé du type « Texte » au type « Texte accentué (alerte) ».\n- Son type prédéfini est « Information » (`alertType: \"info\"`), avec la variante par défaut.\n- Le contenu est resté identique : « Besoin d'aide ? Notre équipe open data répond à vos questions du lundi au vendredi, de 9 h à 17 h, par courriel à opendata@valdeloue.fr. »\n- Le titre de l'alerte est resté vide, la fermeture est désactivée et l'espacement inférieur est à 0.\n\n**Problème non résolu**\n- Avant ma modification, le formulaire était valide. Il est invalide depuis le changement de type, et l'élément seul est marqué invalide.\n- Le formulaire ne désigne aucun champ précis, donc je ne sais pas quelle valeur bloque. Deux pistes : le titre vide, qui n'est peut-être pas accepté pour une alerte, et une clé `centered: false` restée de l'ancien bloc texte, qui ne fait pas partie des champs de l'alerte.\n- Je n'ai pas ajouté de titre, car vous n'en avez pas demandé. Si vous en voulez un, indiquez-moi le texte.\n\nPour finir, il faut soit me dire quel titre mettre, soit me laisser retirer la clé `centered` de ce bloc. Je n'ai rien touché d'autre dans le formulaire."
+}

@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-reorder",
+  "arm": "form",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.006882290000000001,
+  "turns": 12,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 20,
+    "output": 3232,
+    "cacheRead": 124109,
+    "cacheWrite": 20116
+  },
+  "answer": "Les trois modifications sont faites sur la page et le formulaire est valide.\n\n- **Encadré « Nouveau »** : il est maintenant en première position, au-dessus du titre « Les données ouvertes du Val de Loue ». Son contenu n'a pas changé.\n- **Séparateur** : un séparateur horizontal est inséré juste avant le titre « Questions fréquentes », avec les mêmes réglages que le séparateur existant (bords arrondis, opacité 0,1, épaisseur 1).\n- **Bouton « Voir tout le catalogue »** : retiré de la colonne « Nos engagements ». Le titre et le texte de la colonne sont conservés.\n\nLe nouveau séparateur n'a pas d'identifiant interne (`uuid`), contrairement aux autres éléments. Je n'ai pas trouvé de champ pour le fixer ; cela ne devrait pas empêcher son affichage."
+}

@@ -1,0 +1,14 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "Lookup found the dataset by name (id, href, isRest true), describe_dataset surfaced the column nomevenement titled Nom de levenement (rdfs label concept), and the agent wrote datasets[0] plus labelField and crowdSourcing:true, then re-read the document to confirm. The value of the column came from the tool, not memory. The write was validated and accepted. It stored the whole column object as the list picker would; the dataset entry carries href/title/isRest only, which the schema allowed. Efficient at 6 calls.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "readSchema",
+      "observed": "labelField is declared only as {type:object,title:Champ de libelle} with a getItems url ending in /schema?calculated=false, itemKey key, itemTitle label; no properties; datasets[0] lists schema/timePeriod/userPermissions as untyped arrays/objects.",
+      "inferred": "The agent had to guess what to store for an object picked from a remote list (the whole column object vs a partial one) and which dataset fields to keep; nothing in the tools said.",
+      "severity": "low"
+    }
+  ]
+}

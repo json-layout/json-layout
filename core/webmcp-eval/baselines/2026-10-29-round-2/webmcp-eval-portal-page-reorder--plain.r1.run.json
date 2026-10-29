@@ -1,0 +1,19 @@
+{
+  "case": "portal-page-reorder",
+  "arm": "plain",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.004895640000000001,
+  "turns": 4,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 6,
+    "output": 4385,
+    "cacheRead": 17254,
+    "cacheWrite": 12650
+  },
+  "answer": "Les trois modifications sont enregistrées (le document a été accepté, `200 OK`) :\n\n1. L'encadré « Nouveau » sur la qualité de l'air est remonté en tout premier, au-dessus du titre « Les données ouvertes du Val de Loue ».\n2. Un séparateur (même style que celui qui existe déjà dans la page) a été ajouté juste avant le titre « Questions fréquentes ».\n3. Le bouton « Voir tout le catalogue » a été retiré de la colonne « Nos engagements ». Le titre et la liste à puces de cette colonne sont inchangés.\n\nJe n'ai pas pu lire le schéma complet : la réponse dépassait la taille maximale. La validation de l'API a tout de même accepté l'ensemble du document. Les autres éléments de la page n'ont pas été modifiés."
+}

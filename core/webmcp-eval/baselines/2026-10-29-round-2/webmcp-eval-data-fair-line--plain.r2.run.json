@@ -1,0 +1,19 @@
+{
+  "case": "data-fair-line",
+  "arm": "plain",
+  "run": 2,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0024263500000000003,
+  "turns": 6,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 1486,
+    "cacheRead": 32835,
+    "cacheWrite": 6770
+  },
+  "answer": "J'ai ajouté le Dojo des Grands Bois à la liste, et l'API a accepté l'écriture.\n\nLe document était vide, donc il ne contient que ce lieu. Voici ce que j'ai renseigné à partir du mail :\n\n- **Nom du lieu** : Dojo des Grands Bois\n- **Association** : Judo Club Sébastiennais\n- **Type de lieu** : salle polyvalente\n- **Commune** : Saint-Sébastien-sur-Loire, code INSEE 44190. Le mail dit « St-Sébastien, juste à côté de Nantes », ce qui correspond à cette commune parmi les trois homonymes trouvées.\n- **Adresse** : 12 rue des Grands Bois\n- **Téléphone** : 02 40 80 12 34\n- **SIRET** : 52348761900017\n- **Activités** : judo, yoga, handisport\n- **Publics** : enfants, adultes, personnes handicapées (le mail précise « enfants à partir de 6 ans », mais le schéma n'a pas de champ d'âge)\n- **Date d'ouverture** : 2025-03-03\n\nPoints à vérifier :\n- La date d'ouverture est antérieure à aujourd'hui (29 octobre 2026). Si le mail date de 2025, c'est sans doute voulu ; sinon, il faudrait la corriger.\n- Le mail ne donne pas d'adresse de courriel, et le schéma ne rend pas ce champ obligatoire, donc je ne l'ai pas renseigné.\n- Le champ « Capacité » et le tarif ne figurent pas dans le mail, je les ai laissés vides."
+}

@@ -1,0 +1,19 @@
+{
+  "case": "data-fair-line",
+  "arm": "session",
+  "run": 1,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.0033711200000000005,
+  "turns": 9,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 14,
+    "output": 1711,
+    "cacheRead": 52222,
+    "cacheWrite": 9960
+  },
+  "answer": "J'ai ajouté le Dojo des Grands Bois à la liste et enregistré le formulaire. Il est valide.\n\nValeurs saisies :\n- **Nom du lieu** : Dojo des Grands Bois\n- **Association** : Judo Club Sébastiennais\n- **Type de lieu** : salle polyvalente\n- **Commune** : Saint-Sébastien-sur-Loire (code INSEE 44190). J'ai retenu cette commune parce que le mail indique « St-Sébastien, juste à côté de Nantes ».\n- **Adresse** : 12 rue des Grands Bois\n- **Téléphone** : 02 40 80 12 34\n- **SIRET** : 52348761900017\n- **Activités** : judo, yoga, handisport\n- **Publics** : enfants, adultes, personnes handicapées\n- **Date d'ouverture** : 2025-03-03\n\nPoints à vérifier :\n- La date d'ouverture du 3 mars 2025 est antérieure à aujourd'hui (29 octobre 2026). Le mail parle d'une ouverture à venir, donc la date est probablement erronée. Peux-tu confirmer avec le club ?\n- Le mail ne donne pas d'adresse courriel, donc le champ **Courriel** est resté vide.\n- Le champ **Capacité** n'est pas renseigné, le mail ne donnant pas de jauge.\n- Je n'ai pas renseigné **Accessible PMR**, car le mail ne le précise pas. Le club proposant du handisport, tu voudras peut-être le cocher.\n- Le **Tarif annuel** et la **Date de fermeture** sont aussi vides, faute d'information dans le mail."
+}

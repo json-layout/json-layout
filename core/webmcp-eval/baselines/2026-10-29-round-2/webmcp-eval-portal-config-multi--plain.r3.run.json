@@ -1,0 +1,19 @@
+{
+  "case": "portal-config-multi",
+  "arm": "plain",
+  "run": 3,
+  "ok": true,
+  "model": "claude-haiku-5-5",
+  "requestedModel": "haiku",
+  "costUsd": 0.005983790000000001,
+  "turns": 10,
+  "denials": [],
+  "exitCode": 0,
+  "tokens": {
+    "input": 10,
+    "output": 2164,
+    "cacheRead": 55439,
+    "cacheWrite": 21732
+  },
+  "answer": "All four changes are stored (the write returned 200 OK) and I confirmed them by reading the document back.\n\n1. **Dataset cards:** `datasets.card.showDepartment` is now `false`. I left the department display on the dataset page and on the visualisation cards and pages unchanged, since you only asked about dataset cards.\n2. **Sharing:** `socialShares` is now Bluesky, Facebook and LinkedIn only. X, Reddit, SMS and WhatsApp are removed.\n3. **Breadcrumb:** `breadcrumb.position` is now `above-footer`. The other breadcrumb options were already at their defaults, so I did not touch them.\n4. **Footer link:** \"Contact presse\" is added as the last footer link, as a \"Page libre\" pointing to the existing page `contact-presse`.\n\nOne thing to check: the schema labels `datasets.card.showDepartment` as \"Afficher le propriétaire\" (show the owner). I went by the key name and your request, so if you meant the owner rather than the department, tell me and I'll change it."
+}
