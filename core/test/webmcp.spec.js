@@ -3069,6 +3069,31 @@ describe('webmcp outline of a large form', () => {
     assert.match(markdown, /\/menu\/children\/1: /)
   })
 
+  // Round 4: the root outline of a 7.6 KB page was 16 KB, read twice, when the plain arm read
+  // the 7.6 KB document once. The outline is sized after the data it describes.
+  it('sizes the outline after the data it describes, at most the budget', () => {
+    for (const name of ['portal-page-reorder', 'portal-page-list-edit']) {
+      const evalCase = getCase(name)
+      const markdown = describeState.toMarkdown(caseLayout(name), {})
+      assert.match(markdown, /an outline, \d+ level/)
+      assert.ok(Buffer.byteLength(markdown) <= 2 * Buffer.byteLength(JSON.stringify(evalCase.data)), `${name}: ${Buffer.byteLength(markdown)} bytes`)
+    }
+  })
+
+  it('keeps a form with little data small, down to a floor', () => {
+    const fields = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`group${i}`, {
+      type: 'object',
+      title: `Group ${i}`,
+      properties: Object.fromEntries(Array.from({ length: 6 }, (_, j) => [`field${j}`, { type: 'string', title: `Field ${j} of group ${i}`, description: 'some help text that makes the full description large '.repeat(2) }]))
+    }]))
+    const compiled = compile({ type: 'object', properties: fields })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { group0: { field0: 'x' } })
+    const markdown = describeState.toMarkdown(layout, {})
+    assert.match(markdown, /an outline, \d+ level/)
+    assert.ok(Buffer.byteLength(markdown) <= 6_000, `${Buffer.byteLength(markdown)} bytes`)
+    assert.match(markdown, /\/group39/)
+  })
+
   it('says how many levels the outline actually shows', () => {
     const compiled = compile({
       type: 'object',

@@ -39,6 +39,25 @@ export const DISPLAYED_VALUE_MAX_LENGTH = 1000
  */
 export const OUTLINE_BUDGET_BYTES = 16_000
 
+/**
+ * Smallest outline budget, in bytes: a form holding little data still gets its sections named.
+ */
+export const OUTLINE_FLOOR_BYTES = 6_000
+
+/**
+ * The budget of an outline, proportional to the data it describes: twice its JSON, between the
+ * floor and OUTLINE_BUDGET_BYTES. Round 4 answered the root of a 7.6 KB page with a 16 KB
+ * outline, when the plain arm read the 7.6 KB document itself; a large configuration keeps the
+ * whole budget.
+ * @param {unknown} data
+ * @returns {number}
+ */
+export function outlineBudget (data) {
+  const json = JSON.stringify(data)
+  const size = json === undefined ? 0 : byteLength(json)
+  return Math.min(OUTLINE_BUDGET_BYTES, Math.max(OUTLINE_FLOOR_BYTES, 2 * size))
+}
+
 /** Most revealed or hidden paths named before the list is summarised instead. */
 export const REVEALED_PATHS_MAX = 10
 
@@ -1231,7 +1250,7 @@ export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo
 }
 
 /**
- * The deepest outline of a node that fits the budget once wrapped into the answer, then with
+ * The deepest outline of a node that fits its budget (outlineBudget) once wrapped into the answer, then with
  * the fields of as many list items as still fit, breadth first: an agent that sees the cards
  * of a grid with their titles and links finds the one to edit without another call. When
  * nothing more fits, one line per item stays the floor.
@@ -1243,6 +1262,7 @@ export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo
  * @returns {string}
  */
 export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wrap) {
+  const budget = outlineBudget(node.data)
   /**
    * @param {number} maxDepth
    * @param {Set<string>} [expanded]
@@ -1251,7 +1271,7 @@ export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wra
     const memo = new VariantsMemo()
     const outline = projectNodeOutline(node, statefulLayout, maxDepth, memo, screen, expanded)
     const text = wrap(outline.text, outline.shown)
-    return { text, memo, candidates: outline.candidates, fits: byteLength(text) <= OUTLINE_BUDGET_BYTES }
+    return { text, memo, candidates: outline.candidates, fits: byteLength(text) <= budget }
   }
   let best = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => render(maxDepth))
   if (!best.fits) {
