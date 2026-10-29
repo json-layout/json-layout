@@ -20,7 +20,6 @@ import { resolveNode } from './resolve.js'
 import { coerceForNode } from './coerce.js'
 import { resolveNodeSchema } from './schema.js'
 import { SuggestionsStore } from './suggestions-store.js'
-import { VariantsMemo } from './variants-memo.js'
 import { reshapesFromOtherData } from '../state/index.js'
 
 // public: a host that serves the form tools elsewhere (an MCP server's editor groups) needs
@@ -260,14 +259,6 @@ export class WebMCP {
    * @type {SuggestionsStore}
    */
   _suggestionsStore = new SuggestionsStore()
-
-  /**
-   * Variant lists already sent to the agent. Never cleared on a write: a schema's branches
-   * are a constant, so unlike memorized suggestions nothing about the data can invalidate
-   * them.
-   * @type {VariantsMemo}
-   */
-  _variantsMemo = new VariantsMemo()
 
   /**
    * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -567,7 +558,7 @@ export class WebMCP {
         inputSchema: describeState.inputSchema,
         execute: async (args) => {
           try {
-            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._variantsMemo, this._screen)
+            const text = describeState.toMarkdown(this._statefulLayout, args || {}, this._screen)
             return {
               content: [{ type: 'text', text }]
             }
@@ -620,8 +611,7 @@ export class WebMCP {
             const result = setFieldValue.execute(
               this._statefulLayout,
               /** @type {{ path: string, value?: unknown, suggestionIndex?: number }} */(args),
-              this._suggestionsStore,
-              this._variantsMemo
+              this._suggestionsStore
             )
             // A getItems expression can depend on another field, so this write may have
             // changed the options of a field memorized under an unchanged path — but only
@@ -701,8 +691,7 @@ export class WebMCP {
             const referentialBefore = this._referentialData()
             const result = editArray.execute(
               this._statefulLayout,
-              /** @type {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} */(args),
-              this._variantsMemo
+              /** @type {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} */(args)
             )
             // adding or removing an item shifts the paths of the items after it, so the
             // suggestions memorized for those paths now designate another item; a move

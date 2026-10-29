@@ -6,6 +6,7 @@ import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibil
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
+import { VariantsMemo } from '../variants-memo.js'
 
 export const inputSchema = {
   type: 'object',
@@ -62,11 +63,9 @@ function listVariants (node) {
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, value?: unknown, suggestionIndex?: number }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
- * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the activated branch
- * may nest the same union again; the memo keeps the response from printing it twice
  * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[], activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
  */
-export function execute (statefulLayout, args, store, variantsMemo) {
+export function execute (statefulLayout, args, store) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
     throw nodeNotFoundError(statefulLayout, args.path)
@@ -138,6 +137,6 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     ...(elsewhere ? { elsewhere } : {}),
     ...(coerced ? { coerced } : {}),
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
-    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, variantsMemo, undefined, true) } : {})
+    ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, new VariantsMemo(), undefined, true) } : {})
   }
 }

@@ -691,9 +691,8 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 }
 
 /**
- * Where the options of a choice were listed, when they are not listed again: in an earlier
- * answer, with the selector that lists them again (describeState on a selector always lists
- * its own options).
+ * Where the options of a choice were listed, earlier in the same answer, when they are not
+ * listed again. An item read alone prints them nowhere: it names the selector that lists them.
  * @param {import('./variants-memo.js').VariantsMemo | undefined} variantsMemo
  * @param {import('../state/types.js').StateNode} selector
  * @param {number} count
@@ -702,9 +701,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  */
 function optionsListedAt (variantsMemo, selector, count, listedAt) {
   if (variantsMemo?.unprinted(selector.skeleton.pointer)) return `one of ${count} options (describeState ${selector.fullKey} to list them)`
-  const earlier = !!variantsMemo?.listedEarlier(selector.skeleton.pointer)
-  const hint = earlier ? ` (describeState ${selector.fullKey} to list them again)` : ''
-  return `one of the ${count} options ${earlier ? 'already ' : ''}listed under ${listedAt}${hint}`
+  return `one of the ${count} options listed under ${listedAt}`
 }
 
 /**
@@ -757,8 +754,7 @@ function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, po
  * record the options as named but printed nowhere, so the item says which one it holds, names
  * its selector to list the others, and shows only that option's fields, as the outline does.
  * Round 3: one page block answered its 40 options again before its fields, 6.2 KB judged
- * bulky. Never merged into the instance memo: a later read of the list still prints them. An
- * item with no option chosen yet still lists them, it is where one is chosen.
+ * bulky. An item with no option chosen yet still lists them, it is where one is chosen.
  * @param {import('../state/types.js').StateNode} item
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
@@ -1388,13 +1384,12 @@ export function byteLength (text) {
  * The whole form as an outline, at the deepest level that fits the budget.
  * @param {import('../state/types.js').StateTree} stateTree
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
  * @param {boolean} [screen]
  * @returns {string}
  */
-export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo, screen = true) {
+export function projectStateTreeOutline (stateTree, statefulLayout, screen = true) {
   const header = stateHeaderLines(stateTree, statefulLayout)
-  return outlineThatFits(stateTree.root, statefulLayout, variantsMemo, screen,
+  return outlineThatFits(stateTree.root, statefulLayout, screen,
     (outline, depth) => [...header, 'Fields (outline):', outline, outlineFooter(depth)].join('\n'))
 }
 
@@ -1405,29 +1400,26 @@ export function projectStateTreeOutline (stateTree, statefulLayout, variantsMemo
  * nothing more fits, one line per item stays the floor.
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {import('./variants-memo.js').VariantsMemo} variantsMemo - the options listed are recorded in it
  * @param {boolean} screen
  * @param {(outline: string, levels: number) => string} wrap - the whole answer around the outline
  * @returns {string}
  */
-export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wrap) {
+export function outlineThatFits (node, statefulLayout, screen, wrap) {
   const budget = outlineBudget(node.data)
   /**
    * @param {number} maxDepth
    * @param {Set<string>} [expanded]
    */
   const render = (maxDepth, expanded) => {
-    // what earlier answers listed is referred to, not listed again
-    const memo = VariantsMemo.seededFrom(variantsMemo)
+    const memo = new VariantsMemo()
+    // an item names the option it holds, as its full description does
+    recordItemOptionsUnderList(node, statefulLayout, memo)
     const outline = projectNodeOutline(node, statefulLayout, maxDepth, memo, screen, expanded)
     const text = wrap(outline.text, outline.shown)
-    return { text, memo, candidates: outline.candidates, fits: byteLength(text) <= budget }
+    return { text, candidates: outline.candidates, fits: byteLength(text) <= budget }
   }
   let best = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => render(maxDepth))
-  if (!best.fits) {
-    variantsMemo.merge(best.memo)
-    return best.text
-  }
+  if (!best.fits) return best.text
   // what is left of the budget opens what was only named, breadth first: every part of a
   // level before any of the next, in the order they appear. Each round opens the largest
   // prefix that fits, found by bisection, and a round that cannot open all of its parts is
@@ -1452,7 +1444,6 @@ export function outlineThatFits (node, statefulLayout, variantsMemo, screen, wra
     for (const path of order.slice(0, low)) expanded.add(path)
     if (low < order.length) break
   }
-  variantsMemo.merge(best.memo)
   return best.text
 }
 

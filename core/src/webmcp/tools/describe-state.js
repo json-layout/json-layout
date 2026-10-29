@@ -36,15 +36,12 @@ export function getDescription (dataTitle, screen = true) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path?: string, query?: string }} args
- * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the unions this instance
- * already listed: they are referred to with the selector that lists them again, and the ones
- * this read lists are recorded. A read of a selector itself lists its options in full.
  * @param {boolean} [screen] - false for a form edited with no screen: no section is "open"
  * @returns {string}
  */
-export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
-  // what earlier answers of this instance listed is referred to, not listed again
-  let listed = VariantsMemo.seededFrom(variantsMemo)
+export function toMarkdown (statefulLayout, args, screen = true) {
+  // a union's options are listed in full the first time the answer meets them
+  const listed = new VariantsMemo()
 
   if (args.query?.trim()) return queryMarkdown(statefulLayout, args.query.trim(), args.path)
 
@@ -68,33 +65,21 @@ export function toMarkdown (statefulLayout, args, variantsMemo, screen = true) {
       }
       throw nodeNotFoundError(statefulLayout, args.path)
     }
-    // asked about a choice itself: its options in full, it is where they are read again
-    const selector = node.layout.comp === 'one-of-select'
-    if (selector) listed = new VariantsMemo()
     const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, node)
     /** @param {string} description */
     const answer = (description) => formatMutationResult(statefulLayout.valid, errors, description, otherErrors, elsewhere)
     recordItemOptionsUnderList(node, statefulLayout, listed)
     const markdown = answer(projectNodeToMarkdown(node, statefulLayout, 0, undefined, listed, screen, true))
-    if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
-      variantsMemo?.merge(listed)
-      return markdown
-    }
+    if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) return markdown
     // a part too large is shown shallower rather than cut, as the whole form is
-    const memo = selector || !variantsMemo ? new VariantsMemo() : variantsMemo
-    const text = outlineThatFits(node, statefulLayout, memo, screen,
+    return outlineThatFits(node, statefulLayout, screen,
       (outline, depth) => `${answer(outline)}\n${outlineFooter(depth)}`)
-    if (memo !== variantsMemo) variantsMemo?.merge(memo)
-    return text
   }
 
   const markdown = projectStateTreeToMarkdown(statefulLayout.stateTree, statefulLayout, listed, screen, true)
-  if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) {
-    variantsMemo?.merge(listed)
-    return markdown
-  }
+  if (byteLength(markdown) <= OUTLINE_BUDGET_BYTES) return markdown
   // round 2 answered 95 KB for a 7.5 KB page, and the agent never saw it whole
-  return projectStateTreeOutline(statefulLayout.stateTree, statefulLayout, variantsMemo ?? new VariantsMemo(), screen)
+  return projectStateTreeOutline(statefulLayout.stateTree, statefulLayout, screen)
 }
 
 /**

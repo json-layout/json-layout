@@ -76,12 +76,9 @@ function assertKnownVariant (statefulLayout, listNode, value) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} args
- * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
- * recursive schema carries the same union as the item that contains it; the memo keeps the
- * response from printing it again
  * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
  */
-export function execute (statefulLayout, args, variantsMemo) {
+export function execute (statefulLayout, args) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
     throw nodeNotFoundError(statefulLayout, args.path)
@@ -192,10 +189,8 @@ export function execute (statefulLayout, args, variantsMemo) {
   if (args.action === 'add') {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
-      // what earlier answers listed is referred to, with the selector that lists it again
-      const memo = VariantsMemo.seededFrom(variantsMemo)
-      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, memo, undefined, true)
-      variantsMemo?.merge(memo)
+      // a nested list of the same union refers to the options the item lists
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, new VariantsMemo(), undefined, true)
     }
   }
 
