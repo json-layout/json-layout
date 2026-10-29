@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { cases, getCase } from './cases/index.js'
 import { applyVariant, evidenceName } from './session.js'
 import { RUNNER_PROMPT } from './prompts.js'
-import { ARMS, createArm } from './arms.js'
+import { ARMS, createArm, mcpServerName } from './arms.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
@@ -33,11 +33,12 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const SERVER_PATH = join(here, 'server.js')
 
 /**
- * The one MCP server every case shares. It becomes every tool name the runner sees
- * (mcp__page-form__<tool>), so it carries no evaluation language. The case is selected
- * by environment instead, which the runner cannot read.
+ * The MCP server the form arm runs under, shared by every case. It becomes every tool name
+ * the runner sees (mcp__page-form__<tool>), so it carries no evaluation language. The case
+ * is selected by environment instead, which the runner cannot read. The other arms have
+ * their own name: see MCP_SERVER_NAMES in arms.js.
  */
-export const MCP_SERVER_NAME = 'page-form'
+export const MCP_SERVER_NAME = mcpServerName('form')
 
 /**
  * Runners silently inherited the orchestrator's model, so verdicts were never comparable.
@@ -76,6 +77,7 @@ export { RUNNER_PROMPT }
  * @property {string} [model] - model alias or id; defaults to JL_WEBMCP_EVAL_MODEL or DEFAULT_MODEL
  * @property {string} [prompt] - the arm's full system prompt; defaults to the form runner's bare prompt
  * @property {string[]} [toolNames] - the tools the session registers, which the variant decides
+ * @property {string} [arm] - the arm, which names the MCP server; defaults to `form`
  */
 
 /**
@@ -86,9 +88,10 @@ export { RUNNER_PROMPT }
  * @returns {string[]}
  */
 export function buildLaunchArgs (evalCase, options = {}) {
+  const serverName = mcpServerName(options.arm)
   const mcpConfig = JSON.stringify({
     mcpServers: {
-      [MCP_SERVER_NAME]: {
+      [serverName]: {
         type: 'stdio',
         command: 'node',
         args: [options.serverPath ?? SERVER_PATH]
@@ -101,7 +104,7 @@ export function buildLaunchArgs (evalCase, options = {}) {
     '--mcp-config', mcpConfig,
     // No built-in tool exists at all — stronger than omitting them from an allow-list.
     '--tools', '',
-    '--allowedTools', (options.toolNames ?? TOOL_NAMES).map((tool) => `mcp__${MCP_SERVER_NAME}__${tool}`).join(','),
+    '--allowedTools', (options.toolNames ?? TOOL_NAMES).map((tool) => `mcp__${serverName}__${tool}`).join(','),
     // Drops the SessionStart hook and project settings. Combined with a working
     // directory outside this repository it also drops auto-memory, whose index names
     // this eval and would otherwise tell the runner what it is taking part in.
@@ -119,6 +122,8 @@ export function buildLaunchArgs (evalCase, options = {}) {
 /**
  * @typedef {object} RunRecord
  * @property {string} case - the case name that was run
+ * @property {string} arm - the arm it ran under
+ * @property {number} [run] - its repeat index, when the case was run more than once
  * @property {boolean} ok - false when the run must not be judged
  * @property {string|null} model - the model actually used, read back from the subprocess
  * @property {string} requestedModel - the alias or id asked for
@@ -168,6 +173,29 @@ function defaultSpawn (command, args, opts) {
     child.on('error', reject)
     child.on('close', (code) => resolve({ code: code ?? 0, stdout, stderr }))
   })
+}
+
+/**
+ * The environment of the runner, which its server child inherits. Selection variables the
+ * parent happens to carry (an earlier `JL_WEBMCP_EVAL_ARM=plain` exported in the shell, say)
+ * are removed first: a default run would otherwise serve the stale arm under the form
+ * arm's name and tool list.
+ * @param {string} caseName
+ * @param {string|undefined} variant
+ * @param {string} arm
+ * @param {number|undefined} run
+ * @returns {NodeJS.ProcessEnv}
+ */
+export function serverEnv (caseName, variant, arm, run) {
+  /** @type {NodeJS.ProcessEnv} */
+  const env = { ...process.env, JL_WEBMCP_EVAL_CASE: caseName }
+  delete env.JL_WEBMCP_EVAL_ARM
+  delete env.JL_WEBMCP_EVAL_VARIANT
+  delete env.JL_WEBMCP_EVAL_RUN
+  if (variant) env.JL_WEBMCP_EVAL_VARIANT = variant
+  if (arm !== 'form') env.JL_WEBMCP_EVAL_ARM = arm
+  if (run !== undefined) env.JL_WEBMCP_EVAL_RUN = String(run)
+  return env
 }
 
 /**
@@ -226,6 +254,8 @@ export async function runCase (evalCase, options = {}) {
   /** @type {RunRecord} */
   const record = {
     case: evalCase.name,
+    arm,
+    ...(options.run !== undefined ? { run: options.run } : {}),
     ok: false,
     model: null,
     requestedModel,
@@ -243,6 +273,7 @@ export async function runCase (evalCase, options = {}) {
   }
 
   const args = buildLaunchArgs(variantCase, {
+    arm,
     model: requestedModel,
     prompt: session.prompt,
     toolNames: session.toolNames
@@ -253,13 +284,7 @@ export async function runCase (evalCase, options = {}) {
   try {
     spawnResult = await spawnFn('claude', args, {
       cwd,
-      env: {
-        ...process.env,
-        JL_WEBMCP_EVAL_CASE: evalCase.name,
-        ...(variant ? { JL_WEBMCP_EVAL_VARIANT: variant } : {}),
-        ...(arm !== 'form' ? { JL_WEBMCP_EVAL_ARM: arm } : {}),
-        ...(options.run !== undefined ? { JL_WEBMCP_EVAL_RUN: String(options.run) } : {})
-      }
+      env: serverEnv(evalCase.name, variant, arm, options.run)
     })
   } catch (/** @type {any} */err) {
     // The process never launched at all, so there is no exit code and nothing to parse

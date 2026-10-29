@@ -19,6 +19,25 @@ export const ARMS = ['form', 'session', 'plain']
 export { evidenceName }
 
 /**
+ * The MCP server name each arm is served under, the one place it is decided: it becomes
+ * every tool name the runner sees (mcp__<name>__<tool>) and the server's own
+ * `serverInfo.name`, so it names what the arm is — a page's form, a server's record form,
+ * a document API — and never the evaluation, nor an arm's name.
+ * @type {Record<string, string>}
+ */
+export const MCP_SERVER_NAMES = { form: 'page-form', session: 'record-form', plain: 'document-api' }
+
+/**
+ * @param {string} [arm] - defaults to `form`
+ * @returns {string}
+ */
+export function mcpServerName (arm = 'form') {
+  const name = MCP_SERVER_NAMES[arm]
+  if (!name) throw new Error(`unknown arm "${arm}", available: ${ARMS.join(', ')}`)
+  return name
+}
+
+/**
  * @param {EvalCase} evalCase
  * @param {string} arm
  * @returns {Promise<any>}

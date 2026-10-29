@@ -6,8 +6,8 @@ import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, MAX_CONCURRENT_RUNS, runCase, runPool, parseCliArgs, sidecarPath } from '../webmcp-eval/run-case.js'
-import { ARMS, createArm } from '../webmcp-eval/arms.js'
+import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, MAX_CONCURRENT_RUNS, runCase, runPool, parseCliArgs, serverEnv, sidecarPath } from '../webmcp-eval/run-case.js'
+import { ARMS, createArm, MCP_SERVER_NAMES, mcpServerName } from '../webmcp-eval/arms.js'
 import { API_TOOL_NAMES } from '../webmcp-eval/plain-api.js'
 import { applyVariant, evidenceName, EvalSession } from '../webmcp-eval/session.js'
 
@@ -335,12 +335,59 @@ describe('webmcp eval arms', () => {
 
   it('should launch a plain arm with exactly its five tools and no form-tool name', async () => {
     const arm = await createArm(getCase('contact'), 'plain')
-    const args = buildLaunchArgs(getCase('contact'), { ...options, prompt: arm.prompt, toolNames: arm.toolNames })
+    const args = buildLaunchArgs(getCase('contact'), { ...options, arm: 'plain', prompt: arm.prompt, toolNames: arm.toolNames })
     const allowed = optionValue(args, '--allowedTools').split(',')
-    assert.deepEqual(allowed, API_TOOL_NAMES.map((t) => `mcp__${MCP_SERVER_NAME}__${t}`))
+    assert.deepEqual(allowed, API_TOOL_NAMES.map((t) => `mcp__document-api__${t}`))
     assert.equal(allowed.length, 5)
     const prompt = optionValue(args, '--append-system-prompt')
     for (const tool of TOOL_NAMES) assert.ok(!prompt.includes(tool), `prompt names form tool ${tool}`)
+  })
+
+  it('should serve each arm under its own server name, in the config and every allowed tool', async () => {
+    assert.deepEqual(MCP_SERVER_NAMES, { form: 'page-form', session: 'record-form', plain: 'document-api' })
+    assert.equal(MCP_SERVER_NAME, 'page-form')
+    assert.throws(() => mcpServerName('nope'), /unknown arm/)
+    for (const armName of ARMS) {
+      const arm = await createArm(getCase('contact'), armName)
+      const args = buildLaunchArgs(getCase('contact'), { ...options, arm: armName, prompt: arm.prompt, toolNames: arm.toolNames })
+      const name = mcpServerName(armName)
+      assert.deepEqual(Object.keys(JSON.parse(optionValue(args, '--mcp-config')).mcpServers), [name])
+      const allowed = optionValue(args, '--allowedTools').split(',')
+      assert.deepEqual(allowed, arm.toolNames.map((/** @type {string} */ t) => `mcp__${name}__${t}`))
+      for (const leak of ['eval', 'judge', 'test', 'plain', 'session']) assert.ok(!name.includes(leak), `${name} leaks ${leak}`)
+    }
+    // the session arm's tools, by name
+    const session = await createArm(getCase('contact'), 'session')
+    const allowed = optionValue(buildLaunchArgs(getCase('contact'), { ...options, arm: 'session', toolNames: session.toolNames }), '--allowedTools').split(',')
+    assert.ok(allowed.includes('mcp__record-form__saveForm') && allowed.includes('mcp__record-form__setFieldValue'), allowed.join(','))
+  })
+
+  it('should drop selection variables the parent environment carries', async () => {
+    const saved = { arm: process.env.JL_WEBMCP_EVAL_ARM, variant: process.env.JL_WEBMCP_EVAL_VARIANT, run: process.env.JL_WEBMCP_EVAL_RUN }
+    process.env.JL_WEBMCP_EVAL_ARM = 'plain'
+    process.env.JL_WEBMCP_EVAL_VARIANT = 'no-guide'
+    process.env.JL_WEBMCP_EVAL_RUN = '7'
+    try {
+      /** @type {any[]} */
+      const seen = []
+      const spawn = async (/** @type {string} */ _c, /** @type {string[]} */ args, /** @type {any} */ opts) => {
+        seen.push({ args, env: opts.env })
+        return { code: 0, stdout: claudeOutput(), stderr: '' }
+      }
+      await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
+      const env = seen[0].env
+      assert.equal(env.JL_WEBMCP_EVAL_CASE, 'contact')
+      for (const key of ['JL_WEBMCP_EVAL_ARM', 'JL_WEBMCP_EVAL_VARIANT', 'JL_WEBMCP_EVAL_RUN']) assert.ok(!(key in env), `${key} leaked into a default run`)
+      assert.ok(optionValue(seen[0].args, '--allowedTools').startsWith('mcp__page-form__'))
+      assert.deepEqual(
+        Object.fromEntries(Object.entries(serverEnv('contact', 'no-guide', 'session', 3)).filter(([k]) => k.startsWith('JL_WEBMCP_EVAL_') && k !== 'JL_WEBMCP_EVAL_MODEL' && k !== 'JL_WEBMCP_EVAL_DATA_FAIR')),
+        { JL_WEBMCP_EVAL_CASE: 'contact', JL_WEBMCP_EVAL_VARIANT: 'no-guide', JL_WEBMCP_EVAL_ARM: 'session', JL_WEBMCP_EVAL_RUN: '3' })
+    } finally {
+      for (const [key, value] of [['JL_WEBMCP_EVAL_ARM', saved.arm], ['JL_WEBMCP_EVAL_VARIANT', saved.variant], ['JL_WEBMCP_EVAL_RUN', saved.run]]) {
+        if (value === undefined) delete process.env[/** @type {string} */ (key)]
+        else process.env[/** @type {string} */ (key)] = value
+      }
+    }
   })
 
   it('should pass the arm and run by environment only when they are not the defaults', async () => {
@@ -353,12 +400,17 @@ describe('webmcp eval arms', () => {
     const sidecarDir = tmpSidecarDir()
     await runCase(getCase('contact'), { spawn, sidecarDir })
     await runCase(getCase('contact'), { spawn, sidecarDir, arm: 'plain', run: 2 })
-    assert.ok(!('JL_WEBMCP_EVAL_ARM' in seen[0]) || seen[0].JL_WEBMCP_EVAL_ARM === process.env.JL_WEBMCP_EVAL_ARM)
-    assert.equal(seen[0].JL_WEBMCP_EVAL_RUN, process.env.JL_WEBMCP_EVAL_RUN)
+    assert.ok(!('JL_WEBMCP_EVAL_ARM' in seen[0]))
+    assert.ok(!('JL_WEBMCP_EVAL_RUN' in seen[0]))
     assert.equal(seen[1].JL_WEBMCP_EVAL_ARM, 'plain')
     assert.equal(seen[1].JL_WEBMCP_EVAL_RUN, '2')
     const written = JSON.parse(readFileSync(sidecarPath('contact--plain.r2', sidecarDir), 'utf8'))
     assert.equal(written.ok, true)
+    assert.equal(written.arm, 'plain')
+    assert.equal(written.run, 2)
+    const control = JSON.parse(readFileSync(sidecarPath('contact', sidecarDir), 'utf8'))
+    assert.equal(control.arm, 'form')
+    assert.ok(!('run' in control))
   })
 
   it('should record a non-runnable arm and spawn nothing', async () => {

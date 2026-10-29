@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url'
 
 import { getCase } from './cases/index.js'
 import { applyVariant } from './session.js'
-import { createArm, evidenceName } from './arms.js'
+import { createArm, evidenceName, mcpServerName } from './arms.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const caseName = process.env.JL_WEBMCP_EVAL_CASE
@@ -99,8 +99,9 @@ async function handle (msg) {
       // Wire-visible, so it carries no evaluation language for the same reason the
       // server and tool names do not: a runner that reads "eval" here has been told
       // what it must not be told. Nor does it carry the case name — the runner must
-      // not be able to read case selection back out of anything it sees.
-      serverInfo: { name: 'page-form', version: '1.0.0' }
+      // not be able to read case selection back out of anything it sees. The same name
+      // the launcher declares the server under for this arm.
+      serverInfo: { name: mcpServerName(arm), version: '1.0.0' }
     })
     return
   }

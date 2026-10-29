@@ -149,10 +149,14 @@ procedure):
    concurrently, at most 6 at a time (`MAX_CONCURRENT_RUNS`; more trips rate limits and
    starves the machine, and a queue costs only wall-clock time). Each subprocess is passed
    a single inline MCP server config via `--strict-mcp-config --mcp-config` — one server
-   definition, `page-form`, shared by every case — so there is no repository-level MCP server file
+   definition, named after the arm (`page-form`, `record-form` or `document-api`, see
+   `MCP_SERVER_NAMES` in `arms.js`), shared by every case — so there is no repository-level MCP server file
    to generate or register, and no per-case setup step. Which case a subprocess serves is
    chosen by the `JL_WEBMCP_EVAL_CASE` environment variable set on the `claude` process,
    which its MCP server child inherits; the runner itself never sees a case identifier.
+   The arm, variant and repeat travel the same way (`JL_WEBMCP_EVAL_ARM`, `_VARIANT`,
+   `_RUN`), and the launcher removes them from its own environment first, so a value left
+   exported in the shell never reaches a run that did not ask for it.
 
    A fresh OS process per run means clean form state and a freshly imported `core/src`
    for every run, so a case can be re-run any number of times and a run always reflects
@@ -160,7 +164,7 @@ procedure):
    session opened.
 
 2. Each runner has no built-in tools at all (`--tools ""`) and no other reachable MCP
-   server (`--strict-mcp-config`); `--allowedTools` names exactly the `mcp__page-form__*`
+   server (`--strict-mcp-config`); `--allowedTools` names exactly the `mcp__<server>__*`
    tools the case's server registers — the same descriptors and descriptions a browser
    page would expose.
 
