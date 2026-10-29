@@ -43,7 +43,7 @@ Agent Skill the agent loads before using the tools. `registerTools()` publishes 
 `skill://<name>/SKILL.md` resource where the model context serves resources (MCP-B), and an MCP
 server serving the same tools publishes the same text as its own skill. A page used to hand it to a
 sub-agent instead (`includeSubAgent`); that went with sub-agents, measured in
-`core/webmcp-eval/baselines/2026-10-28-subagent-conversations/` on the conversation-eval branch.
+`core/webmcp-eval/baselines/2026-10-28-subagent-conversations/`.
 
 | tool | what it is for |
 |---|---|
