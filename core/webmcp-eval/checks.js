@@ -9,6 +9,8 @@
  * @typedef {{ path: string, equals: unknown, label?: string }
  *   | { path: string, values: string[], separator?: string, label?: string }
  *   | { path: string, contains: Record<string, any>, label?: string }
+ *   | { path: string, absent: true, label?: string }
+ *   | { path: string, length: number, label?: string }
  *   | { unchangedExcept: string[], label?: string }} EvalCheck
  */
 
@@ -143,6 +145,17 @@ const runCheck = (check, data, start) => {
     const want = toSet(check.values, ',')
     const ok = want && got.size === want.size && [...want].every(v => got.has(v))
     return { label, ok: !!ok, detail: ok ? '' : `got ${show([...got])}` }
+  }
+  if ('absent' in check) {
+    const label = check.label ?? `${check.path} is absent`
+    return actual === MISSING ? { label, ok: true, detail: '' } : { label, ok: false, detail: `got ${show(actual)}` }
+  }
+  if ('length' in check) {
+    const label = check.label ?? `${check.path} has length ${check.length}`
+    if (actual === MISSING) return { label, ok: false, detail: `${check.path} is missing` }
+    if (!Array.isArray(actual)) return { label, ok: false, detail: `${check.path} is not an array, got ${show(actual)}` }
+    const ok = actual.length === check.length
+    return { label, ok, detail: ok ? '' : `got length ${actual.length}` }
   }
   const label = check.label ?? `${check.path} contains ${show(check.contains)}`
   if (actual === MISSING) return { label, ok: false, detail: `${check.path} is missing` }

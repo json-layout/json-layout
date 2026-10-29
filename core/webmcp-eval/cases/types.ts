@@ -5,6 +5,8 @@ export type EvalCheck =
   | { path: string, equals: unknown, label?: string }
   | { path: string, values: string[], separator?: string, label?: string }
   | { path: string, contains: Record<string, unknown>, label?: string }
+  | { path: string, absent: true, label?: string }
+  | { path: string, length: number, label?: string }
   | { unchangedExcept: string[], label?: string }
 
 /** The targeted lookup tools of the plain API's catalogue (webmcp-eval/lookups.js). */

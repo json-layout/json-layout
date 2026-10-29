@@ -75,4 +75,28 @@ describe('runChecks', () => {
     assert.equal(one({ path: '/a/toString', equals: 'x' }, { a: {} }).detail, '/a/toString is missing')
     assert.equal(one({ path: '/list', contains: { constructor: Object } }, { list: [{}] }).ok, false)
   })
+
+  it('absent passes on a missing key and a removed array tail', () => {
+    assert.equal(one({ path: '/a/b', absent: true }, { a: {} }).ok, true)
+    assert.equal(one({ path: '/list/2', absent: true }, { list: ['a', 'b'] }).ok, true)
+  })
+
+  it('absent fails quoting the value when present', () => {
+    const r = one({ path: '/a', absent: true }, { a: 0 })
+    assert.equal(r.ok, false)
+    assert.equal(r.detail, 'got 0')
+    assert.equal(r.label, '/a is absent')
+  })
+
+  it('length passes on the expected array length', () => {
+    const r = one({ path: '/list', length: 2 }, { list: ['a', 'b'] })
+    assert.equal(r.ok, true)
+    assert.equal(r.label, '/list has length 2')
+  })
+
+  it('length fails with the actual length, or when not an array or missing', () => {
+    assert.equal(one({ path: '/list', length: 2 }, { list: ['a'] }).detail, 'got length 1')
+    assert.match(one({ path: '/list', length: 2 }, { list: 'ab' }).detail, /not an array/)
+    assert.equal(one({ path: '/list', length: 0 }, {}).detail, '/list is missing')
+  })
 })
