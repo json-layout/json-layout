@@ -1,8 +1,9 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { PlainApiSession } from '../webmcp-eval/plain-api.js'
-import { FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
+import { mergePatch, PlainApiSession } from '../webmcp-eval/plain-api.js'
+import { getCase } from '../webmcp-eval/cases/index.js'
+import { fixturePath, FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
 
 /** @typedef {import('../webmcp-eval/cases/types.js').EvalCase} EvalCase */
 
@@ -122,7 +123,7 @@ describe('PlainApiSession', () => {
 
   it('answers fixture URLs and a 404 for unknown ones', async () => {
     const session = new PlainApiSession(makeCase({
-      remote: (url) => url.pathname === '/api/items' ? { results: [url.searchParams.get('q')] } : undefined
+      remote: (url) => fixturePath(url) === '/api/items' ? { results: [url.searchParams.get('q')] } : undefined
     }))
     assert.deepEqual(JSON.parse(text(await session.call('httpGet', { url: 'api/items?q=z' }))), { results: ['z'] })
     const unknown = await session.call('httpGet', { url: 'unknown' })

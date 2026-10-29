@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { v2compat } from '../../src/compat/v2.js'
-import { remoteKey } from '../remote.js'
+import { fixturePath, remoteKey } from '../remote.js'
 
 /** @typedef {import('./types.js').EvalCase} EvalCase */
 
@@ -93,6 +93,85 @@ function calendarCapture (file) {
 /** @type {Record<string, string>} */
 const calendarIndex = calendarCapture('index.json') ?? {}
 
+/** @param {string} text */
+const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+/**
+ * The words of a search, as data-fair's full-text search splits them: on anything that is
+ * not a letter or a digit, accents and case folded.
+ * @param {string} text
+ * @returns {string[]}
+ */
+const searchWords = (text) => fold(text).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+
+const DATASETS_PATH = '/api/v1/datasets'
+
+/**
+ * Every dataset the captured listings hold, once, merged across listings: a listing only
+ * carries the fields its `select` asked for, and data-fair leaves `isRest` out when false.
+ * The order is the captures' (searches first, so their relevance order leads), and a
+ * dataset of a `rest=true` listing is a REST one whatever the other listings said.
+ * @returns {any[]}
+ */
+function calendarDatasets () {
+  const listings = Object.entries(calendarIndex)
+    .map(([key, file]) => ({ url: new URL(key, 'http://localhost/'), file }))
+    .filter(({ url }) => url.pathname === DATASETS_PATH)
+    .sort((a, b) => Number(b.url.searchParams.has('q')) - Number(a.url.searchParams.has('q')))
+  /** @type {Map<string, any>} */
+  const byId = new Map()
+  for (const { url, file } of listings) {
+    for (const dataset of calendarCapture(file)?.results ?? []) {
+      const merged = Object.assign(byId.get(dataset.id) ?? {}, dataset)
+      if (url.searchParams.get('rest') === 'true') merged.isRest = true
+      byId.set(dataset.id, merged)
+    }
+  }
+  return [...byId.values()]
+}
+
+const calendarPool = calendarDatasets()
+
+/**
+ * The calendar's remote, answered on the path rather than on the exact URLs captured: a
+ * runner writing its own URL spells the projection and paging parameters its own way, and
+ * a real API answers it all the same.
+ *
+ * - `api/v1/datasets` filters the captured datasets on the words of `q` (every word in the
+ *   title, accents and case folded; no `q` lists them all) and on `rest=true`. The
+ *   projection and paging parameters (`select`, `short-concept`, `status`, `owner`, ...) are
+ *   ignored, except a `size` below the count, which truncates the results.
+ * - `api/v1/datasets/<id>` answers a captured dataset, and any other per-dataset path that
+ *   was captured (`/schema`) is served whatever its query: the exact capture when the URL
+ *   matches one, else the capture of that path with the fewest parameters.
+ * - Anything else is a 404.
+ * @param {URL} url
+ * @returns {unknown}
+ */
+function calendarRemote (url) {
+  const path = fixturePath(url)
+  if (path === DATASETS_PATH) {
+    const words = searchWords(url.searchParams.get('q') ?? '')
+    const found = calendarPool.filter((d) => {
+      const title = fold(d.title ?? '')
+      return words.every((w) => title.includes(w)) &&
+        (url.searchParams.get('rest') !== 'true' || d.isRest === true)
+    })
+    const size = Number(url.searchParams.get('size'))
+    const results = url.searchParams.has('size') && Number.isInteger(size) && size >= 0 && size < found.length ? found.slice(0, size) : found
+    return { count: found.length, results: structuredClone(results) }
+  }
+  const exact = calendarIndex[remoteKey(url)]
+  if (exact) return calendarCapture(exact)
+  const samePath = Object.keys(calendarIndex)
+    .filter((key) => key.split('?')[0] === path)
+    .sort((a, b) => a.length - b.length)
+  if (samePath.length) return calendarCapture(calendarIndex[samePath[0]])
+  const id = /^\/api\/v1\/datasets\/([^/]+)$/.exec(path)?.[1]
+  const dataset = id && calendarPool.find((d) => d.id === id)
+  return dataset ? structuredClone(dataset) : undefined
+}
+
 /**
  * The dataset the goal names and its event name column, read from the capture: the
  * column the dataset itself marks as its label (rdf-schema#label), titled "Nom de
@@ -126,10 +205,7 @@ const calendar = {
   schema: v2compat(loadSchema('app-calendar.json'), undefined, 'fr'),
   data: {},
   context: grandPoitiersContext,
-  remote: (url) => {
-    const file = calendarIndex[remoteKey(url)]
-    return file ? calendarCapture(file) : undefined
-  },
+  remote: calendarRemote,
   checks: [
     { path: '/datasets/0/href', equals: agendaDataset?.href, label: 'the calendar is on "Agenda-manifestations"' },
     { path: '/labelField/key', equals: eventNameColumn?.key, label: 'the label is the event name column' },
@@ -448,9 +524,6 @@ function lineEditorSchema (fetched) {
   return schema
 }
 
-/** @param {string} text */
-const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-
 /** @type {{ code: string, nom: string }[]} */
 const communes = JSON.parse(readFileSync(join(here, 'data', 'communes.json'), 'utf8'))
 
@@ -462,7 +535,7 @@ const communes = JSON.parse(readFileSync(join(here, 'data', 'communes.json'), 'u
  * @returns {unknown}
  */
 function communesRemote (url) {
-  if (url.pathname !== '/communes') return undefined
+  if (fixturePath(url) !== '/communes') return undefined
   const words = fold(url.searchParams.get('q') ?? '').split(/\s+/).filter(Boolean)
   const found = communes
     .filter((c) => words.every((w) => fold(c.nom).includes(w) || c.code.startsWith(w)))

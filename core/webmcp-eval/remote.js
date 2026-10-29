@@ -7,8 +7,23 @@
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
-/** Base the fixture URLs resolve against; the fixture only ever sees the path and query. */
-export const FIXTURE_BASE_URL = 'http://eval.local/'
+/**
+ * Base the fixture URLs resolve against: where a data-fair instance mounts its API, so a
+ * relative URL resolves exactly as on a real one. It shows in the absolute URLs the form
+ * resolves and in their errors, so it is neutral on purpose: nothing a runner reads may
+ * say it is being evaluated.
+ */
+export const FIXTURE_BASE_URL = 'http://localhost/data-fair/'
+
+/**
+ * The path a fixture answers on, with data-fair's `/data-fair` mount prefix dropped (a
+ * dataset's `href` is absolute under it, the schemas' URLs are relative to it).
+ * @param {URL} url
+ * @returns {string}
+ */
+export function fixturePath (url) {
+  return url.pathname.replace(/^\/data-fair\//, '/')
+}
 
 /**
  * The state layer's `fetch` option returns the parsed JSON body, not a Response, so
@@ -37,7 +52,7 @@ export function caseFetch (evalCase, options = {}) {
  * @returns {string}
  */
 export function remoteKey (url) {
-  const path = url.pathname.replace(/^\/data-fair\//, '/')
+  const path = fixturePath(url)
   const params = [...url.searchParams].filter(([, value]) => value !== '')
     .sort(([a, va], [b, vb]) => a === b ? va.localeCompare(vb) : a.localeCompare(b))
   return params.length ? `${path}?${new URLSearchParams(params)}` : path

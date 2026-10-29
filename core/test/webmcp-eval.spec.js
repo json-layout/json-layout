@@ -8,6 +8,7 @@ import { TOOL_NAMES } from '../webmcp-eval/run-case.js'
 import { EvalSession } from '../webmcp-eval/session.js'
 import { PlainApiSession } from '../webmcp-eval/plain-api.js'
 import { runChecks } from '../webmcp-eval/checks.js'
+import { createArm } from '../webmcp-eval/arms.js'
 
 /**
  * @param {import('../src/state/index.js').StateNode} node
@@ -207,19 +208,19 @@ describe('webmcp eval line form case', () => {
   it('should answer the commune search as data-fair does, sorted by code and capped', () => {
     const { remote } = getCase('data-fair-line')
     assert.ok(remote)
-    const saint = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=saint')))
+    const saint = /** @type {any} */ (remote(new URL('http://localhost/data-fair/communes?q=saint')))
     assert.equal(saint.results.length, 10)
     assert.ok(saint.total > 10)
     const codes = saint.results.map((/** @type {any} */ r) => r.output)
     assert.deepEqual(codes, [...codes].sort())
     assert.ok(!codes.includes('44190'), 'the commune is past the first page of "saint"')
-    const reze = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=REZE')))
+    const reze = /** @type {any} */ (remote(new URL('http://localhost/data-fair/communes?q=REZE')))
     // a prefix of the homonym too, and it sorts first
     assert.deepEqual(reze.results, [{ output: '15161', label: '15161 (Rézentières)' }, { output: '44143', label: '44143 (Rezé)' }])
     // a code, or its start, finds the commune as data-fair's q_fields do
-    const byCode = /** @type {any} */ (remote(new URL('http://eval.local/communes?q=44190')))
+    const byCode = /** @type {any} */ (remote(new URL('http://localhost/data-fair/communes?q=44190')))
     assert.deepEqual(byCode.results, [{ output: '44190', label: '44190 (Saint-Sébastien-sur-Loire)' }])
-    assert.equal(remote(new URL('http://eval.local/unknown')), undefined)
+    assert.equal(remote(new URL('http://localhost/data-fair/unknown')), undefined)
   })
 
   it('should accept the line the goal describes, in the plain API and in the checks', async () => {
@@ -293,9 +294,82 @@ describe('webmcp eval coherence and large-document checks', () => {
       const schema = await session.call('httpGet', { url })
       assert.equal(schema.isError, false, `${url}: ${schema.content[0].text}`)
     }
-    const unknown = await session.call('httpGet', { url: 'api/v1/datasets?q=nothing-captured' })
+    // a search that matches nothing is an empty listing, as on a real API
+    const none = await session.call('httpGet', { url: 'api/v1/datasets?q=nothing-captured' })
+    assert.equal(none.isError, false, none.content[0].text)
+    assert.deepEqual(JSON.parse(none.content[0].text), { count: 0, results: [] })
+    const unknown = await session.call('httpGet', { url: 'api/v1/applications' })
     assert.equal(unknown.isError, true)
     assert.match(unknown.content[0].text, /404/)
+  })
+
+  it('should find the calendar dataset from the words a person types, in the form', async () => {
+    for (const query of ['Agenda', 'agenda manifestations', 'AGENDA-MANIFESTATIONS', 'agénda']) {
+      const session = new EvalSession(getCase('calendar'), { fetch: async () => { throw new Error('the network must not be reached') } })
+      await session.call('getFieldSuggestions', { path: '/$allOf-0/datasets/0', query })
+      assert.equal(session.calls[0].isError, false, session.calls[0].response)
+      assert.match(session.calls[0].response, /Agenda-manifestations \(/, query)
+    }
+  })
+
+  it('should answer the calendar dataset search on the path, whatever the projection parameters', async () => {
+    const session = new PlainApiSession(getCase('calendar'))
+    const body = async (/** @type {string} */ url) => {
+      const result = await session.call('httpGet', { url })
+      assert.equal(result.isError, false, `${url}: ${result.content[0].text}`)
+      return JSON.parse(result.content[0].text)
+    }
+    const titles = (/** @type {any} */ listing) => listing.results.map((/** @type {any} */ d) => d.title)
+    const found = await body('api/v1/datasets?q=Agenda-manifestations&owner=organization:p6Qg1z-aq')
+    assert.deepEqual(titles(found), ['Agenda-manifestations'])
+    assert.equal(found.results[0].isRest, true, 'a REST dataset says so whichever listing it came from')
+    assert.ok(found.results[0].schema.length > 10, 'the dataset carries its columns')
+    // every word required, in any order, accents and case folded
+    assert.deepEqual(titles(await body('api/v1/datasets?q=manifestations agenda')), ['Agenda-manifestations'])
+    assert.ok(titles(await body('api/v1/datasets?q=agenda&select=title')).includes('Agenda-manifestations'))
+    // no q: the whole captured listing; a smaller size truncates, the count stays
+    const all = await body('api/v1/datasets?status=finalized&size=100')
+    assert.ok(all.count >= 27 && all.results.length === all.count, JSON.stringify(all.count))
+    const two = await body('api/v1/datasets?size=2')
+    assert.equal(two.results.length, 2)
+    assert.equal(two.count, all.count)
+    // rest=true keeps the REST datasets only
+    const rest = await body('api/v1/datasets?rest=true&q=agenda')
+    assert.deepEqual(titles(rest), ['Agenda-manifestations'])
+    // a per-dataset path is served whatever its query, and the dataset itself from the listings
+    const id = found.results[0].id
+    assert.ok((await body(`api/v1/datasets/${id}/schema?mimeType=application/json`)).length > 10)
+    assert.equal((await body(`api/v1/datasets/${id}/schema?calculated=false`)).length, 27)
+    assert.equal((await body(`https://koumoul.com/data-fair/api/v1/datasets/${id}`)).title, 'Agenda-manifestations')
+    // what was never captured stays a 404
+    for (const url of ['api/v1/datasets/unknown-id/schema', `api/v1/datasets/${id}/lines`, 'api/v1/applications']) {
+      const result = await session.call('httpGet', { url })
+      assert.equal(result.isError, true, url)
+      assert.match(result.content[0].text, /^404 Not Found/)
+    }
+  })
+
+  it('should tell no arm, in any 404 or description, that it is evaluated', async () => {
+    // Every remote a 404: the error texts the runner reads are where the fixture's host shows.
+    const failing = (/** @type {string} */ name) => ({ ...getCase(name), saveMode: /** @type {const} */ ('explicit'), remote: () => undefined })
+    const attempts = {
+      calendar: { path: '/$allOf-0/datasets/0', url: 'api/v1/datasets?q=agenda' },
+      'data-fair-line': { path: '/commune', url: 'communes?q=nantes' }
+    }
+    for (const [name, attempt] of Object.entries(attempts)) {
+      for (const arm of ['form', 'session', 'plain']) {
+        const session = await createArm(failing(name), arm)
+        const result = arm === 'plain'
+          ? await session.call('httpGet', { url: attempt.url })
+          : await session.call('getFieldSuggestions', { path: attempt.path, query: 'agenda' })
+        const text = result.content.map((/** @type {any} */ p) => p.text).join('')
+        assert.equal(result.isError, true, `${name} ${arm}: ${text}`)
+        assert.match(text, /404/, `${name} ${arm}`)
+        assert.ok(!/eval/i.test(text), `${name} ${arm} leaks: ${text}`)
+        assert.ok(!/eval/i.test(session.prompt), `${name} ${arm} prompt`)
+        for (const tool of session.tools) assert.ok(!/eval/i.test(tool.description), `${name} ${arm} ${tool.name}`)
+      }
+    }
   })
 
   it('should check the calendar against the dataset, the event name column and crowd sourcing', async () => {

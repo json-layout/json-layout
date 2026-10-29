@@ -101,14 +101,22 @@ never calls `getItems`, so CI stays offline.
 
 A case that checks a value coming from a remote list cannot live with that drift, so it
 declares `remote` and every arm answers its lists from the fixture, whatever the base URL
-(`caseFetch` in `remote.js`; a URL the fixture does not know answers 404). Two cases do:
+(`caseFetch` in `remote.js`; a URL the fixture does not know answers 404). Relative URLs
+resolve against `http://localhost/data-fair/`, a neutral base: it shows in the form's
+error texts, and nothing a runner reads may say it is being evaluated. Two cases do:
 
 - `calendar`: its pickers are served from a capture of koumoul.com in
   `cases/data/calendar-remote/`, so its checks can name the dataset and column the goal
   means. `node webmcp-eval/capture-remote.js calendar` drives the form through the goal's
-pickers against the live instance and rewrites the capture: one file per URL, keyed in
-`index.json` by path and sorted query (see `remoteKey` in `remote.js`), responses whole.
-  It is run by hand, never by tests; a URL it did not capture answers 404.
+  pickers against the live instance and rewrites the capture: one file per URL, keyed in
+  `index.json` by path and sorted query (see `remoteKey` in `remote.js`), responses whole.
+  It is run by hand, never by tests. The capture is answered on the path, not on the exact
+  URLs captured, so a URL a runner spells its own way works as on the real API:
+  `api/v1/datasets` filters the captured datasets (merged across listings) on the words of
+  `q` (all in the title, accents and case folded; no `q` lists them all) and on
+  `rest=true`, ignoring the projection and paging parameters except a `size` below the
+  count; `api/v1/datasets/<id>` and its captured sub-paths (`/schema`) are served whatever
+  their query. Any other path answers 404.
 - `data-fair-line`: the commune referential is a function of the URL
   (`cases/data/communes.json`, real communes from geo.api.gouv.fr), answering as data-fair's
   single search does: every word of `q` in the name or starting the code, sorted on the

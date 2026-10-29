@@ -1,10 +1,10 @@
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { caseFetch, FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
+import { caseFetch, fixturePath, FIXTURE_BASE_URL } from '../webmcp-eval/remote.js'
 import { EvalSession } from '../webmcp-eval/session.js'
 
-const remote = (/** @type {URL} */ url) => url.pathname === '/items' ? ['a'] : undefined
+const remote = (/** @type {URL} */ url) => fixturePath(url) === '/items' ? ['a'] : undefined
 
 describe('caseFetch', () => {
   it('answers a fixture URL and rejects an unknown one with a 404', async () => {
