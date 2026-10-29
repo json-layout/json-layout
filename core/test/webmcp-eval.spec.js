@@ -619,6 +619,20 @@ describe('webmcp eval nested-document cases', () => {
     }
   })
 
+  it('should say an item added without a value needs its option chosen, not that a tag must be a string', async () => {
+    // rounds 4-5, portal-config-multi form: "tag "type" must be string" on the add, then
+    // repeated as an error elsewhere by every following write until the option was chosen
+    const { call } = form('portal-config-multi')
+    const added = (await call('editArray', { path: '/$comp-6/footer/$comp-6/links', action: 'add' })).content[0].text
+    assert.ok(!added.includes('must be string'), added)
+    assert.match(added, /- \/\$comp-6\/footer\/\$comp-6\/links\/4: this item still needs its option chosen: setFieldValue on \/\$comp-6\/footer\/\$comp-6\/links\/4\/\$oneOf \(value = 0 to 4/, added)
+    const later = (await call('setFieldValue', { path: '/$comp-5/breadcrumb/position', value: 'above-footer' })).content[0].text
+    assert.ok(!later.includes('must be string'), later)
+    assert.equal(later.match(/still needs its option chosen/g)?.length, 1, later)
+    const chosen = (await call('setFieldValue', { path: '/$comp-6/footer/$comp-6/links/4/$oneOf', value: 1 })).content[0].text
+    assert.ok(!chosen.includes('still needs its option chosen'), chosen)
+  })
+
   it('should check an insertion, a move and a removal on the same page', async () => {
     const name = 'portal-page-reorder'
     const { session, call } = form(name)

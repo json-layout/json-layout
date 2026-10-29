@@ -314,6 +314,23 @@ function isReadOnly (node, statefulLayout) {
 }
 
 /**
+ * The error of a node, said as what is left to do when it only stands for an option not chosen
+ * yet: an item editArray added without a value carries ajv's "tag "type" must be string", which
+ * rounds 4-5 read as a type error, and every following write repeated it as an error elsewhere.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {string|undefined}
+ */
+function errorMessageOf (node) {
+  if (!node.error || node.key === '$oneOf') return node.error
+  const selector = node.children?.find((child) => child.key === '$oneOf')
+  const items = /** @type {any[] | undefined} */(selector?.layout.oneOfItems)?.filter((item) => !item.header)
+  if (!selector || !items?.length || selector.children?.some((child) => typeof child.key === 'number')) return node.error
+  const keys = items.map((item) => item.key)
+  const values = keys.length === 1 ? `${keys[0]}` : `${Math.min(...keys)} to ${Math.max(...keys)}`
+  return `this item still needs its option chosen: setFieldValue on ${selector.fullKey} (value = ${values}, the options describeState lists there)`
+}
+
+/**
  * Validation errors of the whole state tree indexed by node path.
  * Only the first of the two occurrences of an activated list item captures the errors, so a
  * node reached through the editable occurrence has to look its own error up by path.
@@ -325,18 +342,24 @@ function indexErrorsByPath (root) {
   const byPath = {}
   /** @type {Array<[string, string]>} */
   const hidden = []
+  // compared by the raw error: a visible node's error said as what is left to do is still
+  // the one its hidden echoes carry
+  /** @type {Set<string>} */
+  const visibleMessages = new Set()
   /** @param {import('../state/types.js').StateNode} node */
   const recurse = (node) => {
     if (node.error) {
       if (node.layout.comp === 'none') hidden.push([node.fullKey, node.error])
-      else if (byPath[node.fullKey] === undefined) byPath[node.fullKey] = node.error
+      else {
+        visibleMessages.add(node.error)
+        if (byPath[node.fullKey] === undefined) byPath[node.fullKey] = /** @type {string} */(errorMessageOf(node))
+      }
     }
     for (const child of node.children ?? []) recurse(child)
   }
   recurse(root)
   // same rule as collectErrors: a hidden node's echo of an error a visible node reports is
   // not another error, one only a hidden node carries is kept
-  const visibleMessages = new Set(Object.values(byPath))
   for (const [path, message] of hidden) {
     if (!visibleMessages.has(message) && byPath[path] === undefined) byPath[path] = message
   }
@@ -428,7 +451,7 @@ function hasSuggestions (node, statefulLayout) {
  * @returns {string|undefined}
  */
 function nodeError (node, errorsByPath) {
-  return node.error ?? errorsByPath?.[node.fullKey]
+  return errorMessageOf(node) ?? errorsByPath?.[node.fullKey]
 }
 
 /**
@@ -1513,13 +1536,13 @@ function isRenderedBranch (error, renderedPointers) {
  * @returns {Array<{path: string, message: string}>}
  */
 export function collectErrors (statefulLayout) {
-  /** @type {Array<{fullKey: string, dataPath: string, message: string, hidden: boolean}>} */
+  /** @type {Array<{fullKey: string, dataPath: string, message: string, raw: string, hidden: boolean}>} */
   const nodeErrors = []
   /** @type {Set<string>} */
   const renderedPointers = new Set()
   /** @param {import('../state/types.js').StateNode} node */
   const recurse = (node) => {
-    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: node.error, hidden: node.layout.comp === 'none' })
+    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: /** @type {string} */(errorMessageOf(node)), raw: node.error, hidden: node.layout.comp === 'none' })
     if (node.skeleton?.pointer) renderedPointers.add(node.skeleton.pointer)
     // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
     // occurrences of an activated item do not carry the same errors, and deduplicating
@@ -1538,11 +1561,11 @@ export function collectErrors (statefulLayout) {
   // a new menu item's error was also reported on three hidden nodes of data-fair's portal
   // editor, announced as "3 other error(s) elsewhere". An error only a hidden node carries is
   // kept, so an invalid form always says why.
-  const visibleMessages = new Set(nodeErrors.filter((e) => !e.hidden).map((e) => e.message))
+  const visibleMessages = new Set(nodeErrors.filter((e) => !e.hidden).map((e) => e.raw))
   /** @type {Array<{path: string, message: string}>} */
   const errors = []
   for (const nodeError of nodeErrors) {
-    if (nodeError.hidden && visibleMessages.has(nodeError.message)) continue
+    if (nodeError.hidden && visibleMessages.has(nodeError.raw)) continue
     const prefix = nodeError.dataPath === '' ? '/' : `${nodeError.dataPath}/`
     const standsInForDeeperErrors = unnamed.some((e) => e.pointer.startsWith(prefix))
     if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })
