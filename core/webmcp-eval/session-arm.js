@@ -11,7 +11,7 @@ import * as agents from '../../agents/src/index.js'
 import { caseFetch, FIXTURE_BASE_URL } from './remote.js'
 import { DEFAULT_DATA_FAIR_URL } from './session.js'
 import { runChecks } from './checks.js'
-import { SESSION_RUNNER_PROMPT } from './prompts.js'
+import { SESSION_RUNNER_PROMPT, SESSION_RUNNER_PROMPT_AUTO } from './prompts.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 /** @typedef {import('./session.js').RecordedCall} RecordedCall */
@@ -112,7 +112,9 @@ export class FormSessionArm {
    * @returns {string}
    */
   get prompt () {
-    return this._session ? `${SESSION_RUNNER_PROMPT}\n\n${this._session.getSkill()}` : ''
+    if (!this._session) return ''
+    const runner = this._session.saveMode === 'auto' ? SESSION_RUNNER_PROMPT_AUTO : SESSION_RUNNER_PROMPT
+    return `${runner}\n\n${this._session.getSkill()}`
   }
 
   /**

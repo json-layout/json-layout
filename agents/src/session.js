@@ -47,12 +47,22 @@ function unpickedPhrase (unpicked) {
 }
 
 /**
- * @param {{ version: unknown, emptied?: boolean }} result
+ * @param {{ version: unknown, emptied?: boolean, dropped?: boolean }} result
  * @returns {string}
  */
 function savedLine (result) {
   const version = result.version === undefined ? '' : `, version ${String(result.version)}`
-  return `saved${version}${result.emptied ? '; the form is empty again for a new record' : ''}`
+  return `saved${version}${emptiedPhrase(result)}`
+}
+
+/**
+ * @param {{ emptied?: boolean, dropped?: boolean }} result
+ * @returns {string}
+ */
+function emptiedPhrase (result) {
+  if (!result.emptied) return ''
+  const dropped = result.dropped ? '; an edit made while it was being saved was dropped with it, redo it on the new record' : ''
+  return `; the form is empty again for a new record${dropped}`
 }
 
 /**
@@ -163,7 +173,7 @@ export class FormSession {
   /**
    * In auto mode, the latest valid document waiting for the save in flight to settle, and
    * the save that will persist it: writes landing during a save coalesce into one.
-   * @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean }> } | undefined}
+   * @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }> } | undefined}
    */
   _queuedSave
 
@@ -265,9 +275,10 @@ export class FormSession {
    * document unless the consumer opted into `allowInvalid`. A consumer throw carrying
    * `status: 409` or `code: 'conflict'` marks the session stale and is reported as a
    * conflict; every other failure marks it errored. `emptied` says a session creating
-   * records emptied its form for the next one.
+   * records emptied its form for the next one, `dropped` that an edit landed during the save
+   * was emptied with it.
    * @param {{ allowInvalid?: boolean }} [options]
-   * @returns {Promise<{ version: unknown, emptied?: boolean }>}
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
    */
   async save (options = {}) {
     if (!this._layout) throw sessionError(`"${this.title}" is not open`, 'closed')
@@ -290,7 +301,7 @@ export class FormSession {
   /**
    * @param {StatefulLayout} layout
    * @param {unknown} snapshot
-   * @returns {Promise<{ version: unknown, emptied?: boolean }>}
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
    */
   async _startSave (layout, snapshot) {
     this._status = 'saving'
@@ -307,18 +318,21 @@ export class FormSession {
    * Auto mode: persist the document as it now stands. A save in flight is never overlapped:
    * the document waits for it, and the writes landing meanwhile share one save of the last
    * of them.
-   * @returns {Promise<{ version: unknown, emptied?: boolean }>}
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
    */
   _autoSave () {
     const layout = /** @type {StatefulLayout} */(this._layout)
     const snapshot = layout.data
-    if (!this._savePromise) return this._startSave(layout, snapshot)
+    // the queue first: between a save settling and the queued one starting there is a tick
+    // with no save in flight, and a write starting its own save there would overlap the
+    // queued one, which could then persist older data last
     if (this._queuedSave) {
       this._queuedSave.snapshot = snapshot
       return this._queuedSave.promise
     }
+    if (!this._savePromise) return this._startSave(layout, snapshot)
     const generation = this._generation
-    /** @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean }> }} */
+    /** @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }> }} */
     const queued = {
       snapshot,
       promise: this._savePromise.catch(() => {}).then(() => {
@@ -337,7 +351,7 @@ export class FormSession {
    * @param {StatefulLayout} layout - the layout the save was started from
    * @param {unknown} snapshot - the document handed to the consumer
    * @param {number} generation - the session generation the save was started in
-   * @returns {Promise<{ version: unknown, emptied?: boolean }>}
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
    */
   async _save (layout, snapshot, generation) {
     /** @param {SessionStatus} status */
@@ -363,13 +377,14 @@ export class FormSession {
       setStatus('ready')
       if (generation !== this._generation || layout !== this._layout) return { version: this._version }
       // a record being created is done: the next one starts from an empty form, without
-      // the lists and picks of this one; unless an edit landed during the save, which an
-      // empty form would lose
-      if (this._creating && isDeepStrictEqual(layout.data, snapshot)) {
+      // the lists and picks of this one. Even when an edit landed during the save: kept, it
+      // would sit on a record already created, and the next save would create a duplicate.
+      if (this._creating) {
         const version = this._version
+        const dropped = !isDeepStrictEqual(layout.data, snapshot)
         this._install(/** @type {import('@json-layout/core').CompiledLayout} */(this._compiled), undefined)
         this._version = this._loadedVersion
-        return { version, emptied: true }
+        return { version, emptied: true, ...(dropped ? { dropped } : {}) }
       }
       // what was saved counts as loaded: a value saved despite the warning does not hold
       // every later save
@@ -494,10 +509,11 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
           if (!current) {
             return { content: [{ type: 'text', text: `Error: "${title}" is not open` }], isError: true }
           }
-          if (!writes || !canSave) return current.execute(args)
+          if (!writes) return current.execute(args)
+          // a stray `save` is stripped on a session that does not offer it too
           const { save, ...rest } = args ?? {}
           const result = await current.execute(args ? rest : args)
-          if (result?.isError) return result
+          if (result?.isError || !canSave) return result
           return appendLines(result, await this._afterWrite(save === true || save === 'true'))
         }
       }
@@ -515,7 +531,7 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
                 const unpicked = this._webmcp?.unpickedValues() ?? []
                 const result = await this.save()
                 const suffix = result.version === undefined ? '' : ` (version ${String(result.version)})`
-                const lines = [`Saved "${title}"${suffix}.${result.emptied ? ' The form is empty again for a new record.' : ''}`]
+                const lines = [`Saved "${title}"${suffix}${emptiedPhrase(result)}.`]
                 if (unpicked.length) lines.push(`warning: ${unpickedPhrase(unpicked)}; saved anyway`)
                 return { content: [{ type: 'text', text: lines.join('\n') }] }
               } catch (err) {
@@ -548,6 +564,7 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
   async _afterWrite (requested) {
     const prefix = this._spec.prefixName ?? ''
     if (this.saveMode === 'auto') {
+      // allowInvalid is not read here: auto mode persists only what leaves the form valid
       if (!this.valid) return ['not saved yet: the form is invalid']
       try {
         return [savedLine(await this._autoSave())]

@@ -90,6 +90,9 @@ describe('FormSession explicit save with a write', () => {
       assert.ok(!('save' in (/** @type {any} */(tool.inputSchema)?.properties ?? {})), tool.name)
     }
     assert.doesNotMatch(session.getSkill(), /save: true/)
+    const text = textOf(await call(session, 'setFieldValue', { path: '/nom', value: 'Judo club', save: true }))
+    assert.doesNotMatch(text, /saved/)
+    assert.deepEqual(session.data, { nom: 'Judo club' })
   })
 
   it('should not save a write that does not ask for it', async () => {
@@ -226,6 +229,40 @@ describe('FormSession auto save', () => {
     assert.deepEqual(saved, [{ nom: 'A' }, { nom: 'C' }])
   })
 
+  it('should never overlap saves when writes land as a save settles, the newest data persisting last', async () => {
+    let inFlight = 0
+    let maxInFlight = 0
+    /** @type {(() => void) | undefined} */
+    let releaseFirst
+    /** @type {unknown[]} */
+    const saved = []
+    const { session } = makeSession({
+      saveMode: 'auto',
+      save: async (data) => {
+        inFlight += 1
+        maxInFlight = Math.max(maxInFlight, inFlight)
+        if (!saved.length && !releaseFirst) await new Promise((resolve) => { releaseFirst = () => resolve(undefined) })
+        else await new Promise((resolve) => setImmediate(resolve))
+        saved.push(data)
+        inFlight -= 1
+      }
+    })
+    await session.open()
+    const writes = [call(session, 'setFieldValue', { path: '/nom', value: 'A' })]
+    await waitUntil(() => !!releaseFirst, 'the first save')
+    writes.push(call(session, 'setFieldValue', { path: '/nom', value: 'B' }))
+    await waitUntil(() => /** @type {any} */(session)._queuedSave?.snapshot?.nom === 'B', 'the second write queued')
+    releaseFirst?.()
+    // writes landing on every microtask and tick around the settling of the first save
+    for (let i = 0; i < 30; i++) {
+      writes.push(call(session, 'setFieldValue', { path: '/nom', value: `C${i}` }))
+      await Promise.resolve()
+    }
+    for (const text of (await Promise.all(writes)).map(textOf)) assert.match(text, /saved/)
+    assert.equal(maxInFlight, 1, 'saves never overlap')
+    assert.deepEqual(saved[saved.length - 1], { nom: 'C29' })
+  })
+
   it('should refuse to auto-save a record being created', async () => {
     const { session } = makeSession({ saveMode: 'auto', load: async () => undefined })
     await assert.rejects(session.open(), /auto/)
@@ -251,6 +288,26 @@ describe('FormSession create', () => {
     const forced = textOf(await call(session, 'saveForm', {}))
     assert.match(forced, /the form is empty again for a new record/i)
     assert.equal(saved.length, 2)
+  })
+
+  it('should empty the form even when an edit landed during the save, and say it was dropped', async () => {
+    /** @type {(() => void) | undefined} */
+    let release
+    /** @type {unknown[]} */
+    const saved = []
+    const { session } = makeSession({
+      load: undefined,
+      save: async (data) => { await new Promise((resolve) => { release = () => resolve(undefined) }); saved.push(data) }
+    })
+    await session.open()
+    const saving = call(session, 'setData', { data: { nom: 'Dojo' }, save: true })
+    await waitUntil(() => !!release, 'the save')
+    await call(session, 'setFieldValue', { path: '/commune', value: '44109' })
+    release?.()
+    const text = textOf(await saving)
+    assert.match(text, /the form is empty again for a new record; an edit made while it was being saved was dropped/)
+    assert.deepEqual(saved, [{ nom: 'Dojo' }])
+    assert.deepEqual(session.data ?? {}, {})
   })
 
   it('should treat a load that returns no document as a create', async () => {
