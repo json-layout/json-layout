@@ -55,14 +55,11 @@ configuration. Their starting documents (`cases/data/portal-page-rich.json`,
 script run by hand (`node core/webmcp-eval/build-start.js`) that feeds the content with
 `setData`, `editArray` and `setFieldValue` and keeps a document only when the form reports it
 valid and reloads it unchanged. The pages they link to are `cases/data/portal-pages.json`,
-the cases' `context.pages`. All four are auto-save, so the `session` arm cannot run them yet.
+the cases' `context.pages`. All four are auto-save; the `session` arm runs them in `FormSession`'s auto mode.
 `portal-page-reorder` carries many collateral checks (one per untouched top-level block, plus
 the three edits), so its pass ratio is not comparable with another case's: a few failed checks
 there are a few misplaced blocks, not a mostly failed run. `portal-page-switch` ends with an
-`absent` check on the paragraph's own `centered` setting; the form's natural switch path
-(`setFieldValue` on the `$oneOf` selector) currently leaves the old option's field behind and
-the form reports itself invalid with no node error, a library defect, so a failed check on the
-`form` arm reads as that.
+`absent` check on the paragraph's own `centered` setting, which holds only if the switch drops the old option's keys.
 
 The model is pinned by `JL_WEBMCP_EVAL_MODEL` (`opus`, `sonnet`, `haiku`) and recorded per
 run, so runs are comparable across time and across tiers. **The default is `haiku`, the
@@ -297,6 +294,13 @@ picks one (`form` by default) or `all`; `arms.js` holds the list and `createArm`
   text, the schema author's and not the tools', so the plain arm gets it verbatim; the
   form-tool guide stays with the form arms.
 
+The harness reads the same on both sides. A lookup takes a dataset id as a schema writes it
+(`dataset:communes`) or bare, and an unknown one names the ids it knows. The plain arm's 404
+names the deepest level that exists and its keys, and `readSchema` without a path is an outline
+on a large schema, within the form's own budget. Judges are restricted to `Read`, so they see
+only their transcript copy. The session runner's prompt follows the case's save mode: a case
+that auto-saves is told its edits are saved, one that does not is told to save.
+
 ## Checks
 
 A case may carry `checks`, evaluated on each run's final data. Each arm's session runs
@@ -349,7 +353,7 @@ per run, and verdict counts. Under each row the cache is split apart (uncached i
 writes), then the calls are broken down per kind with ranges over the runs: `read-state`,
 `read-schema`, `write`, `lookup` and `other` (kinds no run called are left out), each with
 its calls, output bytes and failed calls, and finally `oversized`, the number of calls that
-answered more than 100 000 bytes (`TRUNCATION_BYTES`; Claude Code caps MCP output near 25k
+answered more than 60 000 bytes (`TRUNCATION_BYTES`; Claude Code caps MCP output near 25k
 tokens, so the agent probably saw a cut answer). Which tool is which kind is `callKind` in
 `arms.js`. Cost is priced with caching and parallel runs share a cache, so one run's cost
 depends on which ran first. A single run per arm is noise, so compare with `--runs 3` or

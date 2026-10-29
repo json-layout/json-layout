@@ -106,10 +106,10 @@ prompt via `includeSubAgent`.
 
 | tool | what it is for |
 |---|---|
-| `describeState` | every field with path, type, constraints, current value, errors; an outline past 16 KB. The starting point and the only way to see the form. |
+| `describeState` | every field with path, type, constraints, current value, errors; an outline past 16 KB, or the fields matching the words of `query`. The starting point and the only way to see the form. |
 | `setFieldValue` | write one field; switch a variant by writing its index. |
 | `setData` | write the whole document at once, for when the goal already contains every value. |
-| `editArray` | add or remove an item; an added item is activated and its fields returned. |
+| `editArray` | add, remove or move an item; an added item is activated and its fields returned. |
 | `getFieldSuggestions` | fetch the accepted values of a field whose list is remote. |
 | `getData` | the data itself, whole or at a path, for when the values are wanted rather than a description of them. |
 
@@ -136,6 +136,20 @@ page shows the grid's cards and the portal configuration's root its menu entries
 every item of a list holds is listed once, under the list, in full descriptions too. Measured:
 root 95,798 → 15,958 bytes, `/elements` 92,173 → 15,441, the portal configuration's root
 62,571 → 15,631.
+
+**Paths mean what the agent read.** A path may mix the layout's (`/$oneOf/2`, a tab) and the
+data's, and a key under a choice needs no index: `/menu/0/title` finds the option that holds
+`title`. A path that leads nowhere says where it stops and what is there. `describeState` with
+`query` lists the fields whose name, title or description holds the words, with their paths,
+so a field is found without knowing which tab holds it. Switching a variant removes every key
+of the one it leaves, and an invalid form always says which node is invalid.
+
+**Input is read as it was meant.** A tool call is JSON, and a model writes a SIRET as a number or
+one choice for a multi-valued field. A number for a text field becomes its text, a single value
+for a list becomes a one-item list, a text for a list of a closed set is split on commas, or on
+the field's `separator`, unless an allowed value itself holds it. The answer says what was
+read. These are a few explicit rules in `coerce.js`, not ajv `coerceTypes`, which also bends
+values inside choices and turns `""` into 0.
 
 **One representation, one home per fact.** The suggestion protocol was once stated four times
 — in two tool descriptions, a parameter, and the guide. Copies drift: a stale duplicate of
@@ -171,7 +185,8 @@ once, then referred back to by path.
 
 **Memorised suggestions are dropped only when they go stale.** Applying an option by index
 needs the list remembered. Every write used to clear all of it, which broke a listing an
-unrelated write could not have affected. Invalidation now compares each path's
+unrelated write could not have affected. A write keeps the suggestions it does not touch, and
+a search that matches nothing says so instead of offering the closest. Invalidation now compares each path's
 `itemsCacheKey` — the same value the state layer uses to decide whether to re-fetch. `setData`
 also drops the paths whose data it changed, and nothing else; `editArray` drops the lists of
 the items an add or a remove shifted, and a move takes each item's lists along with it. A list whose items
