@@ -2,7 +2,9 @@
  * @file editArray tool
  */
 
-import { collectScopedErrors, projectNodeToMarkdown, projectListItems, describeListItem } from '../project.js'
+import { collectScopedErrors } from '../errors.js'
+import { projectNodeToMarkdown } from '../project.js'
+import { projectListItems, describeListItem } from '../outline.js'
 import { VariantsMemo } from '../variants-memo.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'

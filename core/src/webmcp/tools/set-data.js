@@ -2,7 +2,8 @@
  * @file setData tool
  */
 
-import { collectErrors, visibilitySnapshot, diffVisibility } from '../project.js'
+import { collectErrors } from '../errors.js'
+import { visibilitySnapshot, diffVisibility } from '../project.js'
 import { coerceDataForTree } from '../coerce.js'
 import { assertNoStructuralKey } from '../resolve.js'
 

@@ -14,7 +14,9 @@ import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH, OUTLINE_BUDGET_BYTES } from '../src/webmcp/project.js'
+import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { collectErrors, collectScopedErrors } from '../src/webmcp/errors.js'
+import { OUTLINE_BUDGET_BYTES } from '../src/webmcp/outline.js'
 import { resolveNode, findStructuralKey } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'

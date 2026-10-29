@@ -2,7 +2,10 @@
  * @file describeState tool
  */
 
-import { collectScopedErrors, recordItemOptionsUnderList, projectHiddenField, projectQueryMatches, QUERY_MATCHES_MAX, projectNodeToMarkdown, projectStateTreeToMarkdown, formatMutationResult, byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../project.js'
+import { collectScopedErrors, formatMutationResult } from '../errors.js'
+import { recordItemOptionsUnderList, projectNodeToMarkdown, projectStateTreeToMarkdown } from '../project.js'
+import { projectHiddenField, projectQueryMatches, QUERY_MATCHES_MAX } from '../query.js'
+import { byteLength, OUTLINE_BUDGET_BYTES, outlineThatFits, outlineFooter, projectStateTreeOutline } from '../outline.js'
 import { resolveNodeForEdit, nodeNotFoundError, inactiveOptionNote } from '../resolve.js'
 import { VariantsMemo } from '../variants-memo.js'
 import { describeFormSchema, resolveSchemaPath } from '../form-schema.js'

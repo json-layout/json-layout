@@ -1,14 +1,13 @@
 /**
- * @file Projection functions for webmcp tools
+ * @file Projection of fields and nodes for webmcp tools: values, variants, suggestions
  */
 
 import { SECTION_CONTAINERS } from '../state/index.js'
-import { variantShapes, deepestThatFits } from './form-schema.js'
+import { variantShapes } from './form-schema.js'
 import { isItemsLayout } from '@json-layout/vocabulary'
-
 import { visibleChildren, resolveNode } from './resolve.js'
 import { projectDeclaredFields, resolveNodeSchema } from './schema.js'
-import { VariantsMemo } from './variants-memo.js'
+import { indexErrorsByPath, collectErrors, nodeError } from './errors.js'
 
 /**
  * Suggestion values can be arbitrarily large objects (a whole dataset definition for example),
@@ -30,33 +29,6 @@ export const SUGGESTION_VALUE_MAX_LENGTH = 100
  * to handle.
  */
 export const DISPLAYED_VALUE_MAX_LENGTH = 1000
-
-/**
- * Largest describeState answer given in full, in bytes; past it the answer is an outline. Round 2
- * answered 95 KB for the root of a 7.5 KB portal page, and the eval's MCP client cut it before
- * the model read it. The same value as the plain arm's OUTLINE_BUDGET_BYTES (webmcp-eval), so
- * neither arm gets a cheaper first read than the other: about 4k tokens, twice that page.
- */
-export const OUTLINE_BUDGET_BYTES = 16_000
-
-/**
- * Smallest outline budget, in bytes: a form holding little data still gets its sections named.
- */
-export const OUTLINE_FLOOR_BYTES = 6_000
-
-/**
- * The budget of an outline, proportional to the data it describes: twice its JSON, between the
- * floor and OUTLINE_BUDGET_BYTES. Round 4 answered the root of a 7.6 KB page with a 16 KB
- * outline, when the plain arm read the 7.6 KB document itself; a large configuration keeps the
- * whole budget.
- * @param {unknown} data
- * @returns {number}
- */
-export function outlineBudget (data) {
-  const json = JSON.stringify(data)
-  const size = json === undefined ? 0 : byteLength(json)
-  return Math.min(OUTLINE_BUDGET_BYTES, Math.max(OUTLINE_FLOOR_BYTES, 2 * size))
-}
 
 /** Most revealed or hidden paths named before the list is summarised instead. */
 export const REVEALED_PATHS_MAX = 10
@@ -300,7 +272,7 @@ function isEditableListItemSummary (node, statefulLayout) {
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {boolean}
  */
-function isReadOnly (node, statefulLayout) {
+export function isReadOnly (node, statefulLayout) {
   if (!node.options.readOnly) return false
   /** @type {import('../state/types.js').StateNode|undefined} */
   let current = node
@@ -311,59 +283,6 @@ function isReadOnly (node, statefulLayout) {
     current = resolveNode(statefulLayout.stateTree.root, parentFullKey)
   }
   return true
-}
-
-/**
- * The error of a node, said as what is left to do when it only stands for an option not chosen
- * yet: an item editArray added without a value carries ajv's "tag "type" must be string", which
- * rounds 4-5 read as a type error, and every following write repeated it as an error elsewhere.
- * @param {import('../state/types.js').StateNode} node
- * @returns {string|undefined}
- */
-function errorMessageOf (node) {
-  if (!node.error || node.key === '$oneOf') return node.error
-  const selector = node.children?.find((child) => child.key === '$oneOf')
-  const items = /** @type {any[] | undefined} */(selector?.layout.oneOfItems)?.filter((item) => !item.header)
-  if (!selector || !items?.length || selector.children?.some((child) => typeof child.key === 'number')) return node.error
-  const keys = items.map((item) => item.key)
-  const values = keys.length === 1 ? `${keys[0]}` : `${Math.min(...keys)} to ${Math.max(...keys)}`
-  return `this item still needs its option chosen: setFieldValue on ${selector.fullKey} (value = ${values}, the options describeState lists there)`
-}
-
-/**
- * Validation errors of the whole state tree indexed by node path.
- * Only the first of the two occurrences of an activated list item captures the errors, so a
- * node reached through the editable occurrence has to look its own error up by path.
- * @param {import('../state/types.js').StateNode} root
- * @returns {Record<string, string>}
- */
-function indexErrorsByPath (root) {
-  /** @type {Record<string, string>} */
-  const byPath = {}
-  /** @type {Array<[string, string]>} */
-  const hidden = []
-  // compared by the raw error: a visible node's error said as what is left to do is still
-  // the one its hidden echoes carry
-  /** @type {Set<string>} */
-  const visibleMessages = new Set()
-  /** @param {import('../state/types.js').StateNode} node */
-  const recurse = (node) => {
-    if (node.error) {
-      if (node.layout.comp === 'none') hidden.push([node.fullKey, node.error])
-      else {
-        visibleMessages.add(node.error)
-        if (byPath[node.fullKey] === undefined) byPath[node.fullKey] = /** @type {string} */(errorMessageOf(node))
-      }
-    }
-    for (const child of node.children ?? []) recurse(child)
-  }
-  recurse(root)
-  // same rule as collectErrors: a hidden node's echo of an error a visible node reports is
-  // not another error, one only a hidden node carries is kept
-  for (const [path, message] of hidden) {
-    if (!visibleMessages.has(message) && byPath[path] === undefined) byPath[path] = message
-  }
-  return byPath
 }
 
 /**
@@ -446,15 +365,6 @@ function hasSuggestions (node, statefulLayout) {
 }
 
 /**
- * @param {import('../state/types.js').StateNode} node
- * @param {Record<string, string>} [errorsByPath]
- * @returns {string|undefined}
- */
-function nodeError (node, errorsByPath) {
-  return errorMessageOf(node) ?? errorsByPath?.[node.fullKey]
-}
-
-/**
  * Project a single field result for slim mutation responses
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -483,7 +393,7 @@ const schemaTypeToType = { string: 'text', number: 'number', integer: 'integer',
  * @param {import('../state/types.js').StateNode} node
  * @returns {boolean}
  */
-function isMultiValued (node) {
+export function isMultiValued (node) {
   return /** @type {any} */(node.layout).multiple === true && node.layout.comp !== 'list'
 }
 
@@ -493,7 +403,7 @@ function isMultiValued (node) {
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {string}
  */
-function multiValuedItemType (node, statefulLayout) {
+export function multiValuedItemType (node, statefulLayout) {
   if (node.layout.comp === 'number-combobox') return 'number'
   const schema = /** @type {any} */(resolveNodeSchema(node, statefulLayout))
   const type = schema?.type === 'array' ? schema.items?.type : schema?.type
@@ -506,7 +416,7 @@ function multiValuedItemType (node, statefulLayout) {
  * @param {import('../state/types.js').StateNode} node
  * @returns {unknown}
  */
-function multiValuedData (node) {
+export function multiValuedData (node) {
   return node.data === undefined ? [] : node.data
 }
 
@@ -516,7 +426,7 @@ function multiValuedData (node) {
  * @param {import('../state/types.js').StateNode} item
  * @returns {import('../state/types.js').StateNode | undefined}
  */
-function itemSelector (item) {
+export function itemSelector (item) {
   if (item.layout.comp === 'one-of-select') return item
   return visibleChildren(item).find((child) => child.layout.comp === 'one-of-select')
 }
@@ -525,7 +435,7 @@ function itemSelector (item) {
  * @param {import('../state/types.js').StateNode} selector
  * @returns {Array<{ key: number, title: string }>}
  */
-function variantsOf (selector) {
+export function variantsOf (selector) {
   const oneOfItems = /** @type {any} */(selector.layout).oneOfItems
   return Array.isArray(oneOfItems) ? oneOfItems.filter((item) => !item.header) : []
 }
@@ -535,7 +445,7 @@ function variantsOf (selector) {
  * @param {import('../state/types.js').StateNode} selector
  * @returns {{ key: number, title: string } | undefined}
  */
-function activeVariant (selector) {
+export function activeVariant (selector) {
   const activeKey = selector.children?.[0]?.key
   return variantsOf(selector).find((v) => v.key === activeKey)
 }
@@ -699,7 +609,7 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @param {string} listedAt
  * @returns {string}
  */
-function optionsListedAt (variantsMemo, selector, count, listedAt) {
+export function optionsListedAt (variantsMemo, selector, count, listedAt) {
   if (variantsMemo?.unprinted(selector.skeleton.pointer)) return `one of ${count} options (describeState ${selector.fullKey} to list them)`
   return `one of the ${count} options listed under ${listedAt}`
 }
@@ -713,7 +623,7 @@ function optionsListedAt (variantsMemo, selector, count, listedAt) {
  * @param {unknown} [activeKey]
  * @returns {string[]}
  */
-function variantLines (selector, statefulLayout, indent, potential, activeKey) {
+export function variantLines (selector, statefulLayout, indent, potential, activeKey) {
   const shapes = potential ? variantShapes(statefulLayout.compiledLayout, selector.skeleton.pointer) : {}
   return variantsOf(selector).map((v) => {
     const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
@@ -733,7 +643,7 @@ function variantLines (selector, statefulLayout, indent, potential, activeKey) {
  * @param {boolean} potential
  * @returns {string[]}
  */
-function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, potential) {
+export function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, potential) {
   for (const item of items) {
     const selector = itemSelector(item)
     if (!selector) continue
@@ -791,7 +701,7 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsM
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {string[]}
  */
-function stateHeaderLines (stateTree, statefulLayout) {
+export function stateHeaderLines (stateTree, statefulLayout) {
   const errors = collectErrors(statefulLayout)
   const validLine = stateTree.valid
     ? 'valid: true, no errors'
@@ -807,697 +717,6 @@ function stateHeaderLines (stateTree, statefulLayout) {
     lines.push('')
   }
   return lines
-}
-
-/**
- * Whether one item of a suggestions answer holds a word of the query in its title, key or
- * scalar value, read as describeState reads a query (accents and case aside).
- * @param {Array<{value: unknown, title: string, key?: string}>} items
- * @param {string} query
- * @returns {boolean}
- */
-export function suggestionsMatchQuery (items, query) {
-  const words = searchWords(query)
-  if (!words.length) return true
-  return items.some((item) => {
-    const value = ['string', 'number', 'boolean'].includes(typeof item.value) ? String(item.value) : ''
-    const haystack = searchWords(`${item.title ?? ''} ${item.key ?? ''} ${value}`).join(' ')
-    return words.some((w) => haystack.includes(w))
-  })
-}
-
-/** Matches a query answers before counting the rest. */
-export const QUERY_MATCHES_MAX = 30
-
-/**
- * Lowercase, accents stripped, cut into words: "Fil d'Ariane" and "fil d ariane" read alike.
- * @param {string} text
- * @returns {string[]}
- */
-function searchWords (text) {
-  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
-}
-
-/** Longest current value a query also looks into: a title, a label, not a page of text. */
-const QUERY_VALUE_MAX_LENGTH = 200
-
-/**
- * The condition that hides a node the form could show, as its expression: the node's own
- * `if`, or the one its parent's layout puts on it. Undefined for a node hidden for good (a
- * constant discriminator, a `comp: none`), which no query should offer.
- * @param {import('../state/types.js').StateNode} node
- * @param {import('../state/types.js').StateNode} parent
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {string | undefined}
- */
-function hidingCondition (node, parent, statefulLayout) {
-  const layouts = /** @type {Record<string, any>} */(statefulLayout.compiledLayout.normalizedLayouts)
-  /** @param {any} cond */
-  const exprOf = (cond) => typeof cond?.expr === 'string' ? cond.expr : typeof cond === 'string' ? cond : undefined
-  const own = layouts[node.skeleton.pointer]
-  if (own && !Array.isArray(own.switch)) {
-    const expr = exprOf(own.if)
-    if (expr) return expr
-  }
-  const parentLayout = layouts[parent.skeleton.pointer]
-  const parentComps = parentLayout && (Array.isArray(parentLayout.switch) ? parentLayout.switch : [parentLayout])
-  for (const comp of parentComps ?? []) {
-    const child = Array.isArray(comp?.children) ? comp.children.find((/** @type {any} */ c) => c?.key === node.key) : undefined
-    const expr = exprOf(child?.if)
-    if (expr) return expr
-  }
-  return undefined
-}
-
-/**
- * The fields under a node, visible or hidden by a condition, whose key, title, label, help
- * or current short text holds every word of a query: round 2 agents walked 9 to 11 tabs to
- * find four settings, and round 3 ones searched a card by its title ("Thématiques à la une")
- * and a setting whose section a condition hid ("crowd sourcing"), both answered "no field
- * matches". Words are looked for as parts of words, so "department" finds a key
- * "showDepartment". Nodes are told by their form path, as describeState lists them; a
- * hidden one says the condition that reveals it, and comes after the visible ones.
- * @param {import('../state/types.js').StateNode} root
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {string} query
- * @returns {{ lines: string[], total: number }} the first QUERY_MATCHES_MAX lines, and the count of all matches
- */
-export function projectQueryMatches (root, statefulLayout, query) {
-  const words = searchWords(query)
-  /** @type {string[]} */
-  const lines = []
-  /**
-   * matches under each part a condition hides: one line when it is alone, else a count
-   * (round 6: a hidden admin copy of the theme filled the 30 lines of a query)
-   * @type {Array<{ path: string, reveal: string, lines: string[] }>}
-   */
-  const hiddenParts = []
-  let total = 0
-  if (!words.length) return { lines, total }
-  /** @param {string} text */
-  const matches = (text) => {
-    const haystack = searchWords(text).join(' ')
-    return words.every((w) => haystack.includes(w))
-  }
-  /** @param {import('../state/types.js').StateNode} node */
-  const visit = (node) => {
-    const layout = /** @type {Record<string, unknown>} */(node.layout)
-    const comp = node.layout.comp
-    if (comp === 'slot' || comp === 'none') return
-    const titled = [layout.label, layout.title].find((t) => typeof t === 'string' && t.trim())
-    const named = typeof node.key === 'string' && node.key && !node.key.startsWith('$')
-    const children = visibleChildren(node)
-    if (named || titled || comp === 'list') {
-      const help = typeof layout.help === 'string' && layout.help ? helpToText(layout.help) : ''
-      const multiValued = isMultiValued(node)
-      const current = multiValued ? multiValuedData(node) : node.data
-      const valueText = children.length === 0 && typeof current === 'string' && current.length <= QUERY_VALUE_MAX_LENGTH ? current : ''
-      if (matches(`${named ? node.key : ''} ${titled ?? ''} ${help} ${valueText}`)) {
-        total++
-        if (lines.length < QUERY_MATCHES_MAX) {
-          const type = multiValued ? `list of ${multiValuedItemType(node, statefulLayout)}` : (compToType[comp] || comp)
-          const count = comp === 'list' && Array.isArray(node.data) ? `, ${node.data.length} items` : ''
-          const value = children.length === 0 ? ` = ${current === undefined ? 'not set' : outlineValue(current)}` : ''
-          lines.push(`${node.fullKey || '/'} (${type}${count})${value}${titled ? ` — ${titled}` : ''}`)
-        }
-      }
-    }
-    for (const child of node.children ?? []) {
-      if (child.layout.comp !== 'none') continue
-      const condition = hidingCondition(child, node, statefulLayout)
-      if (!condition) continue
-      const part = { path: child.fullKey, reveal: `hidden until ${condition.length > QUERY_VALUE_MAX_LENGTH ? `${condition.slice(0, QUERY_VALUE_MAX_LENGTH - 1)}…` : condition}`, lines: [] }
-      hiddenParts.push(part)
-      visitHidden(child.skeleton.pointer, child.fullKey, part, new Set())
-    }
-    for (const child of children) visit(child)
-  }
-  /**
-   * A hidden node has no state below it: its fields are read from the compiled skeleton.
-   * @param {string} pointer
-   * @param {string} path
-   * @param {{ reveal: string, lines: string[] }} part
-   * @param {Set<string>} ancestors - pointers above, a recursive schema reaching itself again
-   */
-  const visitHidden = (pointer, path, part, ancestors) => {
-    if (ancestors.has(pointer)) return
-    const compiled = statefulLayout.compiledLayout
-    const skeleton = compiled.skeletonNodes[pointer]
-    const normalized = /** @type {any} */(compiled.normalizedLayouts[pointer])
-    const layout = Array.isArray(normalized?.switch) ? normalized.switch[0] : normalized
-    if (!skeleton || !layout || layout.comp === 'none') return
-    const titled = [layout.label, layout.title, skeleton.title].find((t) => typeof t === 'string' && t.trim())
-    const named = typeof skeleton.key === 'string' && skeleton.key && !skeleton.key.startsWith('$')
-    if (named || titled) {
-      const help = typeof layout.help === 'string' && layout.help ? helpToText(layout.help) : ''
-      if (matches(`${named ? skeleton.key : ''} ${titled ?? ''} ${help}`)) {
-        total++
-        part.lines.push(`${path} (${compToType[layout.comp] || layout.comp})${titled ? ` — ${titled}` : ''} — ${part.reveal}`)
-      }
-    }
-    const below = new Set([...ancestors, pointer])
-    for (const child of skeleton.children ?? []) {
-      const key = compiled.skeletonNodes[child]?.key
-      if (key !== undefined) visitHidden(child, `${path}/${key}`, part, below)
-    }
-  }
-  visit(root)
-  const hiddenLines = hiddenParts.filter((part) => part.lines.length)
-    .map((part) => part.lines.length === 1 ? part.lines[0] : `+${part.lines.length} ${part.reveal} under ${part.path}`)
-  return { lines: [...lines, ...hiddenLines].slice(0, QUERY_MATCHES_MAX), total }
-}
-
-/** Levels of nested sections an outline expands at most, fewer when that does not fit. */
-export const OUTLINE_MAX_DEPTH = 6
-
-/** Longest value or label kept on an outline line. */
-const OUTLINE_TEXT_MAX_LENGTH = 60
-
-/** Items of a list named one per line in an outline before the rest are counted. */
-const OUTLINE_ITEMS_MAX = 50
-
-/**
- * @param {string} text
- * @returns {string}
- */
-function shortText (text) {
-  const flat = text.replace(/\s+/g, ' ').trim()
-  return flat.length > OUTLINE_TEXT_MAX_LENGTH ? `${flat.slice(0, OUTLINE_TEXT_MAX_LENGTH - 1)}…` : flat
-}
-
-/**
- * A value as an outline shows it: whole when short, a string cut, anything else named.
- * @param {unknown} value
- * @returns {string}
- */
-function outlineValue (value) {
-  const json = JSON.stringify(value)
-  if (json === undefined) return 'undefined'
-  if (json.length <= OUTLINE_TEXT_MAX_LENGTH) return json
-  if (typeof value === 'string') return JSON.stringify(shortText(value))
-  if (Array.isArray(value)) return `<array of ${value.length} items>`
-  if (value !== null && typeof value === 'object') return `<object, ${json.length} chars>`
-  return `<${typeof value}, ${json.length} chars>`
-}
-
-/**
- * The data path an expression of a condition reads, when it names one: `data.x` is a key of
- * the hidden node's own data, `parent.data.x` of its parent's, `rootData.x` of the root's.
- * @param {string} expr
- * @param {string} ownPath - data path of the hidden node
- * @param {string} parentPath - data path of its parent node
- * @returns {string | undefined}
- */
-function conditionDataPath (expr, ownPath, parentPath) {
-  const match = expr.match(/\b(rootData|parent\.data|data)((?:\??\.[A-Za-z_$][\w$]*)+)/)
-  if (!match) return undefined
-  const base = match[1] === 'rootData' ? '' : match[1] === 'data' ? ownPath : parentPath
-  const keys = match[2].split('.').map((key) => key.replace(/\?$/, '')).filter(Boolean)
-  return `${base}/${keys.join('/')}`
-}
-
-/**
- * A path the form does not show because a condition hides the part that holds it: what the
- * condition is, the field it reads when it names one, and the value at the path. Round 3,
- * portal-config-edit: describeState /theme/colors, hidden while the assisted colour mode is
- * on, answered "not in the form yet" although the data held it.
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {string} path - a data path, or a form path through the hidden part
- * @returns {string | undefined}
- */
-export function projectHiddenField (statefulLayout, path) {
-  const target = '/' + path.replace(/^\/+/, '').replace(/\/+$/, '')
-  const compiled = statefulLayout.compiledLayout
-  /** @type {Array<{ dataPath: string, condition: string, driver?: import('../state/types.js').StateNode, driverPath?: string }>} */
-  const holders = []
-  /**
-   * @param {string} pointer
-   * @param {string} formPath
-   * @param {string} dataPath
-   * @returns {string | undefined} the data path of the target when this part holds it
-   */
-  const holds = (pointer, formPath, dataPath) => {
-    if (formPath === target || dataPath === target) return dataPath
-    if (!target.startsWith(`${dataPath === '/' ? '' : dataPath}/`) && !target.startsWith(`${formPath}/`)) return undefined
-    for (const child of compiled.skeletonNodes[pointer]?.children ?? []) {
-      const key = compiled.skeletonNodes[child]?.key
-      if (key === undefined) continue
-      const found = holds(child, `${formPath}/${key}`, String(key).startsWith('$') ? dataPath : `${dataPath === '/' ? '' : dataPath}/${key}`)
-      if (found) return found
-    }
-    return undefined
-  }
-  /** @param {import('../state/types.js').StateNode} node */
-  const visit = (node) => {
-    for (const child of node.children ?? []) {
-      if (child.layout.comp !== 'none') {
-        visit(child)
-        continue
-      }
-      const condition = hidingCondition(child, node, statefulLayout)
-      if (!condition) continue
-      const dataPath = holds(child.skeleton.pointer, child.fullKey, child.dataPath || '/')
-      if (!dataPath) continue
-      const driverPath = conditionDataPath(condition, child.dataPath, node.dataPath)
-      const driver = driverPath ? resolveNode(statefulLayout.stateTree.root, driverPath) : undefined
-      holders.push({ dataPath, condition, driver: driver?.layout.comp === 'none' ? undefined : driver, driverPath })
-    }
-  }
-  visit(statefulLayout.stateTree.root)
-  // a condition that reads a field of the form first: the one a person changes
-  const holder = holders.find((h) => h.driver) ?? holders[0]
-  if (!holder) return undefined
-  const { dataPath, condition, driver, driverPath } = holder
-  const reads = driver
-    ? `, which reads ${driver.fullKey} (${compToType[driver.layout.comp] || driver.layout.comp}) = ${outlineValue(driver.data)}. It can be edited once that field changes; the form may show another field in its place meanwhile`
-    : driverPath
-      ? `, which reads ${driverPath}`
-      : /\bcontext\b/.test(condition) ? ', which reads the context the form is used in: it cannot be changed from the form' : ''
-  /** @type {any} */
-  let value = statefulLayout.data
-  for (const key of dataPath.split('/').filter(Boolean)) value = value && typeof value === 'object' ? value[key] : undefined
-  const current = value === undefined ? 'not set' : `value=${abbreviateValue(value)}`
-  return `${dataPath} is not shown: the part of the form that holds it is hidden until ${condition}${reads}.\ncurrent ${current}`
-}
-
-/** keys of identifiers, which tell an item apart for a program but not for a person */
-const ID_KEY = /^_|^(id|uuid|key|ID|UUID)$|_(id|uuid|key)$|[a-z]Id$/
-
-/** how deep into an item its label is looked for: a two-column block's first title */
-const ITEM_LABEL_DEPTH = 3
-
-/**
- * What tells an item of a list apart from its siblings for a person: its title, label or
- * name, or else its first text with words in it, looked for in what it holds when it has
- * none of its own. A uuid tells nothing, nor a discriminator the option already says.
- * @param {import('../state/types.js').StateNode} item
- * @param {import('../state/types.js').StateNode | undefined} selector
- * @returns {string | undefined}
- */
-function itemLabel (item, selector) {
-  const data = item.data
-  if (data === undefined || data === null) return undefined
-  if (typeof data !== 'object') return outlineValue(data)
-  const discriminator = selector?.skeleton.discriminator
-  /**
-   * @param {unknown} value
-   * @param {number} depth
-   * @returns {string | undefined}
-   */
-  const find = (value, depth) => {
-    if (typeof value === 'string') return /\S\s+\S/.test(value) ? value : undefined
-    if (!value || typeof value !== 'object' || depth > ITEM_LABEL_DEPTH) return undefined
-    if (Array.isArray(value)) {
-      for (const entry of value) {
-        const found = find(entry, depth + 1)
-        if (found) return found
-      }
-      return undefined
-    }
-    const record = /** @type {Record<string, unknown>} */(value)
-    for (const key of ['title', 'label', 'name']) {
-      if (typeof record[key] === 'string' && record[key].trim()) return record[key]
-    }
-    for (const [key, entry] of Object.entries(record)) {
-      if (key === discriminator || ID_KEY.test(key)) continue
-      const found = find(entry, depth + 1)
-      if (found) return found
-    }
-    return undefined
-  }
-  const found = find(data, 0)
-  if (found !== undefined) return JSON.stringify(shortText(found))
-  // nothing worded: a small item says itself (a menu entry is { type, subtype })
-  const json = JSON.stringify(data)
-  return json.length <= OUTLINE_TEXT_MAX_LENGTH ? json : undefined
-}
-
-/**
- * @typedef {{ text: string, shown: number, candidates: Array<{ path: string, level: number }> }} RenderedOutline
- */
-
-/**
- * A wrapper that holds no data of its own and says nothing to a person: an untitled `$comp-*`
- * section, or the root when it has no title. Expanding one costs a line and no level.
- * @param {import('../state/types.js').StateNode} node
- * @returns {boolean}
- */
-function isUnnamedWrapper (node) {
-  if (node.layout.comp === 'list' || node.layout.comp === 'one-of-select') return false
-  if (!(node.fullKey === '' || (typeof node.key === 'string' && node.key.startsWith('$')))) return false
-  const layout = /** @type {Record<string, unknown>} */(node.layout)
-  return !(typeof layout.label === 'string' && layout.label.trim()) && !(typeof layout.title === 'string' && layout.title.trim())
-}
-
-/**
- * A slot bound to its parent's data is a preview: its "value" is the whole section again.
- * @param {import('../state/types.js').StateNode} node
- * @returns {boolean}
- */
-function isPreviewSlot (node) {
-  return node.layout.comp === 'slot' && node.dataPath === node.parentDataPath
-}
-
-/**
- * The fields an item of a list holds, through the wrappers between them: unnamed sections,
- * the item's choice and the section of the option it holds.
- * @param {import('../state/types.js').StateNode} node
- * @returns {import('../state/types.js').StateNode[]}
- */
-function fieldsOf (node) {
-  return visibleChildren(node).flatMap((child) => {
-    if (isPreviewSlot(child)) return []
-    if (child.layout.comp === 'one-of-select') return child.children?.[0] ? fieldsOf(child.children[0]) : []
-    if (isUnnamedWrapper(child) && child.children?.length) return fieldsOf(child)
-    return [child]
-  })
-}
-
-/**
- * One item of a list as an outline names it: its path, the option it holds and what tells it
- * apart from its siblings.
- * @param {import('../state/types.js').StateNode} item
- * @param {string} indent
- * @param {Record<string, string>} errorsByPath
- * @returns {string}
- */
-function outlineItemLine (item, indent, errorsByPath) {
-  const selector = itemSelector(item)
-  const variant = selector && activeVariant(selector)
-  const label = itemLabel(item, selector)
-  const what = [variant?.title, label].filter(Boolean).join(' — ')
-  return `${indent}- ${item.fullKey}${what ? `: ${what}` : ''}${nodeError(item, errorsByPath) ? ' (error)' : ''}`
-}
-
-/**
- * @param {number} count - items of the list
- * @param {string} path
- * @param {string} indent
- * @returns {string}
- */
-function outlineMoreItems (count, path, indent) {
-  return `${indent}- and ${count - OUTLINE_ITEMS_MAX} more items: describeState on ${path}/<index> to see one`
-}
-
-/**
- * What an item holds, as its outline line names it: the option and its label.
- * @param {import('../state/types.js').StateNode} listNode
- * @param {number} index
- * @returns {string | undefined}
- */
-export function describeListItem (listNode, index) {
-  const item = visibleChildren(listNode).find((child) => child.key === index)
-  if (!item) return undefined
-  const selector = itemSelector(item)
-  const variant = selector && activeVariant(selector)
-  return [variant?.title, itemLabel(item, selector)].filter(Boolean).join(' — ') || undefined
-}
-
-/**
- * The items of a list one per line, as the outline names them: what an edit of the list
- * answers with, so that the order and content can be checked without reading the form again.
- * @param {import('../state/types.js').StateNode} listNode
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {string[]}
- */
-export function projectListItems (listNode, statefulLayout) {
-  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
-  const items = visibleChildren(listNode)
-  const lines = items.slice(0, OUTLINE_ITEMS_MAX).map((item) => outlineItemLine(item, '', errorsByPath))
-  if (items.length > OUTLINE_ITEMS_MAX) lines.push(outlineMoreItems(items.length, listNode.fullKey || '/', ''))
-  return lines
-}
-
-/**
- * The live state of a node, shallower: sections and their direct fields with values cut
- * short, each list as its item count and one line per item naming the option it holds, the
- * options of the items once under the list. For a form whose full description would not
- * reach the agent whole — round 2's MCP client cut 95 KB for a 7.5 KB page. Not a static
- * overview of the form (removed in 3942850): the values, the open section and the errors
- * are the live ones.
- *
- * Unnamed wrappers and a choice with its option's section are not levels: on the portal
- * configuration they stood between the root and the menu, which a level budget then never
- * reached.
- * @param {import('../state/types.js').StateNode} node
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {number} maxDepth - levels of nested nodes expanded, deeper sections are only named
- * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
- * @param {boolean} [screen]
- * @param {Set<string>} [expanded] - sections and lists past the level limit shown one level
- * more, and items of lists whose own fields are shown under their line
- * @returns {RenderedOutline} with the levels actually shown, and what could be expanded
- * further, in the order it appears
- */
-export function projectNodeOutline (node, statefulLayout, maxDepth, variantsMemo, screen = true, expanded = new Set()) {
-  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
-  /** @type {string[]} */
-  const lines = []
-  /** @type {Array<{ path: string, level: number }>} */
-  const candidates = []
-  let shown = 0
-
-  /**
-   * @param {import('../state/types.js').StateNode} node
-   * @param {number} depth - indentation
-   * @param {number} level - levels above this node that count
-   * @param {number} limit - the level from which a node is only named
-   * @param {string} [suffix]
-   */
-  const walk = (node, depth, level, limit, suffix = '') => {
-    if (isPreviewSlot(node)) return
-    const indent = '  '.repeat(depth)
-    const path = node.fullKey || '/'
-    const layout = /** @type {Record<string, unknown>} */(node.layout)
-    const children = visibleChildren(node)
-    const multiValued = isMultiValued(node)
-    const isList = node.layout.comp === 'list'
-    const wrapper = isUnnamedWrapper(node) && children.length > 0
-    if (!wrapper) shown = Math.max(shown, level + 1)
-    /** @type {string[]} */
-    const meta = []
-    if (multiValued) meta.push(`list of ${multiValuedItemType(node, statefulLayout)}`)
-    else if (isList) meta.push('list', `${Array.isArray(node.data) ? node.data.length : children.length} items`)
-    else meta.push(compToType[node.layout.comp] || node.layout.comp)
-    if (node.skeleton.required) meta.push('required')
-    if (isReadOnly(node, statefulLayout)) meta.push('readOnly')
-    if (nodeError(node, errorsByPath)) meta.push('error')
-    const label = typeof layout.label === 'string' && layout.label.trim()
-      ? layout.label
-      : (typeof layout.title === 'string' && layout.title.trim() ? layout.title : undefined)
-    const head = `${indent}- ${path} (${meta.join(', ')})${label ? ` label="${shortText(label)}"` : ''}${suffix}`
-
-    if (isList) {
-      if (level >= limit && !expanded.has(node.fullKey)) {
-        lines.push(`${head} — describeState on this path to see its items`)
-        candidates.push({ path: node.fullKey, level })
-        return
-      }
-      lines.push(head)
-      // the options first, as the full description gives them: an expanded item's own lists
-      // of the same elements then point back here instead of listing them again
-      const options = listOptionsLines(node, statefulLayout, `${indent}  `, variantsMemo, children, false)
-      if (options.length) lines.push(...options)
-      else {
-        const selector = children.map(itemSelector).find(Boolean)
-        const listedAt = selector && variantsMemo.listedAt(selector.skeleton.pointer)
-        if (selector && listedAt !== undefined) lines.push(`${indent}  - each item is ${optionsListedAt(variantsMemo, selector, variantsOf(selector).length, listedAt)}`)
-      }
-      for (const item of children.slice(0, OUTLINE_ITEMS_MAX)) {
-        lines.push(outlineItemLine(item, `${indent}  `, errorsByPath))
-        shown = Math.max(shown, level + 2)
-        candidates.push({ path: item.fullKey, level: level + 1 })
-        if (expanded.has(item.fullKey)) {
-          // the item's own fields, each only named when it holds more
-          for (const field of fieldsOf(item)) walk(field, depth + 2, level + 2, level + 2)
-        }
-      }
-      if (children.length > OUTLINE_ITEMS_MAX) lines.push(outlineMoreItems(children.length, path, `${indent}  `))
-      return
-    }
-
-    if (node.layout.comp === 'one-of-select') {
-      const active = activeVariant(node)
-      lines.push(`${head}${active ? ` — variant ${active.key}: ${active.title} (active)` : ''}`)
-      const pointer = node.skeleton.pointer
-      const listedAt = variantsMemo.listedAt(pointer)
-      if (listedAt === undefined) {
-        variantsMemo.record(pointer, path)
-        lines.push(...variantLines(node, statefulLayout, `${indent}  `, false))
-      } else {
-        lines.push(`${indent}  - ${optionsListedAt(variantsMemo, node, variantsOf(node).length, listedAt)}`)
-      }
-      // the choice and its option's section are one level with the fields they hold
-      const branch = children[0]
-      if (branch) {
-        lines.push(`${indent}  - ${branch.fullKey} (option ${branch.key})`)
-        for (const child of visibleChildren(branch)) walk(child, depth + 2, level, limit)
-      }
-      return
-    }
-
-    if (children.length) {
-      if (!wrapper && children.length > 1 && level >= limit && !expanded.has(node.fullKey)) {
-        lines.push(`${head} — ${children.length} part(s), describeState on this path to see them`)
-        candidates.push({ path: node.fullKey, level })
-        return
-      }
-      lines.push(head)
-      const openIndex = screen && SECTION_CONTAINERS.includes(node.layout.comp) ? statefulLayout.activeSectionIndex(node) : undefined
-      const openKey = openIndex !== undefined ? node.children?.[openIndex]?.fullKey : undefined
-      // a section of a single part is one level with it: the portal menu's only part is its list
-      const flat = wrapper || children.length === 1
-      const childLevel = flat ? level : level + 1
-      // an expanded section past the limit shows its parts, each only named
-      const childLimit = Math.max(limit, childLevel)
-      for (const child of children) walk(child, depth + 1, childLevel, childLimit, child.fullKey === openKey ? ' (open)' : '')
-      return
-    }
-
-    const value = multiValued ? multiValuedData(node) : node.data
-    lines.push(value === undefined ? `${head} not set` : `${head} value=${outlineValue(value)}`)
-  }
-
-  walk(node, 0, 0, maxDepth)
-  return { text: lines.join('\n'), shown, candidates }
-}
-
-/**
- * The end of an outline: what was left out, and how to read it.
- * @param {number} levels - the levels the outline actually shows
- * @returns {string}
- */
-export function outlineFooter (levels) {
-  return `(an outline, ${levels} level(s) deep with values cut short, the full description being over ${OUTLINE_BUDGET_BYTES} bytes — call describeState with the path of a part to see it in full)`
-}
-
-/**
- * Size of a text as it is sent, in bytes. Not Buffer: core runs in browsers too.
- * @param {string} text
- * @returns {number}
- */
-export function byteLength (text) {
-  return new TextEncoder().encode(text).length
-}
-
-/**
- * The whole form as an outline, at the deepest level that fits the budget.
- * @param {import('../state/types.js').StateTree} stateTree
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {boolean} [screen]
- * @returns {string}
- */
-export function projectStateTreeOutline (stateTree, statefulLayout, screen = true) {
-  const header = stateHeaderLines(stateTree, statefulLayout)
-  return outlineThatFits(stateTree.root, statefulLayout, screen,
-    (outline, depth) => [...header, 'Fields (outline):', outline, outlineFooter(depth)].join('\n'))
-}
-
-/**
- * The deepest outline of a node that fits its budget (outlineBudget) once wrapped into the answer, then with
- * the fields of as many list items as still fit, breadth first: an agent that sees the cards
- * of a grid with their titles and links finds the one to edit without another call. When
- * nothing more fits, one line per item stays the floor.
- * @param {import('../state/types.js').StateNode} node
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {boolean} screen
- * @param {(outline: string, levels: number) => string} wrap - the whole answer around the outline
- * @returns {string}
- */
-export function outlineThatFits (node, statefulLayout, screen, wrap) {
-  const budget = outlineBudget(node.data)
-  /**
-   * @param {number} maxDepth
-   * @param {Set<string>} [expanded]
-   */
-  const render = (maxDepth, expanded) => {
-    const memo = new VariantsMemo()
-    // an item names the option it holds, as its full description does
-    recordItemOptionsUnderList(node, statefulLayout, memo)
-    const outline = projectNodeOutline(node, statefulLayout, maxDepth, memo, screen, expanded)
-    const text = wrap(outline.text, outline.shown)
-    return { text, candidates: outline.candidates, fits: byteLength(text) <= budget }
-  }
-  let best = deepestThatFits(OUTLINE_MAX_DEPTH, (maxDepth) => render(maxDepth))
-  if (!best.fits) return best.text
-  // what is left of the budget opens what was only named, breadth first: every part of a
-  // level before any of the next, in the order they appear. Each round opens the largest
-  // prefix that fits, found by bisection, and a round that cannot open all of its parts is
-  // the last: the portal configuration's menu sits one level below what a uniform depth
-  // could afford, and opening it saves the agent a call.
-  const depth = best.depth
-  /** @type {Set<string>} */
-  const expanded = new Set()
-  for (;;) {
-    const order = best.candidates.filter((c) => !expanded.has(c.path)).sort((a, b) => a.level - b.level).map((c) => c.path)
-    if (!order.length) break
-    let low = 0
-    let high = order.length
-    while (low < high) {
-      const count = Math.ceil((low + high) / 2)
-      const attempt = render(depth, new Set([...expanded, ...order.slice(0, count)]))
-      if (attempt.fits) {
-        low = count
-        best = { ...attempt, depth }
-      } else high = count - 1
-    }
-    for (const path of order.slice(0, low)) expanded.add(path)
-    if (low < order.length) break
-  }
-  return best.text
-}
-
-/**
- * Format a mutation result as concise text for LLM-readable output.
- * @param {boolean} valid
- * @param {Array<{path: string, message: string}>} errors - errors of the mutated subtree
- * @param {string} [prefix] - optional prefix line (e.g. field info)
- * @param {number} [otherErrors] - number of errors of the form outside of the mutated subtree
- * @param {Array<{path: string, message: string}>} [elsewhere] - the first of them, given when the subtree has none
- * @returns {string}
- */
-export function formatMutationResult (valid, errors, prefix, otherErrors, elsewhere) {
-  const lines = []
-  if (prefix) lines.push(prefix)
-
-  // scoped mode, the errors are the ones of the mutated subtree only
-  if (otherErrors !== undefined) {
-    if (errors.length === 0) lines.push('no error here')
-    else {
-      lines.push(`${errors.length} error(s) here:`)
-      for (const e of errors) {
-        lines.push(`- ${e.path}: ${e.message}`)
-      }
-    }
-    if (otherErrors > 0 && elsewhere?.length) {
-      lines.push(`form has ${otherErrors} other error(s) elsewhere:`)
-      for (const e of elsewhere) {
-        lines.push(`- ${e.path}: ${e.message}`)
-      }
-      if (otherErrors > elsewhere.length) lines.push('use describeState to list them all')
-    } else if (otherErrors > 0) {
-      lines.push(`form has ${otherErrors} other error(s) elsewhere, use describeState to list them`)
-    } else if (!valid) {
-      lines.push('form is invalid')
-    } else {
-      lines.push('form is valid')
-    }
-    return lines.join('\n')
-  }
-
-  if (valid) {
-    lines.push('valid, no errors')
-  } else {
-    lines.push(`invalid, ${errors.length} error(s)`)
-    if (errors.length > 0) {
-      lines.push('Errors:')
-      for (const e of errors) {
-        lines.push(`- ${e.path}: ${e.message}`)
-      }
-    }
-  }
-
-  return lines.join('\n')
 }
 
 /**
@@ -1578,163 +797,4 @@ export function formatSuggestions (suggestions, blockedOn, unmatchedQuery) {
     }
   }
   return lines.join('\n')
-}
-
-/**
- * The data pointer an ajv error applies to.
- *
- * ajv-errors wraps the original error, and a `required` error reports the parent's
- * pointer with the missing key in its params — so the naive instancePath would be the
- * object, not the field.
- * @param {any} error
- * @returns {string}
- */
-function dataPointerOf (error) {
-  const original = error?.params?.errors?.[0] ?? error
-  if (original?.keyword === 'required' && original.params?.missingProperty) {
-    return `${original.instancePath}/${original.params.missingProperty}`
-  }
-  return original?.instancePath ?? ''
-}
-
-/**
- * The message of an ajv error, naming the refused property of an additional properties error:
- * ajv's own message ("must NOT have additional properties") does not say which one.
- * @param {any} error
- * @returns {string}
- */
-function messageOf (error) {
-  const message = error?.message ?? 'invalid'
-  const original = error?.params?.errors?.[0] ?? error
-  const property = original?.params?.additionalProperty ?? original?.params?.unevaluatedProperty
-  return property !== undefined ? `${message}: ${property}` : message
-}
-
-/**
- * Whether an error belongs to a branch of a union the form is actually showing.
- *
- * ajv validates every branch of a `oneOf` and reports the failures of all of them, so
- * while the chosen branch is still incomplete the losing branches complain too. Those
- * complaints name properties of a shape that was not chosen: there is no node for them,
- * no way to write them and no way to clear them. The state tree already draws this line —
- * it matches an error to a node by schema pointer, so only the active branch's errors
- * ever land on one — and this keeps the raw list that is appended afterwards to the same
- * line rather than undoing the work.
- *
- * The test is per `oneOf` crossed on the way down, not on the error's path as a whole: an
- * error below an unhydrated list item has no node either, and that one must survive.
- * @param {any} error
- * @param {Set<string>} renderedPointers - skeleton pointers of the nodes the form has built
- * @returns {boolean}
- */
-function isRenderedBranch (error, renderedPointers) {
-  for (const schemaPath of [error?.schemaPath, error?.params?.errors?.[0]?.schemaPath]) {
-    if (typeof schemaPath !== 'string') continue
-    const branches = /\/oneOf\/\d+/g
-    let match
-    while ((match = branches.exec(schemaPath)) !== null) {
-      if (!renderedPointers.has(schemaPath.slice(0, match.index + match[0].length))) return false
-    }
-  }
-  return true
-}
-
-/**
- * Errors of the whole form, each named by the location it actually applies to.
- *
- * A node only carries an error while it is hydrated. A list shows its items in summary
- * mode, so nothing below an unedited item exists as a node, and every error under it
- * collapses onto the list — one message, on a path that is not the faulty one. An agent
- * told "/sections must be integer" knows it is wrong and not where, and retries blind.
- *
- * So a node error that is standing in for deeper errors nobody names is replaced by
- * those errors, addressed by data pointer. Errors a hydrated node does name keep their
- * form path, which is what the mutation tools expect.
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {Array<{path: string, message: string}>}
- */
-export function collectErrors (statefulLayout) {
-  /** @type {Array<{fullKey: string, dataPath: string, message: string, raw: string, hidden: boolean}>} */
-  const nodeErrors = []
-  /** @type {Set<string>} */
-  const renderedPointers = new Set()
-  /** @param {import('../state/types.js').StateNode} node */
-  const recurse = (node) => {
-    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: /** @type {string} */(errorMessageOf(node)), raw: node.error, hidden: node.layout.comp === 'none' })
-    if (node.skeleton?.pointer) renderedPointers.add(node.skeleton.pointer)
-    // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
-    // occurrences of an activated item do not carry the same errors, and deduplicating
-    // here silently drops them (verified: 2 errors became 0).
-    for (const child of node.children ?? []) recurse(child)
-  }
-  recurse(statefulLayout.stateTree.root)
-
-  const named = new Set(nodeErrors.map((e) => e.dataPath))
-  const unnamed = statefulLayout.validationErrors
-    .filter((error) => isRenderedBranch(error, renderedPointers))
-    .map((error) => ({ pointer: dataPointerOf(error), message: messageOf(error) }))
-    .filter((error) => !named.has(error.pointer))
-
-  // a hidden node (comp "none") can carry an echo of an error a visible node already reports:
-  // a new menu item's error was also reported on three hidden nodes of data-fair's portal
-  // editor, announced as "3 other error(s) elsewhere". An error only a hidden node carries is
-  // kept, so an invalid form always says why.
-  const visibleMessages = new Set(nodeErrors.filter((e) => !e.hidden).map((e) => e.raw))
-  /** @type {Array<{path: string, message: string}>} */
-  const errors = []
-  for (const nodeError of nodeErrors) {
-    if (nodeError.hidden && visibleMessages.has(nodeError.raw)) continue
-    const prefix = nodeError.dataPath === '' ? '/' : `${nodeError.dataPath}/`
-    const standsInForDeeperErrors = unnamed.some((e) => e.pointer.startsWith(prefix))
-    if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })
-  }
-  for (const error of unnamed) errors.push({ path: error.pointer, message: error.message })
-
-  // an invalid form always says where: when the state tree attached nothing to any node and the
-  // filter above kept nothing (round 2: a property the new option of a nested union refused), the
-  // raw errors are given by data pointer
-  if (errors.length === 0 && !statefulLayout.valid) {
-    for (const error of statefulLayout.validationErrors) {
-      errors.push({ path: dataPointerOf(error) || '/', message: messageOf(error) })
-    }
-  }
-  return errors
-}
-
-/** how many errors from elsewhere a write result lists when it has none of its own */
-const ELSEWHERE_MAX = 3
-
-/**
- * Errors of the subtree of a node, and count of the errors of the rest of the form.
- *
- * When the subtree has none but the form is invalid, the first errors of the rest of the
- * form come along (`elsewhere`), each with its path: "form is invalid" alone sent round 2's
- * agents looking for an error for the rest of their run.
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {import('../state/types.js').StateNode} node
- * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }}
- */
-export function collectScopedErrors (statefulLayout, node) {
-  // the path index is used rather than a walk of the subtree: an activated list item is kept
-  // twice and the tools resolve to the editable occurrence, which carries no error at all,
-  // neither on the item nor on anything below it. Indexing by path merges the two.
-  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
-  const prefix = node.fullKey
-  const isInScope = (/** @type {string} */path) =>
-    prefix === '' || path === prefix || path.startsWith(`${prefix}/`)
-
-  /** @type {Array<{path: string, message: string}>} */
-  const errors = []
-  let otherErrors = 0
-  for (const [path, message] of Object.entries(errorsByPath)) {
-    if (isInScope(path)) errors.push({ path, message })
-    else otherErrors++
-  }
-  if (errors.length === 0 && !statefulLayout.valid) {
-    const others = collectErrors(statefulLayout)
-    if (others.length) {
-      return { errors, otherErrors: Math.max(otherErrors, others.length), elsewhere: others.slice(0, ELSEWHERE_MAX) }
-    }
-  }
-  return { errors, otherErrors }
 }

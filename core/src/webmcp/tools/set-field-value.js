@@ -2,7 +2,8 @@
  * @file setFieldValue tool
  */
 
-import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility, variantTitle } from '../project.js'
+import { projectFieldResult, projectNodeToMarkdown, visibilitySnapshot, diffVisibility, variantTitle } from '../project.js'
+import { collectScopedErrors } from '../errors.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
