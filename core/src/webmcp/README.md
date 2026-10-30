@@ -215,7 +215,7 @@ that lists the others (`describeState …/$oneOf`), rather than the 40 of them.
 **Memorised suggestions are dropped only when they go stale.** Applying an option by index
 needs the list remembered. Every write used to clear all of it, which broke a listing an
 unrelated write could not have affected. A write keeps the suggestions it does not touch, and
-invalidation now compares each path's `itemsCacheKey` — the same value the state layer uses to decide whether to re-fetch. `setData`
+invalidation now compares each path's items fingerprint (`StatefulLayout#itemsFingerprint`), which changes whenever the list may have. `setData`
 also drops the paths whose data it changed, and nothing else; `editArray` drops the lists of
 the items an add or a remove shifted, and a move takes each item's lists along with it. A list whose items
 are reshaped by expressions that read other fields (`itemsResults` picking the values of the

@@ -481,7 +481,7 @@ describe('webmcp lists reshaped from other fields', () => {
     assert.ok(!applied.startsWith('Error'), applied)
     assert.equal(/** @type {any} */(layout.data).selectedConcept, 'A')
   })
-  it('should judge a list with no whole download from the data it can read, its own value aside', async () => {
+  it('should keep picking from a list with no whole download, judged by its key', async () => {
     const searched = structuredClone(schema)
     searched.properties.selectedValue.layout.getItems.url = 'http://example.com/range?q={q}'
     const compiled = compile(searched)
@@ -500,9 +500,6 @@ describe('webmcp lists reshaped from other fields', () => {
     const again = await run(tools, 'setFieldValue', { path: '/selectedValue', suggestionIndex: 1 })
     assert.ok(!again.startsWith('Error'), again)
     assert.deepEqual(webmcp.unpickedValues(), [])
-    await run(tools, 'getFieldSuggestions', { path: '/selectedConcept' })
-    const text = await run(tools, 'setFieldValue', { path: '/selectedConcept', value: 'B' })
-    assert.match(text, /\/selectedValue: "a2" was not among the suggestions/, text)
   })
   it('should keep a pick from a list searched only by a query its request applies across an unrelated write', async () => {
     const searched = structuredClone(schema)

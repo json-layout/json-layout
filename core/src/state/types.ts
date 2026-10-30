@@ -57,6 +57,12 @@ export interface StateNode {
   autofocusChild?: string | number
   props?: StateNodePropsLib
   slots?: Slots
+  /**
+   * @deprecated internal to the state layer: where the items come from (a resolved URL, the
+   * evaluated items), not a signal that they changed — a list reshaped from other data changes
+   * while it stays the same. Call `StatefulLayout.getItems` when the items are needed, and
+   * compare `StatefulLayout.itemsFingerprint` to tell whether they changed.
+   */
   itemsCacheKey: any
   children?: StateNode[]
 }

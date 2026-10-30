@@ -23,7 +23,6 @@ import { coerceForNode } from './coerce.js'
 import { resolveNodeSchema } from './schema.js'
 import { SuggestionsStore } from './suggestions-store.js'
 import { VariantsMemo } from './variants-memo.js'
-import { reshapesFromOtherData } from '../state/index.js'
 
 // public: a host that serves the form tools elsewhere (an MCP server's editor groups) needs
 // the same guide text a page publishes as its skill
@@ -113,27 +112,6 @@ function editArrayEligible (listPath, addedIndex) {
  */
 function isEmpty (value) {
   return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
-}
-
-/**
- * The data with the value at a data path left out: a list's own value is not what its
- * options depend on, or picking one would make the list it came from stale.
- * @param {unknown} data
- * @param {string[]} segments
- * @returns {unknown}
- */
-function withoutValueAt (data, segments) {
-  if (!segments.length || data === null || typeof data !== 'object') return data
-  const [segment, ...rest] = segments
-  if (!(segment in data)) return data
-  const copy = /** @type {Record<string, unknown>} */(Array.isArray(data) ? [...data] : { ...data })
-  // left out, not set to undefined: a deep comparison tells a missing key from an undefined one
-  if (!rest.length) {
-    // an item keeps its place: removing it would shift the items after it
-    if (Array.isArray(copy)) copy[/** @type {any} */(segment)] = null
-    else delete copy[segment]
-  } else copy[segment] = withoutValueAt(copy[segment], rest)
-  return copy
 }
 
 /**
@@ -307,7 +285,7 @@ export class WebMCP {
       const key = this._itemKeyOf(node, value)
       /** @param {unknown} l */
       const same = (l) => equal(l, value) || (key !== undefined && this._itemKeyOf(node, l) === key)
-      return this._suggestionsStore.wasOffered(node.fullKey, this._freshnessKey(node), value, key, asWritten) ||
+      return this._suggestionsStore.wasOffered(node.fullKey, this._statefulLayout.itemsFingerprint(node), value, key, asWritten) ||
         loaded.some((l) => same(l) || (Array.isArray(l) && l.some(same)))
     }
     if (picked(data)) return undefined
@@ -342,7 +320,7 @@ export class WebMCP {
    * @returns {Map<string, {data: unknown, cacheKey: unknown}>}
    */
   _referentialData () {
-    return new Map(referentialNodes(this._statefulLayout.stateTree.root).map((node) => [node.fullKey, { data: node.data, cacheKey: this._freshnessKey(node) }]))
+    return new Map(referentialNodes(this._statefulLayout.stateTree.root).map((node) => [node.fullKey, { data: node.data, cacheKey: this._statefulLayout.itemsFingerprint(node) }]))
   }
 
   /**
@@ -361,39 +339,12 @@ export class WebMCP {
     for (const node of referentialNodes(this._statefulLayout.stateTree.root)) {
       if (eligible && !eligible(node.fullKey)) continue
       const previous = before.get(node.fullKey)
-      if (previous && equal(previous.data, node.data) && equal(previous.cacheKey, this._freshnessKey(node))) continue
+      if (previous && equal(previous.data, node.data) && equal(previous.cacheKey, this._statefulLayout.itemsFingerprint(node))) continue
       const value = this._unpicked(node)
       if (value === undefined) continue
       lines.push(`${node.fullKey}: ${abbreviateValue(value)} was not among the suggestions listed for this field; pick one with ${this._toolName('getFieldSuggestions')}`)
     }
     return lines
-  }
-
-  /**
-   * What a node's options depend on, to tell whether a write made the suggestions memorized
-   * for it, and the values they offered, stale: its itemsCacheKey (the resolved URL, the
-   * evaluated items), and for a list reshaped from other fields (catalog-melodi's values of
-   * the selected concept, read from one same URL) the items it lists now, reshaped from its
-   * download without a request. Without a download to reshape (a list only ever searched
-   * by the request's query), the data its expressions can read stands in for them, the
-   * node's own value aside: any change of it then counts as one, in the safe direction.
-   * @param {import('../state/types.js').StateNode} node
-   * @returns {unknown}
-   */
-  _freshnessKey (node) {
-    if (!reshapesFromOtherData(node.layout)) return node.itemsCacheKey
-    try {
-      const items = this._statefulLayout.cachedItems(node)
-      // the key alone does not tell two lists apart: two concepts can share codes, with other ids and labels
-      if (items) return { items: node.itemsCacheKey, listed: items.map((item) => [item.key, item.value, item.title]) }
-    } catch {
-      // an expression that fails on the current data: fall back to the data itself
-    }
-    return {
-      items: node.itemsCacheKey,
-      data: withoutValueAt(this._statefulLayout.data, node.dataPath.split('/').filter(Boolean)),
-      context: node.options.context
-    }
   }
 
   /**
@@ -410,9 +361,8 @@ export class WebMCP {
   /**
    * Drop the memorized suggestions a write invalidated. A getItems expression can depend on
    * another field, so a write may have changed the options of a field memorized under an
-   * unchanged path — but only of a field whose list actually depends on it. Comparing each
-   * memorized path's itemsCacheKey against the node's current one is how the state layer
-   * itself decides whether to re-fetch. Compared by content: a static list is a distinct
+   * unchanged path — but only of a field whose list actually depends on it, which the
+   * state layer's items fingerprint of each memorized path tells. Compared by content: a static list is a distinct
    * array in each item of a list, so a moved item's list never had the identity of the
    * one now at its place, while having the same options.
    * @param {Map<string, unknown>} [dataBefore] - also drop the paths of this map whose data changed
@@ -420,7 +370,7 @@ export class WebMCP {
   _retainFresh (dataBefore) {
     this._suggestionsStore.retainFresh((path, cacheKey) => {
       const node = resolveNode(this._statefulLayout.stateTree.root, path)
-      if (!node || !equal(this._freshnessKey(node), cacheKey)) return false
+      if (!node || !equal(this._statefulLayout.itemsFingerprint(node), cacheKey)) return false
       return !dataBefore || !dataBefore.has(path) || equal(node.data, dataBefore.get(path))
     })
   }
@@ -575,9 +525,8 @@ export class WebMCP {
             )
             // A getItems expression can depend on another field, so this write may have
             // changed the options of a field memorized under an unchanged path — but only
-            // of a field whose list actually depends on it. Comparing each memorized path's
-            // itemsCacheKey against the node's current one is how the state layer itself
-            // decides whether to re-fetch.
+            // of a field whose list actually depends on it, which the state layer's items
+            // fingerprint of each memorized path tells.
             this._retainFresh(memorizedBelow)
             let fieldInfo = `${result.field.path} (${result.field.type}) = ${abbreviateValue(result.field.data)}`
             if (result.visibility) fieldInfo += formatVisibilityDiff(result.visibility)
@@ -609,8 +558,7 @@ export class WebMCP {
             const result = await getFieldSuggestions.execute(
               this._statefulLayout,
               /** @type {{ path: string, query?: string }} */(args),
-              this._suggestionsStore,
-              (node) => this._freshnessKey(node)
+              this._suggestionsStore
             )
             const suggestions = projectSuggestions(result.items, result.baseIndex)
             // An empty answer has two causes the agent must tell apart: a query that
