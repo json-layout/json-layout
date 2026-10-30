@@ -1,5 +1,6 @@
 import debug from 'debug'
 import { produce } from 'immer'
+import equal from 'fast-deep-equal'
 import { evalExpression, produceListData, producePatchedData, useDefaultData } from './state-node.js'
 import { createStateTree } from './state-tree.js'
 import { Display } from './utils/display.js'
@@ -685,6 +686,12 @@ export class StatefulLayout {
   _itemsCache = {}
 
   /**
+   * @private
+   * @type {Record<string, {key: any, promise: Promise<{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems, raw?: unknown}>}>}
+   */
+  _itemsRequests = {}
+
+  /**
    * The items a node would list now, without a request: undefined when its list was not
    * downloaded whole for its current itemsCacheKey (never asked for, or searched only with a
    * query the request applied).
@@ -694,7 +701,46 @@ export class StatefulLayout {
   cachedItems (node) {
     const cached = this._itemsCache[node.fullKey]
     if (!cached || cached.key !== node.itemsCacheKey || !isItemsNode(node, this._compiledLayout.components)) return undefined
-    return 'raw' in cached ? this.reshapeItems(node, cached.raw) : cached.items
+    return this.cachedEntryItems(node, cached)
+  }
+
+  /**
+   * The items of a cache entry: a list reshaped from other data is reshaped from its download
+   * again, and keeps the identity of the previous items while they are the same.
+   * @private
+   * @param {StateNode} node
+   * @param {{items: import('@json-layout/vocabulary').SelectItems, raw?: unknown}} cached
+   * @returns {import('@json-layout/vocabulary').SelectItems}
+   */
+  cachedEntryItems (node, cached) {
+    if (!('raw' in cached)) return cached.items
+    const items = this.reshapeItems(/** @type {SelectNode} */(node), cached.raw)
+    if (!equal(items, cached.items)) cached.items = items
+    return cached.items
+  }
+
+  /**
+   * Request a node's items, sharing a request still pending for the same list and search.
+   * @private
+   * @param {StateNode} node
+   * @param {string} q
+   * @returns {Promise<{appliedQ: boolean, items: import('@json-layout/vocabulary').SelectItems}>}
+   */
+  requestItems (node, q) {
+    const requestKey = node.fullKey + '\n' + q
+    const key = node.itemsCacheKey
+    const pending = this._itemsRequests[requestKey]
+    if (pending && pending.key === key) return pending.promise
+    const promise = this.getItemsWithoutCache(node, q)
+      .then((itemsResult) => {
+        if (!q || !itemsResult.appliedQ) this._itemsCache[node.fullKey] = { key, ...itemsResult }
+        return itemsResult
+      })
+      .finally(() => {
+        if (this._itemsRequests[requestKey]?.promise === promise) delete this._itemsRequests[requestKey]
+      })
+    this._itemsRequests[requestKey] = { key, promise }
+    return promise
   }
 
   /**
@@ -790,6 +836,9 @@ export class StatefulLayout {
   }
 
   /**
+   * The items a node lists now. Callers call it whenever they need the items (a menu opening,
+   * a search): it answers from a cache while nothing they depend on changed, with the same
+   * array, and shares a request still pending for the same list and search.
    * @param {StateNode} node
    * @param {string} q
    * @returns {Promise<import('@json-layout/vocabulary').SelectItems>}
@@ -802,12 +851,9 @@ export class StatefulLayout {
       // the download is reused, but a list reshaped from other data is reshaped from it
       // again: the itemsCacheKey does not follow that data (catalog-melodi's values of the
       // selected concept, read from one same URL)
-      itemsResult = 'raw' in cached ? { appliedQ: cached.appliedQ, items: this.reshapeItems(/** @type {SelectNode} */(node), cached.raw) } : cached
+      itemsResult = { appliedQ: cached.appliedQ, items: this.cachedEntryItems(node, cached) }
     } else {
-      itemsResult = await this.getItemsWithoutCache(node, q)
-      if (!q || !itemsResult.appliedQ) {
-        this._itemsCache[node.fullKey] = { key: node.itemsCacheKey, ...itemsResult }
-      }
+      itemsResult = await this.requestItems(node, q)
     }
 
     if (q && !itemsResult.appliedQ) return itemsResult.items.filter(item => item.title.toLowerCase().includes(q.toLowerCase()))
