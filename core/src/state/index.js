@@ -51,38 +51,17 @@ export const isSection = (node) => !!node && node.layout.comp === 'section'
 export const isItemsNode = (node, components) => !!node && isItemsLayout(node.layout, components)
 
 /**
- * Whether the expressions shaping a list's items (itemsResults, itemValue...) read data other
- * than the item: the root data or a parent's, as the expressions' purity says. The
- * itemsCacheKey does not follow that data, so such a list is reshaped on every getItems.
+ * Whether the expressions shaping a list's items (itemsResults, itemValue...) are all pure:
+ * they read the item only, not the root data or a parent's. The itemsCacheKey does not follow
+ * the data an impure one reads, so such a list is reshaped on every getItems.
  * @param {import('@json-layout/vocabulary').BaseCompObject} layout
  * @returns {boolean}
  */
-export const reshapesFromOtherData = (layout) => {
+export const isItemsReshapingPure = (layout) => {
   const getItems = /** @type {any} */(layout).getItems
-  if (!getItems || typeof getItems !== 'object') return false
+  if (!getItems || typeof getItems !== 'object') return true
   return ['itemsResults', 'itemValue', 'itemTitle', 'itemKey', 'itemIcon', 'itemHeader']
-    .some((name) => getItems[name] && getItems[name].pure === false)
-}
-
-/**
- * The data with the value at a data path left out: a list's own value is not what its
- * items depend on, or picking one would change the fingerprint of the list it came from.
- * @param {unknown} data
- * @param {string[]} segments
- * @returns {unknown}
- */
-function withoutValueAt (data, segments) {
-  if (!segments.length || data === null || typeof data !== 'object') return data
-  const [segment, ...rest] = segments
-  if (!(segment in data)) return data
-  const copy = /** @type {Record<string, unknown>} */(Array.isArray(data) ? [...data] : { ...data })
-  // left out, not set to undefined: a deep comparison tells a missing key from an undefined one
-  if (!rest.length) {
-    // an item keeps its place: removing it would shift the items after it
-    if (Array.isArray(copy)) copy[/** @type {any} */(segment)] = null
-    else delete copy[segment]
-  } else copy[segment] = withoutValueAt(copy[segment], rest)
-  return copy
+    .every((name) => !getItems[name] || getItems[name].pure !== false)
 }
 
 const logDataBinding = debug('jl:data-binding')
@@ -713,51 +692,21 @@ export class StatefulLayout {
   _itemsRequests = {}
 
   /**
-   * @private
-   * @type {Record<string, unknown>}
-   */
-  _itemsFingerprints = {}
-
-  /**
    * A value that stays the same while getItems would give the same items, computed without a
-   * request: the same value, so a caller can compare it with `===` (a Vue watch, a memo). It
-   * may change while the items did not, never the other way round.
-   *
-   * It is where the items come from (the resolved URL, the evaluated items), and for a list
-   * reshaped from other data (catalog-melodi's values of the selected concept, read from one
-   * same URL) the items it lists now, reshaped from its download. Without a download to
-   * reshape (never asked for, or searched only with a query the request applied), the data
-   * its expressions can read stands in for them, the node's own value aside: any change of it
-   * then counts as one, in the safe direction.
+   * request, to compare with `===`: the itemsCacheKey (the resolved URL, the evaluated
+   * items) when the expressions shaping the items are pure, and when one reads other data
+   * (catalog-melodi's values of the selected concept, read from one same URL) the items
+   * reshaped from the download of that key. Before such a list is downloaded, the key.
    * @param {StateNode} node
    * @returns {unknown}
    */
   itemsFingerprint (node) {
-    const fingerprint = this.computeItemsFingerprint(node)
-    const previous = this._itemsFingerprints[node.fullKey]
-    if (previous !== undefined && equal(previous, fingerprint)) return previous
-    this._itemsFingerprints[node.fullKey] = fingerprint
-    return fingerprint
-  }
-
-  /**
-   * @private
-   * @param {StateNode} node
-   * @returns {unknown}
-   */
-  computeItemsFingerprint (node) {
-    if (!reshapesFromOtherData(node.layout)) return node.itemsCacheKey
+    if (isItemsReshapingPure(node.layout)) return node.itemsCacheKey
     try {
-      const items = this.cachedItems(node)
-      // the key alone does not tell two lists apart: two concepts can share codes, with other ids and labels
-      if (items) return { items: node.itemsCacheKey, listed: items.map((item) => [item.key, item.value, item.title]) }
+      return this.cachedItems(node) ?? node.itemsCacheKey
     } catch {
-      // an expression that fails on the current data: fall back to the data itself
-    }
-    return {
-      items: node.itemsCacheKey,
-      data: withoutValueAt(this.data, node.dataPath.split('/').filter(Boolean)),
-      context: node.options.context
+      // an expression that fails on the current data, as getItems would
+      return node.itemsCacheKey
     }
   }
 
@@ -829,7 +778,7 @@ export class StatefulLayout {
     const { appliedQ, raw } = await this.downloadItems(node, q)
     const items = this.reshapeItems(node, raw)
     // a list reshaped from other data keeps its download, to be reshaped again as that data changes
-    return reshapesFromOtherData(node.layout) ? { appliedQ, items, raw } : { appliedQ, items }
+    return isItemsReshapingPure(node.layout) ? { appliedQ, items } : { appliedQ, items, raw }
   }
 
   /**

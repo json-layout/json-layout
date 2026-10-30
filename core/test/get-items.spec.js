@@ -545,19 +545,16 @@ describe('get select items', () => {
       assert.equal(fetches, 1)
     })
 
-    it('changes with any other data for a list reshaped from other data and not downloaded yet', async () => {
+    it('is the key of a list reshaped from other data until it is downloaded', async () => {
       const compiledLayout = await compile(conceptSchema)
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
         ...defaultOptions,
         fetch: async () => range
       }, { selectedConcept: 'A' })
       const child = (/** @type {string} */key) => /** @type {any} */(statefulLayout.stateTree.root.children?.find(c => c.key === key))
-      const fingerprint = statefulLayout.itemsFingerprint(child('selectedValue'))
-      // the list's own value is not what its items depend on
-      statefulLayout.input(child('selectedValue'), 'a1')
-      assert.equal(statefulLayout.itemsFingerprint(child('selectedValue')), fingerprint)
-      statefulLayout.input(child('other'), 'x')
-      assert.notDeepEqual(statefulLayout.itemsFingerprint(child('selectedValue')), fingerprint)
+      assert.equal(statefulLayout.itemsFingerprint(child('selectedValue')), 'http://test.com/range')
+      const items = await statefulLayout.getItems(child('selectedValue'))
+      assert.equal(statefulLayout.itemsFingerprint(child('selectedValue')), items)
     })
   })
 })

@@ -3,7 +3,7 @@
  */
 
 import { resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
-import { reshapesFromOtherData } from '../../state/index.js'
+import { isItemsReshapingPure } from '../../state/index.js'
 
 export const inputSchema = {
   type: 'object',
@@ -65,13 +65,14 @@ export async function execute (statefulLayout, args, store) {
 
   const rawItems = await statefulLayout.getItems(node, args.query)
   // A list reshaped from other fields is judged stale by the items it lists now, reshaped
-  // from its whole download (see StatefulLayout#itemsFingerprint): a search its request applied did not
-  // keep one, so it is made once, or every write would count as changing the list.
-  if (args.query && reshapesFromOtherData(node.layout)) {
+  // from its whole download (see StatefulLayout#itemsFingerprint): a search its request
+  // applied did not keep one, so it is made once, or a change of the fields it reads would
+  // go unnoticed.
+  if (args.query && !isItemsReshapingPure(node.layout)) {
     try {
       if (!statefulLayout.cachedItems(node)) await statefulLayout.getItems(node)
     } catch {
-      // the stand-in key, from the data the expressions can read, is used instead
+      // without it the list is judged by its key alone
     }
   }
 
