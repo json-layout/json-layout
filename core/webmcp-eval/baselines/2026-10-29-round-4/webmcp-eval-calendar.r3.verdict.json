@@ -1,0 +1,21 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent set the dataset by suggestion, listed the label field choices, picked nomevenement at index 16 (matching the list shown in the same response), and enabled crowdSourcing; the form is valid with the intended data. The label value was taken from the tool-listed options, not invented. The last four calls were verification and exploration of the optional contributions dataset that the goal did not require.",
+  "friction": [
+    {
+      "call": 5,
+      "tool": "describeState",
+      "observed": "- /$allOf-3 (section) title=\"Edition\"\nno error here",
+      "inferred": "A section-level describeState reveals nothing about its children, so the agent learned little; repeated at call 8.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "getFieldSuggestions",
+      "observed": "13 suggestion(s) ... [0] Agenda-manifestations ... [1] Salle Van Gogh ...",
+      "inferred": "Listing candidates for the optional contributions dataset, which the goal did not ask to fill; the same dataset field exists at two paths (/$allOf-0/datasets/1 and /$allOf-3/contribsDataset).",
+      "severity": "low"
+    }
+  ]
+}

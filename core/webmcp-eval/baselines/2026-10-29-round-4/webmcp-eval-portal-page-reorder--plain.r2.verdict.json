@@ -1,0 +1,21 @@
+{
+  "case": "portal-page-reorder",
+  "verdict": "satisfactory",
+  "reasoning": "In 3 calls (readDocument, readSchema, writeDocument) the agent moved the Nouveau air-quality alert (3f2a9c03) to the first position of elements, inserted a divider immediately before the Questions fréquentes title, and removed only the Voir tout le catalogue button (3f2a9c07) from the Nos engagements column, leaving the Jeunesse and Presse buttons and all other siblings untouched. The new divider copied the props of the existing divider, so no value was invented. The write was accepted (\"200 OK, stored 5 top-level key(s)\") and every other element is unchanged. The cost is a whole-array rewrite of elements (about 7 KB) for three small edits, which is inherent to the single-level patch and carried no data loss here.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "readSchema",
+      "observed": "The schema is too long to be read whole (type object). Its outline: properties (key, type, title): ... elements: array ...",
+      "inferred": "The outline gave no element-type detail, so the agent evidently relied on the existing document content (e.g. the existing divider) as its model for the new element; the call bought little information.",
+      "severity": "low"
+    },
+    {
+      "call": 3,
+      "tool": "writeDocument",
+      "observed": "200 OK\nstored 5 top-level key(s)",
+      "inferred": "The agent had to resend the entire elements array to move one block, insert one and delete one; acceptance was confirmed but nothing indicated what changed.",
+      "severity": "low"
+    }
+  ]
+}

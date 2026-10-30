@@ -8,7 +8,7 @@
  * evidence of anything — and so does a case with no transcript at all: a case that never
  * dispatched must fail the report loudly rather than disappear from it.
  *
- * Usage: npm run webmcp-eval:report -w core [case ...]
+ * Usage: npm run webmcp-eval:report -w core [case ...] [--arm form|session|plain|all]
  */
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -16,7 +16,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { cases } from './cases/index.js'
-import { evidenceName } from './session.js'
+import { evidenceName, parseEvidenceName } from './session.js'
+import { ARMS, callKind, TRUNCATION_BYTES } from './arms.js'
 import { parseVerdict } from './verdict.js'
 import { sidecarPath } from './run-case.js'
 
@@ -26,6 +27,8 @@ const here = dirname(fileURLToPath(import.meta.url))
  * @typedef {object} EvalRun
  * @property {string} name - the case this run was requested for
  * @property {string} [variant] - tool configuration it ran under, absent for the default
+ * @property {string} [arm] - tool surface it ran through, `form` when absent
+ * @property {number} [runIndex] - repeat number when the case was run more than once
  * @property {object|null} evidence - the recorded transcript, or null when the case never ran
  * @property {object|null} verdict - the judge's answer, or null when it is missing, malformed
  *   or written for a different case
@@ -47,10 +50,16 @@ export function summarise (runs) {
     return { lines, failed: true }
   }
 
-  for (const { name, variant, evidence, verdict, run } of runs) {
-    const label = variant ? `${name} (${variant})` : name
+  for (const { name, variant, arm, runIndex, evidence, verdict, run } of runs) {
+    const parts = [variant, arm && arm !== 'form' ? arm : undefined, runIndex !== undefined ? `r${runIndex}` : undefined].filter(Boolean)
+    const label = parts.length ? `${name} (${parts.join(', ')})` : name
     lines.push('')
     const runRecord = /** @type {any} */(run)
+    if (!evidence && runRecord?.notRunnable) {
+      // An arm that cannot take this case is an answer, not a failure of the run.
+      lines.push(`${label}: not runnable — ${runRecord.error ?? 'no reason recorded'}`)
+      continue
+    }
     if (!evidence) {
       // A missing transcript is a case whose subprocess never produced one — it may never
       // have been dispatched, or it may have failed to launch or exit cleanly. Skipping it
@@ -59,7 +68,7 @@ export function summarise (runs) {
       lines.push(`${label}: not run`)
       lines.push(runRecord?.error
         ? `  ${runRecord.error}`
-        : `  no transcript at core/tmp/webmcp-eval-${evidenceName(name, variant)}.json — the case was never dispatched`)
+        : `  no transcript at core/tmp/webmcp-eval-${evidenceName(name, variant, arm, runIndex)}.json — the case was never dispatched`)
       continue
     }
 
@@ -74,14 +83,20 @@ export function summarise (runs) {
 
     const ev = /** @type {any} */(evidence)
     const metrics = ev.metrics ?? {}
+    const failedChecks = (Array.isArray(ev.checks) ? ev.checks : []).filter((/** @type {any} */ c) => !c.ok)
+    if (failedChecks.length) failed = true
     if (!verdict) {
       failed = true
       lines.push(`${label}: not judged`)
     } else {
       const v = /** @type {any} */(verdict)
       if (v.verdict !== 'satisfactory') failed = true
-      lines.push(`${label}: ${v.verdict.toUpperCase()}`)
+      const headCheck = v.verdict === 'satisfactory' ? failedChecks[0] : undefined
+      lines.push(`${label}: ${v.verdict.toUpperCase()}${headCheck ? `, CHECK FAILED: ${headCheck.label} — ${headCheck.detail}` : ''}`)
       lines.push(`  ${v.reasoning}`)
+    }
+    for (const c of failedChecks.slice(!verdict || /** @type {any} */(verdict).verdict !== 'satisfactory' ? 0 : 1)) {
+      lines.push(`  CHECK FAILED: ${c.label} — ${c.detail}`)
     }
     lines.push(`  goal: ${ev.goal}`)
     // The age of the run, so a transcript left over from an earlier session cannot pass
@@ -108,49 +123,157 @@ export function summarise (runs) {
     }
   }
 
+  lines.push(...compare(runs))
   return { lines, failed }
 }
 
 /**
- * Every variant of a case that left evidence behind, the default first. A comparison run
- * writes `webmcp-eval-<case>--<variant>.json` beside the control, so both get reported
- * rather than one silently standing in for the other.
- * @param {string} name
- * @returns {(string|undefined)[]}
+ * @param {number[]} values
+ * @param {(n: number) => string} [fmt]
+ * @returns {string}
  */
-function variantsOf (name) {
+function range (values, fmt = String) {
+  if (!values.length) return 'n/a'
+  const lo = Math.min(...values)
+  const hi = Math.max(...values)
+  return lo === hi ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`
+}
+
+const KINDS = ['read-state', 'read-schema', 'write', 'lookup', 'other']
+
+/**
+ * Per kind of call, over the runs of one arm: calls, output bytes and failed calls, then
+ * the count of oversized answers. Kinds no run called are left out.
+ * @param {string} arm
+ * @param {any[]} evs
+ * @returns {string[]}
+ */
+function breakdown (arm, evs) {
+  const perRun = evs.map((e) => /** @type {any[]} */(Array.isArray(e.calls) ? e.calls : []))
+  /** @type {string[]} */
+  const out = []
+  for (const kind of KINDS) {
+    const mine = perRun.map((calls) => calls.filter((c) => callKind(arm, c.tool) === kind))
+    if (!mine.some((c) => c.length)) continue
+    out.push(`    ${kind}: ${range(mine.map((c) => c.length))} calls, ` +
+      `${range(mine.map((c) => c.reduce((n, x) => n + (x.outputBytes ?? 0), 0)))} bytes, ` +
+      `${range(mine.map((c) => c.filter((x) => x.isError).length))} failed`)
+  }
+  if (perRun.some((calls) => calls.length)) {
+    out.push(`    oversized: ${range(perRun.map((calls) => calls.filter((c) => (c.outputBytes ?? 0) > TRUNCATION_BYTES).length))}`)
+  }
+  return out
+}
+
+/**
+ * Side-by-side rows, one per arm of each case, over the runs that left a transcript.
+ * Context only: nothing here decides the report.
+ * @param {EvalRun[]} runs
+ * @returns {string[]}
+ */
+function compare (runs) {
+  /** @type {string[]} */
+  const out = []
+  const names = [...new Set(runs.map((r) => r.name))]
+  for (const name of names) {
+    const mine = runs.filter((r) => r.name === name && r.evidence && !(/** @type {any} */(r.run) && !(/** @type {any} */(r.run).ok)))
+    if (!mine.length) continue
+    /** @type {Map<string, EvalRun[]>} */
+    const groups = new Map()
+    for (const r of mine) {
+      const arm = r.arm ?? /** @type {any} */(r.evidence).arm ?? 'form'
+      const key = r.variant ? `${arm} (${r.variant})` : arm
+      groups.set(key, [...(groups.get(key) ?? []), r])
+    }
+    out.push('', `${name} — comparison`)
+    for (const [key, group] of groups) {
+      const evs = group.map((r) => /** @type {any} */(r.evidence))
+      const recs = group.map((r) => /** @type {any} */(r.run)).filter(Boolean)
+      const tokens = recs.map((r) => r.tokens).filter(Boolean).map((t) => (t.input ?? 0) + (t.cacheRead ?? 0) + (t.cacheWrite ?? 0))
+      const costs = recs.map((r) => r.costUsd).filter((c) => c != null)
+      const checks = evs.map((e) => Array.isArray(e.checks) ? `${e.checks.filter((/** @type {any} */ c) => c.ok).length}/${e.checks.length}` : 'n/a')
+      const verdicts = group.map((r) => /** @type {any} */(r.verdict)?.verdict)
+      const unjudged = verdicts.filter((v) => !v).length
+      out.push(`  ${key}: ${group.length} run${group.length === 1 ? '' : 's'}, ` +
+        `${range(evs.map((e) => e.metrics?.toolCalls ?? 0))} calls, ` +
+        `${range(evs.map((e) => e.metrics?.outputBytes ?? 0))} bytes, ` +
+        `${range(tokens)} input tokens, ` +
+        `${range(costs, (n) => `$${n.toFixed(3)}`)} cost, ` +
+        `checks ${checks.join(', ')}, ` +
+        `${verdicts.filter((v) => v === 'satisfactory').length}s/${verdicts.filter((v) => v === 'unsatisfactory').length}u` +
+        (unjudged ? `, ${unjudged} unjudged` : ''))
+      const armName = group[0].arm ?? evs[0].arm ?? 'form'
+      const tk = (/** @type {string} */ f) => range(recs.filter((r) => r.tokens).map((r) => r.tokens[f] ?? 0))
+      if (recs.some((r) => r.tokens)) {
+        out.push(`    uncached input ${tk('input')}, cache reads ${tk('cacheRead')}, cache writes ${tk('cacheWrite')}`)
+      }
+      out.push(...breakdown(armName, evs))
+    }
+    out.push('  cost is priced with caching; parallel runs share a cache, so a run\'s cost depends on which ran first')
+    out.push(`  oversized = calls answering more than ${TRUNCATION_BYTES} bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)`)
+    out.push('  input tokens = input + cacheRead + cacheWrite (what the model actually read)')
+  }
+  return out
+}
+
+/**
+ * Every combination of variant, arm and repeat that left evidence or a sidecar behind for
+ * a case, found by parsing the file names back with `parseEvidenceName`. A comparison run
+ * writes `webmcp-eval-<case>[--<variant>][--<arm>][.r<n>].json` beside the control, so all
+ * of them get reported rather than one silently standing in for the others.
+ * @param {string} name
+ * @returns {{ variant: string|undefined, arm: string, run: number|undefined }[]}
+ */
+function combinationsOf (name) {
   const dir = join(here, '..', 'tmp')
-  if (!existsSync(dir)) return [undefined]
-  const pattern = new RegExp(`^webmcp-eval-${name}--(.+)\\.json$`)
-  const found = readdirSync(dir)
-    .map((file) => pattern.exec(file)?.[1])
-    .filter((v) => !!v && !v.endsWith('.verdict') && !v.endsWith('.run'))
-  return [undefined, ...new Set(found)]
+  if (!existsSync(dir)) return []
+  const prefix = `webmcp-eval-${name}`
+  /** @type {Map<string, { variant: string|undefined, arm: string, run: number|undefined }>} */
+  const found = new Map()
+  for (const file of readdirSync(dir)) {
+    if (!file.startsWith(prefix) || file.endsWith('.verdict.json') || file.endsWith('.schema.json') || file.endsWith('.judge.json')) continue
+    const label = file.endsWith('.run.json')
+      ? file.slice('webmcp-eval-'.length, -'.run.json'.length)
+      : file.endsWith('.json') ? file.slice('webmcp-eval-'.length, -'.json'.length) : null
+    const parsed = label && parseEvidenceName(label, name)
+    if (parsed) found.set(evidenceName(name, parsed.variant, parsed.arm, parsed.run), parsed)
+  }
+  return [...found.values()].sort((a, b) => (a.variant ?? '').localeCompare(b.variant ?? '') || a.arm.localeCompare(b.arm) || (a.run ?? 0) - (b.run ?? 0))
 }
 
 /**
  * @param {string[]} names
+ * @param {string} [arm] - `form`, `session`, `plain` or `all` (the default). The control
+ *   entry of every selected arm is expected; with `all`, only the form arm is expected
+ *   when it left nothing behind, and another arm is expected once it left any file for
+ *   the case. Naming an arm expects it unconditionally.
  * @returns {EvalRun[]}
  */
-export function loadRuns (names) {
+export function loadRuns (names, arm = 'all') {
   /** @type {EvalRun[]} */
   const runs = []
   for (const name of names) {
-    for (const variant of variantsOf(name)) {
-      const label = evidenceName(name, variant)
+    const all = combinationsOf(name)
+    const selected = arm === 'all' ? [...ARMS] : [arm]
+    const combos = all.filter((c) => selected.includes(c.arm))
+    // A requested case with no control transcript or sidecar is reported, never skipped:
+    // it is a failure of the run, not an absence of one. An ablation nobody ran is not.
+    for (const a of [...selected].reverse()) {
+      const expected = arm !== 'all' || a === 'form' || all.some((c) => c.arm === a)
+      if (expected && !combos.some((c) => !c.variant && c.arm === a)) combos.unshift({ variant: undefined, arm: a, run: undefined })
+    }
+    for (const { variant, arm: runArm, run: runIndex } of combos) {
+      const label = evidenceName(name, variant, runArm, runIndex)
       const evidencePath = join(here, '..', 'tmp', `webmcp-eval-${label}.json`)
       const run = loadRun(label, name)
-      // A requested case with no transcript is reported, never skipped: it is a failure
-      // of the run, not an absence of one. Only the default is required to exist though
-      // — an ablation nobody ran is not a failure.
+      const base = { name, variant, arm: runArm, runIndex }
       if (!existsSync(evidencePath)) {
-        if (!variant) runs.push({ name, variant, evidence: null, verdict: null, run })
+        runs.push({ ...base, evidence: null, verdict: null, run })
         continue
       }
       const verdictPath = join(here, '..', 'tmp', `webmcp-eval-${label}.verdict.json`)
       runs.push({
-        name,
-        variant,
+        ...base,
         evidence: JSON.parse(readFileSync(evidencePath, 'utf8')),
         verdict: loadVerdict(verdictPath, name),
         run
@@ -221,8 +344,13 @@ function loadVerdict (verdictPath, name) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const wanted = process.argv.slice(2)
-  const { lines, failed } = summarise(loadRuns(wanted.length ? wanted : cases.map((c) => c.name)))
+  const argv = process.argv.slice(2)
+  const at = argv.indexOf('--arm')
+  const arm = at >= 0 ? argv[at + 1] : 'all'
+  if (at >= 0) argv.splice(at, 2)
+  if (arm !== 'all' && !ARMS.includes(arm)) throw new Error(`unknown arm "${arm}", available: ${ARMS.join(', ')}, all`)
+  const wanted = argv
+  const { lines, failed } = summarise(loadRuns(wanted.length ? wanted : cases.map((c) => c.name), arm))
   console.log(lines.join('\n'))
   process.exit(failed ? 1 : 0)
 }

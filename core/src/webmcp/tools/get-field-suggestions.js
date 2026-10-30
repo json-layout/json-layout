@@ -3,6 +3,7 @@
  */
 
 import { resolveNodeForEdit, nodeNotFoundError } from '../resolve.js'
+import { reshapesFromOtherData } from '../../state/index.js'
 
 export const inputSchema = {
   type: 'object',
@@ -36,9 +37,10 @@ export function getDescription (dataTitle) {
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ path: string, query?: string }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store] - memorizes the full items so that setFieldValue can apply one by index
+ * @param {(node: import('../../state/types.js').StateNode) => unknown} [freshnessKey] - what the node's options depend on, its itemsCacheKey by default
  * @returns {Promise<{items: Array<{value: unknown, title: string, key?: string}>, baseIndex: number}>}
  */
-export async function execute (statefulLayout, args, store) {
+export async function execute (statefulLayout, args, store, freshnessKey = (node) => node.itemsCacheKey) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
   if (!node) {
     throw nodeNotFoundError(statefulLayout, args.path)
@@ -50,7 +52,7 @@ export async function execute (statefulLayout, args, store) {
     const items = (oneOfItems || [])
       .filter((item) => !item.header)
       .map((item) => ({ value: item.key, title: item.title }))
-    return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
+    return { items, baseIndex: store?.add(node.fullKey, items, freshnessKey(node)) ?? 0 }
   }
 
   // the state layer would throw "missing items or getItems parameters": say instead what
@@ -63,20 +65,34 @@ export async function execute (statefulLayout, args, store) {
   }
 
   const rawItems = await statefulLayout.getItems(node, args.query)
+  // A list reshaped from other fields is judged stale by the items it lists now, reshaped
+  // from its whole download (see WebMCP#_freshnessKey): a search its request applied did not
+  // keep one, so it is made once, or every write would count as changing the list.
+  if (args.query && reshapesFromOtherData(node.layout)) {
+    try {
+      if (!statefulLayout.cachedItems(node)) await statefulLayout.getItems(node)
+    } catch {
+      // the stand-in key, from the data the expressions can read, is used instead
+    }
+  }
 
   const items = rawItems
     .filter((item) => !item.header)
     .map((item) => {
+      // An item with no key of its own gets its value stringified as key, and that key as
+      // title: an object value made "[object Object]" of both (portal-config-edit, a page
+      // reference picked whole, every run of rounds 1 and 2).
+      const stringified = (/** @type {unknown} */ text) => item.value !== null && typeof item.value === 'object' && text === String(item.value)
       /** @type {{value: unknown, title: string, key?: string}} */
       const result = {
         value: item.value,
-        title: item.title
+        title: stringified(item.title) ? '' : item.title
       }
-      if (/** @type {unknown} */(item.key) !== item.title) {
+      if (/** @type {unknown} */(item.key) !== item.title && !stringified(item.key)) {
         result.key = /** @type {string} */(item.key)
       }
       return result
     })
 
-  return { items, baseIndex: store?.add(args.path, items, node.itemsCacheKey) ?? 0 }
+  return { items, baseIndex: store?.add(node.fullKey, items, freshnessKey(node)) ?? 0 }
 }

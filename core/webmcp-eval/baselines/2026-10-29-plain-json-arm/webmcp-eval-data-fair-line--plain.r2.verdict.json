@@ -1,0 +1,1 @@
+{"case": "data-fair-line", "verdict": "satisfactory", "reasoning": "Goal reached in 4 calls. The agent read the schema, queried the commune list with a precise name (expanded from 'St-Sébastien' from its own knowledge) and the search returned exactly 44190, a surfaced value, not an invented one. The write was accepted with correctly normalised values.", "friction": []}

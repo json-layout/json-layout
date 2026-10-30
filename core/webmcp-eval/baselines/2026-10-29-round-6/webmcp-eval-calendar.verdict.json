@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent reached all three parts of the goal in 10 calls, using only values the tools surfaced. It searched the dataset by name and applied the single suggestion. After the dataset was set, it listed the label-field suggestions and picked 'Nom de l'évenement' (nomevenement) from the offered list, which is the event name column. It then turned on crowdSourcing, which the tool confirmed by revealing the contribution fields. The final data holds the right dataset, labelField nomevenement and crowdSourcing true, and the form is valid. Nothing was guessed. The tail of the session (two describeState calls and a full getData) was verification that bought little. The setFieldValue responses were verbose but accurate.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "setFieldValue",
+      "observed": "/$allOf-0/datasets/0 (autocomplete) = <object, 12508 chars — call getData with this path to read it>",
+      "inferred": "The write succeeded; the agent relied on the 'became available' list to find the Edition section, which worked fine.",
+      "severity": "low"
+    },
+    {
+      "call": 9,
+      "tool": "describeState",
+      "observed": "/$allOf-0/datasets/1 (autocomplete, suggestions) label=\"Jeu de données des contributions externes\" value=undefined",
+      "inferred": "The agent checked whether the contributions dataset was required; the call bought no information the previous describeState (call 8) did not already give, and the goal did not ask for it.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "getData",
+      "observed": "{\"data\":{... full dataset object including the whole schema array ...},\"valid\":true} (13224 bytes)",
+      "inferred": "The agent re-read the whole document to confirm the final state; this costs ~13 KB of context for confirmation the earlier tool responses already gave.",
+      "severity": "low"
+    }
+  ]
+}

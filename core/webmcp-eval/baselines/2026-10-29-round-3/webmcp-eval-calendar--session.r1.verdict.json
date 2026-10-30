@@ -1,0 +1,35 @@
+{
+ "case": "calendar",
+ "verdict": "satisfactory",
+ "reasoning": "The agent selected the dataset 'Agenda-manifestations' from the suggestions (the only match, so not a guess), set labelField from the real nomevenement column (labelled 'Nom de l'évenement', which also carries the label concept) chosen from the listed schema columns, and enabled crowdSourcing, which only became available after the dataset was chosen. Each write was reported 'saved' and 'form is valid', and the final data holds datasets[0] with the right href, labelField nomevenement and crowdSourcing true. The session had a stale-looking suggestion index and some exploratory calls after the goal was met (contribsDataset listing), but nothing blocked it and nothing was left unsaved.",
+ "friction": [
+  {
+   "call": 7,
+   "tool": "getFieldSuggestions",
+   "observed": "27 suggestion(s) ... first listed item is '[3] Type demandeur', after an earlier query call (call 6) had returned indexes [0]-[2] for 'nom'; the indexes of the unfiltered list start at 3 and the nomevenement entry is [19] (it was [2] in the previous filtered list)",
+   "inferred": "The agent had to notice that indexes are offset/shifted between calls and took 19 from the latest list; a reuse of [2] would have chosen the wrong column (Prénom)",
+   "severity": "medium"
+  },
+  {
+   "call": 3,
+   "tool": "describeState",
+   "observed": "no field matches \"crowd sourcing participatif proposition\". Try fewer or other words, or call describeState without a query ...",
+   "inferred": "The crowdSourcing field was not found; the response does not say it is hidden until a REST dataset is chosen, so the agent moved on to pick the dataset first (it recovered)",
+   "severity": "low"
+  },
+  {
+   "call": 6,
+   "tool": "getFieldSuggestions",
+   "observed": "3 suggestion(s) for query 'nom' ([0] Nom, [1] Prénom, [2] Nom de l'évenement)",
+   "inferred": "A filtered search that matched two unrelated columns, then a second unfiltered call was needed anyway",
+   "severity": "low"
+  },
+  {
+   "call": 10,
+   "tool": "describeState",
+   "observed": "Edition section listing after crowdSourcing=true, then calls 11 and 12 listing contribsDataset suggestions (13 datasets)",
+   "inferred": "Calls that bought no information needed for the goal; contribsDataset was not required",
+   "severity": "low"
+  }
+ ]
+}

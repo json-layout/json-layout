@@ -206,7 +206,7 @@ the protocol" — and the second does not show up in unit tests.
 - `core/src/webmcp/tools/fill-form-skill.js` — the text that teaches agents the protocol
 - `core/src/state/index.js` select-item handling (`prepareSelectItem`, `getItems`) — what
   a suggestion is worth, and whether the value offered is the value accepted
-- error projection in `core/src/webmcp/project.js` — an agent that cannot locate its
+- error projection in `core/src/webmcp/errors.js` — an agent that cannot locate its
   mistake retries blind
 
 Two layers, and you need both:

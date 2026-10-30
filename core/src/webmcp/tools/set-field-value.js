@@ -2,7 +2,10 @@
  * @file setFieldValue tool
  */
 
-import { projectFieldResult, collectScopedErrors, projectNodeToMarkdown, visibilitySnapshot, diffVisibility, variantTitle } from '../project.js'
+import { projectFieldResult, projectNodeToMarkdown, visibilitySnapshot, diffVisibility, variantTitle } from '../project.js'
+import { collectScopedErrors } from '../errors.js'
+import { coerceForNode } from '../coerce.js'
+import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
 
 export const inputSchema = {
@@ -62,7 +65,7 @@ function listVariants (node) {
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the activated branch
  * may nest the same union again; the memo keeps the response from printing it twice
- * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
+ * @returns {{ valid: boolean, field: ReturnType<typeof projectFieldResult>, errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[], activatedMarkdown?: string, visibility?: { revealed: string[], hidden: string[] } }}
  */
 export function execute (statefulLayout, args, store, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -78,7 +81,7 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     if (!store) {
       throw new Error('no suggestion memorized, call getFieldSuggestions first')
     }
-    value = store.getValue(args.path, args.suggestionIndex)
+    value = store.getValue(node.fullKey, args.suggestionIndex)
   } else if (args.value === undefined && !('value' in args)) {
     throw new Error('value or suggestionIndex is required')
   }
@@ -89,6 +92,8 @@ export function execute (statefulLayout, args, store, variantsMemo) {
   const visibleBefore = visibilitySnapshot(statefulLayout.stateTree.root)
 
   let activating = false
+  /** @type {string[]|undefined} */
+  let coerced
   if (node.key === '$oneOf') {
     // A variant selector holds no data of its own — its value IS the object around it —
     // so anything that is not an index does not land on the selector, it is merged into
@@ -108,13 +113,17 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     statefulLayout.activateItem(node, index)
   } else {
     assertNoStructuralKey(value, 'value')
+    // a JSON spelling that differs from the type of the field, read as what it meant
+    const result = coerceForNode(node, value, resolveNodeSchema(node, statefulLayout))
+    value = result.value
+    if (result.coerced) coerced = [`${args.path} ${result.coerced}`]
     statefulLayout.input(node, value)
     statefulLayout.blur(node)
   }
 
   // Re-resolve node from updated state tree
   const updatedNode = resolveNode(statefulLayout.stateTree.root, args.path)
-  const { errors, otherErrors } = collectScopedErrors(statefulLayout, updatedNode || node)
+  const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, updatedNode || node)
 
   // Switching a variant replaces a whole subtree, so answering with only the value that
   // was written leaves the agent knowing a branch appeared but not what is in it. This
@@ -127,6 +136,8 @@ export function execute (statefulLayout, args, store, variantsMemo) {
     field: projectFieldResult(updatedNode || node, statefulLayout),
     errors,
     otherErrors,
+    ...(elsewhere ? { elsewhere } : {}),
+    ...(coerced ? { coerced } : {}),
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
     ...(activated ? { activatedMarkdown: projectNodeToMarkdown(activated, statefulLayout, 0, undefined, variantsMemo, undefined, true) } : {})
   }

@@ -1,0 +1,8 @@
+{
+  "/api/v1/datasets?owner=organization%3Ap6Qg1z-aq&select=title%2CisRest%2Cschema%2CtimePeriod%2CattachmentsAsImage%2CuserPermissions&short-concept=date%2CstartDate%2CendDate&size=100&status=finalized": "datasets.json",
+  "/api/v1/datasets?owner=organization%3Ap6Qg1z-aq&q=agenda&select=title%2CisRest%2Cschema%2CtimePeriod%2CattachmentsAsImage%2CuserPermissions&short-concept=date%2CstartDate%2CendDate&size=100&status=finalized": "datasets-agenda.json",
+  "/api/v1/datasets?owner=organization%3Ap6Qg1z-aq&q=Agenda-manifestations&select=title%2CisRest%2Cschema%2CtimePeriod%2CattachmentsAsImage%2CuserPermissions&short-concept=date%2CstartDate%2CendDate&size=100&status=finalized": "datasets-agenda-manifestations.json",
+  "/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-/schema?calculated=false": "agenda-manifestations-schema.json",
+  "/api/v1/datasets?owner=organization%3Ap6Qg1z-aq&rest=true&select=title%2Cschema%2CtimePeriod%2CuserPermissions&short-concept=startDate%2CendDate&size=100": "contribs-datasets.json",
+  "/api/v1/datasets/hokfkn9ym3s9pr-yt1atgzl-/schema": "agenda-manifestations-schema-all.json"
+}

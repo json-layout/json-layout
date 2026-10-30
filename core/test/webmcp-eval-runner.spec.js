@@ -6,8 +6,10 @@ import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { cases, getCase } from '../webmcp-eval/cases/index.js'
-import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, runCase, sidecarPath } from '../webmcp-eval/run-case.js'
-import { applyVariant, evidenceName } from '../webmcp-eval/session.js'
+import { buildLaunchArgs, DEFAULT_MODEL, MCP_SERVER_NAME, RUNNER_PROMPT, TOOL_NAMES, MAX_CONCURRENT_RUNS, runCase, runPool, parseCliArgs, serverEnv, sidecarPath } from '../webmcp-eval/run-case.js'
+import { ARMS, createArm, MCP_SERVER_NAMES, mcpServerName } from '../webmcp-eval/arms.js'
+import { API_TOOL_NAMES } from '../webmcp-eval/plain-api.js'
+import { applyVariant, evidenceName, EvalSession } from '../webmcp-eval/session.js'
 
 /**
  * A fresh directory per test, so a stubbed run never writes into this package's own
@@ -303,5 +305,166 @@ describe('webmcp eval case selection', () => {
     for (const evalCase of cases) {
       assert.throws(() => getCase('does-not-exist'), new RegExp(evalCase.name), 'error must name the available cases')
     }
+  })
+})
+
+describe('webmcp eval arms', () => {
+  it('should name evidence by variant, then arm, then run', () => {
+    assert.equal(evidenceName('c'), 'c')
+    assert.equal(evidenceName('c', undefined, 'form'), 'c')
+    assert.equal(evidenceName('c', 'no-guide'), 'c--no-guide')
+    assert.equal(evidenceName('c', undefined, 'plain', 2), 'c--plain.r2')
+    assert.equal(evidenceName('c', 'no-guide', 'session', 1), 'c--no-guide--session.r1')
+    assert.equal(evidenceName('c', undefined, 'form', 3), 'c.r3')
+  })
+
+  it('should refuse an unknown arm and list the arms', async () => {
+    await assert.rejects(() => createArm(getCase('contact'), 'nope'), new RegExp(ARMS.join(', ')))
+  })
+
+  it('should keep the form arm prompt byte-identical to the old construction', async () => {
+    for (const evalCase of cases) {
+      const session = new EvalSession(evalCase)
+      const old = session.skill ? `${RUNNER_PROMPT}\n\n${session.skill}` : RUNNER_PROMPT
+      assert.equal(session.prompt, old)
+      const args = buildLaunchArgs(evalCase, { ...options, prompt: session.prompt, toolNames: session.toolNames })
+      assert.equal(optionValue(args, '--append-system-prompt'), old)
+    }
+    assert.equal(optionValue(buildLaunchArgs(getCase('contact'), options), '--append-system-prompt'), RUNNER_PROMPT)
+  })
+
+  it('should launch a plain arm with exactly its four document tools and no form-tool name', async () => {
+    const arm = await createArm(getCase('contact'), 'plain')
+    const args = buildLaunchArgs(getCase('contact'), { ...options, arm: 'plain', prompt: arm.prompt, toolNames: arm.toolNames })
+    const allowed = optionValue(args, '--allowedTools').split(',')
+    assert.deepEqual(allowed, API_TOOL_NAMES.map((t) => `mcp__document-api__${t}`))
+    assert.equal(allowed.length, 4)
+    const prompt = optionValue(args, '--append-system-prompt')
+    for (const tool of TOOL_NAMES) assert.ok(!prompt.includes(tool), `prompt names form tool ${tool}`)
+  })
+
+  it('should allow a plain arm its case\'s lookups too', async () => {
+    const arm = await createArm(getCase('data-fair-line'), 'plain')
+    const args = buildLaunchArgs(getCase('data-fair-line'), { ...options, arm: 'plain', prompt: arm.prompt, toolNames: arm.toolNames })
+    assert.deepEqual(optionValue(args, '--allowedTools').split(','), [...API_TOOL_NAMES, 'get_field_values'].map((t) => `mcp__document-api__${t}`))
+  })
+
+  it('should serve each arm under its own server name, in the config and every allowed tool', async () => {
+    assert.deepEqual(MCP_SERVER_NAMES, { form: 'page-form', session: 'record-form', plain: 'document-api' })
+    assert.equal(MCP_SERVER_NAME, 'page-form')
+    assert.throws(() => mcpServerName('nope'), /unknown arm/)
+    for (const armName of ARMS) {
+      const arm = await createArm(getCase('contact'), armName)
+      const args = buildLaunchArgs(getCase('contact'), { ...options, arm: armName, prompt: arm.prompt, toolNames: arm.toolNames })
+      const name = mcpServerName(armName)
+      assert.deepEqual(Object.keys(JSON.parse(optionValue(args, '--mcp-config')).mcpServers), [name])
+      const allowed = optionValue(args, '--allowedTools').split(',')
+      assert.deepEqual(allowed, arm.toolNames.map((/** @type {string} */ t) => `mcp__${name}__${t}`))
+      for (const leak of ['eval', 'judge', 'test', 'plain', 'session']) assert.ok(!name.includes(leak), `${name} leaks ${leak}`)
+    }
+    // the session arm's tools, by name
+    const session = await createArm(getCase('contact'), 'session')
+    const allowed = optionValue(buildLaunchArgs(getCase('contact'), { ...options, arm: 'session', toolNames: session.toolNames }), '--allowedTools').split(',')
+    assert.ok(allowed.includes('mcp__record-form__saveForm') && allowed.includes('mcp__record-form__setFieldValue'), allowed.join(','))
+  })
+
+  it('should drop selection variables the parent environment carries', async () => {
+    const saved = { arm: process.env.JL_WEBMCP_EVAL_ARM, variant: process.env.JL_WEBMCP_EVAL_VARIANT, run: process.env.JL_WEBMCP_EVAL_RUN }
+    process.env.JL_WEBMCP_EVAL_ARM = 'plain'
+    process.env.JL_WEBMCP_EVAL_VARIANT = 'no-guide'
+    process.env.JL_WEBMCP_EVAL_RUN = '7'
+    try {
+      /** @type {any[]} */
+      const seen = []
+      const spawn = async (/** @type {string} */ _c, /** @type {string[]} */ args, /** @type {any} */ opts) => {
+        seen.push({ args, env: opts.env })
+        return { code: 0, stdout: claudeOutput(), stderr: '' }
+      }
+      await runCase(getCase('contact'), { spawn, sidecarDir: tmpSidecarDir() })
+      const env = seen[0].env
+      assert.equal(env.JL_WEBMCP_EVAL_CASE, 'contact')
+      for (const key of ['JL_WEBMCP_EVAL_ARM', 'JL_WEBMCP_EVAL_VARIANT', 'JL_WEBMCP_EVAL_RUN']) assert.ok(!(key in env), `${key} leaked into a default run`)
+      assert.ok(optionValue(seen[0].args, '--allowedTools').startsWith('mcp__page-form__'))
+      assert.deepEqual(
+        Object.fromEntries(Object.entries(serverEnv('contact', 'no-guide', 'session', 3)).filter(([k]) => k.startsWith('JL_WEBMCP_EVAL_') && k !== 'JL_WEBMCP_EVAL_MODEL' && k !== 'JL_WEBMCP_EVAL_DATA_FAIR')),
+        { JL_WEBMCP_EVAL_CASE: 'contact', JL_WEBMCP_EVAL_VARIANT: 'no-guide', JL_WEBMCP_EVAL_ARM: 'session', JL_WEBMCP_EVAL_RUN: '3' })
+    } finally {
+      for (const [key, value] of [['JL_WEBMCP_EVAL_ARM', saved.arm], ['JL_WEBMCP_EVAL_VARIANT', saved.variant], ['JL_WEBMCP_EVAL_RUN', saved.run]]) {
+        if (value === undefined) delete process.env[/** @type {string} */ (key)]
+        else process.env[/** @type {string} */ (key)] = value
+      }
+    }
+  })
+
+  it('should pass the arm and run by environment only when they are not the defaults', async () => {
+    /** @type {any[]} */
+    const seen = []
+    const spawn = async (/** @type {string} */ _c, /** @type {string[]} */ _a, /** @type {any} */ opts) => {
+      seen.push(opts.env)
+      return { code: 0, stdout: claudeOutput(), stderr: '' }
+    }
+    const sidecarDir = tmpSidecarDir()
+    await runCase(getCase('contact'), { spawn, sidecarDir })
+    await runCase(getCase('contact'), { spawn, sidecarDir, arm: 'plain', run: 2 })
+    assert.ok(!('JL_WEBMCP_EVAL_ARM' in seen[0]))
+    assert.ok(!('JL_WEBMCP_EVAL_RUN' in seen[0]))
+    assert.equal(seen[1].JL_WEBMCP_EVAL_ARM, 'plain')
+    assert.equal(seen[1].JL_WEBMCP_EVAL_RUN, '2')
+    const written = JSON.parse(readFileSync(sidecarPath('contact--plain.r2', sidecarDir), 'utf8'))
+    assert.equal(written.ok, true)
+    assert.equal(written.arm, 'plain')
+    assert.equal(written.run, 2)
+    const control = JSON.parse(readFileSync(sidecarPath('contact', sidecarDir), 'utf8'))
+    assert.equal(control.arm, 'form')
+    assert.ok(!('run' in control))
+  })
+
+  it('should record a non-runnable arm and spawn nothing', async () => {
+    let spawned = 0
+    const spawn = async () => { spawned++; return { code: 0, stdout: claudeOutput(), stderr: '' } }
+    const sidecarDir = tmpSidecarDir()
+    // FormSession auto-saves now; an arm that cannot take a case is still recorded so
+    const session = await createArm(getCase('contact'), 'session')
+    Object.assign(session, { runnable: false, notRunnableReason: 'this arm cannot run this case' })
+    const record = await runCase(getCase('contact'), { spawn, sidecarDir, arm: 'session', session: /** @type {any} */(session) })
+    assert.equal(spawned, 0)
+    assert.equal(record.ok, false)
+    assert.equal(record.notRunnable, true)
+    assert.ok(record.error)
+    const written = JSON.parse(readFileSync(sidecarPath('contact--session', sidecarDir), 'utf8'))
+    assert.equal(written.notRunnable, true)
+  })
+
+  it('should carry arm, start and checks in every arm evidence', async () => {
+    const evalCase = { ...getCase('contact'), checks: [{ path: '/name', equals: 'Ada' }] }
+    for (const arm of ['form', 'plain', 'session']) {
+      const session = await createArm(evalCase, arm)
+      const evidence = session.evidence()
+      assert.equal(evidence.arm, arm)
+      assert.deepEqual(evidence.start, {})
+      assert.equal(evidence.checks.length, 1)
+      assert.equal(evidence.checks[0].ok, false)
+    }
+  })
+
+  it('should cap concurrent runs and parse arm and runs flags', async () => {
+    assert.equal(MAX_CONCURRENT_RUNS, 6)
+    let active = 0
+    let peak = 0
+    const tasks = Array.from({ length: 10 }, (_, i) => async () => {
+      active++
+      peak = Math.max(peak, active)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      active--
+      return i
+    })
+    const results = await runPool(tasks, 3)
+    assert.equal(peak, 3)
+    assert.deepEqual(results.map((r) => r.status === 'fulfilled' && r.value), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    assert.deepEqual(parseCliArgs(['contact', '--arm', 'all', '--runs', '3', '--variant', 'no-guide']),
+      { variant: 'no-guide', arms: ARMS, runs: 3, names: ['contact'] })
+    assert.deepEqual(parseCliArgs([]).arms, ['form'])
+    assert.throws(() => parseCliArgs(['--arm', 'x']), /unknown arm/)
+    assert.throws(() => parseCliArgs(['--runs', '0']), /positive integer/)
   })
 })

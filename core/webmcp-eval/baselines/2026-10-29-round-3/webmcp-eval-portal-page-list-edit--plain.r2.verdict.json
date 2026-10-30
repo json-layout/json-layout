@@ -1,0 +1,21 @@
+{
+  "case": "portal-page-list-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document and patched the elements key with the card title renamed. The final document differs from the start only at the targeted card title, so nothing was lost. It finished in 3 calls with no errors. The one cost was re-sending the whole elements array.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "patchDocument",
+      "observed": "stored 5 top-level key(s) (the whole elements array, about 7.5 KB, was re-sent to rename one card title)",
+      "inferred": "Single-level writes force the agent to retype the entire elements tree to change one nested string; nothing was lost this time, but any transcription slip would have silently altered siblings",
+      "severity": "medium"
+    },
+    {
+      "call": 2,
+      "tool": "readSchema",
+      "observed": "The schema is too long to be read whole (type object). Its outline: ...",
+      "inferred": "The outline added nothing the document had not already shown; this call bought no information",
+      "severity": "low"
+    }
+  ]
+}

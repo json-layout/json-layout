@@ -1,0 +1,256 @@
+
+> @json-layout/core@2.12.1 webmcp-eval:report
+> node webmcp-eval/report.js portal-page-reorder portal-page-list-edit portal-config-multi
+
+
+portal-page-reorder (r1): SATISFACTORY
+  The agent reached all three parts of the goal: the 'Nouveau' alert was moved to index 0 above the h1 title, a divider was inserted at index 7 immediately before the 'Questions fréquentes' title, and the 'Voir tout le catalogue' button was removed from the 'Nos engagements' column (children now title and text only). Each editArray response confirmed the new list order and validity, and the final data matches. Targets were identified from the outline labels without guessing. Four calls, no wasted effort.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T17:08:06.431Z
+  ran 4 calls, read 18649 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 54477 (37568 cached), out 1200
+
+portal-page-reorder (r2): SATISFACTORY
+  The agent reached all three parts of the goal: the 'Nouveau' alert was moved to index 0 above the h1 title, a divider was inserted at index 7 immediately before the 'Questions fréquentes' title, and the 'Voir tout le catalogue' button was removed from the 'Nos engagements' column (children now title and text only). Each editArray response confirmed the new list order and validity, and the final data matches. Targets were identified from the outline labels without guessing. Four calls, no wasted effort.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T17:08:06.444Z
+  ran 4 calls, read 18649 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 54170 (37436 cached), out 1033
+
+portal-page-reorder (r3): SATISFACTORY
+  The agent reached all three parts of the goal: the 'Nouveau' alert was moved to index 0 above the h1 title, a divider was inserted at index 7 immediately before the 'Questions fréquentes' title, and the 'Voir tout le catalogue' button was removed from the 'Nos engagements' column (children now title and text only). Each editArray response confirmed the new list order and validity, and the final data matches. Targets were identified from the outline labels without guessing. Five calls; one describeState was redundant.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T17:08:06.468Z
+  ran 5 calls, read 28069 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 82235 (60958 cached), out 1427
+  friction:
+    [low] call 2 describeState: Returned the list header plus the full 40-variant options catalogue for /$comp-2/elements/3/$oneOf/13/children, repeating what the first outline already gave
+      → The agent apparently wanted to confirm the child index of the button before removing it; the outline already listed children/2 as the button, so the call bought no new information and added about 10 KB of output
+
+portal-page-reorder (session, r1): SATISFACTORY
+  The agent read the outline once, then made three editArray calls (the child removal came first, then the move, then the divider). Each one returned the resulting list and 'saved'. The final saved data has the 'Nouveau' alert at index 0 above the h1 title, a new divider directly before the 'Questions fréquentes' title, and the 'Voir tout le catalogue' button gone from the 'Nos engagements' column, with its title and text kept. Nothing else was lost: the original divider before 'Thématiques à la une' and the second column are untouched. The outline listed the paths and indexes the agent used, and each edit echoed the list, so no guessing was involved. Four calls, no errors, no retries.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T17:09:18.040Z
+  ran 4 calls, read 18667 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 54252 (37302 cached), out 1387
+  friction:
+    [low] call 1 describeState: A 16000+ byte outline of all 11 elements with every field expanded, ending with '(an outline, 4 level(s) deep with values cut short...)'
+      → The agent only needed the element order and the children of the first two-columns block, so most of this output went unused; it still found the paths directly.
+
+portal-page-reorder (session, r2): SATISFACTORY
+  The agent read the outline once, then made three editArray calls (the move came first, then the child removal, then the divider). Each one returned the resulting list and 'saved'. The final saved data has the 'Nouveau' alert at index 0 above the h1 title, a new divider directly before the 'Questions fréquentes' title, and the 'Voir tout le catalogue' button gone from the 'Nos engagements' column, with its title and text kept. Nothing else was lost: the original divider before 'Thématiques à la une' and the second column are untouched. The outline listed the paths and indexes the agent used, and each edit echoed the list, so no guessing was involved. Four calls, no errors, no retries.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T17:09:18.048Z
+  ran 4 calls, read 18667 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 53976 (37213 cached), out 1211
+  friction:
+    [low] call 1 describeState: A 16000+ byte outline of all 11 elements with every field expanded, ending with '(an outline, 4 level(s) deep with values cut short...)'
+      → The agent only needed the element order and the children of the first two-columns block, so most of this output went unused; it still found the paths directly.
+
+portal-page-reorder (session, r3): SATISFACTORY
+  The agent read the outline once, then made three editArray calls (the move came first, then the child removal, then the divider). Each one returned the resulting list and 'saved'. The final saved data has the 'Nouveau' alert at index 0 above the h1 title, a new divider directly before the 'Questions fréquentes' title, and the 'Voir tout le catalogue' button gone from the 'Nos engagements' column, with its title and text kept. Nothing else was lost: the original divider before 'Thématiques à la une' and the second column are untouched. The outline listed the paths and indexes the agent used, and each edit echoed the list, so no guessing was involved. Four calls, no errors, no retries.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T17:09:18.047Z
+  ran 4 calls, read 18667 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 54256 (37351 cached), out 1367
+  friction:
+    [low] call 1 describeState: A 16000+ byte outline of all 11 elements with every field expanded, ending with '(an outline, 4 level(s) deep with values cut short...)'
+      → The agent only needed the element order and the children of the first two-columns block, so most of this output went unused; it still found the paths directly.
+
+portal-page-list-edit (r1): SATISFACTORY
+  The agent located the heading Thématiques à la une, inspected the element, then searched for the box title (single match) and inspected the following grid element, which listed its 5 boxes with titles and confirmed the third was Budget et finances before writing. The final data shows only that title changed in the correct grid box; the write was confirmed valid. The path used came from the tool output, not a guess.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T17:08:06.457Z
+  ran 5 calls, read 8236 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 57858 (46006 cached), out 717
+  friction:
+    [low] call 2 describeState: Describing the heading element returns the full field list of a title element (titleSize, titleTag, color, icon...), 40-option hint
+      → Agent only wanted to confirm the heading position, got a large unrelated dump
+    [low] call 4 describeState: Response lists all 40 variants of the element before the grid children list
+      → Agent skimmed past the variant list to the children summary, which did contain the needed confirmation
+
+portal-page-list-edit (r2): SATISFACTORY
+  The agent located the heading Thématiques à la une, inspected the element, then searched for the box title (single match) and inspected the following grid element, which listed its 5 boxes with titles and confirmed the third was Budget et finances before writing. The final data shows only that title changed in the correct grid box; the write was confirmed valid. The path used came from the tool output, not a guess.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T17:08:06.474Z
+  ran 5 calls, read 8236 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 57850 (46020 cached), out 671
+  friction:
+    [low] call 2 describeState: Describing the heading element returns the full field list of a title element (titleSize, titleTag, color, icon...), 40-option hint
+      → Agent only wanted to confirm the heading position, got a large unrelated dump
+    [low] call 4 describeState: Response lists all 40 variants of the element before the grid children list
+      → Agent skimmed past the variant list to the children summary, which did contain the needed confirmation
+
+portal-page-list-edit (r3): SATISFACTORY
+  The agent searched for the box title, found a single match, inspected the box and then the enclosing grid (5 boxes, third is Budget et finances, with the grid at the same path), and wrote the new title. The final data shows only that title changed, in the correct box of the responsive grid. The write was confirmed valid. Two inspection calls returned long variant lists but the path was found by the first search and the work was efficient.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T17:08:06.499Z
+  ran 4 calls, read 13137 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 54722 (40695 cached), out 850
+  friction:
+    [low] call 2 describeState: Response lists all 40 element variants again under the box children before any field values
+      → Agent had to skim a long variant list to learn nothing new about the title it already had a path for
+    [low] call 3 describeState: Grid description repeats the 40-variant list for children, then is cut at depth
+      → Agent used it only to confirm the box lies in the grid; mostly noise
+
+portal-page-list-edit (session, r1): SATISFACTORY
+  The agent located the grid title, listed the grid children, and renamed the card at children/2 via a single setFieldValue that answered valid and saved. The saved data shows only that card title changed to Budget et fiscalité; siblings and other content are untouched. Calls 1 and 2 (searching the heading text then dumping the heading element) were a detour that bought little, since the grid is the next element and the query for the card title (call 3) gave the path directly.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T17:09:18.079Z
+  ran 5 calls, read 8255 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 57143 (45388 cached), out 796
+  friction:
+    [low] call 2 describeState: 4KB dump of the h2 title element /$comp-2/elements/5 (titleSize, color, icon, line, link, anchor options)
+      → Agent was looking for the grid near the heading; learned nothing usable for the edit and moved on to a title query
+
+portal-page-list-edit (session, r2): SATISFACTORY
+  The agent found the card by text query, inspected the grid element outline, and renamed the title with one setFieldValue that returned valid and saved. Final data shows only the targeted card title changed and all other elements are intact. The first two calls (heading search and heading dump) were an unnecessary detour, and call 4 re-read the whole element outline although the card path was already known from call 3.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T17:09:18.066Z
+  ran 5 calls, read 8252 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 57043 (45385 cached), out 702
+  friction:
+    [low] call 4 describeState: Outline of /$comp-2/elements/6 starting with the 40-variant list, with the grid and its children listed
+      → Agent confirmed the card lived in the Thématiques grid before writing; the information was already implied by the call 3 path
+    [low] call 2 describeState: 4KB dump of the h2 title element /$comp-2/elements/5
+      → Agent explored the heading element, which held nothing relevant to renaming a card
+
+portal-page-list-edit (session, r3): SATISFACTORY
+  The agent read the full-form outline, which listed the grid and its card children with titles, then inspected the target card and set its title. The write returned valid and saved, and the final data shows only that card renamed. Three calls total, the fewest of the runs. The cost was a 15KB outline, and the agent wrote paths without the leading dollar sign (/comp-2/...) which the tools silently accepted and echoed back in canonical form.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T17:09:18.109Z
+  ran 3 calls, read 22241 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 56511 (38910 cached), out 535
+  friction:
+    [low] call 1 describeState: 15KB outline truncated with (an outline, 4 level(s) deep with values cut short, the full description being over 16000 bytes)
+      → Agent got the grid card list and used it directly, at the price of a large response
+    [low] call 2 describeState: Path /comp-2/elements/6/... (without the dollar sign) was accepted and answered with /$comp-2/... paths
+      → The agent copied the path form wrongly yet got a correct answer; no harm, but nothing told it the path differed
+
+portal-config-multi (r1): SATISFACTORY
+  All four changes were made through the form tools with values the tools surfaced: dataset card showDepartment set to false (labelled "Afficher le propriétaire" but unambiguous under the dataset card section), socialShares narrowed to bluesky/facebook/linkedin from the closed list shown by describeState, breadcrumb position set to above-footer from the listed options, and a generic footer link added with pageRef found by searching "presse" (the real page contact-presse) and a title. Final form was valid and sibling data was untouched. Only waste was one suggestions call on an unrelated existing link subtype.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T17:08:19.511Z
+  ran 14 calls, read 30093 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 128659 (105489 cached), out 2232
+  friction:
+    [low] call 7 getFieldSuggestions: 14 suggestion(s) ... Accueil (home), Contact (contact) ... for links/0/subtype
+      → Agent looked for a page-selection list on a standard link; it bought nothing since the target page is a generic (Page libre) link, reached via the variant list of the previous call.
+
+portal-config-multi (r2): SATISFACTORY
+  All four changes were applied and the form ended valid: showDepartment false on the dataset card, socialShares narrowed to bluesky/facebook/linkedin, breadcrumb above-footer, and a generic footer link whose pageRef came from a "presse" suggestion search (contact-presse) with the title set. The agent verified the new link with getData. The new array item was added without a value, producing a transiently invalid empty item that required selecting the variant by index; it recovered cleanly using the variant list already read.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T17:08:23.610Z
+  ran 15 calls, read 29419 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 126701 (106945 cached), out 1861
+  friction:
+    [low] call 7 editArray: added item at index 4 ... /links/4 (section, required, error) — tag "type" must be string ... /links/4: {} (error)
+      → Adding without a value creates an item with no discriminant; the agent had to choose the variant with setFieldValue on  (index 1) to fix it. The error was understandable and recovery was one call.
+
+portal-config-multi (r3): SATISFACTORY
+  Efficient, correct session in 13 calls: it read the outline and the relevant closed lists, set showDepartment false on the dataset card, narrowed socialShares to the three requested networks, set breadcrumb above-footer, read the footer link variants, added a generic link with the type given up front, found Contact presse by searching "presse" and set pageRef and title. The final form was valid and no values were invented.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T17:08:24.734Z
+  ran 13 calls, read 29128 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 105613 (85975 cached), out 2130
+
+portal-config-multi (session, r1): SATISFACTORY
+  All four requested changes were made and each write was acknowledged with 'saved': datasets card showDepartment set to false (application cards left untouched, as asked), socialShares reduced to bluesky/facebook/linkedin, breadcrumb position set to above-footer, and a new footer link of type generic pointing to the 'Contact presse' page, chosen from a suggestion list (not invented) with the label set. The agent read the outline once, drilled into the relevant sections, and wrote without detours; 13 calls for four independent edits is lean. Only minor cost was the very large first outline.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T17:09:35.544Z
+  ran 13 calls, read 28956 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 125976 (103607 cached), out 1961
+  friction:
+    [low] call 1 describeState: Full outline of the whole form, 15.9 KB, truncated in places with 'socialLinks ... 7 part(s), describeState on this path to see them'
+      → Had to use it as a map and then issue several path-specific describeState calls to reach the leaves it needed
+
+portal-config-multi (session, r2): SATISFACTORY
+  The goal was reached and saved: datasets card showDepartment false, socialShares limited to bluesky/linkedin/facebook, breadcrumb position above-footer, and a generic footer link to the 'Contact presse' page picked from suggestions with a matching label. The path was longer than needed: a few search queries (one returning nothing), a suggestions call on a select whose values were already known, and one failed suggestions call on a variant path that was not active. Each had a clear enough error or result to recover from, but they bought little.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T17:09:36.148Z
+  ran 18 calls, read 32357 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 157749 (133453 cached), out 2235
+  friction:
+    [medium] call 14 getFieldSuggestions: Error: node not found at path: .../links/0/$oneOf/1/pageRef. The path leads as far as .../links/0/$oneOf, which holds .../$oneOf/0, .../0/subtype, .../0/title, .../0/target, .../0/icon.
+      → Assumed variant 1 fields existed under an existing standard item; the error showed only the active variant and said nothing on how to add an item of another type, so the agent switched to editArray add
+    [low] call 2 describeState: no field matches "département"
+      → The department toggle is not labelled with that word; the agent had to fall back to browsing the datasets card section
+    [low] call 9 getFieldSuggestions: 4 suggestion(s) ... [2] Au-dessus du pied de page (above-footer) — value="above-footer"
+      → Confirmed values already listed by describeState on a select; redundant information
+
+portal-config-multi (session, r3): SATISFACTORY
+  The goal was reached and saved: showDepartment false on the datasets card only, socialShares set to bluesky/facebook/linkedin (re-checked with getData), breadcrumb above-footer, and a generic footer link to the 'Contact presse' page selected from suggestions. The new link has no explicit title/label, which is optional in the schema and falls back on the page title, so the request to add a link to that page is met. One wasted call on a non-existent variant path, otherwise direct.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T17:09:36.769Z
+  ran 14 calls, read 29397 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 147753 (128015 cached), out 1971
+  friction:
+    [medium] call 10 getFieldSuggestions: Error: node not found at path: .../links/0/$oneOf/1/pageRef. The path leads as far as .../links/0/$oneOf, which holds .../$oneOf/0, .../0/subtype, .../0/title, .../0/target, .../0/icon.
+      → Tried to query suggestions for a Page libre variant on an existing standard item; error listed only the active variant, so the agent fell back to adding a new array item
+    [low] call 14 getData: {"data":["bluesky","facebook","linkedin"],"valid":true}
+      → Verification of a write that had already been confirmed with 'saved'; bought no new information
+
+portal-page-reorder — comparison
+  form: 3 runs, 4–5 calls, 18649–28069 bytes, 54170–82235 input tokens, $0.004–$0.006 cost, checks 18/18, 18/18, 18/18, 3s/0u
+    uncached input 8–10, cache reads 37436–60958, cache writes 16726–21267
+    read-state: 1–2 calls, 15267–24687 bytes, 0 failed
+    write: 3 calls, 3382 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 4 calls, 18667 bytes, 53976–54256 input tokens, $0.004–$0.004 cost, checks 18/18, 18/18, 18/18, 3s/0u
+    uncached input 8, cache reads 37213–37351, cache writes 16755–16942
+    read-state: 1 calls, 15267 bytes, 0 failed
+    write: 3 calls, 3400 bytes, 0 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+portal-page-list-edit — comparison
+  form: 3 runs, 4–5 calls, 8236–13137 bytes, 54722–57858 input tokens, $0.003–$0.004 cost, checks 2/2, 2/2, 2/2, 3s/0u
+    uncached input 10–12, cache reads 40695–46020, cache writes 11818–14017
+    read-state: 3–4 calls, 8120–13021 bytes, 0 failed
+    write: 1 calls, 116 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 3–5 calls, 8252–22241 bytes, 56511–57143 input tokens, $0.003–$0.004 cost, checks 2/2, 2/2, 2/2, 3s/0u
+    uncached input 8–12, cache reads 38910–45388, cache writes 11646–17593
+    read-state: 2–4 calls, 8130–22119 bytes, 0 failed
+    write: 1 calls, 122 bytes, 0 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+portal-config-multi — comparison
+  form: 3 runs, 13–15 calls, 29128–30093 bytes, 105613–128659 input tokens, $0.006–$0.007 cost, checks 10/10, 10/10, 10/10, 3s/0u
+    uncached input 12–14, cache reads 85975–106945, cache writes 19626–23156
+    read-state: 6–7 calls, 25873–25999 bytes, 0 failed
+    write: 6–7 calls, 3046–3255 bytes, 0 failed
+    lookup: 1–2 calls, 165–1174 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 13–18 calls, 28956–32357 bytes, 125976–157749 input tokens, $0.006–$0.007 cost, checks 10/10, 10/10, 10/10, 3s/0u
+    uncached input 14–16, cache reads 103607–133453, cache writes 19722–24280
+    read-state: 6–9 calls, 25824–28424 bytes, 0 failed
+    write: 5–6 calls, 2861–2967 bytes, 0 failed
+    lookup: 1–3 calls, 165–966 bytes, 0–1 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)

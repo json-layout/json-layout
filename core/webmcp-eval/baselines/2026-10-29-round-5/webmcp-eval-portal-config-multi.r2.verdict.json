@@ -1,0 +1,14 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "All four changes were applied and the form ended valid: showDepartment false on the dataset card, socialShares narrowed to bluesky/facebook/linkedin, breadcrumb above-footer, and a generic footer link whose pageRef came from a \"presse\" suggestion search (contact-presse) with the title set. The agent verified the new link with getData. The new array item was added without a value, producing a transiently invalid empty item that required selecting the variant by index; it recovered cleanly using the variant list already read.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "editArray",
+      "observed": "added item at index 4 ... /links/4 (section, required, error) — tag \"type\" must be string ... /links/4: {} (error)",
+      "inferred": "Adding without a value creates an item with no discriminant; the agent had to choose the variant with setFieldValue on  (index 1) to fix it. The error was understandable and recovery was one call.",
+      "severity": "low"
+    }
+  ]
+}

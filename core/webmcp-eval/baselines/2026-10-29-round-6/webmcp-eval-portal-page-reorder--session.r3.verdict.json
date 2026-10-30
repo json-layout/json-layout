@@ -1,0 +1,14 @@
+{
+  "case": "portal-page-reorder",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the outline once, moved the Nouveau alert from index 2 to 0 (saved), removed the item at index 2 of the Nos engagements column children (saved), then added a divider at index 7 right before Questions fréquentes (saved). Final data has the alert first, the divider immediately before the FAQ title, and the button removed with the title and text of the column intact. Done in 4 calls, all writes valid and saved. The button removal was done without first confirming what sat at index 2, but it turned out right.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "editArray",
+      "observed": "removed item at index 2, 2 remaining ... children/0: Titre — Nos engagements; children/1: Texte — ...",
+      "inferred": "The agent removed a nested item by an index it had not verified in any tool response; the confirmation only lists what remains, not what was removed, so it relied on the remaining list to infer the button was gone.",
+      "severity": "low"
+    }
+  ]
+}

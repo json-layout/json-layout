@@ -1,0 +1,21 @@
+{
+  "case": "portal-config-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent explored /menu and /theme with data paths, then added a menu item, chose 'Page libre', set the primary assisted colour to #1B5E20 and picked the jeunesse page from suggestions. The final write returned 'form is valid / saved' and the final data holds both the generic menu item with slug jeunesse and assistedModeColors.primary=#1B5E20. Because the schema says assisted palettes are recomputed from assistedModeColors at save, the colour change is delivered. The colour write happened while the form was invalid (not saved at that moment) but was saved by the next valid write, and the agent could see this from the responses. One typo in a path was recoverable from the error. Efficient, 10 calls.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "Error: node not found at path: /comp-2/comp-2/theme/$comp-1/$comp-1/assistedModeColors/primary. The form starts with /$comp-1 ... /$comp-12 ...",
+      "inferred": "The agent dropped the '$' from the path segments; the error listed the top-level segments so it could correct the prefix, though it did not point to the exact typo. It recovered by retyping the path from describeState output.",
+      "severity": "low"
+    },
+    {
+      "call": 7,
+      "tool": "setFieldValue",
+      "observed": "no error here\nform has 1 other error(s) elsewhere:\n- .../pageRef: information obligatoire\nnot saved yet: the form is invalid",
+      "inferred": "The colour change was accepted but not saved because an unrelated half-built menu item made the form invalid; the agent correctly continued and completed the menu item.",
+      "severity": "low"
+    }
+  ]
+}

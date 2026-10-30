@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected the Agenda-manifestations dataset, set the label to nomevenement (index 19 of the full suggestion list) and turned crowdSourcing on; final form valid with the expected values. The label choice came from the tool-provided list. Two extra calls at the end explored the optional contributions dataset, which the goal did not require.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "27 suggestion(s) ... - [3] Type demandeur (type_demandeur) ... [19] Nom de l'évenement",
+      "inferred": "Indices start at 3 for a 27-item list because the earlier filtered query occupied 0-2; the agent coped by using index 19, but the numbering is surprising and error-prone.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "3 suggestion(s) ... [2] Nom de l'évenement (nomevenement)",
+      "inferred": "The filter query \"nom\" matched Nom and Prénom as well, so the agent re-listed all fields in call 7 to be sure; one call of redundancy.",
+      "severity": "low"
+    },
+    {
+      "call": 11,
+      "tool": "describeState",
+      "observed": "- /$allOf-0/datasets/1 (autocomplete, suggestions) label=\"Jeu de données des contributions externes\" value=undefined",
+      "inferred": "After enabling crowd sourcing the agent investigated the newly exposed contribs dataset field, which is optional; calls 10-12 added no change to the data.",
+      "severity": "low"
+    }
+  ]
+}

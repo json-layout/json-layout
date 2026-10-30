@@ -6,6 +6,8 @@ import { describe, it } from 'node:test'
 
 import { summarise, loadRuns } from '../webmcp-eval/report.js'
 import { sidecarPath } from '../webmcp-eval/run-case.js'
+import { parseEvidenceName, evidenceName } from '../webmcp-eval/session.js'
+import { callKind } from '../webmcp-eval/arms.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmpDir = join(here, '..', 'tmp')
@@ -160,6 +162,25 @@ describe('webmcp eval run loading', () => {
       assert.ok(text.includes('model-b'))
     } finally {
       for (const f of [control.evidencePath, ablation.evidencePath, controlSidecar, ablationSidecar]) rmSync(f, { force: true })
+    }
+  })
+
+  it('should ignore the judge copy of a transcript', () => {
+    // The skill writes <name>.judge.json, the transcript without its checks, for the
+    // judge to read. It is not a run: reported as one it would be a phantom, unjudged case.
+    const name = 'report-spec-judge-copy'
+    const { evidencePath } = writeRunFiles(name, evidenceFor(name))
+    // a variant's copy is the one a naive parse would read as a variant named `no-guide.judge`
+    const judgePath = join(tmpDir, `webmcp-eval-${name}--no-guide.judge.json`)
+    writeFileSync(judgePath, JSON.stringify(evidenceFor(name)))
+
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs.length, 1, 'the judge copy must not be reported as a run')
+      assert.equal(runs[0].variant, undefined)
+    } finally {
+      rmSync(evidencePath, { force: true })
+      rmSync(judgePath, { force: true })
     }
   })
 
@@ -404,5 +425,212 @@ describe('webmcp eval run provenance', () => {
     // Transcripts predating this change carry no provenance; they must still report.
     const { failed } = summarise([run('contact', 'satisfactory')])
     assert.equal(failed, false)
+  })
+})
+
+/**
+ * @param {string} name
+ * @param {string} arm
+ * @param {number} runIndex
+ * @param {any} [o] - verdict, calls, bytes, input, cost, checks overrides
+ * @returns {any}
+ */
+const armRun = (name, arm, runIndex, o = {}) => armRunOf(name, arm, runIndex, o)
+const armRunOf = (name, arm, runIndex, { verdict = 'satisfactory', calls = 10, bytes = 1000, input = 100, cost = 0.1, checks = [{ label: 'a', ok: true, detail: '' }] }) => ({
+  name,
+  arm,
+  runIndex,
+  evidence: { case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: calls, outputBytes: bytes }, valid: true, checks },
+  verdict: verdict ? { case: name, verdict, reasoning: 'because', friction: [] } : null,
+  run: { case: name, ok: true, model: 'm', costUsd: cost, tokens: { input, output: 5, cacheRead: 10, cacheWrite: 1 } }
+})
+
+describe('webmcp eval arm comparison', () => {
+  it('should print one row per arm with ranges over its runs', () => {
+    const { lines, failed } = summarise([
+      armRun('c', 'form', 1, { calls: 10, bytes: 1000, input: 100, cost: 0.1 }),
+      armRun('c', 'form', 2, { calls: 14, bytes: 1000, input: 200, cost: 0.3, verdict: 'unsatisfactory' }),
+      armRun('c', 'plain', 1, { calls: 5, bytes: 400, input: 50, cost: 0.05 }),
+      armRun('c', 'plain', 2, { calls: 5, bytes: 600, input: 50, cost: 0.05 })
+    ])
+    const text = lines.join('\n')
+    assert.equal(failed, true)
+    const form = lines.find((l) => /^\s*form\b/.test(l)) ?? ''
+    const plain = lines.find((l) => /^\s*plain\b/.test(l)) ?? ''
+    assert.ok(form.includes('2 runs') && form.includes('10–14 calls'), form)
+    assert.ok(form.includes('1000 bytes') && !form.includes('1000–1000'), form)
+    assert.ok(form.includes('111–211 input tokens'), form)
+    assert.ok(form.includes('$0.100–$0.300'), form)
+    assert.ok(form.includes('checks 1/1, 1/1'), form)
+    assert.ok(form.includes('1s/1u'), form)
+    assert.ok(plain.includes('5 calls') && plain.includes('400–600 bytes') && plain.includes('2s/0u'), plain)
+    assert.ok(text.includes('input tokens = '), 'the legend must say what input tokens count')
+  })
+
+  it('should fail a satisfactory run with a failed check and say which', () => {
+    const { lines, failed } = summarise([armRun('c', 'plain', 1, { checks: [{ label: 'saved', ok: false, detail: 'name was empty' }] })])
+    assert.equal(failed, true)
+    assert.ok(lines.join('\n').includes('SATISFACTORY, CHECK FAILED: saved — name was empty'))
+  })
+
+  it('should not fail on a not runnable arm', () => {
+    const { lines, failed } = summarise([
+      armRun('c', 'form', 1),
+      { name: 'c', arm: 'session', evidence: null, verdict: null, run: { case: 'c', ok: false, notRunnable: true, error: 'auto-save form' } }
+    ])
+    assert.equal(failed, false)
+    assert.ok(lines.join('\n').includes('c (session): not runnable — auto-save form'))
+  })
+
+  it('should still fail a missing run', () => {
+    assert.equal(summarise([armRun('c', 'form', 1), { name: 'c', arm: 'plain', evidence: null, verdict: null }]).failed, true)
+  })
+})
+
+describe('webmcp eval evidence name parsing', () => {
+  it('should invert evidenceName', () => {
+    for (const [variant, arm, run] of [[undefined, undefined, undefined], ['no-guide', undefined, undefined], [undefined, 'plain', 2], ['no-guide', 'session', 3], [undefined, 'form', 1]]) {
+      const parsed = parseEvidenceName(evidenceName('some-case', variant, arm, run), 'some-case')
+      assert.deepEqual(parsed, { variant, arm: arm ?? 'form', run })
+    }
+    assert.equal(parseEvidenceName('other-case', 'some-case'), null)
+    assert.equal(parseEvidenceName('some-case-2', 'some-case'), null)
+  })
+})
+
+describe('webmcp eval arm discovery', () => {
+  it('should find every arm and run of a case, and a not runnable sidecar', () => {
+    const name = 'report-spec-arms'
+    mkdirSync(tmpDir, { recursive: true })
+    const files = []
+    // writes a JSON file and remembers it for cleanup
+    const put = (/** @type {string} */ f, /** @type {object} */ o) => { const p = join(tmpDir, f); writeFileSync(p, JSON.stringify(o)); files.push(p) }
+    const ev = (/** @type {string} */ arm) => ({ case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: 1, outputBytes: 1 }, valid: true, checks: [] })
+    put(`webmcp-eval-${name}.r1.json`, ev('form'))
+    put(`webmcp-eval-${name}.r2.json`, ev('form'))
+    put(`webmcp-eval-${name}--plain.r1.json`, ev('plain'))
+    put(`webmcp-eval-${name}--session.r1.run.json`, { case: name, ok: false, notRunnable: true, error: 'nope' })
+    // the schema the judge is handed is not a run
+    put(`webmcp-eval-${name}--plain.r2.schema.json`, { type: 'object' })
+    try {
+      const runs = loadRuns([name])
+      assert.equal(runs.length, 4)
+      assert.deepEqual(runs.map((r) => `${r.arm}:${r.runIndex}`).sort(), ['form:1', 'form:2', 'plain:1', 'session:1'])
+      assert.equal(runs.find((r) => r.arm === 'session')?.evidence, null)
+    } finally {
+      for (const f of files) rmSync(f, { force: true })
+    }
+  })
+})
+
+describe('webmcp eval expected arms', () => {
+  const name = 'report-spec-expected'
+  const ev = (/** @type {string} */ arm) => ({ case: name, arm, goal: 'g', startedAt: 'x', metrics: { toolCalls: 1, outputBytes: 1 }, valid: true, checks: [] })
+  const verdict = { case: name, verdict: 'satisfactory', reasoning: 'ok', friction: [] }
+  // runs fn with evidence and verdict files for the given labels, then removes them
+  const withFiles = (/** @type {string[]} */ labels, /** @type {() => void} */ fn) => {
+    mkdirSync(tmpDir, { recursive: true })
+    const files = []
+    for (const label of labels) {
+      const arm = parseEvidenceName(label, name)?.arm ?? 'form'
+      for (const [suffix, body] of [['', ev(arm)], ['.verdict', verdict]]) {
+        const f = join(tmpDir, `webmcp-eval-${label}${suffix}.json`)
+        writeFileSync(f, JSON.stringify(body))
+        files.push(f)
+      }
+    }
+    try { fn() } finally { for (const f of files) rmSync(f, { force: true }) }
+  }
+
+  it('should report the form arm not run when only a plain file exists', () => {
+    withFiles([`${name}--plain`], () => {
+      const { failed, lines } = summarise(loadRuns([name]))
+      assert.equal(failed, true)
+      assert.ok(lines.join('\n').includes(`${name}: not run`))
+    })
+  })
+
+  it('should pass on form-only files with the default selection', () => {
+    withFiles([name], () => {
+      assert.equal(summarise(loadRuns([name])).failed, false)
+    })
+  })
+
+  it('should expect a named arm even when it left nothing behind', () => {
+    withFiles([name], () => {
+      const { failed, lines } = summarise(loadRuns([name], 'plain'))
+      assert.equal(failed, true)
+      assert.ok(lines.join('\n').includes(`${name} (plain): not run`))
+    })
+  })
+})
+
+describe('webmcp eval call kinds', () => {
+  it('should classify form and session tools', () => {
+    for (const arm of ['form', 'session']) {
+      assert.equal(callKind(arm, 'describeState'), 'read-state')
+      assert.equal(callKind(arm, 'getData'), 'read-state')
+      for (const t of ['setData', 'setFieldValue', 'editArray', 'saveForm']) assert.equal(callKind(arm, t), 'write', t)
+      assert.equal(callKind(arm, 'getFieldSuggestions'), 'lookup')
+      assert.equal(callKind(arm, 'openSection'), 'other')
+      assert.equal(callKind(arm, 'reloadForm'), 'other')
+    }
+  })
+
+  it('should classify plain tools', () => {
+    assert.equal(callKind('plain', 'readDocument'), 'read-state')
+    assert.equal(callKind('plain', 'readSchema'), 'read-schema')
+    assert.equal(callKind('plain', 'writeDocument'), 'write')
+    assert.equal(callKind('plain', 'patchDocument'), 'write')
+    for (const t of ['list_account_datasets', 'describe_dataset', 'get_field_values', 'list_portal_pages']) assert.equal(callKind('plain', t), 'lookup', t)
+    assert.equal(callKind('plain', 'whatever'), 'other')
+  })
+})
+
+describe('webmcp eval cost breakdown', () => {
+  const call = (/** @type {string} */ tool, /** @type {number} */ outputBytes, isError = false) => ({ tool, args: {}, response: '', outputBytes, isError })
+  const withCalls = (/** @type {string} */ arm, /** @type {number} */ i, /** @type {any[]} */ calls, /** @type {any} */ tokens) => {
+    const r = armRun('c', arm, i)
+    r.evidence.calls = calls
+    if (tokens) r.run.tokens = tokens
+    return r
+  }
+
+  it('should print calls, bytes and failures per kind with ranges over runs', () => {
+    const { lines } = summarise([
+      withCalls('plain', 1, [call('readDocument', 100), call('readDocument', 50, true), call('writeDocument', 10)]),
+      withCalls('plain', 2, [call('readDocument', 300), call('readSchema', 20)])
+    ])
+    const text = lines.join('\n')
+    assert.ok(/read-state: 1–2 calls, 150–300 bytes, 0–1 failed/.test(text), text)
+    assert.ok(/write: 0–1 calls, 0–10 bytes, 0 failed/.test(text), text)
+    assert.ok(/read-schema: 0–1 calls, 0–20 bytes, 0 failed/.test(text), text)
+    assert.ok(!/lookup:/.test(text), 'kinds nobody called are not printed')
+  })
+
+  it('should count oversized calls per run and not fail on them', () => {
+    const { lines, failed } = summarise([
+      withCalls('form', 1, [call('getData', 60_001), call('getData', 60_000)]),
+      withCalls('form', 2, [call('getData', 5)])
+    ])
+    const text = lines.join('\n')
+    assert.equal(failed, false)
+    assert.ok(text.includes('oversized: 0–1'), text)
+    assert.ok(text.includes('60000 bytes'), 'legend names the threshold')
+  })
+
+  it('should print uncached input, cache reads and cache writes apart, with a legend', () => {
+    const { lines } = summarise([
+      withCalls('plain', 1, [], { input: 10, output: 1, cacheRead: 1000, cacheWrite: 50 }),
+      withCalls('plain', 2, [], { input: 30, output: 1, cacheRead: 1000, cacheWrite: 70 }),
+      withCalls('form', 1, [], { output: 1 })
+    ])
+    const text = lines.join('\n')
+    assert.ok(text.includes('uncached input 10–30'), text)
+    assert.ok(text.includes('cache reads 1000'), text)
+    assert.ok(!text.includes('cache reads 1000–1000'))
+    assert.ok(text.includes('cache writes 50–70'), text)
+    assert.ok(text.includes('uncached input 0, cache reads 0, cache writes 0'), 'missing fields count as 0')
+    assert.ok(/priced with caching/.test(text) && /share a cache/.test(text), text)
   })
 })

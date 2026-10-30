@@ -1,0 +1,21 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected the Agenda-manifestations dataset through the suggestion list, picked Nom de l'évenement (nomevenement) as the label field from the real list of columns, and set crowdSourcing to true; the form ended valid with all three goal elements present in the data. No value was invented: every choice came from a tool response. Efficient: 9 calls, with one failed query that cost an extra round-trip.",
+  "friction": [
+    {
+      "call": 5,
+      "tool": "getFieldSuggestions",
+      "observed": "No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.",
+      "inferred": "The English query \"event name\" failed against French labels; the agent retried without query (call 6).",
+      "severity": "low"
+    },
+    {
+      "call": 9,
+      "tool": "describeState",
+      "observed": "/$allOf-0/datasets/1 (autocomplete, suggestions) label=\"Jeu de données des contributions externes\" value=undefined",
+      "inferred": "Verification read only; the contributions dataset field shows up at an unexpected place in the Source section, a minor oddity.",
+      "severity": "low"
+    }
+  ]
+}

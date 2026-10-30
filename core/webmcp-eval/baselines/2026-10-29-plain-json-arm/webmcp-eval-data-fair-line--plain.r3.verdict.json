@@ -1,0 +1,1 @@
+{"case": "data-fair-line", "verdict": "satisfactory", "reasoning": "Goal reached in 4 calls. Same path as a clean run: read, schema, commune search returning a single result 44190, then one accepted write with values taken from the schema's closed lists and patterns.", "friction": []}

@@ -1,0 +1,21 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the form, found the commune through the autocomplete (44190 surfaced by getFieldSuggestions, then applied by index), filled all other fields from the mail in one setData with correctly normalised phone, date, closed-list values and multi-valued arrays, got 'form is valid' and saved explicitly. The commune was reached through a suggestion the tool returned, although the agent's first query already used the full name 'Saint-Sébastien-sur-Loire' expanded from the mail's 'St-Sébastien near Nantes'.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "Error: the suggestions memorized for path \"/commune\" were dropped by a write that may have changed this field's options, call getFieldSuggestions on this path again",
+      "inferred": "The suggestion index obtained before the setData was invalidated; the agent had to re-run the lookup (calls 5-7) and call describeState (call 5 slot) in between, costing 3 extra round-trips.",
+      "severity": "medium"
+    },
+    {
+      "call": 2,
+      "tool": "getFieldSuggestions",
+      "observed": "query 'Saint-Sébastien-sur-Loire' returned a single suggestion 44190",
+      "inferred": "The agent expanded 'St-Sébastien near Nantes' to the full official name from its own knowledge before searching; the tool confirmed it, so the value was not guessed, but it skipped the ambiguity check the mail's abbreviation warranted.",
+      "severity": "low"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "The agent made all four changes through the session tools and each was saved: showDepartment=false on the dataset card only (application card and dataset page untouched), socialShares reduced to bluesky, linkedin and facebook in the requested set, breadcrumb position \"above-footer\", and a new generic footer link whose pageRef was taken from a getFieldSuggestions result (\"Contact presse\", slug contact-presse) rather than invented, with title \"Contact presse\". Final form is valid, existing footer links preserved. Cost was 19 calls, of which four trailing getData reads were verification of already-saved values.",
+  "friction": [
+    {
+      "call": 8,
+      "tool": "setFieldValue",
+      "observed": "Passing \"\\\"above-footer\\\"\" returned: `/$comp-5/breadcrumb/position (select) = \"\\\"above-footer\\\"\"`, then \"10 field(s) became available ... 1 error(s) here: /$comp-5/breadcrumb/position: choisissez une valeur ... not saved yet: the form is invalid\"",
+      "inferred": "The tool echoed the over-quoted string as a stored value and listed newly available fields as if the write had taken effect; the agent had to infer from the error that the value was malformed and retry with the bare string.",
+      "severity": "medium"
+    },
+    {
+      "call": 11,
+      "tool": "getFieldSuggestions",
+      "observed": "Error: node not found at path: .../links/0/$oneOf/1/pageRef. The path leads as far as .../links/0/$oneOf, which holds .../$oneOf/0 ... Use one of those, a path listed by describeState, or the data path of a value as getData shows it.",
+      "inferred": "Agent tried to query suggestions on an inactive oneOf variant of an existing item; the error explained the variant was not active and it recovered by adding a new generic item via editArray.",
+      "severity": "low"
+    },
+    {
+      "call": 17,
+      "tool": "getData",
+      "observed": "{\"data\":false,\"valid\":true} etc.",
+      "inferred": "Re-reads of values already confirmed as saved by the setFieldValue responses.",
+      "severity": "low"
+    }
+  ]
+}

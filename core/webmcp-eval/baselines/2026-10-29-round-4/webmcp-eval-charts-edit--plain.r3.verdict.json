@@ -1,0 +1,6 @@
+{
+  "case": "charts-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document and the relevant schema parts, then wrote the complete document with metric changed to max and legendPosition to bottom, everything else preserved. The write was accepted on the first try and the final data shows both changes with no sibling loss. Values were confirmed from the schema oneOf lists, not guessed, in 5 calls.",
+  "friction": []
+}

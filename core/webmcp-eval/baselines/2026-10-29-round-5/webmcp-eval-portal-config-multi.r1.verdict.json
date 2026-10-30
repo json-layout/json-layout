@@ -1,0 +1,14 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "All four changes were made through the form tools with values the tools surfaced: dataset card showDepartment set to false (labelled \"Afficher le propriétaire\" but unambiguous under the dataset card section), socialShares narrowed to bluesky/facebook/linkedin from the closed list shown by describeState, breadcrumb position set to above-footer from the listed options, and a generic footer link added with pageRef found by searching \"presse\" (the real page contact-presse) and a title. Final form was valid and sibling data was untouched. Only waste was one suggestions call on an unrelated existing link subtype.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "14 suggestion(s) ... Accueil (home), Contact (contact) ... for links/0/subtype",
+      "inferred": "Agent looked for a page-selection list on a standard link; it bought nothing since the target page is a generic (Page libre) link, reached via the variant list of the previous call.",
+      "severity": "low"
+    }
+  ]
+}

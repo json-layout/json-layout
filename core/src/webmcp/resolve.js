@@ -47,9 +47,19 @@ function resolveLayoutPath (root, path) {
  * @returns {import('../state/types.js').StateNode|undefined}
  */
 function resolveDataPath (root, path) {
-  const pointer = '/' + path.replace(/^\/+/, '').replace(/\/+$/, '')
+  return findByDataPath(root, '/' + path.replace(/^\/+/, '').replace(/\/+$/, ''))
+}
+
+/**
+ * The visible, non-structural node under `start` (itself included) that edits the value
+ * at a JSON pointer, the editable occurrence of an activated list item first.
+ * @param {import('../state/types.js').StateNode} start
+ * @param {string} pointer
+ * @returns {import('../state/types.js').StateNode|undefined}
+ */
+function findByDataPath (start, pointer) {
   /** @type {import('../state/types.js').StateNode[]} */
-  const stack = [root]
+  const stack = [start]
   /** @type {import('../state/types.js').StateNode|undefined} */
   let summary
   while (stack.length) {
@@ -83,7 +93,7 @@ function isStructural (node) {
  */
 export function resolveNode (root, path) {
   if (!path || path === '/') return root
-  return resolveLayoutPath(root, path) ?? resolveDataPath(root, path) ?? resolveMixedPath(root, path)
+  return resolveLayoutPath(root, path) ?? resolveDataPath(root, path) ?? resolveMixedPath(root, path) ?? resolveWalkedPath(root, path)
 }
 
 /**
@@ -100,6 +110,57 @@ function resolveMixedPath (root, path) {
   if (first <= 0) return undefined
   const base = resolveDataPath(root, '/' + segments.slice(0, first).join('/'))
   return base && resolveLayoutPath(base, segments.slice(first).join('/'))
+}
+
+/** A form segment written without its `$` (`comp-2` for `$comp-2`), as six round 3 calls did. */
+const STRUCTURAL_WITHOUT_DOLLAR = /^(oneOf|comp-\d+|slot-\d+|allOf-\d+)$/
+
+/**
+ * @param {unknown} data
+ * @param {string} key
+ * @returns {boolean}
+ */
+function hasOwnDataKey (data, key) {
+  return !!data && typeof data === 'object' && !Array.isArray(data) && Object.prototype.hasOwnProperty.call(data, key)
+}
+
+/**
+ * Whether the schema at a node declares a property of that name, set in the data or not.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {string} key
+ * @returns {boolean}
+ */
+function declaresKey (node, key) {
+  return !!node.skeleton?.children?.some((pointer) => pointer.endsWith(`/properties/${key}`))
+}
+
+/**
+ * A path whose segments are layout or data ones, in any order: /$comp-2/elements/6/children/2/title,
+ * where the item at children/2 is a union and title lives under its active variant. Each
+ * segment is a layout child of the node reached so far or else, when none has that key, the
+ * data key of a node below it, searched through the structural levels (`$comp-N`, the active
+ * variant of a `$oneOf`) and nowhere else: a key of a variant that is not active does not
+ * resolve, so nothing is written to a node the form does not show. A form segment written
+ * without its `$` (`comp-2`, `oneOf`, `slot-1`, `allOf-1`) is read as that segment when the
+ * node has no data key of that name, set or declared by its schema: the data key wins.
+ * @param {import('../state/types.js').StateNode} root
+ * @param {string} path
+ * @returns {import('../state/types.js').StateNode|undefined}
+ */
+function resolveWalkedPath (root, path) {
+  let current = root
+  for (const segment of path.replace(/^\//, '').split('/')) {
+    const key = /^\d+$/.test(segment) ? parseInt(segment, 10) : segment
+    /** @type {import('../state/types.js').StateNode|undefined} */
+    let next = current.children ? findChild(current.children, key) : undefined
+    if (!next && !segment.startsWith('$')) next = findByDataPath(current, `${current.dataPath}/${segment}`)
+    if (!next && current.children && STRUCTURAL_WITHOUT_DOLLAR.test(segment) && !hasOwnDataKey(current.data, segment) && !declaresKey(current, segment)) {
+      next = findChild(current.children, '$' + segment)
+    }
+    if (!next) return undefined
+    current = next
+  }
+  return current
 }
 
 /**
@@ -157,12 +218,122 @@ export function nodeNotFoundError (statefulLayout, path) {
     return new Error(`node not found at path: ${path}. The value exists in the data but its field is not shown in the form right now: a condition hides it, another setting replaces it or must change first. Look for the field the form shows instead with describeState.`)
   }
   const root = statefulLayout.stateTree.root
+  const segments = (path ?? '').replace(/^\//, '').split('/').filter(Boolean)
+  let reached = 0
+  /** @type {import('../state/types.js').StateNode} */
+  let deepest = root
+  for (let i = segments.length - 1; i > 0; i--) {
+    const found = resolveNode(root, '/' + segments.slice(0, i).join('/'))
+    if (found) {
+      deepest = found
+      reached = i
+      break
+    }
+  }
+  const option = reached ? inactiveOption(deepest, segments[reached], path) : undefined
+  if (option) return new Error(`node not found at path: ${path}. ${option}`)
+  if (reached) return new Error(`node not found at path: ${path}. The path leads as far as /${segments.slice(0, reached).join('/')}, which holds ${childrenList(deepest)}.${variantHint(statefulLayout, deepest, segments[reached])} Use one of those, a path listed by describeState, or the data path of a value as getData shows it.`)
   const top = visibleChildren(root).slice(0, 12).map((child) => {
     const title = child.layout.label ?? child.layout.title
     return `/${child.key}${title ? ` ("${title}")` : ''}`
   })
   const hint = top.length ? ` The form starts with ${top.join(', ')}.` : ''
   return new Error(`node not found at path: ${path}.${hint} Use a path listed by describeState, or the data path of a value as getData shows it. What does not exist yet — an option not chosen, an item not added — is described by describeState at that same path.`)
+}
+
+const MAX_LISTED_CHILDREN = 20
+
+/**
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {string}
+ */
+function childrenList (node) {
+  /** @type {import('../state/types.js').StateNode[]} */
+  const children = []
+  // structural levels (`$comp-N`, a `$oneOf` and its active variant) hold the fields: list through them
+  const collect = (/** @type {import('../state/types.js').StateNode} */ parent) => {
+    for (const child of visibleChildren(parent)) {
+      children.push(child)
+      if (isStructural(child) || parent.key === '$oneOf') collect(child)
+    }
+  }
+  collect(node)
+  if (!children.length) return 'no field'
+  const listed = children.slice(0, MAX_LISTED_CHILDREN).map((child) => child.fullKey).join(', ')
+  return children.length > MAX_LISTED_CHILDREN ? `${listed} and ${children.length - MAX_LISTED_CHILDREN} more` : listed
+}
+
+/**
+ * A path through an option of a choice that is not the chosen one, as describeState lists it
+ * for every option (`…/links/0/$oneOf/1/pageRef` while option 0 is active): listing the
+ * fields of the active option sent four runs of rounds 3-5 looking for pageRef there.
+ * @param {import('../state/types.js').StateNode} selector - the deepest node reached
+ * @param {string | undefined} segment - the first segment that did not resolve
+ * @param {string} path
+ * @returns {string | undefined}
+ */
+function inactiveOption (selector, segment, path) {
+  if (selector.key !== '$oneOf' || !segment || !/^\d+$/.test(segment)) return undefined
+  const items = /** @type {any[] | undefined} */(selector.layout.oneOfItems)
+  const option = items?.find((item) => !item.header && item.key === Number(segment))
+  if (!option) return undefined
+  const activeKey = selector.children?.find((child) => typeof child.key === 'number')?.key
+  const active = activeKey === undefined ? 'no option is chosen yet' : `the chosen one is ${activeKey}${titleOf(items, activeKey)}`
+  return `It belongs to option ${option.key}${titleOf(items, option.key)} of the choice at ${selector.fullKey}, not the chosen one: ${active}. Switch first with setFieldValue on ${selector.fullKey} (value = ${option.key}), then use ${path}.`
+}
+
+/**
+ * The note of a path through an option that is not the chosen one, for describeState, which
+ * still describes what that option would hold.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} path
+ * @returns {string | undefined}
+ */
+export function inactiveOptionNote (statefulLayout, path) {
+  const segments = path.replace(/^\//, '').split('/').filter(Boolean)
+  for (let i = segments.length - 1; i > 0; i--) {
+    const found = resolveNode(statefulLayout.stateTree.root, '/' + segments.slice(0, i).join('/'))
+    if (found) return inactiveOption(found, segments[i], path)
+  }
+  return undefined
+}
+
+/**
+ * @param {any[] | undefined} items
+ * @param {number | string} key
+ * @returns {string}
+ */
+function titleOf (items, key) {
+  const title = items?.find((item) => !item.header && item.key === key)?.title
+  return title ? ` (${title})` : ''
+}
+
+/**
+ * When the unresolved segment is a field of a variant that is not the active one, say which
+ * variant and how to get there: a path under `$oneOf` without the variant's index answered
+ * with the form's top-level tabs cost every run a call.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('../state/types.js').StateNode} deepest
+ * @param {string | undefined} segment
+ * @returns {string}
+ */
+function variantHint (statefulLayout, deepest, segment) {
+  if (!segment || segment.startsWith('$') || /^\d+$/.test(segment)) return ''
+  const selector = deepest.key === '$oneOf' ? deepest : deepest.children?.find((child) => child.key === '$oneOf')
+  const items = /** @type {any[] | undefined} */(selector?.layout.oneOfItems)
+  const trees = selector?.skeleton.childrenTrees
+  if (!selector || !items || !trees) return ''
+  const compiled = statefulLayout.compiledLayout
+  const activeKey = selector.children?.find((child) => typeof child.key === 'number')?.key
+  const holders = items.filter((item) => {
+    if (item.header || item.key === activeKey) return false
+    const root = trees[item.key] && compiled.skeletonTrees[trees[item.key]]?.root
+    return !!root && !!compiled.skeletonNodes[root]?.children?.some((pointer) => String(compiled.skeletonNodes[pointer]?.key) === segment)
+  })
+  if (!holders.length) return ''
+  const named = holders.map((item) => `${item.key}${item.title ? ` (${item.title})` : ''}`).join(', ')
+  const first = `${selector.fullKey}/${holders[0].key}/${segment}`
+  return ` "${segment}" is a field of ${holders.length > 1 ? 'variants' : 'variant'} ${named} of the choice at ${selector.fullKey}, not of the active one${activeKey === undefined ? ' (none is chosen yet)' : ` (${activeKey})`}: switch first with setFieldValue on ${selector.fullKey} (value = the variant number), then use ${first}.`
 }
 
 /**
@@ -205,7 +376,7 @@ export function findStructuralKey (value, at = '') {
   }
   if (value === null || typeof value !== 'object') return undefined
   for (const [key, child] of Object.entries(value)) {
-    if (/^\$(oneOf|comp-\d+|slot-\d+)$/.test(key)) return `${at}/${key}`
+    if (/^\$(oneOf|comp-\d+|slot-\d+|allOf-\d+)$/.test(key)) return `${at}/${key}`
     const found = findStructuralKey(child, `${at}/${key}`)
     if (found) return found
   }

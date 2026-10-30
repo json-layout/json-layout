@@ -8,11 +8,12 @@
  * into claiming a branch it never reaches.
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { v2compat } from '../../src/compat/v2.js'
+import { fixturePath, remoteKey } from '../remote.js'
 
 /** @typedef {import('./types.js').EvalCase} EvalCase */
 
@@ -78,6 +79,130 @@ const contact = {
 const grandPoitiersContext = { datasetFilter: 'owner=organization:p6Qg1z-aq' }
 
 /**
+ * Responses captured from koumoul.com by `capture-remote.js calendar`: `index.json` maps
+ * each URL's `remoteKey` to its file. Missing files read as undefined, so the capture
+ * script can load this module before its first capture.
+ * @param {string} file
+ * @returns {any}
+ */
+function calendarCapture (file) {
+  const path = join(here, 'data', 'calendar-remote', file)
+  return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : undefined
+}
+
+/** @type {Record<string, string>} */
+const calendarIndex = calendarCapture('index.json') ?? {}
+
+/** @param {string} text */
+const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+/**
+ * The words of a search, as data-fair's full-text search splits them: on anything that is
+ * not a letter or a digit, accents and case folded.
+ * @param {string} text
+ * @returns {string[]}
+ */
+const searchWords = (text) => fold(text).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+
+const DATASETS_PATH = '/api/v1/datasets'
+
+/**
+ * Every dataset the captured listings hold, once, merged across listings: a listing only
+ * carries the fields its `select` asked for, and data-fair leaves `isRest` out when false.
+ * The order is the captures' (searches first, so their relevance order leads), and a
+ * dataset of a `rest=true` listing is a REST one whatever the other listings said.
+ * @returns {any[]}
+ */
+function calendarDatasets () {
+  const listings = Object.entries(calendarIndex)
+    .map(([key, file]) => ({ url: new URL(key, 'http://localhost/'), file }))
+    .filter(({ url }) => url.pathname === DATASETS_PATH)
+    .sort((a, b) => Number(b.url.searchParams.has('q')) - Number(a.url.searchParams.has('q')))
+  /** @type {Map<string, any>} */
+  const byId = new Map()
+  for (const { url, file } of listings) {
+    for (const dataset of calendarCapture(file)?.results ?? []) {
+      const merged = Object.assign(byId.get(dataset.id) ?? {}, dataset)
+      if (url.searchParams.get('rest') === 'true') merged.isRest = true
+      byId.set(dataset.id, merged)
+    }
+  }
+  return [...byId.values()]
+}
+
+const calendarPool = calendarDatasets()
+
+/**
+ * The fields data-fair adds to every listed dataset whatever `select` asks: every capture
+ * (each made with the picker's own `select`) carries exactly these beyond the selected ones.
+ */
+const ALWAYS_LISTED = ['id', 'slug', 'href', 'page', 'owner', 'public', 'visibility', 'previews']
+
+/**
+ * A dataset as a listing returns it under `select`: the selected top-level fields, plus
+ * the ones data-fair always adds.
+ * @param {Record<string, any>} dataset
+ * @param {string[]} select
+ * @returns {Record<string, any>}
+ */
+function project (dataset, select) {
+  return Object.fromEntries(Object.entries(dataset).filter(([key]) => select.includes(key) || ALWAYS_LISTED.includes(key)))
+}
+
+/**
+ * The calendar's remote, answered on the path rather than on the exact URLs captured: a
+ * runner writing its own URL spells the projection and paging parameters its own way, and
+ * a real API answers it all the same.
+ *
+ * - `api/v1/datasets` filters the captured datasets on the words of `q` (every word in the
+ *   title, accents and case folded; no `q` lists them all) and on `rest=true`. `select`
+ *   projects each result to its fields plus those data-fair always adds (ALWAYS_LISTED);
+ *   without it the merged objects are returned whole. The other projection and paging
+ *   parameters (`short-concept`, `status`, `owner`, ...) are ignored, except a `size` below
+ *   the count, which truncates the results.
+ * - `api/v1/datasets/<id>` answers a captured dataset, and any other per-dataset path that
+ *   was captured (`/schema`) is served whatever its query: the exact capture when the URL
+ *   matches one, else the capture of that path with the fewest parameters.
+ * - Anything else is a 404.
+ * @param {URL} url
+ * @returns {unknown}
+ */
+function calendarRemote (url) {
+  const path = fixturePath(url)
+  if (path === DATASETS_PATH) {
+    const words = searchWords(url.searchParams.get('q') ?? '')
+    const found = calendarPool.filter((d) => {
+      const title = fold(d.title ?? '')
+      return words.every((w) => title.includes(w)) &&
+        (url.searchParams.get('rest') !== 'true' || d.isRest === true)
+    })
+    const size = Number(url.searchParams.get('size'))
+    const results = url.searchParams.has('size') && Number.isInteger(size) && size >= 0 && size < found.length ? found.slice(0, size) : found
+    const select = url.searchParams.get('select')?.split(',').map((f) => f.trim()).filter(Boolean)
+    return { count: found.length, results: structuredClone(select?.length ? results.map((d) => project(d, select)) : results) }
+  }
+  const exact = calendarIndex[remoteKey(url)]
+  if (exact) return calendarCapture(exact)
+  const samePath = Object.keys(calendarIndex)
+    .filter((key) => key.split('?')[0] === path)
+    .sort((a, b) => a.length - b.length)
+  if (samePath.length) return calendarCapture(calendarIndex[samePath[0]])
+  const id = /^\/api\/v1\/datasets\/([^/]+)$/.exec(path)?.[1]
+  const dataset = id && calendarPool.find((d) => d.id === id)
+  return dataset ? structuredClone(dataset) : undefined
+}
+
+/**
+ * The dataset the goal names and its event name column, read from the capture: the
+ * column the dataset itself marks as its label (rdf-schema#label), titled "Nom de
+ * l'évenement" — not "Nom", which is the applicant's name.
+ */
+const agendaDataset = calendarCapture('datasets-agenda-manifestations.json')?.results
+  ?.find((/** @type {any} */ d) => d.title === 'Agenda-manifestations')
+const eventNameColumn = calendarCapture('agenda-manifestations-schema.json')
+  ?.find((/** @type {any} */ c) => c['x-refersTo'] === 'http://www.w3.org/2000/01/rdf-schema#label')
+
+/**
  * Real app schema, large band but small enough that getSchema still returns it whole.
  * The pair with `charts` is the point: same band, opposite schema behaviour, which is
  * the evidence that the band alone says nothing about what an agent can read.
@@ -85,6 +210,13 @@ const grandPoitiersContext = { datasetFilter: 'owner=organization:p6Qg1z-aq' }
  * Written for vjsf v2, so it goes through the same compatibility layer a real page
  * applies; see vjsf-compat-v2.js. The goal names a public koumoul.com dataset that is
  * REST-enabled with an event-name label column, so every part of it is reachable.
+ *
+ * The coherence case: the label column only lists once a dataset is chosen, its value
+ * must be a column OF that dataset, and the crowd sourcing flag sits in a section that
+ * only opens for a REST dataset. Its pickers are served offline from a capture of
+ * koumoul.com (cases/data/calendar-remote/, see capture-remote.js), kept whole: the
+ * picked dataset object carries its column schema, some 12 KB the form stores as is
+ * (13.1 KB before the sample values were anonymized, for the baselines up to round 6).
  * @type {EvalCase}
  */
 const calendar = {
@@ -93,7 +225,16 @@ const calendar = {
   goal: 'Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.',
   schema: v2compat(loadSchema('app-calendar.json'), undefined, 'fr'),
   data: {},
-  context: grandPoitiersContext
+  context: grandPoitiersContext,
+  remote: calendarRemote,
+  lookups: ['list_account_datasets', 'describe_dataset'],
+  // an application configuration is a draft the app's editor saves as it changes
+  saveMode: 'auto',
+  checks: [
+    { path: '/datasets/0/href', equals: agendaDataset?.href, label: 'the calendar is on "Agenda-manifestations"' },
+    { path: '/labelField/key', equals: eventNameColumn?.key, label: 'the label is the event name column' },
+    { path: '/crowdSourcing', equals: true, label: 'crowd sourcing is on' }
+  ]
 }
 
 /**
@@ -112,7 +253,8 @@ const charts = {
   goal: 'Make a bar chart of the average measured value per commune from the dataset of hourly air pollutant concentrations in Poitiers, title it "Pollution by commune" and put the legend on the right.',
   schema: loadSchema('app-charts.json'),
   data: {},
-  context: grandPoitiersContext
+  context: grandPoitiersContext,
+  lookups: ['list_account_datasets', 'describe_dataset']
 }
 
 /**
@@ -160,7 +302,16 @@ const chartsEdit = {
   schema: v2compat(loadSchema('app-charts.json'), undefined, 'fr'),
   data: loadData('charts-edit.json'),
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
-  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
+  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
+  lookups: ['list_account_datasets', 'describe_dataset'],
+  // an application configuration is a draft the app's editor saves as it changes
+  saveMode: 'auto',
+  // the goal changes the metric and the legend position; everything else stays
+  checks: [
+    { unchangedExcept: ['/chart/config/valueCalc/metric', '/legendPosition'] },
+    { path: '/chart/config/valueCalc/metric', equals: 'max', label: 'the chart shows the maximum' },
+    { path: '/legendPosition', equals: 'bottom', label: 'the legend is at the bottom' }
+  ]
 }
 
 /**
@@ -179,7 +330,13 @@ const portalPageEdit = {
   goal: 'Delete the "Mentions légales" block from this page, and rename the page to "Données ouvertes".',
   schema: loadSchema('portal-page.json'),
   data: loadData('portal-page-edit.json'),
-  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  // "Mentions légales" is the third block; the other two keep their place and content.
+  // No check kind states an absence, so the removal itself is left to the judge.
+  checks: [
+    { unchangedExcept: ['/elements/2', '/title'] },
+    { path: '/title', equals: 'Données ouvertes', label: 'the page is titled "Données ouvertes"' }
+  ]
 }
 
 /**
@@ -230,7 +387,8 @@ const choropleth = {
   schema: loadSchema('app-choropleth.json'),
   data: loadData('choropleth.json'),
   compileOptions: { locale: 'fr' },
-  context: { datasetFilter: '' }
+  context: { datasetFilter: '' },
+  lookups: ['list_account_datasets', 'describe_dataset']
 }
 
 /** @type {EvalCase[]} */
@@ -268,7 +426,20 @@ const portalConfigEdit = {
       event: [],
       news: []
     }
-  }
+  },
+  lookups: ['list_portal_pages'],
+  // a portal configuration is a draft the editor saves as it changes
+  saveMode: 'auto',
+  checks: [
+    // The colour itself is left to the judge: "a dark green" names no value. In assisted
+    // mode (the start's) the portal derives the four colour sets from the main colours, so
+    // an agent updating their primary along with it changes nothing the goal does not ask.
+    {
+      unchangedExcept: ['/theme/assistedModeColors/primary', '/theme/colors', '/theme/darkColors', '/theme/hcColors', '/theme/hcDarkColors', '/menu/children'],
+      label: 'nothing changed but the main colour and the menu'
+    },
+    { path: '/menu/children', contains: { type: 'generic', pageRef: { slug: 'jeunesse' } }, label: 'the menu links the page "Nos actions pour la jeunesse"' }
+  ]
 }
 
 /**
@@ -305,7 +476,8 @@ const portalMenuCatalog = {
   schema: loadSchema('portal-config.json'),
   data: loadData('portal-config-edit.json'),
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
-  context: menuContext
+  context: menuContext,
+  lookups: ['list_portal_pages']
 }
 
 /**
@@ -324,7 +496,8 @@ const portalMenuExplain = {
   schema: loadSchema('portal-config.json'),
   data: loadData('portal-config-edit.json'),
   compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
-  context: menuContext
+  context: menuContext,
+  lookups: ['list_portal_pages']
 }
 
 /**
@@ -360,10 +533,292 @@ const chartsPie = {
   schema: v2compat(loadSchema('app-charts.json'), undefined, 'fr'),
   data: loadData('charts-edit.json'),
   compileOptions: { locale: 'fr', ajvOptions: { discriminator: true } },
-  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' }
+  context: { datasetFilter: 'owner=organization:p6Qg1z-aq' },
+  lookups: ['list_account_datasets', 'describe_dataset']
 }
 
-export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie]
+/**
+ * What data-fair/mcp's prepareEditorSchema (src/editor-schema.ts, branch
+ * fix-editor-line-edition) does to a line schema before the editor compiles it: the v2
+ * compatibility layer, string layouts expanded, attachment and extension columns hidden,
+ * and the form closed to its columns.
+ * @param {Record<string, any>} fetched
+ * @returns {Record<string, any>}
+ */
+function lineEditorSchema (fetched) {
+  const schema = v2compat(structuredClone(fetched))
+  schema.additionalProperties = false
+  for (const property of Object.values(schema.properties ?? {})) {
+    if (typeof property.layout === 'string') property.layout = { comp: property.layout }
+    const hide = (property['x-refersTo'] === 'http://schema.org/DigitalDocument' && property.layout?.comp !== 'text-field') ||
+      property['x-extension'] !== undefined
+    if (hide) property.layout = { ...(property.layout ?? {}), comp: 'none' }
+  }
+  return schema
+}
+
+/** @type {{ code: string, nom: string }[]} */
+const communes = JSON.parse(readFileSync(join(here, 'data', 'communes.json'), 'utf8'))
+
+/**
+ * The referential's single search as data-fair answers it
+ * (api/src/datasets/routes/master-data.ts): every word of `q` in the name or starting the
+ * code, sorted on the code, ten results, each labelled "code (name)".
+ * @param {URL} url
+ * @returns {unknown}
+ */
+function communesRemote (url) {
+  if (fixturePath(url) !== '/communes') return undefined
+  const words = fold(url.searchParams.get('q') ?? '').split(/\s+/).filter(Boolean)
+  const found = communes
+    .filter((c) => words.every((w) => fold(c.nom).includes(w) || c.code.startsWith(w)))
+    .sort((a, b) => a.code.localeCompare(b.code))
+  return {
+    total: found.length,
+    results: found.slice(0, 10).map((c) => ({ output: c.code, label: `${c.code} (${c.nom})` }))
+  }
+}
+
+const lineSchema = loadSchema('data-fair-line.json')
+
+/**
+ * What data-fair's line API tolerates (api/src/datasets/utils/rest.ts) before validating:
+ * a multi-valued column written as one joined string, a number for a string column.
+ * @param {unknown} doc
+ * @returns {unknown}
+ */
+function lineApiAccepts (doc) {
+  if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return doc
+  /** @type {Record<string, any>} */
+  const line = { ...doc }
+  const properties = /** @type {Record<string, any>} */ (lineSchema.properties)
+  for (const [key, value] of Object.entries(line)) {
+    const property = properties[key]
+    // split on the column's own separator when the schema declares one (`separator`, read
+    // from the vendored schema since v2compat moves it into the layout), as data-fair does;
+    // the vendored register declares none, so `,`
+    const separator = property?.separator ?? property?.['x-separator'] ?? ','
+    if (property?.type === 'array' && typeof value === 'string') line[key] = value.split(separator).map((v) => v.trim()).filter(Boolean)
+    else if (property?.type === 'string' && typeof value === 'number') line[key] = String(value)
+  }
+  return line
+}
+
+/**
+ * A line of a data-fair REST dataset, entered from a loosely written email: the record an
+ * autonomous agent of data-fair is asked to add to a register of sports venues.
+ *
+ * Every value the goal gives is in a shape the register does not take as is. The commune
+ * is a code INSEE picked from a referential, and "St-Sébastien" matches nothing there
+ * while the full name matches several homonyms, the one near Nantes being the right one;
+ * the phone is grouped by twos; the activities and audiences are closed lists the prose
+ * has to be mapped onto; the date is written out in French. The line API's own tolerances (a joined string
+ * for a multi-valued column, a number for a string column) are the plain API's, so the
+ * comparison measures the referential and the formats rather than the encoding.
+ *
+ * Vendored on 2026-10-29 from data-fair @ feat-autonomous-agents: the register of the line
+ * edition experiment (simulations/runner/line-edition-fixtures.ts), read live as
+ * `GET /api/v1/datasets/<id>/schema?mimeType=application/schema+json&extension=true&arrays=true`.
+ * The single search URL is rewritten to the relative `communes?q={q}` the fixture serves,
+ * and the referential renamed `communes` in the vendor keywords. The fixture is real
+ * communes of geo.api.gouv.fr: those of the Nantes area, every `Saint-…` of Loire-Atlantique
+ * whose code sorts before Saint-Sébastien-sur-Loire's, and homonyms elsewhere.
+ * @type {EvalCase}
+ */
+const dataFairLine = {
+  name: 'data-fair-line',
+  title: 'dataset line',
+  goal: 'Peux-tu ajouter ce lieu à notre liste des lieux d\'activité des associations ? Je te transfère le mail du club :\n\n' +
+    '« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. ' +
+    'On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. ' +
+    'Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »',
+  schema: lineEditorSchema(lineSchema),
+  data: {},
+  remote: communesRemote,
+  lookups: ['get_field_values'],
+  apiAccepts: lineApiAccepts,
+  saveMode: 'explicit',
+  checks: [
+    { path: '/commune', equals: '44190' },
+    { path: '/telephone', equals: '02 40 80 12 34' },
+    { path: '/siret', equals: '52348761900017' },
+    { path: '/activites', values: ['judo', 'yoga', 'handisport'] },
+    { path: '/publics', values: ['enfants', 'adultes', 'personnes handicapées'] },
+    { path: '/date_ouverture', equals: '2025-03-03' }
+  ]
+}
+
+/**
+ * The pages of the portal the nested-document cases run in, as the portals manager gives
+ * them to its editors; the starting documents link to some of them.
+ */
+const portalPages = loadData('portal-pages.json')
+
+const pageCompileOptions = { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } }
+
+/**
+ * A free page of eleven top-level blocks: a title, an introduction, an alert, a two-column
+ * section (a title, a list and a button on the left; a card and a paragraph on the right), a
+ * divider, a grid of five cards, an accordion of four questions, a second two-column section
+ * and a closing paragraph. Built through the form by build-start.js, like the configuration
+ * below, so it is the document the form holds once loaded.
+ */
+const richPage = loadData('portal-page-rich.json')
+
+/**
+ * @param {number} index
+ * @returns {any}
+ */
+const richBlock = (index) => /** @type {any[]} */ (richPage.elements)[index]
+
+/**
+ * Changing one value deep inside a long page: what a person asks of a page editor most often,
+ * and where reading the whole document to find one card costs the most.
+ *
+ * The card is the third of five in a grid, so its index is neither the first nor the last,
+ * and every card of the grid has the same shape.
+ * @type {EvalCase}
+ */
+const portalPageListEdit = {
+  name: 'portal-page-list-edit',
+  title: 'page configuration',
+  goal: 'Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».',
+  schema: loadSchema('portal-page.json'),
+  data: richPage,
+  compileOptions: pageCompileOptions,
+  context: { pages: portalPages },
+  saveMode: 'auto',
+  checks: [
+    { unchangedExcept: ['/elements/6/children/2/title'], label: 'nothing changed but the title of the card' },
+    { path: '/elements/6/children/2/title', equals: 'Budget et fiscalité', label: 'the card « Budget et finances » is titled « Budget et fiscalité »' }
+  ]
+}
+
+/**
+ * The positions after the reorder: the alert first, the divider added before the
+ * « Questions fréquentes » title, every other top-level block shifted accordingly.
+ * [start index, final index, label] of each top-level block the goal does not touch.
+ * @type {[number, number, string][]}
+ */
+const reorderKept = [
+  [0, 1, 'the page title'],
+  [1, 2, 'the introduction'],
+  [4, 4, 'the first divider'],
+  [5, 5, 'the title « Thématiques à la une »'],
+  [6, 6, 'the grid of themes'],
+  [7, 8, 'the title « Questions fréquentes »'],
+  [8, 9, 'the questions'],
+  [9, 10, 'the section « Jeunesse » / « Presse »'],
+  [10, 11, 'the closing paragraph']
+]
+
+/**
+ * Three structural edits in one request: a block inserted at a stated place, one moved, one
+ * removed from inside a column. editArray has no move, so a move is a removal and an insertion
+ * of the same block, and every index after the first change has shifted.
+ *
+ * The checks name each block's final place: an insertion at the wrong index, a block lost in
+ * the move or the wrong one removed each fail a check of their own, and a top-level block the
+ * goal does not name must come out where the shifts put it, whole.
+ * @type {EvalCase}
+ */
+const portalPageReorder = {
+  name: 'portal-page-reorder',
+  title: 'page configuration',
+  goal: 'Sur cette page, remonte l\'encadré « Nouveau » sur la qualité de l\'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».',
+  schema: loadSchema('portal-page.json'),
+  data: richPage,
+  compileOptions: pageCompileOptions,
+  context: { pages: portalPages },
+  saveMode: 'auto',
+  checks: [
+    { unchangedExcept: ['/elements'], label: 'nothing changed outside the blocks' },
+    { path: '/elements/0/type', equals: 'alert', label: 'the first block is the alert « Nouveau »' },
+    { path: '/elements/0/content', equals: richBlock(2).content, label: 'the alert moved to the top keeps its text' },
+    { path: '/elements/7/type', equals: 'divider', label: 'a divider is just before the title « Questions fréquentes »' },
+    { path: '/elements/3/children', length: 2, label: 'the column « Nos engagements » has lost one block' },
+    { path: '/elements/3/children/0', equals: richBlock(3).children[0], label: 'the column « Nos engagements » keeps its title' },
+    { path: '/elements/3/children/1', equals: richBlock(3).children[1], label: 'the column « Nos engagements » keeps its list' },
+    { path: '/elements/3/children2', equals: richBlock(3).children2, label: 'the right column of « Nos engagements » is unchanged' },
+    { path: '/elements', length: 12, label: 'the page has one top-level block more' },
+    ...reorderKept.map(([from, to, label]) => ({ path: `/elements/${to}`, equals: richBlock(from), label: `${label} is unchanged, at its shifted place` }))
+  ]
+}
+
+/**
+ * A block that becomes another kind of block, keeping its text: a paragraph turned into an
+ * information alert, inside the right column of a two-column section.
+ *
+ * Switching an option of a discriminated union inside a nested list: the text belongs to
+ * both options, the paragraph's own setting (`centered`) belongs to the old one only and must
+ * not survive the switch.
+ *
+ * Known library defect, so a failed `absent` check on the form arm reads as such: the form's
+ * natural switch path, `setFieldValue` on the `$oneOf` selector, leaves the old option's
+ * `centered` field in the data, and the form then reports itself invalid with no node error
+ * to say why. The agent cannot see the leftover, only the check can.
+ * @type {EvalCase}
+ */
+const portalPageSwitch = {
+  name: 'portal-page-switch',
+  title: 'page configuration',
+  goal: 'Dans la colonne de droite de la section « Nos engagements », transforme le paragraphe qui commence par « Besoin d\'aide ? » en encadré d\'information, en gardant exactement le même texte.',
+  schema: loadSchema('portal-page.json'),
+  data: richPage,
+  compileOptions: pageCompileOptions,
+  context: { pages: portalPages },
+  saveMode: 'auto',
+  checks: [
+    { unchangedExcept: ['/elements/3/children2/1'], label: 'nothing changed but the paragraph « Besoin d\'aide ? »' },
+    { path: '/elements/3/children2/1/type', equals: 'alert', label: 'the paragraph « Besoin d\'aide ? » is now an alert' },
+    { path: '/elements/3/children2/1/alertType', equals: 'info', label: 'the alert is an information' },
+    { path: '/elements/3/children2/1/content', equals: richBlock(3).children2[1].content, label: 'the alert keeps exactly the text of the paragraph' },
+    { path: '/elements/3/children2/1/centered', absent: true, label: 'the paragraph\'s own setting is gone' }
+  ]
+}
+
+const richConfig = loadData('portal-config-rich.json')
+
+/** @type {any[]} */
+const footerLinks = /** @type {any} */ (richConfig).footer.links
+
+/**
+ * Four changes in four distant parts of a site configuration, asked in one breath: the
+ * dataset cards (« Jeux de données » tab), the sharing networks (general settings), the
+ * breadcrumb (navigation) and a footer link to a free page picked among the portal's pages.
+ *
+ * Each is easy alone; together they measure whether an agent finds each place without
+ * rereading the whole configuration every time, and touches nothing on the way. The
+ * breadcrumb's options appear once it is shown, with their defaults, so the whole
+ * /breadcrumb object is free to change.
+ * @type {EvalCase}
+ */
+const portalConfigMulti = {
+  name: 'portal-config-multi',
+  title: 'portal configuration',
+  goal: 'A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.',
+  schema: loadSchema('portal-config.json'),
+  data: richConfig,
+  compileOptions: { locale: 'fr', xI18n: true, ajvOptions: { discriminator: true } },
+  context: { owner: { type: 'organization', id: 'test_org1' }, pages: portalPages },
+  lookups: ['list_portal_pages'],
+  saveMode: 'auto',
+  checks: [
+    {
+      unchangedExcept: ['/datasets/card/showDepartment', '/socialShares', '/breadcrumb', '/footer/links'],
+      label: 'nothing changed but the four settings asked for'
+    },
+    { path: '/datasets/card/showDepartment', equals: false, label: 'the dataset cards no longer show the department' },
+    { path: '/socialShares', values: ['bluesky', 'linkedin', 'facebook'], label: 'sharing is offered on Bluesky, LinkedIn and Facebook only' },
+    { path: '/breadcrumb/position', equals: 'above-footer', label: 'the breadcrumb is shown above the footer' },
+    { path: '/footer/links', contains: { type: 'generic', pageRef: { slug: 'contact-presse' } }, label: 'the footer links the page "Contact presse"' },
+    // where the new link goes is not stated, so the links it had are found wherever they are
+    ...footerLinks.map((/** @type {any} */ link) => ({ path: '/footer/links', contains: link, label: `the footer keeps its link "${link.title}"` })),
+    { path: '/footer/links', length: footerLinks.length + 1, label: 'the footer has one link more' }
+  ]
+}
+
+export const cases = [contact, calendar, charts, portalPage, chartsEdit, portalPageEdit, choropleth, portalConfigEdit, portalMenuCatalog, portalMenuExplain, portalPageCatalog, chartsPie, dataFairLine, portalPageListEdit, portalPageReorder, portalPageSwitch, portalConfigMulti]
 
 /**
  * @param {string} name

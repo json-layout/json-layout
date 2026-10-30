@@ -14,10 +14,13 @@ import * as getFieldSuggestions from '../src/webmcp/tools/get-field-suggestions.
 import * as editArray from '../src/webmcp/tools/edit-array.js'
 import * as fillFormSkill from '../src/webmcp/tools/fill-form-skill.js'
 
-import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, collectErrors, collectScopedErrors, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
-import { resolveNode } from '../src/webmcp/resolve.js'
+import { helpToText, HELP_MAX_LENGTH, DISPLAYED_VALUE_MAX_LENGTH, formatSuggestions, projectStateTreeToMarkdown, projectNodeToMarkdown, projectFieldResult, projectSuggestions, abbreviateValue, SUGGESTION_VALUE_MAX_LENGTH } from '../src/webmcp/project.js'
+import { collectErrors, collectScopedErrors } from '../src/webmcp/errors.js'
+import { OUTLINE_BUDGET_BYTES } from '../src/webmcp/outline.js'
+import { resolveNode, findStructuralKey } from '../src/webmcp/resolve.js'
 import { SuggestionsStore } from '../src/webmcp/suggestions-store.js'
 import { resolveSchemaPointer, resolveNodeSchema, cleanSchemaFragment } from '../src/webmcp/schema.js'
+import { getCase } from '../webmcp-eval/cases/index.js'
 
 /**
  * The text of a tool result. Since the structured path was removed this is the whole
@@ -222,6 +225,42 @@ describe('webmcp data paths on a tabbed form', () => {
     assert.equal(resolveNode(layout.stateTree.root, '/menu/0/$oneOf'), byLayout)
     setFieldValue.execute(layout, { path: '/menu/0/$oneOf', value: 1 })
     assert.equal(/** @type {any} */(layout.data).menu[0].type, 'generic')
+  })
+
+  it('reads a structural segment written without its $ as the layout segment', () => {
+    // round 3: the $ of /$comp-2 was dropped six times, each costing a not-found answer
+    const layout = makeLayout()
+    const byLayout = resolveNode(layout.stateTree.root, '/$comp-1/theme/primary')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(layout.stateTree.root, '/comp-1/theme/primary'), byLayout)
+    setFieldValue.execute(layout, { path: '/comp-1/theme/primary', value: '#1b5e20' })
+    assert.deepEqual(layout.data, { theme: { primary: '#1b5e20' }, menu: [{ title: 'a' }] })
+    // only names of form segments: any other unknown key still resolves to nothing
+    assert.equal(resolveNode(layout.stateTree.root, '/comps-1/theme/primary'), undefined)
+  })
+
+  it('keeps a data key named like a structural segment', () => {
+    const compiled = compile({
+      type: 'object',
+      layout: { comp: 'tabs', children: [{ title: 'A', children: ['comp-1'] }] },
+      properties: { 'comp-1': { type: 'object', properties: { primary: { type: 'string' } } } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { 'comp-1': { primary: 'x' } })
+    const node = resolveNode(layout.stateTree.root, '/comp-1/primary')
+    assert.equal(node?.dataPath, '/comp-1/primary')
+    setFieldValue.execute(layout, { path: '/comp-1/primary', value: 'y' })
+    assert.deepEqual(layout.data, { 'comp-1': { primary: 'y' } })
+  })
+
+  it('reads a union item path whose $ were dropped on the portal page', () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, structuredClone(evalCase.data))
+    const root = layout.stateTree.root
+    const byLayout = resolveNode(root, '/$comp-2/elements/6/$oneOf')
+    assert.ok(byLayout)
+    assert.equal(resolveNode(root, '/comp-2/elements/6/$oneOf'), byLayout)
+    assert.equal(resolveNode(root, '/comp-2/elements/6/oneOf'), byLayout)
   })
 
   it('points to the paths describeState lists when nothing matches', () => {
@@ -1035,6 +1074,116 @@ describe('webmcp activation across an array removal', () => {
   }
 })
 
+describe('webmcp editArray move', () => {
+  const layoutWith = (/** @type {string} */ mode = 'menu') => {
+    const compiled = compile(listModeSchema(mode))
+    const items = [{ type: 'in', field: 'a' }, { type: 'out', field: 'b' }, { type: 'in', field: 'c' }]
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: items })
+  }
+  const fields = (/** @type {any} */ layout) => layout.data.filters.map((/** @type {any} */ i) => i.field)
+
+  it('moves an item to another place, keeping every item and its data', () => {
+    const layout = layoutWith()
+    const result = editArray.execute(layout, { path: '/filters', action: 'move', from: 0, to: 2 })
+    assert.deepEqual(fields(layout), ['b', 'c', 'a'])
+    assert.deepEqual(/** @type {any} */(layout.data).filters[2], { type: 'in', field: 'a' })
+    assert.equal(result.itemCount, 3)
+    assert.equal(result.index, 2)
+    const back = editArray.execute(layout, { path: '/filters', action: 'move', from: 2, to: 0 })
+    assert.deepEqual(fields(layout), ['a', 'b', 'c'])
+    assert.equal(back.valid, true)
+  })
+
+  it('answers a move onto itself without changing anything', () => {
+    const layout = layoutWith()
+    const result = editArray.execute(layout, { path: '/filters', action: 'move', from: 1, to: 1 })
+    assert.deepEqual(fields(layout), ['a', 'b', 'c'])
+    assert.equal(result.itemCount, 3)
+  })
+
+  it('refuses indexes out of range, naming the valid ones', () => {
+    const layout = layoutWith()
+    for (const [from, to] of [[3, 0], [0, 3], [-1, 0], [0, 1.5]]) {
+      assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'move', from, to }), /out of bounds.*0 to 2/)
+    }
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'move', from: 0 }), /"from" and "to".*0 to 2/)
+    assert.throws(() => editArray.execute(layout, { path: '/filters', action: 'move', to: 0 }), /"from" and "to"/)
+    assert.deepEqual(fields(layout), ['a', 'b', 'c'])
+  })
+
+  for (const [activated, from, to, expected] of [[0, 0, 2, 2], [1, 0, 2, 0], [2, 0, 2, 1], [2, 2, 0, 0], [0, 2, 0, 1], [1, 2, 0, 2]]) {
+    it(`keeps editing the same item: item ${activated} after moving ${from} to ${to}`, () => {
+      const layout = layoutWith()
+      layout.activateItem(/** @type {any} */(resolveNode(layout.stateTree.root, '/filters')), activated)
+      editArray.execute(layout, { path: '/filters', action: 'move', from, to })
+      assert.equal(layout.activatedItems['/filters'], expected)
+    })
+  }
+
+  it('is a tool action, described and answered', async () => {
+    const compiled = compile(listModeSchema('menu'))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters: [{ field: 'a' }, { field: 'b' }] })
+    const tool = /** @type {any} */(new WebMCP(layout).getTools().find((t) => t.name === 'editArray'))
+    assert.deepEqual(editArray.inputSchema.properties.action.enum, ['add', 'remove', 'move'])
+    assert.ok(editArray.inputSchema.properties.from && editArray.inputSchema.properties.to)
+    assert.match(editArray.getDescription('x'), /move/)
+    const text = textOf(await tool.execute({ path: '/filters', action: 'move', from: 0, to: 1 }))
+    assert.match(text, /^moved item from 0 to 1, 2 total/)
+    assert.match(textOf(await tool.execute({ path: '/filters', action: 'move', from: 1, to: 1 })), /already at 1/)
+  })
+})
+
+// Round 4, portal-page-reorder form runs: after three editArray calls the agents read the page
+// again with describeState (16 KB) and sometimes getData (7 KB) only to check the order.
+describe('webmcp editArray answers with the list as it now stands', () => {
+  const pageTools = () => {
+    const evalCase = getCase('portal-page-reorder')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout).getTools()
+    return { layout, tool: /** @type {any} */(tools.find((t) => t.name === 'editArray')) }
+  }
+  /** @param {string} text */
+  const itemLines = (text) => text.split('\n').filter((l) => /^- \/\$comp-2\/elements\/\d+: /.test(l))
+
+  it('ends a move with each item in its new place, in the outline format', async () => {
+    const { tool } = pageTools()
+    const text = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'move', from: 0, to: 2 }))
+    assert.match(text, /^moved item from 0 to 2, 11 total/)
+    const lines = itemLines(text)
+    assert.equal(lines.length, 11, text)
+    assert.match(lines[0], /^- \/\$comp-2\/elements\/0: Texte/)
+    assert.match(lines[2], /^- \/\$comp-2\/elements\/2: Titre/)
+    assert.match(lines[6], /^- \/\$comp-2\/elements\/6: Grille responsive/)
+    assert.ok(text.endsWith(lines[10]), 'the list ends the answer')
+  })
+
+  it('ends a remove and an add with the list, the new item fields kept', async () => {
+    const { tool } = pageTools()
+    const removed = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'remove', index: 4 }))
+    assert.equal(itemLines(removed).length, 10, removed)
+    // the removed item is named in the first line, and no more in the list
+    assert.match(removed, /^removed item at index 4 \(Séparateur horizontal\)/)
+    assert.ok(!itemLines(removed).some((l) => l.includes('Séparateur')), removed)
+    const added = textOf(await tool.execute({ path: '/$comp-2/elements', action: 'add', index: 0, value: { type: 'divider' } }))
+    assert.match(added, /Fields of the new item/)
+    assert.match(itemLines(added)[0], /^- \/\$comp-2\/elements\/0: Séparateur/)
+    assert.equal(itemLines(added).length, 11)
+  })
+
+  it('names at most 50 items and counts the rest', async () => {
+    const compiled = compile(listModeSchema('menu'))
+    const filters = Array.from({ length: 60 }, (_, i) => ({ type: 'in', field: `field number ${i}` }))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { filters })
+    const tool = /** @type {any} */(new WebMCP(layout).getTools().find((t) => t.name === 'editArray'))
+    const text = textOf(await tool.execute({ path: '/filters', action: 'remove', index: 0 }))
+    assert.equal(text.split('\n').filter((l) => /^- \/filters\/\d+: /.test(l)).length, 50, text)
+    assert.match(text, /^- \/filters\/0: "field number 1"$/m)
+    assert.match(text, /and 9 more items/)
+  })
+})
+
 describe('webmcp suggestions invalidation', () => {
   const suggestionsSchema = {
     type: 'object',
@@ -1243,6 +1392,55 @@ describe('webmcp scoped mutation errors', () => {
     const result = setFieldValue.execute(layout, { path: '/name', value: 'ok' })
     assert.deepEqual(result.errors, [])
     assert.ok(result.otherErrors > 0, 'the errors of the filters should be counted apart')
+  })
+})
+
+describe('webmcp invalid form always located', () => {
+  const twoFieldsSchema = {
+    type: 'object',
+    required: ['a'],
+    properties: { a: { type: 'string', title: 'A' }, b: { type: 'string', title: 'B' } }
+  }
+
+  it('should list the errors of the rest of the form when the written field has none', async () => {
+    const compiled = compile(twoFieldsSchema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input', initialValidation: 'always' }, {})
+    layout.validate()
+    const tool = new WebMCP(layout).getTools().find((t) => t.name === 'setFieldValue')
+    assert.ok(tool)
+    const text = (await /** @type {any} */(tool).execute({ path: '/b', value: 'x' })).content[0].text
+    assert.match(text, /no error here/)
+    assert.match(text, /^- \/a: /m, `the error elsewhere must be listed with its path, got:\n${text}`)
+  })
+
+  it('should list at most 3 errors from elsewhere', async () => {
+    const compiled = compile({
+      type: 'object',
+      required: ['a', 'c', 'd', 'e'],
+      properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' }, d: { type: 'string' }, e: { type: 'string' } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input', initialValidation: 'always' }, {})
+    layout.validate()
+    const tool = new WebMCP(layout).getTools().find((t) => t.name === 'setFieldValue')
+    assert.ok(tool)
+    const text = (await /** @type {any} */(tool).execute({ path: '/b', value: 'x' })).content[0].text
+    assert.equal(text.match(/^- /gm)?.length, 3, text)
+    assert.match(text, /4 other error\(s\) elsewhere/, text)
+  })
+
+  it('should locate by its data pointer an error no node carries', () => {
+    // the state tree can fail to attach an error to a node (round 2: a property the new
+    // option of a nested union refused); the form is then invalid with nothing on any node
+    const error = { instancePath: '/elements/3/children2/1', schemaPath: '#/additionalProperties', keyword: 'additionalProperties', params: { additionalProperty: 'centered' }, message: 'must NOT have additional properties' }
+    const root = { fullKey: '', dataPath: '', key: '', children: [], layout: { comp: 'section' }, skeleton: { pointer: '#' } }
+    const layout = /** @type {any} */ ({ valid: false, stateTree: { root, valid: false }, validationErrors: [error] })
+    const { errors, elsewhere } = collectScopedErrors(layout, /** @type {any} */ (root).children[0] ?? { fullKey: '/elements/0' })
+    assert.deepEqual(errors, [])
+    assert.deepEqual(elsewhere, [{ path: '/elements/3/children2/1', message: 'must NOT have additional properties: centered' }])
+
+    // the same error from a union branch the form does not show is still given, rather than nothing
+    const hiddenBranch = /** @type {any} */ ({ ...layout, validationErrors: [{ ...error, schemaPath: '#/oneOf/1/additionalProperties' }] })
+    assert.deepEqual(collectErrors(hiddenBranch), [{ path: '/elements/3/children2/1', message: 'must NOT have additional properties: centered' }])
   })
 })
 
@@ -2102,7 +2300,7 @@ describe('webmcp tuple entry requiredness', () => {
       .filter((/** @type {string} */ l) => l.includes('/datasets/'))
     assert.equal(lines.length, 2, `both entries must be rendered: ${lines.join(' | ')}`)
     for (const line of lines) {
-      assert.ok(line.includes('value=undefined'), `precondition, the entry is empty: ${line}`)
+      assert.ok(line.includes(' not set'), `precondition, the entry is empty: ${line}`)
       assert.ok(!line.includes('required'), `required and empty while valid: ${line}`)
     }
   })
@@ -2179,8 +2377,9 @@ describe('webmcp repeated variant lists', () => {
     await run(tools, 'editArray', { path: '/elements', action: 'add', index: 1 })
 
     const read = await run(tools, 'describeState', {})
-    assert.equal(read.match(/- variant 0: Text/g)?.length, 1, `listed once, not per item: ${read}`)
-    assert.equal(read.match(/the same list already given/g)?.length, 1)
+    assert.equal(read.match(/- variant 0: Text(?! \(active\), one of)/g)?.length, 1, `listed once, not per item: ${read}`)
+    // once under the list, each item naming only the option it holds
+    assert.equal(read.match(/one of the 2 options listed under \/elements/g)?.length, 2)
   })
 
   it('should keep listing every union when no memo is passed', () => {
@@ -2215,9 +2414,9 @@ describe('webmcp help text', () => {
       height: { type: 'number', description: shortHelp }
     }
   }
-  const toolsOf = () => {
+  const toolsOf = (data = {}) => {
     const compiled = compile(schema)
-    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, data)
     return new WebMCP(layout, { dataTitle: 'page' }).getTools()
   }
   /**
@@ -2361,12 +2560,17 @@ describe('webmcp suggestions invalidated by a write', () => {
     assert.match(never, /no suggestion memorized.*on this path first/, `never fetched still says so: ${never}`)
   })
 
-  it('should still drop everything when paths themselves may have moved', async () => {
-    // setData replaces the document and editArray shifts item indices: those invalidate
-    // what a path DESIGNATES, which no cache key can detect
+  it('should drop on setData only what the write changed', async () => {
+    // setData can replace an array whole, so a path whose data changed may designate
+    // another item, which no cache key can detect; a path it left alone keeps its list
+    // (round 2's data-fair-line lost its commune list to a setData of the other fields)
     const tools = toolsOf()
     await run(tools, 'getFieldSuggestions', { path: '/fixed' })
-    await run(tools, 'setData', { data: { kind: 'a' } })
+    await run(tools, 'setData', { data: { kind: 'a', other: 'o' } })
+    const kept = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
+    assert.match(kept, /\/fixed \(select\) = "x"/, `got: ${kept}`)
+    await run(tools, 'getFieldSuggestions', { path: '/fixed' })
+    await run(tools, 'setData', { data: { fixed: 'y' } })
     const applied = await run(tools, 'setFieldValue', { path: '/fixed', suggestionIndex: 0 })
     assert.match(applied, /were dropped by a write/, `got: ${applied}`)
   })
@@ -2435,7 +2639,7 @@ describe('webmcp validation constraints in the state', () => {
     const compiled = compile({ type: 'object', properties: { free: { type: 'string', title: 'Free' } } })
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { debounceInputMs: 0 }, {})
     const line = projectStateTreeToMarkdown(layout.stateTree, layout).split('\n').find((l) => l.includes('/free ')) ?? ''
-    assert.equal(line.trim(), '- /free (text) label="Free" value=undefined', `got: ${line}`)
+    assert.equal(line.trim(), '- /free (text) label="Free" not set', `got: ${line}`)
   })
 })
 
@@ -2688,6 +2892,132 @@ describe('webmcp frictions of the portal-config-edit eval', () => {
   })
 })
 
+// Round 3, portal-config-edit form r3 #9: describeState /theme/colors answered "not in the
+// form yet" although the data holds it, its tabs hidden while the assisted colour mode is on.
+describe('webmcp describeState of a field hidden by a condition', () => {
+  const portalLayout = () => {
+    const evalCase = getCase('portal-config-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+  }
+
+  it('says a condition hides it, which field drives it, and its current value', () => {
+    const markdown = describeState.toMarkdown(portalLayout(), { path: '/theme/colors' })
+    assert.ok(!markdown.includes('not in the form yet'), markdown)
+    assert.match(markdown, /hidden until !data\.assistedMode/)
+    assert.match(markdown, /\/\$comp-2\/\$comp-2\/theme\/assistedMode[^\n]*= true/, markdown)
+    assert.match(markdown, /"primary":"#1976D2"/)
+  })
+
+  it('gives the value of a field under the hidden part', () => {
+    const markdown = describeState.toMarkdown(portalLayout(), { path: '/theme/colors/primary' })
+    assert.match(markdown, /hidden until/)
+    assert.match(markdown, /value="#1976D2"/)
+  })
+
+  it('says a condition on the context cannot be changed from the form', () => {
+    const compiled = compile({ type: 'object', properties: { secret: { type: 'string', layout: { if: 'context.adminMode' } } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: {} }, { secret: 'x' })
+    const markdown = describeState.toMarkdown(layout, { path: '/secret' })
+    assert.match(markdown, /hidden until context\.adminMode[^\n]*cannot be changed from the form/, markdown)
+  })
+
+  it('still describes what an option not chosen would hold', () => {
+    assert.match(describeState.toMarkdown(portalLayout(), { path: '/menu/children/0/$oneOf/1' }), /not in the form yet/)
+  })
+})
+
+// Review of rounds 4-6 and leads of the round 6 judges.
+describe('webmcp review of rounds 4-6', () => {
+  it('searches a hidden recursive part without overflowing', () => {
+    const compiled = compile({
+      type: 'object',
+      $defs: { node: { type: 'object', properties: { name: { type: 'string', title: 'Name' }, sub: { $ref: '#/$defs/node' } } } },
+      properties: { show: { type: 'boolean' }, tree: { $ref: '#/$defs/node', layout: { if: 'parent.data.show' } } }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { show: false })
+    assert.match(describeState.toMarkdown(layout, { query: 'name' }), /^\+2 hidden until parent\.data\.show under \/tree$/m)
+  })
+
+  it('collapses the hidden matches of a section into a count, visible ones first', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        show: { type: 'boolean', title: 'Show colors' },
+        colors: {
+          type: 'object',
+          layout: { if: 'parent.data.show' },
+          properties: { primary: { type: 'string', title: 'Primary color' }, secondary: { type: 'string', title: 'Secondary color' } }
+        },
+        accent: { type: 'string', title: 'Accent color' }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { show: false })
+    const markdown = describeState.toMarkdown(layout, { query: 'color' })
+    const lines = markdown.split('\n').slice(1)
+    assert.match(lines[0], /^\/show /)
+    assert.match(lines[1], /^\/accent /)
+    assert.equal(lines[2], '+3 hidden until parent.data.show under /colors', markdown)
+    assert.equal(lines.length, 3)
+  })
+
+  it('refuses a $allOf-N segment written as a data key', () => {
+    assert.equal(findStructuralKey({ a: { $allOf: 1, '$allOf-1': {} } }), '/a/$allOf-1')
+  })
+
+  it('does not read a key the schema declares as a form segment written without its $', () => {
+    /** @type {any} */
+    const selector = { key: '$oneOf', fullKey: '/$oneOf', dataPath: '', layout: { comp: 'one-of-select' }, options: {}, children: [] }
+    /** @type {any} */
+    const root = { key: '', fullKey: '', dataPath: '', data: {}, layout: { comp: 'section' }, options: {}, skeleton: { children: ['_jl#/properties/oneOf', '_jl#/oneOf'] }, children: [selector] }
+    assert.equal(resolveNode(root, '/oneOf'), undefined)
+    root.skeleton.children = ['_jl#/oneOf']
+    assert.equal(resolveNode(root, '/oneOf'), selector)
+  })
+
+  it('names the item an editArray remove took out', async () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    const text = textOf(await /** @type {any} */(tools.find((t) => t.name === 'editArray')).execute({ path: '/$comp-2/elements', action: 'remove', index: 5 }))
+    assert.match(text, /^removed item at index 5 \(Titre — "Thématiques à la une"\), 10 remaining/, text)
+  })
+
+  it('says an editArray add holds options an earlier answer listed', async () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    /**
+     * @param {string} name
+     * @param {any} args
+     */
+    const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
+    await run('describeState', { path: '/$comp-2/elements' })
+    const added = await run('editArray', { path: '/$comp-2/elements', action: 'add', value: { type: 'title', content: 'x' } })
+    // #14: a write refers to the options an earlier answer printed
+    assert.ok(!added.includes('variant 39:'), added)
+    assert.match(added, /one of the 40 options listed under \/\$comp-2\/elements$/m, added)
+  })
+
+  it('lists the options of an editArray add when an earlier item read only named them', async () => {
+    const evalCase = getCase('portal-page-list-edit')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch: async () => { throw new Error('no') } }, structuredClone(evalCase.data))
+    const tools = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    /**
+     * @param {string} name
+     * @param {any} args
+     */
+    const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
+    await run('describeState', { path: '/$comp-2/elements/7' })
+    const added = await run('editArray', { path: '/$comp-2/elements', action: 'add', value: { type: 'title', content: 'x' } })
+    assert.match(added, /variant 39: /, added)
+  })
+})
+
 describe('webmcp data path of a hidden field', () => {
   it('says the value exists but its field is not shown right now', () => {
     const compiled = compile({
@@ -2711,5 +3041,310 @@ describe('webmcp suggestion keys', () => {
     assert.equal(object.key, undefined)
     assert.ok(!formatSuggestions([object]).includes('[object Object]'))
     assert.equal(scalar.key, '75056')
+  })
+})
+
+// Round 2: two portal-config-multi runs walked 9-11 tabs to find four settings.
+describe('webmcp describeState query', () => {
+  /** @param {string} name */
+  const caseLayout = (name) => {
+    const evalCase = getCase(name)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+  }
+
+  it('finds a field by its key', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'breadcrumb' })
+    assert.match(markdown, /^\/\$comp-5\/breadcrumb \(section\)/m)
+    assert.ok(!markdown.includes('describeState with'), markdown)
+  })
+
+  it('finds a field by the words of its title, accents and case apart', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: "FIL d'ariane" })
+    assert.match(markdown, /^\/\$comp-5\/breadcrumb\/position \(select\) = [^\n]* — Position du fil d'Ariane$/m)
+    assert.equal(describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'ecrans reseaux' }).includes('socialShares'), false)
+    assert.match(describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'reseaux sociaux' }), /\/socialShares \(/)
+  })
+
+  it('finds the setting the user calls department by its key, under any tab', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'department' })
+    assert.match(markdown, /\/datasets\/\$comp-1\/card\/\$comp-1\/showDepartment \(switch\) = [^\n]* — Afficher le propriétaire/)
+    assert.ok(markdown.split('\n').length >= 4)
+  })
+
+  it('finds a field by its description, with every word required', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'surcharge propriétaire' })
+    assert.match(markdown, /labelsOverrides\/owner/)
+    assert.ok(!describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'surcharge zzzz' }).includes('labelsOverrides'))
+  })
+
+  it('searches under a path only', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'department', path: '/datasets/page' })
+    assert.match(markdown, /\/page\/metadata\/showDepartment/)
+    // the global card lives outside the path; the page's own cards are under it, hidden
+    assert.ok(!markdown.includes('/datasets/$comp-1/card/'), markdown)
+  })
+
+  it('says so when nothing matches', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'zzzz' })
+    assert.match(markdown, /no field matches "zzzz"/)
+    assert.match(markdown, /describeState without a query/)
+  })
+
+  it('keeps at most 30 matches and counts the rest', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-multi'), { query: 'e' })
+    const lines = markdown.split('\n').filter(l => l.startsWith('/'))
+    assert.equal(lines.length, 30)
+    assert.match(markdown, /\d+ fields match "e", the first 30 are listed/)
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('finds a field by its current value when it is a short text', () => {
+    // round 3: "Thématiques à la une", a card title, missed in 5 of 6 list-edit runs
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { query: 'Thématiques à la une' })
+    assert.match(markdown, /^\/\$comp-2\/elements\/5\/\$oneOf\/0\/content \([^)]*\) = "Thématiques à la une"/m)
+    const card = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { query: 'budget finances' })
+    assert.match(card, /^\/\$comp-2\/elements\/6\/\$oneOf\/14\/children\/2\/\$oneOf\/12\/title \(/m)
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('does not match a long text value', () => {
+    const compiled = compile({ type: 'object', properties: { body: { type: 'string', layout: 'textarea' } } })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { body: 'needle ' + 'x'.repeat(300) })
+    assert.match(describeState.toMarkdown(layout, { query: 'needle' }), /no field matches/)
+    const short = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { body: 'needle' })
+    assert.match(describeState.toMarkdown(short, { query: 'needle' }), /^\/body \(textarea\) = "needle"/m)
+  })
+
+  it('lists a field hidden by a condition and says what reveals it', () => {
+    // round 3: "crowd sourcing" missed in 5 of 6 calendar runs, its section hidden until a
+    // dataset that accepts edits is chosen
+    const markdown = describeState.toMarkdown(caseLayout('calendar'), { query: 'crowd sourcing' })
+    assert.ok(!markdown.includes('no field matches'), markdown)
+    assert.match(markdown, /crowdSourcing \([^)]*\)[^\n]* — hidden until rootData\.datasets\[0\]\.isRest/)
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES)
+  })
+
+  it('does not list a field the form never shows', () => {
+    // a const discriminator is layout none with no condition: nothing reveals it
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { query: 'uuid' })
+    assert.match(markdown, /no field matches "uuid"/)
+  })
+
+  it('is described by the tool', () => {
+    assert.ok(describeState.inputSchema.properties.query)
+    assert.match(describeState.getDescription('x'), /query/)
+  })
+})
+
+// Round 3, portal-page-reorder form runs call 4: describeState on one page block printed the
+// 40 options of its union again before its fields (6.2 KB), judged bulky.
+describe('webmcp describeState on one item of a list of unions', () => {
+  const caseLayout = () => {
+    const evalCase = getCase('portal-page-reorder')
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    return new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+  }
+
+  it('names the chosen option and where the options are listed, and lists only its fields', () => {
+    const markdown = describeState.toMarkdown(caseLayout(), { path: '/$comp-2/elements/7' })
+    // nothing listed them yet: the item names the selector that does
+    assert.match(markdown, /- variant 0: Titre \(active\), one of 40 options \(describeState \/\$comp-2\/elements\/7\/\$oneOf to list them\)$/m)
+    assert.ok(!markdown.includes('variant 1: Texte'), markdown)
+    assert.match(markdown, /\/\$comp-2\/elements\/7\/\$oneOf\/0\/content \(text\)/)
+    // 6210 bytes before, the 40 options printed again
+    assert.ok(Buffer.byteLength(markdown) < 4500, `${Buffer.byteLength(markdown)} bytes`)
+  })
+
+  it('still lists every option on the selector itself', () => {
+    const markdown = describeState.toMarkdown(caseLayout(), { path: '/$comp-2/elements/7/$oneOf' })
+    assert.match(markdown, /variant 39: /)
+  })
+})
+
+// Rounds 4-5 tried referring a read to the unions earlier answers listed; it was removed: a
+// read lists a union's options the first time it meets them, and refers back within itself.
+describe('webmcp options of a union listed per read', () => {
+  /** @param {string} name */
+  const tools = (name) => {
+    const evalCase = getCase(name)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+    const registered = new WebMCP(layout, { dataTitle: 'page' }).getTools()
+    /** @param {any} args */
+    return async (args) => textOf(await /** @type {any} */(registered.find((t) => t.name === 'describeState')).execute(args))
+  }
+
+  it('an item read outlined names its option and the selector that lists them', async () => {
+    const describe = tools('portal-page-list-edit')
+    await describe({})
+    const block = await describe({ path: '/$comp-2/elements/6' })
+    assert.ok(!block.includes('variant 39:'), block)
+    assert.match(block, /variant 14: Grille responsive \(active\)\n\s*- one of 40 options \(describeState \/\$comp-2\/elements\/6\/\$oneOf to list them\)/, block)
+    // the selector itself lists them all
+    assert.match(await describe({ path: '/$comp-2/elements/6/$oneOf' }), /variant 39: /)
+  })
+
+  it('lists the options on a later list read after an item read', async () => {
+    const describe = tools('portal-page-list-edit')
+    const item = await describe({ path: '/$comp-2/elements/7' })
+    assert.match(item, /one of 40 options \(describeState \/\$comp-2\/elements\/7\/\$oneOf to list them\)/)
+    assert.match(await describe({ path: '/$comp-2/elements' }), /variant 39: /)
+  })
+
+  it('lists a nested choice an earlier block answer listed', async () => {
+    const describe = tools('portal-page-list-edit')
+    assert.match(await describe({ path: '/$comp-2/elements/5' }), /variant 5: Aucun lien/)
+    assert.match(await describe({ path: '/$comp-2/elements/0' }), /variant 5: Aucun lien/)
+  })
+})
+
+// Round 2 of the webmcp eval (baselines/2026-10-29-round-2): the root describeState of a 7.5 KB
+// portal page answered 95 KB and `/elements` 91 KB, cut before the model read them.
+describe('webmcp outline of a large form', () => {
+  /**
+   * @param {string} name
+   */
+  const caseLayout = (name) => {
+    const evalCase = getCase(name)
+    const compiled = compile(evalCase.schema, evalCase.compileOptions)
+    const fetch = async () => { throw new Error('the network must not be reached') }
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, fetch }, structuredClone(evalCase.data))
+    return layout
+  }
+
+  it('answers the root of a large page as an outline within the budget', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), {})
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES, `${Buffer.byteLength(markdown)} bytes`)
+    assert.equal(OUTLINE_BUDGET_BYTES, 16_000)
+    assert.match(markdown, /\/elements \(list, 11 items/)
+    // each item with the option it holds, the options once
+    assert.match(markdown, /\/elements\/6: Grille responsive/)
+    assert.equal(markdown.match(/- variant 14: Grille responsive/g)?.length, 1)
+    assert.match(markdown.trim().split('\n').at(-1) ?? '', /describeState with the path/)
+  })
+
+  it('spends what is left of the budget on the parts it only named, breadth first', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), {})
+    // the card the list-edit case asks for, two lists down, without another call
+    assert.match(markdown, /\/elements\/6\/\$oneOf\/14\/children\/2: Boite — "Budget et finances"/)
+    // every top-level element opened before anything deeper
+    for (const i of [0, 4, 10]) assert.match(markdown, new RegExp(`/elements/${i}: [^\\n]*\\n\\s+- /\\$comp-2/elements/${i}/\\$oneOf/\\d+/`), `element ${i} shows its fields`)
+    // an unset field says so
+    assert.match(markdown, /\/\$comp-1\/thumbnail \(slot\) not set/)
+    assert.ok(!markdown.includes('value=undefined'))
+  })
+
+  it('reaches the menu of the portal configuration from its root', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-config-edit'), {})
+    assert.ok(Buffer.byteLength(markdown) <= OUTLINE_BUDGET_BYTES, `${Buffer.byteLength(markdown)} bytes`)
+    assert.match(markdown, /\/menu\/children\/0: \{"type":"standard","subtype":"home"\}/)
+    assert.match(markdown, /\/menu\/children\/1: /)
+  })
+
+  // Round 4: the root outline of a 7.6 KB page was 16 KB, read twice, when the plain arm read
+  // the 7.6 KB document once. The outline is sized after the data it describes.
+  it('sizes the outline after the data it describes, at most the budget', () => {
+    for (const name of ['portal-page-reorder', 'portal-page-list-edit']) {
+      const evalCase = getCase(name)
+      const markdown = describeState.toMarkdown(caseLayout(name), {})
+      assert.match(markdown, /an outline, \d+ level/)
+      assert.ok(Buffer.byteLength(markdown) <= 2 * Buffer.byteLength(JSON.stringify(evalCase.data)), `${name}: ${Buffer.byteLength(markdown)} bytes`)
+    }
+  })
+
+  it('keeps a form with little data small, down to a floor', () => {
+    const fields = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`group${i}`, {
+      type: 'object',
+      title: `Group ${i}`,
+      properties: Object.fromEntries(Array.from({ length: 6 }, (_, j) => [`field${j}`, { type: 'string', title: `Field ${j} of group ${i}`, description: 'some help text that makes the full description large '.repeat(2) }]))
+    }]))
+    const compiled = compile({ type: 'object', properties: fields })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { group0: { field0: 'x' } })
+    const markdown = describeState.toMarkdown(layout, {})
+    assert.match(markdown, /an outline, \d+ level/)
+    assert.ok(Buffer.byteLength(markdown) <= 6_000, `${Buffer.byteLength(markdown)} bytes`)
+    assert.match(markdown, /\/group39/)
+  })
+
+  it('says how many levels the outline actually shows', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: { rows: { type: 'array', items: { type: 'object', properties: { text: { type: 'string' }, n: { type: 'number' } } } } }
+    })
+    const rows = Array.from({ length: 300 }, (_, i) => ({ text: `row ${i} ${'with some words '.repeat(6)}`, n: i }))
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { rows })
+    const markdown = describeState.toMarkdown(layout, {})
+    const levels = Number(markdown.match(/an outline, (\d+) level\(s\) deep/)?.[1])
+    // the root is an untitled wrapper: each level shown is one more indentation under it
+    const deepest = Math.max(...markdown.split('\n').filter((l) => /^\s*- \//.test(l)).map((l) => (l.match(/^ */)?.[0].length ?? 0) / 2))
+    assert.equal(levels, deepest, markdown.slice(-300))
+  })
+
+  it('answers a large list shallower, naming the option each item holds', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { path: '/elements' })
+    assert.ok(Buffer.byteLength(markdown) <= 91_000 / 5, `${Buffer.byteLength(markdown)} bytes`)
+    const types = ['Titre', 'Texte', 'Texte accentué', 'Deux colonnes', 'Séparateur horizontal', 'Titre', 'Grille responsive', 'Titre', 'Accordéons', 'Deux colonnes', 'Texte']
+    types.forEach((title, i) => assert.match(markdown, new RegExp(`/elements/${i}: ${title}( —|\\n)`), `item ${i}`))
+  })
+
+  it('answers a part that fits in full', () => {
+    const markdown = describeState.toMarkdown(caseLayout('portal-page-list-edit'), { path: '/elements/6/$oneOf/14/children/2' })
+    assert.match(markdown, /\/children\/2\/\$oneOf\/12\/title \(text\)[^\n]* value="Budget et finances"/)
+  })
+
+  it('lists the options of a union once under a list rather than per item', () => {
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        elements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            oneOf: [
+              { title: 'Text', properties: { type: { const: 'text' }, content: { type: 'string' } } },
+              { title: 'Image', properties: { type: { const: 'image' }, src: { type: 'string' } } }
+            ]
+          }
+        }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { elements: [{ type: 'text', content: 'a' }, { type: 'image', src: 'b' }, { type: 'text', content: 'c' }] })
+    const markdown = describeState.toMarkdown(layout, { path: '/elements' })
+    assert.equal(markdown.match(/- variant 0: Text(?! \(active\), one of)/g)?.length, 1, markdown)
+    assert.ok(markdown.indexOf('- variant 0: Text') < markdown.indexOf('/elements/0'), 'under the list, before its items')
+    assert.match(markdown, /\/elements\/1\/\$oneOf[^\n]*\n\s*- variant 1: Image \(active\), one of the 2 options listed under \/elements\n/)
+    // the fields of a branch still say what the option brings
+    assert.match(markdown, /- variant 1: Image[^\n]*— \{[^\n]*src/)
+  })
+
+  it('shows a multi-valued field as a list', () => {
+    const markdown = describeState.toMarkdown(caseLayout('data-fair-line'), {})
+    assert.match(markdown, /\/activites \(list of text, values=\[[^\n]*value=\[\]/)
+    const layout = caseLayout('data-fair-line')
+    setData.execute(layout, { data: { activites: ['judo', 'yoga'] } })
+    assert.match(describeState.toMarkdown(layout, { path: '/activites' }), /list of text[^\n]*value=\["judo","yoga"\]/)
+  })
+
+  it('never shows an object suggestion as [object Object]', async () => {
+    const layout = caseLayout('portal-config-edit')
+    const tools = new WebMCP(layout, { dataTitle: 'portal' }).getTools()
+    /**
+     * @param {string} name
+     * @param {any} args
+     */
+    const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
+    await run('editArray', { path: '/menu/children', action: 'add' })
+    const index = /** @type {any} */(layout.data).menu.children.length - 1
+    await run('setFieldValue', { path: `/menu/children/${index}/$oneOf`, value: 1 })
+    const text = await run('getFieldSuggestions', { path: `/menu/children/${index}/$oneOf/1/pageRef`, query: 'jeunesse' })
+    assert.match(text, /Nos actions pour la jeunesse/)
+    assert.ok(!text.includes('[object Object]'), text)
+    // no title at all: a short JSON of the value, still not [object Object]
+    const [untitled] = projectSuggestions([{ title: /** @type {any} */(undefined), value: { slug: 'presse' } }])
+    assert.equal(untitled.title, '{"slug":"presse"}')
   })
 })

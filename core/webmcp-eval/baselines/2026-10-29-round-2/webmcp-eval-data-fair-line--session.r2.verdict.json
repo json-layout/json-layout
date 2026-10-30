@@ -1,0 +1,21 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The agent searched 'Saint-Sébastien', saw three candidates and chose the Loire one from the mail's 'near Nantes' cue, filled everything else in one setData, re-queried after the memorised suggestions were dropped, applied the suggestion, verified with describeState and saved. The result is valid and saved. The only cost was the dropped-suggestions error.",
+  "friction": [
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "Error: the suggestions memorized for path \"/commune\" were dropped by a write that may have changed this field's options, call getFieldSuggestions on this path again",
+      "inferred": "The index from call 2 was invalidated by the intervening setData on unrelated fields; the agent redid the same search (call 5), one wasted round-trip.",
+      "severity": "medium"
+    },
+    {
+      "call": 6,
+      "tool": "setFieldValue",
+      "observed": "/commune (autocomplete) = \"44190\" no error here form is valid",
+      "inferred": "Already confirmed valid, so the following describeState (call 7) bought no new information.",
+      "severity": "low"
+    }
+  ]
+}

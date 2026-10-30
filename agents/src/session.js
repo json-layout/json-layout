@@ -3,6 +3,8 @@
  * tools, save. The consumer supplies the I/O; the session supplies the form.
  */
 
+import { isDeepStrictEqual } from 'node:util'
+
 import { StatefulLayout } from '@json-layout/core/state'
 import { WebMCP, generateSkill } from '@json-layout/core/webmcp'
 
@@ -13,6 +15,72 @@ import { resolveCompiledLayout } from './layout-cache.js'
 /** @typedef {import('./types.js').FormTool} FormTool */
 /** @typedef {import('./types.js').SessionSpec} SessionSpec */
 /** @typedef {import('./types.js').SessionStatus} SessionStatus */
+
+/**
+ * How a session persists its document: `explicit`, only when the agent asks (`saveForm`, or
+ * `save: true` on a write); `auto`, after every write that leaves the form valid, for a
+ * document bound to a server-side draft. Explicit is the default: a record is edited, then
+ * saved (`715eac0`: saving whenever the form was valid destroyed a draft).
+ */
+export const SAVE_MODES = /** @type {const} */(['explicit', 'auto'])
+
+/** the core tools that write, which carry the save outcome */
+const WRITE_TOOLS = ['setData', 'setFieldValue', 'editArray']
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function abbreviate (value) {
+  const text = JSON.stringify(value) ?? String(value)
+  return text.length > 80 ? `${text.slice(0, 77)}...` : text
+}
+
+/**
+ * @param {Array<{path: string, value: unknown}>} unpicked
+ * @returns {string}
+ */
+function unpickedPhrase (unpicked) {
+  const values = unpicked.map((u) => `${u.path} value ${abbreviate(u.value)}`)
+  const named = values.length > 1 ? `${values.slice(0, -1).join(', ')} and ${values[values.length - 1]}` : values[0]
+  return `${named} ${values.length > 1 ? 'were' : 'was'} not picked from the field's suggestions`
+}
+
+/**
+ * @param {{ version: unknown, emptied?: boolean, dropped?: boolean }} result
+ * @returns {string}
+ */
+function savedLine (result) {
+  const version = result.version === undefined ? '' : `, version ${String(result.version)}`
+  return `saved${version}${emptiedPhrase(result)}`
+}
+
+/**
+ * @param {{ emptied?: boolean, dropped?: boolean }} result
+ * @returns {string}
+ */
+function emptiedPhrase (result) {
+  if (!result.emptied) return ''
+  const dropped = result.dropped ? '; an edit made while it was being saved was dropped with it, redo it on the new record' : ''
+  return `; the form is empty again for a new record${dropped}`
+}
+
+/**
+ * @param {any} result - an MCP tool result
+ * @param {string[]} lines
+ * @returns {any}
+ */
+function appendLines (result, lines) {
+  if (!lines.length) return result
+  const content = [...(result.content ?? [])]
+  const last = content.length - 1
+  if (last >= 0 && content[last].type === 'text') {
+    content[last] = { ...content[last], text: `${content[last].text}\n${lines.join('\n')}` }
+  } else {
+    content.push({ type: 'text', text: lines.join('\n') })
+  }
+  return { ...result, content }
+}
 
 /**
  * @param {string} message
@@ -86,6 +154,29 @@ export class FormSession {
   /** @type {FormTool[] | undefined} */
   _tools
 
+  /** @type {import('@json-layout/core').CompiledLayout | undefined} */
+  _compiled
+
+  /**
+   * The version the load reported, given back to the form a create session empties.
+   * @type {unknown}
+   */
+  _loadedVersion
+
+  /**
+   * Whether this session creates records: it loaded no document, so a successful save
+   * empties the form for the next one.
+   * @type {boolean}
+   */
+  _creating = false
+
+  /**
+   * In auto mode, the latest valid document waiting for the save in flight to settle, and
+   * the save that will persist it: writes landing during a save coalesce into one.
+   * @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }> } | undefined}
+   */
+  _queuedSave
+
   /**
    * The core tools of the current WebMCP, by name. Rebuilt by every open; the facades in
    * `_tools` look their target up here at call time.
@@ -97,8 +188,17 @@ export class FormSession {
    * @param {SessionSpec} spec
    */
   constructor (spec) {
-    if (!spec || typeof spec.load !== 'function') {
-      throw new Error('a session needs a load function')
+    if (!spec || (spec.load !== undefined && typeof spec.load !== 'function')) {
+      throw new Error('a session\'s load must be a function, or absent for a session that creates records')
+    }
+    if (spec.saveMode !== undefined && !SAVE_MODES.includes(spec.saveMode)) {
+      throw new Error(`unknown save mode "${String(spec.saveMode)}": one of ${SAVE_MODES.join(', ')}`)
+    }
+    if (spec.saveMode === 'auto' && typeof spec.save !== 'function') {
+      throw new Error('auto-save needs a save function')
+    }
+    if (spec.saveMode === 'auto' && !spec.load) {
+      throw new Error('auto-save needs a loaded document: a session that creates records saves explicitly')
     }
     if (!spec.layout && typeof spec.schema !== 'function') {
       throw new Error('a session needs either a compiled layout or a schema function')
@@ -111,6 +211,9 @@ export class FormSession {
 
   /** @returns {SessionStatus} */
   get status () { return this._status }
+
+  /** @returns {'explicit' | 'auto'} */
+  get saveMode () { return this._spec.saveMode ?? 'explicit' }
 
   /** @returns {unknown} */
   get version () { return this._version }
@@ -171,9 +274,11 @@ export class FormSession {
    * Persist the document through the consumer's save function. Refuses an invalid
    * document unless the consumer opted into `allowInvalid`. A consumer throw carrying
    * `status: 409` or `code: 'conflict'` marks the session stale and is reported as a
-   * conflict; every other failure marks it errored.
+   * conflict; every other failure marks it errored. `emptied` says a session creating
+   * records emptied its form for the next one, `dropped` that an edit landed during the save
+   * was emptied with it.
    * @param {{ allowInvalid?: boolean }} [options]
-   * @returns {Promise<{ version: unknown }>}
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
    */
   async save (options = {}) {
     if (!this._layout) throw sessionError(`"${this.title}" is not open`, 'closed')
@@ -188,10 +293,19 @@ export class FormSession {
       throw sessionError(`"${this.title}" is not valid: fix the reported errors, or allow invalid saves`, 'invalid')
     }
 
-    this._status = 'saving'
     // the document as it stands now, not as it stands when the consumer comes back: an
     // edit that lands while the save is in flight is not part of what was persisted
-    const saving = this._save(this._layout, this._layout.data, this._generation)
+    return this._startSave(this._layout, this._layout.data)
+  }
+
+  /**
+   * @param {StatefulLayout} layout
+   * @param {unknown} snapshot
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
+   */
+  async _startSave (layout, snapshot) {
+    this._status = 'saving'
+    const saving = this._save(layout, snapshot, this._generation)
     this._savePromise = saving
     try {
       return await saving
@@ -201,10 +315,43 @@ export class FormSession {
   }
 
   /**
+   * Auto mode: persist the document as it now stands. A save in flight is never overlapped:
+   * the document waits for it, and the writes landing meanwhile share one save of the last
+   * of them.
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
+   */
+  _autoSave () {
+    const layout = /** @type {StatefulLayout} */(this._layout)
+    const snapshot = layout.data
+    // the queue first: between a save settling and the queued one starting there is a tick
+    // with no save in flight, and a write starting its own save there would overlap the
+    // queued one, which could then persist older data last
+    if (this._queuedSave) {
+      this._queuedSave.snapshot = snapshot
+      return this._queuedSave.promise
+    }
+    if (!this._savePromise) return this._startSave(layout, snapshot)
+    const generation = this._generation
+    /** @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }> }} */
+    const queued = {
+      snapshot,
+      promise: this._savePromise.catch(() => {}).then(() => {
+        if (this._queuedSave === queued) this._queuedSave = undefined
+        if (generation !== this._generation || layout !== this._layout) {
+          throw sessionError(`"${this.title}" was closed before this edit was saved`, 'closed')
+        }
+        return this._startSave(layout, queued.snapshot)
+      })
+    }
+    this._queuedSave = queued
+    return queued.promise
+  }
+
+  /**
    * @param {StatefulLayout} layout - the layout the save was started from
    * @param {unknown} snapshot - the document handed to the consumer
    * @param {number} generation - the session generation the save was started in
-   * @returns {Promise<{ version: unknown }>}
+   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
    */
   async _save (layout, snapshot, generation) {
     /** @param {SessionStatus} status */
@@ -228,6 +375,20 @@ export class FormSession {
       // what the source now holds is the baseline; this clears the modified markers
       layout.savedData = snapshot
       setStatus('ready')
+      if (generation !== this._generation || layout !== this._layout) return { version: this._version }
+      // a record being created is done: the next one starts from an empty form, without
+      // the lists and picks of this one. Even when an edit landed during the save: kept, it
+      // would sit on a record already created, and the next save would create a duplicate.
+      if (this._creating) {
+        const version = this._version
+        const dropped = !isDeepStrictEqual(layout.data, snapshot)
+        this._install(/** @type {import('@json-layout/core').CompiledLayout} */(this._compiled), undefined)
+        this._version = this._loadedVersion
+        return { version, emptied: true, ...(dropped ? { dropped } : {}) }
+      }
+      // what was saved counts as loaded: a value saved despite the warning does not hold
+      // every later save
+      this._webmcp?.resetBaseline(snapshot)
       return { version: this._version }
     } catch (/** @type {any} */err) {
       if (err?.status === 409 || err?.code === 'conflict') {
@@ -252,6 +413,7 @@ export class FormSession {
     // a save still in flight was for the form being dropped: it settles on its own, and
     // must not hold back a save on the form that replaces it
     this._savePromise = undefined
+    this._queuedSave = undefined
     this._layout = undefined
     this._webmcp = undefined
     this._coreTools = undefined
@@ -289,11 +451,28 @@ export class FormSession {
     }
     const prefix = this._spec.prefixName ?? ''
     const skill = generateSkill(this.title, prefix, { guide: this._layout.compiledLayout.agentGuide, screen: false })
+    const reload = `${prefix}reloadForm discards local changes and reloads the document from its source; use it after a version conflict.`
+    if (this.saveMode === 'auto') {
+      return `${skill.trimEnd()}
+
+## Saving
+
+Your edits are saved as they go: every write that leaves the form valid persists the whole document, a write that leaves it invalid stays in this session until a later one makes it valid. ${reload}
+`
+    }
+    if (typeof this._spec.save !== 'function') {
+      return `${skill.trimEnd()}
+
+## Saving
+
+This document is read-only here: your edits stay in this session and ${prefix}saveForm refuses. ${reload}
+`
+    }
     return `${skill.trimEnd()}
 
 ## Saving
 
-Your edits stay in this session until you call ${prefix}saveForm, which persists the whole document and refuses while the form is invalid. ${prefix}reloadForm discards local changes and reloads the document from its source; use it after a version conflict.
+Your edits stay in this session until you save them: pass save: true to ${prefix}setData, ${prefix}setFieldValue or ${prefix}editArray to save with the write, or call ${prefix}saveForm. A save persists the whole document and is refused while the form is invalid; save: true is also held while a list field holds a value not picked from its suggestions. ${reload}
 `
   }
 
@@ -306,34 +485,60 @@ Your edits stay in this session until you call ${prefix}saveForm, which persists
     // Facades over core's tools rather than the descriptors themselves: `reload` builds a
     // new layout and a new WebMCP under the session, and a descriptor bound to the old one
     // would keep editing a form nobody reads any more.
-    const coreTools = /** @type {FormTool[]} */(/** @type {WebMCP} */(this._webmcp).getTools().map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-      execute: async (/** @type {any} */ args) => {
-        const current = this._coreTools?.get(tool.name)
-        if (!current) {
-          return { content: [{ type: 'text', text: `Error: "${title}" is not open` }], isError: true }
+    const auto = this.saveMode === 'auto'
+    const canSave = typeof this._spec.save === 'function'
+    const writeTools = new Set(WRITE_TOOLS.map((name) => `${prefix}${name}`))
+    const coreTools = /** @type {FormTool[]} */(/** @type {WebMCP} */(this._webmcp).getTools().map((tool) => {
+      const writes = writeTools.has(tool.name)
+      /** @type {any} */
+      const inputSchema = tool.inputSchema
+      return {
+        name: tool.name,
+        description: tool.description,
+        inputSchema: writes && canSave && !auto
+          ? {
+              ...inputSchema,
+              properties: {
+                ...inputSchema?.properties,
+                save: { type: 'boolean', description: 'Save the form after this write, when the write leaves it valid (default false).' }
+              }
+            }
+          : inputSchema,
+        execute: async (/** @type {any} */ args) => {
+          const current = this._coreTools?.get(tool.name)
+          if (!current) {
+            return { content: [{ type: 'text', text: `Error: "${title}" is not open` }], isError: true }
+          }
+          if (!writes) return current.execute(args)
+          // a stray `save` is stripped on a session that does not offer it too
+          const { save, ...rest } = args ?? {}
+          const result = await current.execute(args ? rest : args)
+          if (result?.isError || !canSave) return result
+          return appendLines(result, await this._afterWrite(save === true || save === 'true'))
         }
-        return current.execute(args)
       }
-    })))
+    }))
     return [
       ...coreTools,
-      {
-        name: `${prefix}saveForm`,
-        description: `Save the "${title}" form: persist the data currently in it through the session's save function. Refuses while the form is invalid. On a version conflict, reload first.`,
-        inputSchema: { type: 'object', properties: {} },
-        execute: async () => {
-          try {
-            const { version } = await this.save()
-            const suffix = version === undefined ? '' : ` (version ${String(version)})`
-            return { content: [{ type: 'text', text: `Saved "${title}"${suffix}.` }] }
-          } catch (err) {
-            return { content: [{ type: 'text', text: `Error: ${message(err)}` }], isError: true }
-          }
-        }
-      },
+      ...(auto
+        ? []
+        : [{
+            name: `${prefix}saveForm`,
+            description: `Save the "${title}" form: persist the data currently in it through the session's save function. Refuses while the form is invalid. On a version conflict, reload first.`,
+            inputSchema: { type: 'object', properties: {} },
+            execute: async () => {
+              try {
+                const unpicked = this._webmcp?.unpickedValues() ?? []
+                const result = await this.save()
+                const suffix = result.version === undefined ? '' : ` (version ${String(result.version)})`
+                const lines = [`Saved "${title}"${suffix}${emptiedPhrase(result)}.`]
+                if (unpicked.length) lines.push(`warning: ${unpickedPhrase(unpicked)}; saved anyway`)
+                return { content: [{ type: 'text', text: lines.join('\n') }] }
+              } catch (err) {
+                return { content: [{ type: 'text', text: `Error: ${message(err)}` }], isError: true }
+              }
+            }
+          }]),
       {
         name: `${prefix}reloadForm`,
         description: `Reload the "${title}" form from its source, discarding local changes. Use it to resolve a save conflict.`,
@@ -351,6 +556,60 @@ Your edits stay in this session until you call ${prefix}saveForm, which persists
   }
 
   /**
+   * What a write adds to its answer about saving: in explicit mode, only when it asked for
+   * a save; in auto mode, always.
+   * @param {boolean} requested - the write passed `save: true`
+   * @returns {Promise<string[]>}
+   */
+  async _afterWrite (requested) {
+    const prefix = this._spec.prefixName ?? ''
+    if (this.saveMode === 'auto') {
+      // allowInvalid is not read here: auto mode persists only what leaves the form valid
+      if (!this.valid) return ['not saved yet: the form is invalid']
+      try {
+        return [savedLine(await this._autoSave())]
+      } catch (err) {
+        return [`not saved: ${message(err)}`]
+      }
+    }
+    if (!requested) return []
+    const allowInvalid = this._spec.allowInvalid ?? false
+    // the write's answer above lists the errors
+    if (!this.valid && !allowInvalid) return ['not saved: the form is invalid, see the errors above']
+    // the fast path carries only checked values; saveForm is the deliberate override
+    const unpicked = this._webmcp?.unpickedValues() ?? []
+    if (unpicked.length) {
+      return [`not saved: ${unpickedPhrase(unpicked)}; pick them with ${prefix}getFieldSuggestions, or ${prefix}saveForm saves anyway`]
+    }
+    try {
+      return [savedLine(await this.save())]
+    } catch (err) {
+      return [`not saved: ${message(err)}`]
+    }
+  }
+
+  /**
+   * Build the form over a document, with fresh tools state (suggestions, picks).
+   * @param {import('@json-layout/core').CompiledLayout} compiled
+   * @param {unknown} data
+   */
+  _install (compiled, data) {
+    const mainTree = compiled.skeletonTrees[compiled.mainTree]
+    const baseline = baselineOf(data, this.title)
+    // server-side there is no typing to debounce, and input is the only arrival mode
+    /** @type {Partial<import('@json-layout/core/state').StatefulLayoutOptions>} */
+    const options = { validateOn: 'input', debounceInputMs: 0, ...this._spec.options }
+    this._layout = new StatefulLayout(compiled, mainTree, options, data, baseline)
+    this._webmcp = new WebMCP(this._layout, {
+      dataTitle: this.title,
+      prefixName: this._spec.prefixName,
+      // edited server-side: there is no person's screen with tabs to open
+      screen: false
+    })
+    this._coreTools = new Map(this._webmcp.getTools().map((tool) => [tool.name, tool]))
+  }
+
+  /**
    * @param {number} generation - the session generation this load was started in
    * @returns {Promise<FormSession>}
    */
@@ -361,22 +620,20 @@ Your edits stay in this session until you call ${prefix}saveForm, which persists
       if (!mainTree) {
         throw new Error(`main skeleton tree "${compiled.mainTree}" not found in the compiled layout`)
       }
-      const { value: data, version } = unwrapEnvelope(await this._spec.load(), 'data')
-      const baseline = baselineOf(data, this.title)
+      const { value: data, version } = this._spec.load
+        ? unwrapEnvelope(await this._spec.load(), 'data')
+        : { value: undefined, version: undefined }
+      if (data === undefined && this.saveMode === 'auto') {
+        throw sessionError(`"${this.title}" loaded no document: auto-save needs one, a session that creates records saves explicitly`, 'document')
+      }
+      baselineOf(data, this.title)
       // closed while this was loading: whoever closed it wants nothing installed
       if (generation !== this._generation) return this
       this._version = version
-      // server-side there is no typing to debounce, and input is the only arrival mode
-      /** @type {Partial<import('@json-layout/core/state').StatefulLayoutOptions>} */
-      const options = { validateOn: 'input', debounceInputMs: 0, ...this._spec.options }
-      this._layout = new StatefulLayout(compiled, mainTree, options, data, baseline)
-      this._webmcp = new WebMCP(this._layout, {
-        dataTitle: this.title,
-        prefixName: this._spec.prefixName,
-        // edited server-side: there is no person's screen with tabs to open
-        screen: false
-      })
-      this._coreTools = new Map(this._webmcp.getTools().map((tool) => [tool.name, tool]))
+      this._loadedVersion = version
+      this._creating = data === undefined
+      this._compiled = compiled
+      this._install(compiled, data)
       this._status = 'ready'
       return this
     } catch (err) {

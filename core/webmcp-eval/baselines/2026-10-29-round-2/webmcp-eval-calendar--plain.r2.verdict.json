@@ -1,0 +1,14 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "Dataset located via list_account_datasets, the event name column (nomevenement) found through describe_dataset, and the write set datasets, labelField and crowdSourcing:true, verified by re-read. The key is real. However labelField was written as a reduced {key,label} object, a shape the agent assembled itself from the getItems itemKey/itemTitle hints; the schema did not say it, and the tool accepted it, so it passed unchecked. Goal is reached from tool-sourced values; the shape is a plausible but unconfirmed choice.",
+  "friction": [
+    {
+      "call": 5,
+      "tool": "writeDocument",
+      "observed": "200 OK stored 3 top-level key(s) for labelField {key:nomevenement,label:Nom de levenement}",
+      "inferred": "The agent concluded the minimal {key,label} shape was right; the schema left labelField untyped so the acceptance confirms nothing about what the calendar consumer expects.",
+      "severity": "low"
+    }
+  ]
+}

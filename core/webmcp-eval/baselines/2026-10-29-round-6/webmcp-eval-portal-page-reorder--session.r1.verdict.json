@@ -1,0 +1,14 @@
+{
+  "case": "portal-page-reorder",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the outline once, moved the Nouveau alert from index 2 to 0 with one editArray move (response lists the new order and ends with saved), inspected the nested button with describeState to confirm it was Voir tout le catalogue before removing it, removed it from the Nos engagements column (saved), then inserted a divider at index 7 directly before Questions fréquentes (saved, list shown). Final data has the alert first, a new divider immediately before the FAQ title, and the button gone while the sibling column content is intact. All three parts were done in 5 calls, each write saved and valid, with the nested path verified rather than guessed blindly.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "editArray",
+      "observed": "The post-move list shows the two-column block only as \"Deux colonnes — Nos engagements\"; the button inside the column is not visible in any list.",
+      "inferred": "The agent had to build the nested path /$comp-2/elements/3/$oneOf/13/children/2 itself and spend a describeState (call 3) to confirm the button was there.",
+      "severity": "low"
+    }
+  ]
+}

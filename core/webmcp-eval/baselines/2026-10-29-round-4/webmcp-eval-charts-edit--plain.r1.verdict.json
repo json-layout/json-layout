@@ -1,0 +1,21 @@
+{
+  "case": "charts-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document, located valueCalc and legendPosition in the schema (both oneOf lists confirmed max and bottom exist), and changed metric avg to max and legendPosition right to bottom. Its first patch wrongly moved the root-level options disableTooltip, labelsMaxWidth and divider inside chart and was refused with a long oneOf cascade; it recovered by resending chart without them. The final document keeps all siblings, with metric max and legendPosition bottom, grounded in schema reads rather than guessing.",
+  "friction": [
+    {
+      "call": 5,
+      "tool": "patchDocument",
+      "observed": "400 Bad Request with about 20 lines of oneOf errors (e.g. \"/chart must NOT have additional properties: disableTooltip\", \"/chart/config must have required property labelsField\" ...) for a chart that was one misplaced-key mistake away from valid",
+      "inferred": "The agent worked out that the root options had been nested into chart by mistake and removed them; the cascade of unrelated-branch errors made that harder to read",
+      "severity": "low"
+    },
+    {
+      "call": 1,
+      "tool": "readDocument",
+      "observed": "Full document including the whole dataset schema (about 4.7KB) returned for a two-field edit",
+      "inferred": "Nothing wrong, but the bulk of the payload was irrelevant to the goal",
+      "severity": "low"
+    }
+  ]
+}

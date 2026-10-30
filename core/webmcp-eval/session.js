@@ -13,7 +13,10 @@
 import { compile } from '../src/compile/index.js'
 import { StatefulLayout } from '../src/state/index.js'
 import { WebMCP } from '../src/webmcp/index.js'
+import { caseFetch, FIXTURE_BASE_URL } from './remote.js'
 import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
+import { runChecks } from './checks.js'
+import { RUNNER_PROMPT } from './prompts.js'
 
 /** @typedef {import('./cases/types.js').EvalCase} EvalCase */
 
@@ -33,6 +36,9 @@ import { generateSkill } from '../src/webmcp/tools/fill-form-skill.js'
  * @property {string} startedAt - ISO timestamp of when the session was opened, so a
  *   transcript left behind by an earlier session cannot be read as a fresh run
  * @property {RecordedCall[]} calls - every tool call the agent made, in order
+ * @property {'form'|'session'|'plain'} arm - which tool surface the agent was given
+ * @property {unknown} start - the data the run started from, after the arm normalized it
+ * @property {import('./checks.js').CheckResult[]} checks - the case's checks run on the final data
  * @property {unknown} data - the form data the session ended with
  * @property {boolean} valid - whether that data validates against the case's schema
  * @property {{ toolCalls: number, outputBytes: number }} metrics - run size, reported
@@ -72,14 +78,48 @@ export function applyVariant (evalCase, variant) {
 }
 
 /**
- * Evidence basename. The default variant keeps the plain name so nothing downstream
- * moves; other variants get a suffix so a comparison run never overwrites its control.
+ * Evidence basename, the single source every reader and writer shares. The default
+ * variant and the default `form` arm keep the plain name so nothing downstream moves;
+ * other variants and arms get a suffix so a comparison run never overwrites its control,
+ * and a repeated run gets `.r<n>` so repeats never overwrite each other.
  * @param {string} name
  * @param {string} [variant]
+ * @param {string} [arm]
+ * @param {number} [run]
  * @returns {string}
  */
-export function evidenceName (name, variant) {
-  return !variant || variant === 'default' ? name : `${name}--${variant}`
+export function evidenceName (name, variant, arm, run) {
+  let label = !variant || variant === 'default' ? name : `${name}--${variant}`
+  if (arm && arm !== 'form') label += `--${arm}`
+  if (run !== undefined) label += `.r${run}`
+  return label
+}
+
+/**
+ * The exact inverse of `evidenceName` for one case: the variant, arm and run it was built
+ * from, or null when the label belongs to another case.
+ * @param {string} label
+ * @param {string} name
+ * @returns {{ variant: string|undefined, arm: string, run: number|undefined }|null}
+ */
+export function parseEvidenceName (label, name) {
+  if (label !== name && !label.startsWith(`${name}--`) && !label.startsWith(`${name}.r`)) return null
+  let rest = label.slice(name.length)
+  let run
+  const runMatch = /\.r(\d+)$/.exec(rest)
+  if (runMatch) {
+    run = Number(runMatch[1])
+    rest = rest.slice(0, runMatch.index)
+  }
+  let arm = 'form'
+  const armMatch = /--(session|plain)$/.exec(rest)
+  if (armMatch) {
+    arm = armMatch[1]
+    rest = rest.slice(0, armMatch.index)
+  }
+  if (rest && !rest.startsWith('--')) return null
+  const variant = rest ? rest.slice(2) : undefined
+  return { variant, arm, run }
 }
 
 /**
@@ -99,6 +139,11 @@ export class EvalSession {
   _tools
   /** @type {string} */
   _skill = ''
+  /**
+   * The form's normalized starting data, which checks compare the final data against.
+   * @type {unknown}
+   */
+  start
   /** @type {RecordedCall[]} */
   calls = []
   /**
@@ -123,13 +168,16 @@ export class EvalSession {
       fetchBaseURL: options.dataFairURL ?? process.env.JL_WEBMCP_EVAL_DATA_FAIR ?? DEFAULT_DATA_FAIR_URL,
       context: evalCase.context ?? {}
     }
-    if (options.fetch) layoutOptions.fetch = options.fetch
+    const fetch = caseFetch(evalCase, options)
+    if (fetch) layoutOptions.fetch = fetch
+    if (evalCase.remote) layoutOptions.fetchBaseURL = FIXTURE_BASE_URL
     this._layout = new StatefulLayout(
       compiled,
       mainTree,
       layoutOptions,
       structuredClone(evalCase.data)
     )
+    this.start = structuredClone(this._layout.data)
     // No fillFormSkill tool: production pages enable includeSubAgent, which hands the
     // guide to the runner as its prompt. Clean runners never called the tool anyway —
     // only ones contaminated by a "always invoke a skill first" instruction did.
@@ -152,6 +200,12 @@ export class EvalSession {
    * @returns {string}
    */
   get skill () { return this._skill }
+
+  /**
+   * The runner's whole system prompt: the base prompt, then the guide when there is one.
+   * @returns {string}
+   */
+  get prompt () { return this._skill ? `${RUNNER_PROMPT}\n\n${this._skill}` : RUNNER_PROMPT }
 
   /**
    * The tools the guide describes, in the order a page registers them.
@@ -210,9 +264,12 @@ export class EvalSession {
     return {
       case: this._case.name,
       goal: this._case.goal,
+      arm: 'form',
       startedAt: this.startedAt,
+      start: this.start,
       calls: this.calls,
       data: this.data,
+      checks: runChecks(this._case.checks ?? [], this.data, this.start),
       valid: this.valid,
       metrics: {
         toolCalls: this.calls.length,

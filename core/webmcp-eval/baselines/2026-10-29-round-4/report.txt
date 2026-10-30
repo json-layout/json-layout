@@ -1,0 +1,705 @@
+
+> @json-layout/core@2.12.1 webmcp-eval:report
+> node webmcp-eval/report.js
+
+
+contact: not run
+  no transcript at core/tmp/webmcp-eval-contact.json — the case was never dispatched
+
+calendar (r1): SATISFACTORY
+  The agent selected Agenda-manifestations through a suggestion, discovering that the crowdSourcing field was hidden until a REST dataset was chosen (call 3 told it so explicitly). It then picked the event name column (nomevenement) from a list the tool surfaced, and set crowdSourcing to true; the form ended valid. No value was invented. Ten calls for a three-part goal is reasonable, with a couple of redundant reads.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:36.090Z
+  ran 10 calls, read 7526 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 71900 (60373 cached), out 1280
+  friction:
+    [low] call 5 describeState: - /$allOf-1/labelField (select, suggestions) label="Champ de libellé" value=undefined ... no error here
+form is valid
+      → Confirmed the label field was now fillable; the setFieldValue result of call 4 already announced newly available fields, so this bought little.
+    [low] call 6 describeState: - /$allOf-3/crowdSourcing (boolean) label="Activer le crowd sourcing" value=undefined
+      → Checked the crowd sourcing field before writing it; information already known from calls 3 and 4.
+    [low] call 9 setFieldValue: 4 field(s) became available: /$allOf-0/datasets/1, /$allOf-3/contribsDataset, ...
+      → The same contribs dataset appears under two paths, which could suggest a second required step; the agent correctly left it alone.
+
+calendar (r2): SATISFACTORY
+  The agent selected the Agenda-manifestations dataset, set the label to nomevenement (index 19 of the full suggestion list) and turned crowdSourcing on; final form valid with the expected values. The label choice came from the tool-provided list. Two extra calls at the end explored the optional contributions dataset, which the goal did not require.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:40.739Z
+  ran 12 calls, read 11378 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 91141 (80419 cached), out 1502
+  friction:
+    [low] call 7 getFieldSuggestions: 27 suggestion(s) ... - [3] Type demandeur (type_demandeur) ... [19] Nom de l'évenement
+      → Indices start at 3 for a 27-item list because the earlier filtered query occupied 0-2; the agent coped by using index 19, but the numbering is surprising and error-prone.
+    [low] call 6 getFieldSuggestions: 3 suggestion(s) ... [2] Nom de l'évenement (nomevenement)
+      → The filter query "nom" matched Nom and Prénom as well, so the agent re-listed all fields in call 7 to be sure; one call of redundancy.
+    [low] call 11 describeState: - /$allOf-0/datasets/1 (autocomplete, suggestions) label="Jeu de données des contributions externes" value=undefined
+      → After enabling crowd sourcing the agent investigated the newly exposed contribs dataset field, which is optional; calls 10-12 added no change to the data.
+
+calendar (r3): SATISFACTORY
+  The agent set the dataset by suggestion, listed the label field choices, picked nomevenement at index 16 (matching the list shown in the same response), and enabled crowdSourcing; the form is valid with the intended data. The label value was taken from the tool-listed options, not invented. The last four calls were verification and exploration of the optional contributions dataset that the goal did not require.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:42.041Z
+  ran 10 calls, read 9180 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 75848 (66391 cached), out 1273
+  friction:
+    [low] call 5 describeState: - /$allOf-3 (section) title="Edition"
+no error here
+      → A section-level describeState reveals nothing about its children, so the agent learned little; repeated at call 8.
+    [low] call 10 getFieldSuggestions: 13 suggestion(s) ... [0] Agenda-manifestations ... [1] Salle Van Gogh ...
+      → Listing candidates for the optional contributions dataset, which the goal did not ask to fill; the same dataset field exists at two paths (/$allOf-0/datasets/1 and /$allOf-3/contribsDataset).
+
+calendar (plain, r1): SATISFACTORY
+  The agent found the dataset by name, described it, and picked nomevenement (title "Nom de l'évenement", concept label) as the event name column, a value grounded in the describe_dataset response rather than guessed. It then wrote datasets, labelField and crowdSourcing:true in one writeDocument accepted by validation and confirmed with a readDocument; no sibling data was lost since the document started empty. The extra search for a contributions dataset (call 6) bought no information the goal needed, and was after the write. Round trips were close to the minimum.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:54.128Z
+  ran 7 calls, read 17249 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 61411 (47757 cached), out 2499
+  friction:
+    [medium] call 2 readSchema: labelField is declared as {"type":"object","title":"Champ de libellé"} with no properties; its shape only appears in the getItems itemKey data["key"] / itemTitle data["label"] expressions
+      → The agent reconstructed {key,label} from those expressions and from the dataset schema entry; this worked but only by reading layout expressions, nothing stated the stored shape
+    [low] call 4 describe_dataset: Returned only id, title, href, isRest and schema; the dataset item in the schema also accepts timePeriod, attachmentsAsImage, userPermissions, which the picker would store
+      → The agent wrote datasets[0] with href, title and isRest only; whether the calendar needs the other fields is not discoverable from the tools
+    [low] call 6 list_account_datasets: {"count":0,"results":[]} for q=contributions agenda
+      → The agent looked for a contribution dataset for the optional contribsDataset slot, found none, and left it unset; the lookup is filtered to rest datasets only by the agent's guess, so the empty result says little
+
+calendar (plain, r2): SATISFACTORY
+  The agent found the dataset by name, described it, and picked nomevenement (title "Nom de l'évenement", concept label) as the event name column, a value grounded in the describe_dataset response rather than guessed. It then wrote datasets, labelField and crowdSourcing:true in one writeDocument accepted by validation and confirmed with a readDocument; no sibling data was lost since the document started empty. The agent did not set contribsDataset, which the goal did not name. Round trips were close to the minimum.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:54.843Z
+  ran 6 calls, read 17225 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 61834 (47712 cached), out 2941
+  friction:
+    [medium] call 2 readSchema: labelField is declared as {"type":"object","title":"Champ de libellé"} with no properties; its shape only appears in the getItems itemKey data["key"] / itemTitle data["label"] expressions
+      → The agent reconstructed {key,label} from those expressions and from the dataset schema entry; this worked but only by reading layout expressions, nothing stated the stored shape
+    [low] call 4 describe_dataset: Returned only id, title, href, isRest and schema; the dataset item in the schema also accepts timePeriod, attachmentsAsImage, userPermissions, which the picker would store
+      → The agent wrote datasets[0] with href, title and isRest only; whether the calendar needs the other fields is not discoverable from the tools
+
+calendar (plain, r3): SATISFACTORY
+  The agent found the dataset by name, described it, and picked nomevenement (title "Nom de l'évenement", concept label) as the event name column, a value grounded in the describe_dataset response rather than guessed. It then wrote datasets, labelField and crowdSourcing:true in one writeDocument accepted by validation and confirmed with a readDocument; no sibling data was lost since the document started empty. The agent did not set contribsDataset, which the goal did not name. It searched the dataset first, which was a sensible ordering. Round trips were close to the minimum.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:55.313Z
+  ran 6 calls, read 17225 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 60821 (47299 cached), out 2416
+  friction:
+    [medium] call 3 readSchema: labelField is declared as {"type":"object","title":"Champ de libellé"} with no properties; its shape only appears in the getItems itemKey data["key"] / itemTitle data["label"] expressions
+      → The agent reconstructed {key,label} from those expressions and from the dataset schema entry; this worked but only by reading layout expressions, nothing stated the stored shape
+    [low] call 4 describe_dataset: Returned only id, title, href, isRest and schema; the dataset item in the schema also accepts timePeriod, attachmentsAsImage, userPermissions, which the picker would store
+      → The agent wrote datasets[0] with href, title and isRest only; whether the calendar needs the other fields is not discoverable from the tools
+
+calendar (session, r1): SATISFACTORY
+  The agent selected Agenda-manifestations via a name search, which was the only way to unlock the hidden crowdSourcing field (call 3 correctly said it is hidden until the dataset is REST). It then picked the event-name column (nomevenement, labelled Nom de l'évenement) from the suggestions and enabled crowdSourcing; every write returned valid and saved, and the final data holds all three. The label column was surfaced by the tool, not guessed. The session was short and direct, with only a few redundant verification reads.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:44.898Z
+  ran 11 calls, read 9406 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 76676 (64159 cached), out 1453
+  friction:
+    [medium] call 7 getFieldSuggestions: 27 suggestion(s) ... [3] Type demandeur (type_demandeur) ... [19] Nom de l'évenement (nomevenement) — apply with suggestionIndex=19
+      → Indices continue from the previous query (the list starts at 3, after the 0-2 of the call 6 query) rather than from 0; the agent had to use the new numbering, which worked but is surprising and could mislead after a re-query.
+    [low] call 4 setFieldValue: = <object, 12508 chars — call getData with this path to read it>
+      → The agent could not see what was stored for the dataset but trusted the saved/valid result.
+    [low] call 10 describeState: crowdSourcing value=true ... valid
+      → Redundant verification of a write already confirmed by call 9, as was call 11.
+
+calendar (session, r2): SATISFACTORY
+  The agent selected Agenda-manifestations, which revealed the crowd sourcing field, tried an English query for the label column, got no match, listed all 27 columns without a query, and picked Nom de l'évenement (nomevenement) by its visible label and key. It then enabled crowdSourcing. Every write was valid and saved, and the final data contains the dataset, the label field and crowdSourcing true. The label column was surfaced by the tool, not invented.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:50.349Z
+  ran 11 calls, read 9512 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 76245 (66795 cached), out 1249
+  friction:
+    [low] call 6 getFieldSuggestions: No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.
+      → The English query did not match French labels; the message told the agent to omit the query, which it did, costing one round-trip.
+    [low] call 7 getFieldSuggestions: 27 suggestion(s) including raw technical columns and calculated-looking entries like _coords.lat
+      → The unfiltered list is long, but sufficient to locate the right column.
+    [low] call 10 describeState: crowdSourcing value=true ... valid
+      → Redundant verification of a write already confirmed by call 9, as was call 11.
+
+calendar (session, r3): SATISFACTORY
+  The agent selected Agenda-manifestations, searched label columns with the query nom (which surfaced Nom de l'évenement at index 2), applied it, then enabled crowdSourcing. Every write was valid and saved, and the final data holds the dataset, labelField nomevenement and crowdSourcing true. The value came from the tool listing, not memory. One wasted query and two verification reads only.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T16:54:51.034Z
+  ran 11 calls, read 7947 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 74390 (65498 cached), out 1343
+  friction:
+    [low] call 7 getFieldSuggestions: No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.
+      → A redundant query (event) after the earlier nom query had already surfaced the right column; no harm done.
+    [low] call 6 getFieldSuggestions: [0] Nom (nom) [1] Prénom (prenom) [2] Nom de l'évenement (nomevenement)
+      → A name query returned three plausible columns; the agent had to choose the event name one by label, which was clear enough.
+    [low] call 10 describeState: crowdSourcing value=true ... valid
+      → Redundant verification of a write already confirmed by call 9, as was call 11.
+
+charts: not run
+  no transcript at core/tmp/webmcp-eval-charts.json — the case was never dispatched
+
+portal-page: not run
+  no transcript at core/tmp/webmcp-eval-portal-page.json — the case was never dispatched
+
+charts-edit (r1): SATISFACTORY
+  The agent called describeState once, which showed the active Histogramme / Grouper les lignes variant with the valueCalc metric select (value avg, options including max) and the legendPosition select (value right, options including bottom), each with a full path. It then set metric to max and legendPosition to bottom with two setFieldValue calls. Each was confirmed with the field path, the new value and 'form is valid'. The final data shows metric avg changed to max and legendPosition right changed to bottom, with no sibling data touched and no guessed values. Three calls, none redundant.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:17.379Z
+  ran 3 calls, read 8443 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 29010 (17785 cached), out 422
+
+charts-edit (r2): SATISFACTORY
+  The agent called describeState once, which showed the active Histogramme / Grouper les lignes variant with the valueCalc metric select (value avg, options including max) and the legendPosition select (value right, options including bottom), each with a full path. It then set metric to max and legendPosition to bottom with two setFieldValue calls. Each was confirmed with the field path, the new value and 'form is valid'. The final data shows metric avg changed to max and legendPosition right changed to bottom, with no sibling data touched and no guessed values. Three calls, none redundant.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:24.989Z
+  ran 3 calls, read 8443 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 29022 (20842 cached), out 497
+
+charts-edit (r3): SATISFACTORY
+  The agent called describeState once, which showed the active Histogramme / Grouper les lignes variant with the valueCalc metric select (value avg, options including max) and the legendPosition select (value right, options including bottom), each with a full path. It then set metric to max and legendPosition to bottom with two setFieldValue calls. Each was confirmed with the field path, the new value and 'form is valid'. The final data shows metric avg changed to max and legendPosition right changed to bottom, with no sibling data touched and no guessed values. Three calls, none redundant.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:25.190Z
+  ran 3 calls, read 8443 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 29084 (20838 cached), out 532
+
+charts-edit (plain, r1): SATISFACTORY
+  The agent read the document, located valueCalc and legendPosition in the schema (both oneOf lists confirmed max and bottom exist), and changed metric avg to max and legendPosition right to bottom. Its first patch wrongly moved the root-level options disableTooltip, labelsMaxWidth and divider inside chart and was refused with a long oneOf cascade; it recovered by resending chart without them. The final document keeps all siblings, with metric max and legendPosition bottom, grounded in schema reads rather than guessing.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:32.612Z
+  ran 7 calls, read 13329 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 96525 (83649 cached), out 2583
+  friction:
+    [low] call 5 patchDocument: 400 Bad Request with about 20 lines of oneOf errors (e.g. "/chart must NOT have additional properties: disableTooltip", "/chart/config must have required property labelsField" ...) for a chart that was one misplaced-key mistake away from valid
+      → The agent worked out that the root options had been nested into chart by mistake and removed them; the cascade of unrelated-branch errors made that harder to read
+    [low] call 1 readDocument: Full document including the whole dataset schema (about 4.7KB) returned for a two-field edit
+      → Nothing wrong, but the bulk of the payload was irrelevant to the goal
+
+charts-edit (plain, r2): SATISFACTORY
+  The agent read the document and the relevant schema parts (valueCalc metric list, legendPosition list), then sent a patch replacing chart whole and legendPosition with the other top-level keys resent unchanged, so no sibling data was lost. It verified with two path reads that metric is max and legendPosition is bottom. The goal was reached without guessing, in 7 calls.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:33.957Z
+  ran 7 calls, read 7315 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 47785 (37777 cached), out 3002
+  friction:
+    [low] call 5 patchDocument: 200 OK stored 8 top-level key(s), after the agent resent every top-level key including the 4.7KB datasets array
+      → The agent re-sent the whole document to be safe since patch replaces keys whole; wasteful but harmless
+
+charts-edit (plain, r3): SATISFACTORY
+  The agent read the document and the relevant schema parts, then wrote the complete document with metric changed to max and legendPosition to bottom, everything else preserved. The write was accepted on the first try and the final data shows both changes with no sibling loss. Values were confirmed from the schema oneOf lists, not guessed, in 5 calls.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:34.324Z
+  ran 5 calls, read 7236 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 35390 (25943 cached), out 2629
+
+charts-edit (session, r1): SATISFACTORY
+  The agent read the form once with describeState, which exposed the active variant's metric select (value avg, options including max) and the legendPosition select (value right, options including bottom) with their exact paths. It then made two setFieldValue writes, metric=max and legendPosition=bottom. Each response confirmed the value, no error, form valid and saved. The final saved data has valueCalc.metric=max, legendPosition=bottom, and all sibling settings unchanged. Three calls, no guessed values, no wasted calls, no misleading responses.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:27.721Z
+  ran 3 calls, read 8455 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 28695 (17547 cached), out 517
+
+charts-edit (session, r2): SATISFACTORY
+  The agent read the form once with describeState, which exposed the active variant's metric select (value avg, options including max) and the legendPosition select (value right, options including bottom) with their exact paths. It then made two setFieldValue writes, metric=max and legendPosition=bottom. Each response confirmed the value, no error, form valid and saved. The final saved data has valueCalc.metric=max, legendPosition=bottom, and all sibling settings unchanged. Three calls, no guessed values, no wasted calls, no misleading responses.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:29.629Z
+  ran 3 calls, read 8455 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 28652 (20464 cached), out 445
+
+charts-edit (session, r3): SATISFACTORY
+  The agent read the form once with describeState, which exposed the active variant's metric select (value avg, options including max) and the legendPosition select (value right, options including bottom) with their exact paths. It then made two setFieldValue writes, metric=max and legendPosition=bottom. Each response confirmed the value, no error, form valid and saved. The final saved data has valueCalc.metric=max, legendPosition=bottom, and all sibling settings unchanged. Three calls, no guessed values, no wasted calls, no misleading responses.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T16:54:32.358Z
+  ran 3 calls, read 8455 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 28709 (20468 cached), out 577
+
+portal-page-edit: not run
+  no transcript at core/tmp/webmcp-eval-portal-page-edit.json — the case was never dispatched
+
+choropleth: not run
+  no transcript at core/tmp/webmcp-eval-choropleth.json — the case was never dispatched
+
+portal-config-edit: not run
+  no transcript at core/tmp/webmcp-eval-portal-config-edit.json — the case was never dispatched
+
+portal-menu-catalog: not run
+  no transcript at core/tmp/webmcp-eval-portal-menu-catalog.json — the case was never dispatched
+
+portal-menu-explain: not run
+  no transcript at core/tmp/webmcp-eval-portal-menu-explain.json — the case was never dispatched
+
+portal-page-catalog: not run
+  no transcript at core/tmp/webmcp-eval-portal-page-catalog.json — the case was never dispatched
+
+charts-pie: not run
+  no transcript at core/tmp/webmcp-eval-charts-pie.json — the case was never dispatched
+
+data-fair-line: not run
+  no transcript at core/tmp/webmcp-eval-data-fair-line.json — the case was never dispatched
+
+portal-page-list-edit (r1): SATISFACTORY
+  Goal reached: the box titled 'Budget et finances' in the responsive grid following the 'Thématiques à la une' title was renamed; the final data differs from the start only at that title, siblings and the box content untouched. The agent located both the heading and the box through describeState queries, which returned exact paths, then wrote with setFieldValue and got a valid confirmation. Two describeState calls were redundant but harmless.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:06.200Z
+  ran 6 calls, read 29438 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 91318 (72799 cached), out 870
+  friction:
+    [low] call 2 describeState: Outline of /$comp-2/elements/5 (the title) with all its properties, icon, etc.
+      → Agent checked the title's neighbourhood to find the grid; the output was large and bought no information on the target
+    [low] call 5 describeState: Dump of the whole grid section /elements/6/$oneOf/14 listing the 40 variants again, after the exact target path was already known and confirmed by the search
+      → Agent verified the grid parent before writing; redundant
+
+portal-page-list-edit (r2): SATISFACTORY
+  Goal reached with 4 calls: two query searches located the heading and the box (a single unique match returning the exact path), one outline of the grid, then setFieldValue. Final data differs from the start only at the box title. No misleading responses.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:09.510Z
+  ran 4 calls, read 16217 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 53370 (41129 cached), out 596
+
+portal-page-list-edit (r3): SATISFACTORY
+  Goal reached with 3 calls: whole-page outline, outline of the third grid child confirming the card and its current title, then setFieldValue. Final data differs only at the box title; no sibling touched. The path was derived from the outline correctly and the tool responses were accurate throughout.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:12.721Z
+  ran 3 calls, read 22916 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 58122 (43080 cached), out 465
+  friction:
+    [low] call 1 describeState: Full outline of the page (11 elements, 40 variants listed under the list) with no query
+      → Agent needed the outline to locate the grid; large output, and the query search would have given the path directly
+
+portal-page-list-edit (plain, r1): SATISFACTORY
+  The agent read the document, made one unneeded schema outline read, then rewrote the whole document in one writeDocument. The goal (rename the card 'Budget et finances' in the 'Thématiques à la une' responsive-grid to 'Budget et fiscalité') was reached: the final data differs from the starting document only at /elements/6/children/2/title, with all siblings, uuids and long texts preserved, and the document is valid. The value came directly from the goal and the document read. It did not verify afterward, but the write was accepted and the content is exact.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:40.416Z
+  ran 3 calls, read 8155 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 28614 (16744 cached), out 3847
+  friction:
+    [low] call 2 readSchema: The schema is too long to be read whole... Read a part with a pointer: /properties/<key>, /$defs/<name>.
+      → nothing useful for a rename; the agent did not pursue the schema further, the call bought no information for this goal
+    [low] call 3 writeDocument: 200 OK stored 5 top-level key(s); the agent had to resend the whole ~8 KB document (every element, uuid and long text) to change one card title, since patchDocument would replace the whole elements array anyway
+      → no targeted way to change a nested value; full retyping of the page, which risks silently altering sibling content
+
+portal-page-list-edit (plain, r2): SATISFACTORY
+  The agent read the document, glanced at the schema outline, rewrote the whole document, and verified with a targeted path read before and after (returning the old then the new title). The goal (rename the card 'Budget et finances' in the 'Thématiques à la une' responsive-grid to 'Budget et fiscalité') was reached: the final data differs from the starting document only at /elements/6/children/2/title, with all siblings, uuids and long texts preserved, and the document is valid. The value came directly from the goal and the document read.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:43.813Z
+  ran 5 calls, read 8197 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 53113 (40720 cached), out 4250
+  friction:
+    [low] call 2 readSchema: The schema is too long to be read whole... Read a part with a pointer: /properties/<key>, /$defs/<name>.
+      → nothing useful for a rename; the agent did not pursue the schema further, the call bought no information for this goal
+    [low] call 4 writeDocument: 200 OK stored 5 top-level key(s); the agent had to resend the whole ~8 KB document (every element, uuid and long text) to change one card title, since patchDocument would replace the whole elements array anyway
+      → no targeted way to change a nested value; full retyping of the page, which risks silently altering sibling content
+
+portal-page-list-edit (plain, r3): SATISFACTORY
+  The agent read the document, made one unneeded schema outline read, then rewrote the whole document in one writeDocument. The goal (rename the card 'Budget et finances' in the 'Thématiques à la une' responsive-grid to 'Budget et fiscalité') was reached: the final data differs from the starting document only at /elements/6/children/2/title, with all siblings, uuids and long texts preserved, and the document is valid. The value came directly from the goal and the document read.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:47.283Z
+  ran 3 calls, read 8155 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 28660 (16744 cached), out 3806
+  friction:
+    [low] call 2 readSchema: The schema is too long to be read whole... Read a part with a pointer: /properties/<key>, /$defs/<name>.
+      → nothing useful for a rename; the agent did not pursue the schema further, the call bought no information for this goal
+    [low] call 3 writeDocument: 200 OK stored 5 top-level key(s); the agent had to resend the whole ~8 KB document (every element, uuid and long text) to change one card title, since patchDocument would replace the whole elements array anyway
+      → no targeted way to change a nested value; full retyping of the page, which risks silently altering sibling content
+
+portal-page-list-edit (session, r1): SATISFACTORY
+  The agent located the grid title, then searched the box title, got the exact path in one query, and wrote the new title with setFieldValue; the response confirmed the value, validity and 'saved'. The final data differs from the start only by the one box title. The path was handed to it by the search, no value was invented. Two of five calls were spent confirming context the search had already settled, one returning a 4 KB listing of the heading's fields.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:23.979Z
+  ran 5 calls, read 20282 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 67931 (53750 cached), out 772
+  friction:
+    [low] call 2 describeState: Full 4 KB outline of the title element /$comp-2/elements/5 (titleSize, icon, line, link variants...) after a query that already matched 'Thématiques à la une'
+      → Agent wanted to see where the grid sits relative to the heading; the dump bought nothing it needed
+    [low] call 4 describeState: Large outline of the whole responsive grid element (/$comp-2/elements/6) including every sibling box's fields, after the search had returned the exact path of the box title
+      → Agent used it to confirm the box sits in the grid following the heading; redundant with the search result
+
+portal-page-list-edit (session, r2): SATISFACTORY
+  The agent found the exact title path in the first query, then spent four describeState calls (box, grid, grid parent, heading search) verifying the context before writing with setFieldValue. The write returned the value, 'form is valid' and 'saved'. Final data differs from the start only by the box title. Goal reached with correct, discoverable information, but with several calls that bought nothing.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:30.532Z
+  ran 6 calls, read 41248 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 125236 (101437 cached), out 976
+  friction:
+    [low] call 2 describeState: Outline of the Boite section and its variant list (40 options) after the search already returned the exact title path
+      → Agent wanted to confirm it was editing a box title; no new information
+    [low] call 3 describeState: Outline of the grid /$comp-2/elements/6/$oneOf/14 with all children details
+      → Checking the grid contained the box; redundant verification
+    [medium] call 4 describeState: Outline of /$comp-2/elements/6 repeating the 40-variant list and every child box's fields (~20 KB total output across the run's extra lookups)
+      → Agent re-read the same grid one level up; repeated work
+    [low] call 5 describeState: 1 field matches "Thématiques à la une": /$comp-2/elements/5/$oneOf/0/content
+      → Agent confirmed the heading precedes the grid; the grid-heading relation was not required by the tool output to be checked
+
+portal-page-list-edit (session, r3): SATISFACTORY
+  The agent opened with a full-form outline (which contained the box titles and their paths), went straight to the box element to confirm its type and fields, then wrote the new title with setFieldValue; the response confirmed value, validity and 'saved'. The final data differs from the start only by the box title. Three calls, no wasted effort beyond a large initial outline.
+  goal: Dans la grille « Thématiques à la une », renomme la boîte « Budget et finances » en « Budget et fiscalité ».
+  started 2026-10-29T16:53:37.024Z
+  ran 3 calls, read 22932 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 57765 (42645 cached), out 544
+  friction:
+    [low] call 1 describeState: Whole-form outline with no arguments (~20 KB), listing every field of every element
+      → Agent used it to locate the grid and box; a heavy but usable orientation call
+
+portal-page-reorder (r1): SATISFACTORY
+  The agent read the outline once, which listed every top-level element with its type and title and, for the Nos engagements two-columns block, its children with indices (child 2 = Voir tout le catalogue button). From that it moved the Nouveau alert from index 2 to 0, removed child 2 of the left column, and added a divider at index 7, just before the Questions fréquentes title (index 8 after the move). The final getData confirms the alert first, the button gone with the rest of the column intact, and the new divider directly before the FAQ title. Every index was grounded in tool output, no value was guessed, no errors occurred, and 6 calls was proportionate to three structural edits plus verification.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:37.164Z
+  ran 6 calls, read 35103 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 103673 (79103 cached), out 1639
+
+portal-page-reorder (r2): SATISFACTORY
+  The agent read the outline once, which gave element indices, types, titles and the left column children, then moved the Nouveau alert to index 0, removed child 2 (the Voir tout le catalogue button) of the Nos engagements block, and inserted a divider at index 7 right before the Questions fréquentes title. It verified with describeState and getData, which show the alert first, the button removed, and the divider immediately before the FAQ title. All indices came from tool output, no errors, no wasted calls beyond a verification pair.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:37.165Z
+  ran 6 calls, read 40685 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 81751 (54473 cached), out 1567
+
+portal-page-reorder (r3): SATISFACTORY
+  The agent read the outline once, then performed the three edits directly: moved the Nouveau alert from 2 to 0, removed child 2 (the catalog button) from the Nos engagements left column, and added a divider at index 7 just before Questions fréquentes. It confirmed with describeState on the list. Indices were all grounded in the outline the first call returned; the edit responses were clear and the form stayed valid throughout. Efficient 5 calls with no guessing.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:37.164Z
+  ran 5 calls, read 33362 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 77855 (54104 cached), out 1367
+
+portal-page-reorder (plain, r1): SATISFACTORY
+  In 3 calls (readDocument, readSchema, writeDocument) the agent moved the Nouveau air-quality alert (3f2a9c03) to the first position of elements, inserted a divider immediately before the Questions fréquentes title, and removed only the Voir tout le catalogue button (3f2a9c07) from the Nos engagements column, leaving the Jeunesse and Presse buttons and all other siblings untouched. The new divider copied the props of the existing divider, so no value was invented. The write was accepted ("200 OK, stored 5 top-level key(s)") and every other element is unchanged. The cost is a whole-array rewrite of elements (about 7 KB) for three small edits, which is inherent to the single-level patch and carried no data loss here.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:56.241Z
+  ran 3 calls, read 8155 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 28915 (16876 cached), out 4111
+  friction:
+    [low] call 2 readSchema: The schema is too long to be read whole (type object). Its outline: properties (key, type, title): ... elements: array ...
+      → The outline gave no element-type detail, so the agent evidently relied on the existing document content (e.g. the existing divider) as its model for the new element; the call bought little information.
+    [low] call 3 writeDocument: 200 OK
+stored 5 top-level key(s)
+      → The agent had to resend the entire elements array to move one block, insert one and delete one; acceptance was confirmed but nothing indicated what changed.
+
+portal-page-reorder (plain, r2): SATISFACTORY
+  In 3 calls (readDocument, readSchema, writeDocument) the agent moved the Nouveau air-quality alert (3f2a9c03) to the first position of elements, inserted a divider immediately before the Questions fréquentes title, and removed only the Voir tout le catalogue button (3f2a9c07) from the Nos engagements column, leaving the Jeunesse and Presse buttons and all other siblings untouched. The new divider copied the props of the existing divider, so no value was invented. The write was accepted ("200 OK, stored 5 top-level key(s)") and every other element is unchanged. The cost is a whole-array rewrite of elements (about 7 KB) for three small edits, which is inherent to the single-level patch and carried no data loss here.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:59.505Z
+  ran 3 calls, read 8155 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 29045 (16880 cached), out 4178
+  friction:
+    [low] call 2 readSchema: The schema is too long to be read whole (type object). Its outline: properties (key, type, title): ... elements: array ...
+      → The outline gave no element-type detail, so the agent evidently relied on the existing document content (e.g. the existing divider) as its model for the new element; the call bought little information.
+    [low] call 3 writeDocument: 200 OK
+stored 5 top-level key(s)
+      → The agent had to resend the entire elements array to move one block, insert one and delete one; acceptance was confirmed but nothing indicated what changed.
+
+portal-page-reorder (plain, r3): SATISFACTORY
+  In 3 calls (readDocument, readSchema, writeDocument) the agent moved the Nouveau air-quality alert (3f2a9c03) to the first position of elements, inserted a divider immediately before the Questions fréquentes title, and removed only the Voir tout le catalogue button (3f2a9c07) from the Nos engagements column, leaving the Jeunesse and Presse buttons and all other siblings untouched. The new divider copied the props of the existing divider, so no value was invented. The write was accepted ("200 OK, stored 5 top-level key(s)") and every other element is unchanged. The cost is a whole-array rewrite of elements (about 7 KB) for three small edits, which is inherent to the single-level patch and carried no data loss here.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:53:02.898Z
+  ran 3 calls, read 8155 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 29114 (16880 cached), out 4208
+  friction:
+    [low] call 2 readSchema: The schema is too long to be read whole (type object). Its outline: properties (key, type, title): ... elements: array ...
+      → The outline gave no element-type detail, so the agent evidently relied on the existing document content (e.g. the existing divider) as its model for the new element; the call bought little information.
+    [low] call 3 writeDocument: 200 OK
+stored 5 top-level key(s)
+      → The agent had to resend the entire elements array to move one block, insert one and delete one; acceptance was confirmed but nothing indicated what changed.
+
+portal-page-reorder (session, r1): SATISFACTORY
+  The agent read the outline once, then moved the Nouveau alert from index 2 to 0, removed the catalogue button from the Nos engagements first column (children index 2 of the two-columns at index 3), and added a divider at index 7, right before the Questions fréquentes title. Each write answered saved and form is valid, and the final data shows the three changes with nothing else disturbed. All paths and indices came from the first outline. The only waste is a final 16 KB describeState that repeated what the editArray replies already confirmed.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:46.870Z
+  ran 5 calls, read 33380 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 61294 (37502 cached), out 1345
+  friction:
+    [low] call 4 describeState: Re-sent the whole 12-item elements outline (15916 bytes, values cut short) after the add had already reported 12 total and the new item fields.
+      → The agent used it as a full-page check of the order; it bought no information the move/remove/add replies had not given.
+    [low] call 1 describeState: Outline of 15958 bytes, closing with an outline 4 level(s) deep with values cut short, the full description being over 16000 bytes.
+      → Big for a task needing only the top-level element order and one nested list, but it did contain every index needed.
+
+portal-page-reorder (session, r2): SATISFACTORY
+  The agent read the outline once, moved the alert from index 2 to 0, removed the button from the first column of Nos engagements, and inserted a divider at index 7 before the Questions fréquentes title. Every write returned saved and valid, and a final getData of the elements array confirmed the order. The result shows the alert first, the button gone, a new divider directly before the FAQ title, and the other existing divider untouched. Four writes and reads beyond the first outline were all useful.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:46.867Z
+  ran 5 calls, read 24787 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 73162 (53578 cached), out 1355
+  friction:
+    [low] call 1 describeState: Outline of 15958 bytes, closing with an outline 4 level(s) deep with values cut short, the full description being over 16000 bytes.
+      → Big for the task but it supplied every index the agent needed.
+
+portal-page-reorder (session, r3): SATISFACTORY
+  The agent read the outline once, moved the alert to index 0, removed the button from the first column of Nos engagements, then inspected the element at index 7 before adding a divider there, and finally confirmed with getData. The final state has the alert first, the button removed, and a divider immediately before Questions fréquentes, with every write saved and valid. The goal was reached cleanly; the only waste is one inspection call before the insertion.
+  goal: Sur cette page, remonte l'encadré « Nouveau » sur la qualité de l'air tout en haut de la page, au-dessus du titre ; ajoute un séparateur juste avant le titre « Questions fréquentes » ; et retire le bouton « Voir tout le catalogue » de la colonne « Nos engagements ».
+  started 2026-10-29T16:52:46.874Z
+  ran 6 calls, read 28845 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 94927 (73300 cached), out 1659
+  friction:
+    [low] call 4 describeState: Returned the outline of element 7 (now the Questions fréquentes title, variant 0 active, 4058 bytes) before any insertion.
+      → The agent was checking that index 7 held the FAQ title; the first outline plus the earlier move/remove replies already established this.
+
+portal-page-switch: not run
+  no transcript at core/tmp/webmcp-eval-portal-page-switch.json — the case was never dispatched
+
+portal-config-multi (r1): SATISFACTORY
+  The agent read the outline, then inspected the dataset card, social shares, footer links and breadcrumb position, and made all four changes: showDepartment=false on the dataset card, socialShares restricted to bluesky/linkedin/facebook, breadcrumb above-footer, and a generic footer link to the Contact presse page whose slug came from a getFieldSuggestions search (not invented). The form ended valid. The route was sound but included a detour: editArray add created an empty item that was invalid and left an error reported on every later write until the variant was chosen, and a suggestion query on the variant selector ignored the query. 15 calls for 4 edits.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:53:47.783Z
+  ran 15 calls, read 29551 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 127900 (104665 cached), out 2275
+  friction:
+    [low] call 7 getFieldSuggestions: 5 suggestion(s) ... [0] Page standard ... [1] Page libre ... [4] Lien (query "presse" on the $oneOf selector)
+      → The query was ignored and the full variant list returned; no information beyond describeState call 6, so the call bought nothing.
+    [medium] call 8 editArray: added item at index 4 ... (section, required, error) — tag "type" must be string ... form is invalid
+      → Adding an empty item leaves the form invalid; the error was repeated in the footer of calls 9-11 ("form has 1 other error(s) elsewhere") until the variant was picked.
+    [low] call 2 describeState: /$comp-8/datasets/$comp-1/card/$comp-1/showDepartment (switch) label="Afficher le propriétaire" value=true
+      → The goal says department; the label says owner. Agent matched on the property name and applied it, which is right but not confirmed by the label.
+
+portal-config-multi (r2): SATISFACTORY
+  The agent made all four changes: showDepartment=false on the dataset card, socialShares reduced to bluesky/linkedin/facebook, breadcrumb above-footer, and a generic footer link to Contact presse using the slug returned by a suggestion search. It passed value {"type":"generic"} to editArray add so the new item was created with the right variant active and the form stayed valid throughout. It re-read the same socialShares path twice and double-quoted the breadcrumb value, which the tool tolerated and reported as a coercion. It verified with two getData calls at the end. No misleading response.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:53:48.208Z
+  ran 15 calls, read 29336 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 126951 (104194 cached), out 1978
+  friction:
+    [low] call 7 describeState: Same socialShares output as call 3 (value=["bluesky","x","facebook",...] no error here)
+      → Repeated a read already done at call 3; no new information.
+    [low] call 10 setFieldValue: value passed as "\"above-footer\"" ... coerced: /$comp-5/breadcrumb/position quoted text → text
+      → Agent over-quoted a select value; the tool recovered and said so, so no harm.
+    [low] call 2 describeState: /$comp-8/datasets/$comp-1/card/$comp-1/showDepartment (switch) label="Afficher le propriétaire" value=true
+      → The goal says department; the label says owner. Agent matched on the property name and applied it, which is right but not confirmed by the label.
+
+portal-config-multi (r3): SATISFACTORY
+  The agent made all four changes: showDepartment=false on the dataset card, breadcrumb above-footer, socialShares reduced to bluesky/facebook/linkedin, and a generic footer link to Contact presse with the slug from a suggestion search. The form was valid at the end and the agent confirmed two of the writes with getData. The new footer item was added without a value, which produced a transient invalid state and a variant-selector detour. 15 calls for 4 edits.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:53:53.487Z
+  ran 15 calls, read 27398 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 122717 (103855 cached), out 1955
+  friction:
+    [low] call 9 getFieldSuggestions: 5 suggestion(s) ... [0] Page standard ... [1] Page libre ... [4] Lien
+      → Listed the variants of a selector already described in the outline; no new information.
+    [medium] call 10 editArray: added item at index 4 ... (section, required, error) — tag "type" must be string ... form is invalid
+      → Empty new item is invalid; the agent had to pick the variant with a separate setFieldValue (call 11).
+    [low] call 2 describeState: /$comp-8/datasets/$comp-1/card/$comp-1/showDepartment (switch) label="Afficher le propriétaire" value=true
+      → The goal says department; the label says owner. Agent matched on the property name and applied it, which is right but not confirmed by the label.
+
+portal-config-multi (plain, r1): SATISFACTORY
+  The agent read the document, listed pages (finding contact-presse), read the breadcrumb, footer links and menuItem schemas, then applied all four changes in a single patchDocument: datasets.card.showDepartment false, socialShares [bluesky, linkedin, facebook] (values taken from the existing list), breadcrumb.position above-footer, and a generic footer link to the existing Contact presse page with slug from list_portal_pages. The patch re-sent the whole datasets and footer objects and sibling data was preserved intact (nothing dropped); read-back verified each change. 11 calls, no wrong paths or refused writes.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:54:08.269Z
+  ran 11 calls, read 28290 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 82345 (62125 cached), out 2605
+  friction:
+    [low] call 1 readDocument: Whole-document read returns about 10 KB, mostly inlined @font-face CSS in theme.bodyFontFamilyCss
+      → Agent had to wade through bulk noise to reach the relevant keys; no confusion resulted
+    [low] call 7 patchDocument: Single-level patch obliged re-sending whole datasets and footer subtrees to change one boolean and append one link; response was 200 OK, stored 24 top-level key(s)
+      → Agent copied large subtrees verbatim; safe here, but any transcription slip would have silently dropped sibling data
+
+portal-config-multi (plain, r2): SATISFACTORY
+  The agent read the document, listed portal pages, read the breadcrumb, footer links, menuItem and socialShares schemas, then patched socialShares and breadcrumb in one call, datasets (plus applications, reuses, events, news copied verbatim) in another, and footer with the new generic Contact presse link in a third, then re-read the document. All four requested changes are present and no sibling data was lost (the diff of start vs final shows only the intended changes). The page slug came from list_portal_pages. 11 calls.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:54:08.579Z
+  ran 11 calls, read 39206 bytes, form valid=true
+  model claude-haiku-5-5, $0.013
+  tokens in 257663 (224920 cached), out 7917
+  friction:
+    [medium] call 9 patchDocument: To flip datasets.card.showDepartment the agent re-sent datasets, applications, reuses, events and news whole; response 200 OK, stored 24 top-level key(s)
+      → Single-level replacement forced copying five unrelated subtrees; no loss happened but the risk was real
+    [low] call 11 readDocument: Full document re-read, another ~10 KB including the font CSS
+      → Used as verification; paid the whole-document cost again
+
+portal-config-multi (plain, r3): SATISFACTORY
+  The agent read the document, listed portal pages (finding contact-presse), read the breadcrumb, socialShares, footer links and menuItem schemas, then applied everything in one patchDocument covering datasets, applications, reuses, events, news, socialShares, breadcrumb and footer. It verified each change by targeted reads. The final data holds exactly the four requested changes with no sibling data dropped, and the link uses the real slug from list_portal_pages. 12 calls.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:54:13.543Z
+  ran 12 calls, read 29182 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 84986 (63459 cached), out 3467
+  friction:
+    [medium] call 8 patchDocument: One patch re-sending datasets, applications, reuses, events, news, socialShares, breadcrumb and footer whole; 200 OK, stored 24 top-level key(s)
+      → Agent copied large unrelated subtrees to satisfy single-level replacement; correct this time, error-prone in general
+    [low] call 9 readDocument: Four separate targeted read-backs (calls 9-12) of values the patch had just written, after a 200 OK
+      → Verification buys little beyond the write acknowledgement
+
+portal-config-multi (session, r1): SATISFACTORY
+  All four requested changes were made and saved: dataset card showDepartment set to false (the page metadata and application card flags left untouched), socialShares reduced to bluesky/linkedin/facebook, breadcrumb position set to above-footer, and a generic footer link to the page Contact presse appended with the slug taken from a suggestion list (not invented). Every write reported saved; final getData confirmed the breadcrumb and the final form is valid. 13 calls, direct path through the outline, with the new link added via editArray then resolved via getFieldSuggestions. Only minor friction: the field is labelled owner (Afficher le propriétaire) while the goal says department, resolved by the showDepartment path name; and the agent passed a JSON-quoted string for the select which the tool silently coerced.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:53:58.835Z
+  ran 13 calls, read 28628 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 103748 (81705 cached), out 1754
+  friction:
+    [low] call 6 setFieldValue: /-8/datasets/-1/card/-1/showDepartment (switch) = false ... saved (field label seen at call 2: "Afficher le propriétaire")
+      → The agent matched the goal word department to the owner-labelled switch through the path name alone; nothing in the label confirmed it.
+    [low] call 8 setFieldValue: coerced: /$comp-5/breadcrumb/position quoted text → text
+      → The agent sent the value as a JSON-quoted string; the tool corrected it silently and the write succeeded, so no recovery was needed.
+
+portal-config-multi (session, r2): SATISFACTORY
+  All four changes were applied and saved: dataset card showDepartment false (page and application flags untouched), socialShares set to bluesky/facebook/linkedin, breadcrumb above-footer, and a generic footer link to the suggested page Contact presse (slug from the suggestion list). Each write answered saved and the final form is valid. 13 calls with no wrong paths or refused writes. The only waste was two exploratory describeState calls on the variants of an existing link (calls 6 and 7) to learn the shape of a link, which the editArray response then repeated.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:54:07.127Z
+  ran 13 calls, read 30150 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 128148 (108139 cached), out 2007
+  friction:
+    [low] call 7 describeState: Fields of the existing standard-link variant (subtype, title, target, icon) of /links/0/$oneOf/0
+      → The agent inspected an existing standard link to learn how a link is built, then went on to add a generic one; the call bought little because the variant list of call 6 and the editArray response already gave the shape.
+    [low] call 2 describeState: label="Afficher le propriétaire" for showDepartment
+      → The goal says department, the label says owner; the agent matched on the path name.
+
+portal-config-multi (session, r3): SATISFACTORY
+  All four changes were applied and saved: dataset card showDepartment false (other showDepartment flags untouched), socialShares reduced to bluesky/facebook/linkedin, breadcrumb above-footer, and a generic footer link to Contact presse using the slug from a suggestion list, with an explicit label added. All writes reported saved and the final form is valid. 16 calls; one wasted call asked for suggestions on the list itself before an item existed, and the error told the agent exactly what to do, so recovery was immediate.
+  goal: A few changes to our portal, all at once: the dataset cards should no longer show the department; when visitors share something, only offer Bluesky, LinkedIn and Facebook; show the breadcrumb above the footer; and add a link to our page "Contact presse" to the footer links.
+  started 2026-10-29T16:54:07.681Z
+  ran 16 calls, read 32373 bytes, form valid=true
+  model claude-haiku-5-5, $0.007
+  tokens in 178579 (157129 cached), out 2288
+  friction:
+    [low] call 11 getFieldSuggestions: Error: /$comp-6/footer/$comp-6/links is a list, it has no suggestions itself: add an item with editArray, then ask for the suggestions of the item's field
+      → The agent tried to look up the page before adding a link; the error was clear and it added the item next.
+    [low] call 7 describeState: Variant list of /links/3/$oneOf, the same five variants already given at call 6
+      → A repeated read of the same variant list on another link; bought no new information.
+
+calendar — comparison
+  form: 3 runs, 10–12 calls, 7526–11378 bytes, 71900–91141 input tokens, $0.003–$0.004 cost, checks 3/3, 3/3, 3/3, 3s/0u
+    uncached input 16–18, cache reads 60373–80419, cache writes 9441–11511
+    read-state: 4–5 calls, 4200–6119 bytes, 0 failed
+    write: 3 calls, 914 bytes, 0 failed
+    lookup: 2–4 calls, 501–4345 bytes, 0 failed
+    oversized: 0
+  plain: 3 runs, 6–7 calls, 17225–17249 bytes, 60821–61834 input tokens, $0.004–$0.005 cost, checks 3/3, 3/3, 3/3, 3s/0u
+    uncached input 10, cache reads 47299–47757, cache writes 13512–14112
+    read-state: 2 calls, 231 bytes, 0 failed
+    read-schema: 1 calls, 6688 bytes, 0 failed
+    write: 1 calls, 32 bytes, 0 failed
+    lookup: 2–3 calls, 10274–10298 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 11 calls, 7947–9512 bytes, 74390–76676 input tokens, $0.003–$0.004 cost, checks 3/3, 3/3, 3/3, 3s/0u
+    uncached input 16, cache reads 64159–66795, cache writes 8876–12501
+    read-state: 5 calls, 6129–6380 bytes, 0 failed
+    write: 3 calls, 932 bytes, 0 failed
+    lookup: 3 calls, 635–2345 bytes, 0 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+charts-edit — comparison
+  form: 3 runs, 3 calls, 8443 bytes, 29010–29084 input tokens, $0.002–$0.003 cost, checks 3/3, 3/3, 3/3, 3s/0u
+    uncached input 6, cache reads 17785–20842, cache writes 8174–11219
+    read-state: 1 calls, 8260 bytes, 0 failed
+    write: 2 calls, 183 bytes, 0 failed
+    oversized: 0
+  plain: 3 runs, 5–7 calls, 7236–13329 bytes, 35390–96525 input tokens, $0.003–$0.005 cost, checks 3/3, 3/3, 3/3, 3s/0u
+    uncached input 8–18, cache reads 25943–83649, cache writes 9439–12858
+    read-state: 1–3 calls, 4735–9471 bytes, 0 failed
+    read-schema: 3 calls, 2469 bytes, 0 failed
+    write: 1–2 calls, 32–1389 bytes, 0–1 failed
+    oversized: 0
+  session: 3 runs, 3 calls, 8455 bytes, 28652–28709 input tokens, $0.002–$0.003 cost, checks 3/3, 3/3, 3/3, 3s/0u
+    uncached input 6, cache reads 17547–20468, cache writes 8182–11142
+    read-state: 1 calls, 8260 bytes, 0 failed
+    write: 2 calls, 195 bytes, 0 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+portal-page-list-edit — comparison
+  form: 3 runs, 3–6 calls, 16217–29438 bytes, 53370–91318 input tokens, $0.003–$0.005 cost, checks 2/2, 2/2, 2/2, 3s/0u
+    uncached input 8–14, cache reads 41129–72799, cache writes 12231–18505
+    read-state: 2–5 calls, 16101–29322 bytes, 0 failed
+    write: 1 calls, 116 bytes, 0 failed
+    oversized: 0
+  plain: 3 runs, 3–5 calls, 8155–8197 bytes, 28614–53113 input tokens, $0.004–$0.005 cost, checks 2/2, 2/2, 2/2, 3s/0u
+    uncached input 6–10, cache reads 16744–40720, cache writes 11864–12383
+    read-state: 1–3 calls, 7639–7681 bytes, 0 failed
+    read-schema: 1 calls, 484 bytes, 0 failed
+    write: 1 calls, 32 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 3–6 calls, 20282–41248 bytes, 57765–125236 input tokens, $0.004–$0.006 cost, checks 2/2, 2/2, 2/2, 3s/0u
+    uncached input 8–14, cache reads 42645–101437, cache writes 14169–23785
+    read-state: 2–5 calls, 20160–41126 bytes, 0 failed
+    write: 1 calls, 122 bytes, 0 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+portal-page-reorder — comparison
+  form: 3 runs, 5–6 calls, 33362–40685 bytes, 77855–103673 input tokens, $0.006–$0.007 cost, checks 18/18, 18/18, 18/18, 3s/0u
+    uncached input 10–12, cache reads 54104–79103, cache writes 23741–27268
+    read-state: 2–3 calls, 31874–39197 bytes, 0 failed
+    write: 3 calls, 1488 bytes, 0 failed
+    oversized: 0
+  plain: 3 runs, 3 calls, 8155 bytes, 28915–29114 input tokens, $0.005–$0.005 cost, checks 18/18, 18/18, 18/18, 3s/0u
+    uncached input 6, cache reads 16876–16880, cache writes 12033–12228
+    read-state: 1 calls, 7639 bytes, 0 failed
+    read-schema: 1 calls, 484 bytes, 0 failed
+    write: 1 calls, 32 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 5–6 calls, 24787–33380 bytes, 61294–94927 input tokens, $0.005–$0.006 cost, checks 18/18, 18/18, 18/18, 3s/0u
+    uncached input 8–12, cache reads 37502–73300, cache writes 19574–23784
+    read-state: 2–3 calls, 23281–31874 bytes, 0 failed
+    write: 3 calls, 1506 bytes, 0 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+portal-config-multi — comparison
+  form: 3 runs, 15 calls, 27398–29551 bytes, 122717–127900 input tokens, $0.006–$0.007 cost, checks 10/10, 10/10, 10/10, 3s/0u
+    uncached input 14, cache reads 103855–104665, cache writes 18848–23221
+    read-state: 6–9 calls, 22117–26449 bytes, 0 failed
+    write: 5–7 calls, 2722–4840 bytes, 0 failed
+    lookup: 1–2 calls, 165–441 bytes, 0 failed
+    oversized: 0
+  plain: 3 runs, 11–12 calls, 28290–39206 bytes, 82345–257663 input tokens, $0.006–$0.013 cost, checks 10/10, 10/10, 10/10, 3s/0u
+    uncached input 10–22, cache reads 62125–224920, cache writes 20210–32721
+    read-state: 2–5 calls, 10536–20818 bytes, 0 failed
+    read-schema: 4–5 calls, 17327–17895 bytes, 0 failed
+    write: 1–3 calls, 33–99 bytes, 0 failed
+    lookup: 1 calls, 394 bytes, 0 failed
+    oversized: 0
+  session: 3 runs, 13–16 calls, 28628–32373 bytes, 103748–178579 input tokens, $0.006–$0.007 cost, checks 10/10, 10/10, 10/10, 3s/0u
+    uncached input 12–18, cache reads 81705–157129, cache writes 19995–22031
+    read-state: 7–8 calls, 25870–29359 bytes, 0 failed
+    write: 5–6 calls, 2534–2640 bytes, 0 failed
+    lookup: 1–2 calls, 165–374 bytes, 0–1 failed
+    oversized: 0
+  cost is priced with caching; parallel runs share a cache, so a run's cost depends on which ran first
+  oversized = calls answering more than 60000 bytes (Claude Code caps MCP output near 25k tokens, so the agent probably saw a cut answer)
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+npm error Lifecycle script `webmcp-eval:report` failed with error:
+npm error code 1
+npm error path /home/alban/github/json-layout_feat-editor-round-3/core
+npm error workspace @json-layout/core@2.12.1
+npm error location /home/alban/github/json-layout_feat-editor-round-3/core
+npm error command failed
+npm error command sh -c node webmcp-eval/report.js

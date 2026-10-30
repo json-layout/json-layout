@@ -1,5 +1,17 @@
 export type ComplexityBand = 'small' | 'medium' | 'large'
 
+/** A check on a run's final data; see webmcp-eval/checks.js for the semantics. */
+export type EvalCheck =
+  | { path: string, equals: unknown, label?: string }
+  | { path: string, values: string[], separator?: string, label?: string }
+  | { path: string, contains: Record<string, unknown>, label?: string }
+  | { path: string, absent: true, label?: string }
+  | { path: string, length: number, label?: string }
+  | { unchangedExcept: string[], label?: string }
+
+/** The targeted lookup tools of the plain API's catalogue (webmcp-eval/lookups.js). */
+export type LookupName = 'list_account_datasets' | 'describe_dataset' | 'get_field_values' | 'list_portal_pages'
+
 export type EvalCase = {
   name: string
   /** Passed to WebMCP as dataTitle, so it appears in the tool descriptions. */
@@ -29,6 +41,11 @@ export type EvalCase = {
    * compiled layout ships without the schema, so its agent has no getSchema.
    */
   withSchema?: boolean
+  /**
+   * Serves the case's remote lists (getItems URLs) offline: receives the URL resolved
+   * against FIXTURE_BASE_URL (remote.js) and returns the parsed JSON body, or undefined for a 404.
+   */
+  remote?: (url: URL) => unknown
   /** Band getComplexity must report. Asserted in CI, never read at runtime. */
   expectedComplexity: ComplexityBand
   /**
@@ -36,4 +53,22 @@ export type EvalCase = {
    * large by node count while its schema still fits under SCHEMA_MAX_LENGTH.
    */
   expectedSchemaFits: boolean
+  /**
+   * The plain API's input tolerance, applied to a write before validation, where the real
+   * API has one (data-fair's line API accepts a joined string for a multi-valued column).
+   */
+  apiAccepts?: (doc: unknown) => unknown
+  /**
+   * The targeted lookups the plain API offers for this case's remote lists, as a real MCP
+   * server would (webmcp-eval/lookups.js): the plain arm has no generic HTTP client. A remote
+   * list with no plausible targeted tool gets none.
+   */
+  lookups?: LookupName[]
+  /**
+   * When the edited document persists: on an explicit save call (default) or by itself
+   * after each change. Only the server form session arm distinguishes them.
+   */
+  saveMode?: 'explicit' | 'auto'
+  /** Checks run on the final data of each arm, whatever path the agent took. */
+  checks?: EvalCheck[]
 }

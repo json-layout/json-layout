@@ -1,0 +1,21 @@
+{
+  "case": "portal-page-list-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent read the document, found the card titled Budget et finances in the Thématiques à la une grid, and renamed it to Budget et fiscalité. The final document differs from the start only at that one title, so no sibling data was dropped. It then confirmed the result with a path read. The cost was a full-document rewrite through writeDocument and a schema outline read that did not help locate the field.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "writeDocument",
+      "observed": "stored 5 top-level key(s) (the whole elements array, about 7.5 KB, was re-sent to rename one card title)",
+      "inferred": "Single-level writes force the agent to retype the entire elements tree to change one nested string; nothing was lost this time, but any transcription slip would have silently altered siblings",
+      "severity": "medium"
+    },
+    {
+      "call": 2,
+      "tool": "readSchema",
+      "observed": "The schema is too long to be read whole (type object). Its outline: ...",
+      "inferred": "Only a top-level outline came back, which gave nothing about card title fields; the agent had already found the target in the document and went on to write without using it",
+      "severity": "low"
+    }
+  ]
+}

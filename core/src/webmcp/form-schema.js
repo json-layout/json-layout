@@ -83,16 +83,30 @@ function isStructuralKey (node) {
  */
 export function describeFormSchema (compiledLayout, options = {}) {
   if (options.maxDepth !== undefined) return renderFormSchema(compiledLayout, options).text
-  for (let depth = OVERVIEW_MAX_DEPTH; depth >= 0; depth--) {
-    const { text, truncated } = renderFormSchema(compiledLayout, { ...options, maxDepth: depth })
-    if (!truncated) {
-      return depth === OVERVIEW_MAX_DEPTH
-        ? text
-        : `${text}\n(shown ${depth + 1} level(s) deep to fit — call describeState with the path of a part to see it in full)`
-    }
-    if (depth === 0) return text
+  const { text, fits, depth } = deepestThatFits(OVERVIEW_MAX_DEPTH, (maxDepth) => {
+    const { text, truncated } = renderFormSchema(compiledLayout, { ...options, maxDepth })
+    return { text, fits: !truncated }
+  })
+  return fits && depth < OVERVIEW_MAX_DEPTH
+    ? `${text}\n(shown ${depth + 1} level(s) deep to fit — call describeState with the path of a part to see it in full)`
+    : text
+}
+
+/**
+ * The deepest rendering that fits, tried from maxDepth down to 0: a part too large for its
+ * budget is shown shallower rather than cut in the middle. Shared by what a form can hold
+ * (describeFormSchema) and the outline of its state (describeState on a large form).
+ * @template {{ fits: boolean }} R
+ * @param {number} maxDepth
+ * @param {(depth: number) => R} render
+ * @returns {R & { depth: number }} the depth-0 rendering when nothing fits
+ */
+export function deepestThatFits (maxDepth, render) {
+  for (let depth = maxDepth; depth > 0; depth--) {
+    const rendered = render(depth)
+    if (rendered.fits) return { ...rendered, depth }
   }
-  return ''
+  return { ...render(0), depth: 0 }
 }
 
 /**

@@ -1,0 +1,490 @@
+
+data-fair-line (r1): SATISFACTORY
+  The agent read the form, searched communes and picked Saint-Sébastien-sur-Loire (44190) from the suggestion list on the strength of 'near Nantes', filled the text fields, restricted lists and dates from the email, and ended with a valid form holding every item of the email. All values came from the email or from lists the tool returned. The only trouble was the SIRET: setFieldValue on a digits-only string was turned into a number, so the field could not be set directly.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:46:58.545Z
+  ran 15 calls, read 5071 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 45754 (34367 cached), out 2432
+  friction:
+    [medium] call 8 setFieldValue: /siret (text) = 52348761900017 ; 1 error(s) here: - /siret: must be string
+      → The agent passed the 14 digits and the tool echoed them as a bare number (apparently JSON-parsed), then reported 'must be string' without saying the value had been coerced; the agent had to guess how to force a string.
+    [medium] call 10 setFieldValue: /siret (text) = "\"52348761900017\"" ; /siret: Un SIRET compte 14 chiffres.
+      → Adding literal quotes stored them inside the value; the pattern error did not explain that the quotes were the problem. The agent only recovered by switching to setData.
+
+data-fair-line (r2): SATISFACTORY
+  The agent read the form, searched communes and picked Saint-Sébastien-sur-Loire (44190) from the suggestion list on the strength of 'near Nantes', filled the text fields, restricted lists and dates from the email, and ended with a valid form holding every item of the email. All values came from the email or from lists the tool returned. The only trouble was the SIRET: setFieldValue on a digits-only string was turned into a number, so the field could not be set directly. Run 2 additionally wasted calls on describeState and repeating the failing number write.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:46:58.578Z
+  ran 18 calls, read 5530 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 57014 (45026 cached), out 2690
+  friction:
+    [medium] call 8 setFieldValue: /siret (text) = 52348761900017 ; 1 error(s) here: - /siret: must be string
+      → The agent passed the 14 digits and the tool echoed them as a bare number (apparently JSON-parsed), then reported 'must be string' without saying the value had been coerced; the agent had to guess how to force a string.
+    [medium] call 11 setFieldValue: /siret (text) = "\"52348761900017\"" ; /siret: Un SIRET compte 14 chiffres. ; form is invalid
+      → Adding literal quotes stored them inside the value; the pattern error did not explain that the quotes were the problem. The agent only recovered by switching to setData.
+    [low] call 12 describeState: /activites value=undefined, no error here
+      → Agent re-read two fields it had not yet set, after being stuck on the SIRET; calls bought nothing the earlier state had not shown.
+    [medium] call 14 setFieldValue: /siret (text) = 52348761900017 ; /siret: must be string
+      → Agent retried the exact call that had already failed at call 8, showing the error gave it no new path forward.
+
+data-fair-line (r3): SATISFACTORY
+  The agent read the form, searched communes and picked Saint-Sébastien-sur-Loire (44190) from the suggestion list on the strength of 'near Nantes', filled the text fields, restricted lists and dates from the email, and ended with a valid form holding every item of the email. All values came from the email or from lists the tool returned. The only trouble was the SIRET: setFieldValue on a digits-only string was turned into a number, so the field could not be set directly.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:46:58.549Z
+  ran 15 calls, read 5071 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 56312 (44952 cached), out 2268
+  friction:
+    [medium] call 8 setFieldValue: /siret (text) = 52348761900017 ; 1 error(s) here: - /siret: must be string
+      → The agent passed the 14 digits and the tool echoed them as a bare number (apparently JSON-parsed), then reported 'must be string' without saying the value had been coerced; the agent had to guess how to force a string.
+    [medium] call 10 setFieldValue: /siret (text) = "\"52348761900017\"" ; /siret: Un SIRET compte 14 chiffres.
+      → Adding literal quotes stored them inside the value; the pattern error did not explain that the quotes were the problem. The agent only recovered by switching to setData.
+
+data-fair-line (plain, r1): SATISFACTORY
+  Goal reached in 4 calls: the agent read the document and schema, found the commune list URL in the schema, searched 'Saint-Sébastien' which returned three candidates, and chose 44190 (Saint-Sébastien-sur-Loire) using the email's 'next to Nantes' clue, a code that surfaced in the search results. The write was accepted with all fields mapped to the closed lists' values, phone formatted per the schema pattern, and ISO date.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:47:11.542Z
+  ran 4 calls, read 4687 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 30563 (21822 cached), out 1364
+  friction:
+    [low] call 3 httpGet: total 3: 23239 (Saint-Sébastien), 27602 (Saint-Sébastien-de-Morsent), 44190 (Saint-Sébastien-sur-Loire)
+      → Agent had to disambiguate with outside geographic knowledge (Nantes); the tool gave no department hint, but the answer was in the results.
+
+data-fair-line (plain, r2): SATISFACTORY
+  Goal reached in 4 calls. The agent read the schema, queried the commune list with a precise name (expanded from 'St-Sébastien' from its own knowledge) and the search returned exactly 44190, a surfaced value, not an invented one. The write was accepted with correctly normalised values.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:47:11.670Z
+  ran 4 calls, read 4568 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 30466 (21790 cached), out 1291
+
+data-fair-line (plain, r3): SATISFACTORY
+  Goal reached in 4 calls. Same path as a clean run: read, schema, commune search returning a single result 44190, then one accepted write with values taken from the schema's closed lists and patterns.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:47:13.931Z
+  ran 4 calls, read 4568 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 30456 (23822 cached), out 1493
+
+data-fair-line (session, r1): SATISFACTORY
+  The agent read the form, searched communes, picked 44190 (Saint-Sébastien-sur-Loire, the one near Nantes, from a list that showed only names and codes), wrote every field from the mail in one setData (phone reformatted to the visible pattern, closed lists matched), recovered from a dropped suggestions memo by re-querying, confirmed the form valid and saved. Saved data covers all facts of the mail. One avoidable error and a two-call detour.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:46:58.570Z
+  ran 8 calls, read 4348 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 62828 (52717 cached), out 1877
+  friction:
+    [medium] call 4 setFieldValue: Error: the suggestions memorized for path "/commune" were dropped by a write that may have changed this field's options, call getFieldSuggestions on this path again
+      → the earlier setData invalidated the suggestion index although the commune field had not been touched; the agent had to describeState and re-query with the code to proceed
+    [low] call 2 getFieldSuggestions: [0] 23239 (Saint-Sébastien) ... [2] 44190 (Saint-Sébastien-sur-Loire)
+      → three homonymous communes with no department shown; the agent had to rely on its own knowledge of geography to pick the one near Nantes
+
+data-fair-line (session, r2): SATISFACTORY
+  The goal was reached and saved: all mail facts are in the saved data, commune 44190 chosen from the suggestion list, closed lists respected. But the route took 17 calls: field-by-field writes, then several type-mismatched writes (number for siret and commune, scalar for arrays, a literally quoted siret) that each stored a bad value and reported an error, fixed finally by one setData that could have been used at the start.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:46:58.587Z
+  ran 17 calls, read 5356 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 69025 (57178 cached), out 2658
+  friction:
+    [medium] call 8 setFieldValue: /siret (text) = 52348761900017
+1 error(s) here:
+- /siret: must be string
+      → the tool stores the invalid typed value and reports it; the agent concluded the string needed quoting and sent a string containing literal quotes
+    [medium] call 10 setFieldValue: /siret (text) = "\"52348761900017\"" ... Un SIRET compte 14 chiffres.
+      → the agent's wrong fix of the previous message produced a second error; the tool gave no hint about how string values are passed
+    [medium] call 12 setFieldValue: /activites (select) = "judo"
+1 error(s) here:
+- /activites: must be array
+      → scalar written to a multi-select; describeState did not show that the field is an array (shown only as select with values), so the agent guessed
+    [low] call 11 setFieldValue: /commune (autocomplete) = 44190
+1 error(s) here:
+- /commune: must be string
+      → the agent typed the code as a number from the suggestion value instead of using suggestionIndex; wasted call
+
+data-fair-line (session, r3): SATISFACTORY
+  The goal was reached and saved with every fact of the mail correctly placed (commune 44190 from the suggestion list, closed lists, formatted phone, date). It took 19 calls, with several avoidable wrong-typed writes (number siret, scalar for arrays, literally quoted siret) before a setData fixed siret, and a suggestions call on a closed list the describeState had already listed.
+  goal: Peux-tu ajouter ce lieu à notre liste des lieux d'activité des associations ? Je te transfère le mail du club :
+
+« Bonjour, le Judo Club Sébastiennais ouvre le Dojo des Grands Bois, une salle polyvalente au 12 rue des Grands Bois à St-Sébastien, juste à côté de Nantes. On y fera du judo, du yoga et du handisport, pour les enfants à partir de 6 ans, les adultes et aussi les personnes en situation de handicap. Ouverture le 3 mars 2025 ! Vous pouvez nous joindre au 0240801234, notre SIRET est 52348761900017. Sportivement, Claire »
+  started 2026-10-29T09:46:58.587Z
+  ran 19 calls, read 4543 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 78972 (67338 cached), out 2897
+  friction:
+    [medium] call 11 setFieldValue: /siret (text) = 52348761900017
+1 error(s) here:
+- /siret: must be string
+      → the tool stores a wrong-typed value and only reports it; the agent then tried a quoted string
+    [medium] call 15 setFieldValue: /siret (text) = "\"52348761900017\"" ... Un SIRET compte 14 chiffres.
+      → the quote-wrapped retry made the value worse; the agent left siret broken until a later setData (call 18)
+    [medium] call 12 setFieldValue: /activites (select) = "judo"
+1 error(s) here:
+- /activites: must be array
+      → describeState gave no sign that the select is multi-valued, so a scalar was tried (and again for publics at call 13)
+    [low] call 3 getFieldSuggestions: 8 suggestion(s) ... football ... escalade
+      → repeated the values already listed in describeState; bought no information
+
+calendar (r1): SATISFACTORY
+  The agent found and applied the Agenda-manifestations dataset by searching, listed the label field options once the tool had said they depended on the dataset, picked the event-name column (index 16, 'Nom de l'évenement') from a list that displayed it, and switched crowd sourcing on. Every write returned a valid form and the newly available fields were reported. Nine calls, one of which bought nothing the goal needed.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T09:47:16.438Z
+  ran 9 calls, read 11317 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 75057 (61992 cached), out 1477
+  friction:
+    [low] call 9 getFieldSuggestions: 13 suggestions of datasets for /$allOf-3/contribsDataset
+      → agent explored the optional contributions dataset that the goal did not ask for, then left it unset
+
+calendar (r2): SATISFACTORY
+  Goal reached: dataset applied from a search, label set to the event-name column, crowd sourcing on, all with valid responses. The agent first tried an English query against French labels and recovered cleanly via the unfiltered list; the closing checks on the newly exposed contribution field were extra.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T09:47:16.996Z
+  ran 10 calls, read 9093 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 75134 (63187 cached), out 1354
+  friction:
+    [low] call 5 getFieldSuggestions: No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.
+      → the English query 'event name' did not match French labels; agent retried without a query (call 6). The message told it how to recover.
+    [low] call 10 describeState: /$allOf-0/datasets/1 (autocomplete, suggestions) label="Jeu de données des contributions externes" value=undefined
+      → agent inspected the newly appeared optional field, information the goal did not need
+
+calendar (r3): SATISFACTORY
+  Goal reached in nine calls: dataset found by search and applied, label field narrowed with the query 'nom' and the event-name column chosen by its visible title, crowd sourcing enabled, final state valid. Tool responses were accurate throughout.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T09:47:20.435Z
+  ran 9 calls, read 7395 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 68400 (60155 cached), out 1137
+  friction:
+    [low] call 4 describeState: /$allOf-1/labelField (select, suggestions) label="Champ de libellé" value=undefined
+      → agent confirmed the label field had become available; this and call 5 (describeState on crowdSourcing, value=undefined) repeated what the call 3 response and the first describeState already implied
+
+calendar (plain, r1): SATISFACTORY
+  The agent read the schema, found the dataset through the search URL the schema spelled out, fetched its schema listing, and patched datasets[0], labelField (the event name column, taken from the listing) and crowdSourcing=true in one write, then read the document back. Every value came from a tool response. The labelField was stored as the whole column object, which is what the schema's getItems (object-typed field, no itemValue) implies. Seven calls, no errors.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T09:47:21.985Z
+  ran 7 calls, read 31021 bytes, form valid=true
+  model claude-haiku-5-5, $0.006
+  tokens in 95055 (74724 cached), out 2639
+  friction:
+    [low] call 4 httpGet: Query built from the template with the {q} filled and ${context.datasetFilter} dropped; the response still returned the one dataset, count 1.
+      → The agent fetched /context at call 3 and then did not use the filter; it worked, but the template's placeholder was ignored without consequence.
+    [low] call 6 patchDocument: 200 OK
+stored 3 top-level key(s)
+      → The write was accepted but nothing said whether the object shape for labelField (full column versus key only) was what the form expects; the agent stored the full column object and could not tell.
+
+calendar (plain, r2): SATISFACTORY
+  Goal reached after one refused write and one self-inflicted bad write. The agent guessed labelField as the string 'nomevenement' (call 5); the 400 '/labelField must be object' made it re-read the schema (calls 7-8, one wrong path guess) and write an object. Call 9 was accepted but replaced the dataset's schema with a single column; call 10 rewrote it with the full 37-column listing. The final document holds the right dataset, an event name label and crowdSourcing true. The result is correct but took 11 calls.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T09:47:23.242Z
+  ran 11 calls, read 43616 bytes, form valid=true
+  model claude-haiku-5-5, $0.014
+  tokens in 186758 (150933 cached), out 11455
+  friction:
+    [medium] call 5 patchDocument: 400 Bad Request
+/labelField must be object
+      → The agent learned the type but not the expected shape; it had to go back to the schema and the column listing to guess which object to write.
+    [low] call 7 readSchema: 404 Not Found: no value at /properties/labelField
+      → The schema is organised under allOf, so the agent's pointer was wrong; it retried with /allOf/1/properties/labelField.
+    [medium] call 9 patchDocument: 200 OK
+stored 3 top-level key(s)
+      → The write was accepted although datasets[0].schema had been reduced to a single column, so nothing flagged that the dataset sub-document no longer matched the listing; the agent only caught it itself and rewrote at call 10.
+
+calendar (plain, r3): SATISFACTORY
+  Efficient run. The agent read the schema, fetched /context, queried the dataset listing, and wrote the dataset reference (href, title, isRest), labelField {key: nomevenement, label} and crowdSourcing true in a single patch, then verified with a read. Values all came from tool responses. Six calls, no errors. The reduced labelField object was accepted without telling the agent whether the app expects only the key or the whole column.
+  goal: Set up the calendar on the "Agenda-manifestations" dataset, use the event name column as the label shown on each event, and turn on crowd sourcing so visitors can propose new events.
+  started 2026-10-29T09:47:25.638Z
+  ran 6 calls, read 20218 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 61902 (47461 cached), out 1892
+  friction:
+    [low] call 5 patchDocument: 200 OK
+stored 3 top-level key(s)
+      → The write was accepted with a labelField trimmed to {key, label}; nothing said whether the stored shape is what the consumer needs.
+
+calendar (session, r1): not runnable — FormSession has no auto-save mode yet
+
+calendar (session, r2): not runnable — FormSession has no auto-save mode yet
+
+calendar (session, r3): not runnable — FormSession has no auto-save mode yet
+
+portal-config-edit (r1): SATISFACTORY
+  The agent set the assisted-mode primary colour to #1B5E20 (a dark green) and added a Page libre menu entry whose pageRef came from the suggestion list (slug jeunesse), ending with a valid form. The colour value is a reasonable dark green, the page value came from getFieldSuggestions rather than memory, and it verified with getData. Only one wrong path guess cost a call.
+  goal: I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.
+  started 2026-10-29T09:47:29.449Z
+  ran 11 calls, read 72051 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 90630 (76734 cached), out 1396
+  friction:
+    [low] call 7 getFieldSuggestions: Error: node not found at path: /menu/children/2/$oneOf/pageRef ... What does not exist yet is described by describeState at that same path.
+      → The agent had to retry with the variant index inserted (/$oneOf/1/pageRef); the error lists only top-level sections and does not point at the active variant path shown in the previous response.
+    [low] call 8 getFieldSuggestions: - [0] Nos actions pour la jeunesse (jeunesse) ([object Object])
+      → The suggestion detail renders as [object Object], so it cannot tell what the object value holds before applying it.
+
+portal-config-edit (r2): SATISFACTORY
+  The agent set the primary colour to #1B5E20 and added a Page libre entry pointing to the jeunesse page, ending valid with values taken from the suggestion list. It lost several calls to a suggestion call that succeeded on a wrong path, but recovered and reached the goal.
+  goal: I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.
+  started 2026-10-29T09:47:33.857Z
+  ran 12 calls, read 71586 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 90726 (79601 cached), out 1734
+  friction:
+    [medium] call 7 getFieldSuggestions: 1 suggestion(s), apply one with setFieldValue and its suggestionIndex ... on path /menu/children/2/pageRef, a path that is not a node of the active variant (the real one is /menu/children/2/$oneOf/1/pageRef)
+      → The agent took the answer as proof the path was valid; the suggestion was memorized under the wrong path, so applying it at the correct path failed.
+    [medium] call 8 setFieldValue: Error: no suggestion memorized for path "/menu/children/2/$oneOf/1/pageRef", call getFieldSuggestions on this path first
+      → The agent had to understand that suggestions are keyed by exact path and spend two diagnostic getData calls (9, 10) before repeating the search at call 11.
+    [low] call 9 getData: {"data":{"type":"generic"},"valid":false}
+      → Diagnostic call bought only confirmation that pageRef was not set; call 10 re-read the colour already confirmed at call 4.
+    [low] call 7 getFieldSuggestions: ([object Object]) suggestion label
+      → Suggestion detail is not readable.
+
+portal-config-edit (r3): SATISFACTORY
+  The agent set the primary colour to #1B5E20 and added a Page libre entry bound to the jeunesse page chosen from the suggestion list, form valid. Efficient (10 calls), with one wrong path guess and a final verification call.
+  goal: I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.
+  started 2026-10-29T09:47:38.121Z
+  ran 10 calls, read 75575 bytes, form valid=true
+  model claude-haiku-5-5, $0.004
+  tokens in 78440 (65890 cached), out 1414
+  friction:
+    [low] call 7 getFieldSuggestions: Error: node not found at path: /menu/children/2/$oneOf/pageRef. The form starts with /$comp-1 ... /$comp-12
+      → The agent retried with the full $comp path and the /1 variant index; the error did not indicate the variant segment, so it guessed again.
+    [low] call 10 describeState: variant listing for children/2, large output repeating the variant schemas
+      → Verification of a write that already reported "form is valid" bought little.
+
+portal-config-edit (plain, r1): SATISFACTORY
+  The agent read the document and schema, fetched the context resource for the pages, inspected the menu item and assisted-colours sub-schemas, then patched primary to #1B5E20 (a dark green) and appended a generic menu item with pageRef slug jeunesse and the exact title, both values taken from the context resource. The write was accepted and the read-back confirmed both changes. Nothing was invented: the slug and title come from the context. It did not confirm assistedMode was on before writing in assisted colours, but the document read at call 1 showed it, so the choice was well-founded.
+  goal: I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.
+  started 2026-10-29T09:47:41.770Z
+  ran 9 calls, read 149569 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 84320 (68454 cached), out 1450
+  friction:
+    [low] call 2 readSchema: Full root schema returned in one response (about 128 KB), including a long x-agent-guide, layout expressions and six-language x-i18n-title blocks.
+      → The agent had to dig through a very large payload for the few facts it needed (assisted mode colours, menu item shape), then re-read sub-schemas by pointer in calls 4-6.
+    [low] call 7 patchDocument: 200 OK stored 23 top-level key(s)
+      → The write was accepted; the response does not say whether the derived palettes (theme.colors etc.) that the x-agent-guide says are recomputed on save were updated, and the read-back (call 9) shows only assistedModeColors, so the agent had no way to confirm the main colour took effect beyond the primary field.
+    [low] call 7 patchDocument: Merge patch for /menu/children required resending the whole array, including the two existing entries.
+      → The agent rebuilt the full list by hand to append one item; correct here, but a merge patch cannot append.
+
+portal-config-edit (plain, r2): SATISFACTORY
+  The agent read the document and schema, fetched context, inspected the menu schema and explicitly checked the assistedMode property (call 5) before choosing to set assistedModeColors.primary to #1B5E20, then appended the generic menu entry for slug jeunesse with the title from context. Write accepted, read-back confirmed both. Slug and title were sourced from the context; the colour is a reasonable dark green. The session achieved the goal with a small, well-targeted set of calls.
+  goal: I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.
+  started 2026-10-29T09:47:42.072Z
+  ran 9 calls, read 151571 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 87453 (70668 cached), out 1538
+  friction:
+    [low] call 2 readSchema: Full root schema returned in one response (about 128 KB), including a long x-agent-guide, layout expressions and six-language x-i18n-title blocks.
+      → The agent had to dig through a very large payload for the few facts it needed (assisted mode colours, menu item shape), then re-read sub-schemas by pointer in calls 4-6.
+    [low] call 7 patchDocument: 200 OK stored 23 top-level key(s)
+      → The write was accepted; the response does not say whether the derived palettes (theme.colors etc.) that the x-agent-guide says are recomputed on save were updated, and the read-back (call 9) shows only assistedModeColors, so the agent had no way to confirm the main colour took effect beyond the primary field.
+    [low] call 7 patchDocument: Merge patch for /menu/children required resending the whole array, including the two existing entries.
+      → The agent rebuilt the full list by hand to append one item; correct here, but a merge patch cannot append.
+
+portal-config-edit (plain, r3): SATISFACTORY
+  The agent read the document and schema, fetched context, inspected the menu and assisted-colours sub-schemas, patched primary to #1B5E20 and appended a generic menu item with the jeunesse slug and its exact title from context. The write was accepted and the read-back confirmed menu and primary. No guessed values; the path to the colour came from the schema guide. Goal reached in 9 calls.
+  goal: I manage our open data portal. I would like its main colour to be a dark green, and our page "Nos actions pour la jeunesse" to show up in the portal menu.
+  started 2026-10-29T09:47:46.575Z
+  ran 9 calls, read 149569 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 84793 (68621 cached), out 1737
+  friction:
+    [low] call 2 readSchema: Full root schema returned in one response (about 128 KB), including a long x-agent-guide, layout expressions and six-language x-i18n-title blocks.
+      → The agent had to dig through a very large payload for the few facts it needed (assisted mode colours, menu item shape), then re-read sub-schemas by pointer in calls 4-6.
+    [low] call 7 patchDocument: 200 OK stored 23 top-level key(s)
+      → The write was accepted; the response does not say whether the derived palettes (theme.colors etc.) that the x-agent-guide says are recomputed on save were updated, and the read-back (call 9) shows only assistedModeColors, so the agent had no way to confirm the main colour took effect beyond the primary field.
+    [low] call 7 patchDocument: Merge patch for /menu/children required resending the whole array, including the two existing entries.
+      → The agent rebuilt the full list by hand to append one item; correct here, but a merge patch cannot append.
+
+portal-config-edit (session, r1): not runnable — FormSession has no auto-save mode yet
+
+portal-config-edit (session, r2): not runnable — FormSession has no auto-save mode yet
+
+portal-config-edit (session, r3): not runnable — FormSession has no auto-save mode yet
+
+charts-edit (r1): SATISFACTORY
+  The agent called describeState once, which exposed the metric select (value avg, options including max) and the legendPosition select (options including bottom) with their full paths, then set each with one setFieldValue. Both writes were confirmed valid and nothing else was touched. Three calls for a two-field change, with no guessing and no wasted round-trips.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T09:47:52.751Z
+  ran 3 calls, read 8443 bytes, form valid=true
+  model claude-haiku-5-5, $0.003
+  tokens in 28134 (17193 cached), out 482
+
+charts-edit (r2): SATISFACTORY
+  The agent called describeState once, which exposed the metric select (value avg, options including max) and the legendPosition select (options including bottom) with their full paths, then set each with one setFieldValue. Both writes were confirmed valid and nothing else was touched. Three calls for a two-field change, with no guessing and no wasted round-trips.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T09:47:54.801Z
+  ran 3 calls, read 8443 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 28175 (19990 cached), out 524
+
+charts-edit (r3): SATISFACTORY
+  The agent read the form with describeState and made both required changes (metric to max, legend to bottom), each confirmed valid. It first wrote both paths without the '$' of '$allOf' ('/allOf-1/...', '/allOf-2/...'), and both were refused. The errors listed the real top-level node names and pointed back to describeState, so the agent corrected both paths on the next two calls. The goal was reached with two wasted calls and no stray writes.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T09:47:57.234Z
+  ran 5 calls, read 9237 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 39863 (31104 cached), out 710
+  friction:
+    [low] call 2 setFieldValue: Error: node not found at path: /allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/metric. The form starts with /$allOf-0 ("Source de données"), /$allOf-1 ..., /$allOf-2 ("Options"). Use a path listed by describeState...
+      → The agent had dropped the leading '$' of '$allOf' while copying the path from describeState; the error listed the correct node names, so it fixed the path on retry.
+    [low] call 4 setFieldValue: Error: node not found at path: /allOf-2/legendPosition. The form starts with /$allOf-0 ... /$allOf-2 ("Options").
+      → The same '$' omission was repeated for the second field, because the agent had not applied the correction from call 2 before issuing call 4 (both writes were issued before the first error came back).
+
+charts-edit (plain, r1): SATISFACTORY
+  The agent read the document (seeing metric avg and legendPosition right), read the schema, then sent one patchDocument that set chart.config.valueCalc.metric to max and legendPosition to bottom; the tool accepted it ('200 OK, stored 8 top-level key(s)') and the nested merge left sibling fields (field, groupBy, color, datasets) intact. It then re-read the whole document to confirm both values. Both changed values came from the document and goal, nothing was guessed, and no write was refused or ambiguous.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T09:47:57.714Z
+  ran 4 calls, read 39099 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 71361 (49865 cached), out 495
+  friction:
+    [low] call 1 readDocument: The unscoped read returns the whole document including the datasets array with full column schemas and enum values, about 19 KB of output for a two-field edit.
+      → The agent paid the cost and carried on, locating the two relevant fields near the top without trouble.
+
+charts-edit (plain, r2): SATISFACTORY
+  The agent read the document (seeing metric avg and legendPosition right), read the schema, then sent one patchDocument that set chart.config.valueCalc.metric to max and legendPosition to bottom; the tool accepted it ('200 OK, stored 8 top-level key(s)') and the nested merge left sibling fields (field, groupBy, color, datasets) intact. It then re-read the whole document to confirm both values. Both changed values came from the document and goal, nothing was guessed, and no write was refused or ambiguous.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T09:47:58.205Z
+  ran 4 calls, read 39099 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 71300 (49866 cached), out 454
+  friction:
+    [low] call 1 readDocument: The unscoped read returns the whole document including the datasets array with full column schemas and enum values, about 19 KB of output for a two-field edit.
+      → The agent paid the cost and carried on, locating the two relevant fields near the top without trouble.
+
+charts-edit (plain, r3): SATISFACTORY
+  The agent read the document (seeing metric avg and legendPosition right), read the schema, then sent one patchDocument that set chart.config.valueCalc.metric to max and legendPosition to bottom; the tool accepted it ('200 OK, stored 8 top-level key(s)') and the nested merge left sibling fields (field, groupBy, color, datasets) intact. It then verified both values with two path-scoped readDocument calls, which were cheaper than the full re-read of runs 1 and 2. Both changed values came from the document and goal, nothing was guessed, and no write was refused or ambiguous.
+  goal: This chart averages the pollutant values per commune. Show the maximum instead, and move the legend to the bottom.
+  started 2026-10-29T09:48:02.012Z
+  ran 5 calls, read 34442 bytes, form valid=true
+  model claude-haiku-5-5, $0.005
+  tokens in 69457 (49916 cached), out 559
+  friction:
+    [low] call 1 readDocument: The unscoped read returns the whole document including the datasets array with full column schemas and enum values, about 19 KB of output for a two-field edit.
+      → The agent paid the cost and carried on, locating the two relevant fields near the top without trouble.
+
+charts-edit (session, r1): not runnable — FormSession has no auto-save mode yet
+
+charts-edit (session, r2): not runnable — FormSession has no auto-save mode yet
+
+charts-edit (session, r3): not runnable — FormSession has no auto-save mode yet
+
+contact (r1): SATISFACTORY
+  The agent read the form state with describeState, which listed every field with its label, type, bounds and enum values, then wrote all four values in one setData call. Each value comes from the goal (name, birth year 1815, email, email as contact method) and the tool confirmed 'valid, no errors' and 'stored 4 key(s)'. No guessed values and no wasted calls.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:03.320Z
+  ran 2 calls, read 624 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 20881 (13712 cached), out 232
+
+contact (r2): SATISFACTORY
+  The agent read the form state with describeState, which listed every field with its label, type, bounds and enum values, then wrote all four values in one setData call. Each value comes from the goal (name, birth year 1815, email, email as contact method) and the tool confirmed 'valid, no errors' and 'stored 4 key(s)'. No guessed values and no wasted calls.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:05.912Z
+  ran 2 calls, read 624 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 20853 (16495 cached), out 229
+
+contact (r3): SATISFACTORY
+  The agent read the form state with describeState, which listed every field with its label, type, bounds and enum values, then wrote all four values in one setData call. Each value comes from the goal (name, birth year 1815, email, email as contact method) and the tool confirmed 'valid, no errors' and 'stored 4 key(s)'. No guessed values and no wasted calls.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:06.617Z
+  ran 2 calls, read 624 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 20853 (16495 cached), out 222
+
+contact (plain, r1): SATISFACTORY
+  The agent read the empty document, read the schema, and wrote all four fields (name, birthYear 1815 within 1800-2100, email, contactMethod 'email' from the enum) in a single write that was accepted. Every value came from the goal or the schema, nothing was guessed, and there were no wasted calls.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:11.532Z
+  ran 3 calls, read 402 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 17119 (13249 cached), out 331
+
+contact (plain, r2): SATISFACTORY
+  The agent read the empty document, read the schema, and wrote all four fields (name, birthYear 1815 within 1800-2100, email, contactMethod 'email' from the enum) in a single write that was accepted. Every value came from the goal or the schema, nothing was guessed, and there were no wasted calls.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:12.134Z
+  ran 3 calls, read 402 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 17073 (13239 cached), out 282
+
+contact (plain, r3): SATISFACTORY
+  The agent read the empty document, read the schema, and wrote all four fields (name, birthYear 1815 within 1800-2100, email, contactMethod 'email' from the enum) in a single write that was accepted. Every value came from the goal or the schema, nothing was guessed, and there were no wasted calls.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:14.519Z
+  ran 3 calls, read 402 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 17067 (13235 cached), out 275
+
+contact (session, r1): SATISFACTORY
+  The agent called describeState once, which listed all four fields with types, required flags and the enum values. It then wrote every value from the goal in one setData call (name, birthYear 1815, email, contactMethod 'email'); the tool answered 'valid, no errors' and 'stored 4 key(s)'. saveForm then answered 'Saved "contact form".', so the changes were persisted. All values come directly from the goal, nothing was guessed, and 3 calls is the minimum reasonable for this form.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:07.190Z
+  ran 3 calls, read 645 bytes, form valid=true
+  model claude-haiku-5-5, $0.002
+  tokens in 27954 (20752 cached), out 286
+
+contact (session, r2): SATISFACTORY
+  The agent called describeState once, which listed all four fields with types, required flags and the enum values. It then wrote every value from the goal in one setData call (name, birthYear 1815, email, contactMethod 'email'); the tool answered 'valid, no errors' and 'stored 4 key(s)'. saveForm then answered 'Saved "contact form".', so the changes were persisted. All values come directly from the goal, nothing was guessed, and 3 calls is the minimum reasonable for this form.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:09.229Z
+  ran 3 calls, read 645 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 27946 (23498 cached), out 284
+
+contact (session, r3): SATISFACTORY
+  The agent called describeState once, which listed all four fields with types, required flags and the enum values. It then wrote every value from the goal in one setData call (name, birthYear 1815, email, contactMethod 'email'); the tool answered 'valid, no errors' and 'stored 4 key(s)'. saveForm then answered 'Saved "contact form".', so the changes were persisted. All values come directly from the goal, nothing was guessed, and 3 calls is the minimum reasonable for this form.
+  goal: Fill in the contact form for Ada Lovelace, born in 1815, email ada@analytical.org, who prefers to be contacted by email.
+  started 2026-10-29T09:48:10.322Z
+  ran 3 calls, read 645 bytes, form valid=true
+  model claude-haiku-5-5, $0.001
+  tokens in 27946 (23498 cached), out 288
+
+data-fair-line — comparison
+  form: 3 runs, 15–18 calls, 5071–5530 bytes, 45754–57014 input tokens, $0.004–$0.004 cost, checks 6/6, 6/6, 6/6, 3s/0u
+  plain: 3 runs, 4 calls, 4568–4687 bytes, 30456–30563 input tokens, $0.002–$0.003 cost, checks 6/6, 6/6, 6/6, 3s/0u
+  session: 3 runs, 8–19 calls, 4348–5356 bytes, 62828–78972 input tokens, $0.003–$0.004 cost, checks 6/6, 6/6, 6/6, 3s/0u
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+calendar — comparison
+  form: 3 runs, 9–10 calls, 7395–11317 bytes, 68400–75134 input tokens, $0.003–$0.004 cost, checks 3/3, 3/3, 3/3, 3s/0u
+  plain: 3 runs, 6–11 calls, 20218–43616 bytes, 61902–186758 input tokens, $0.004–$0.014 cost, checks 3/3, 3/3, 3/3, 3s/0u
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+portal-config-edit — comparison
+  form: 3 runs, 10–12 calls, 71586–75575 bytes, 78440–90726 input tokens, $0.004–$0.004 cost, checks 2/2, 2/2, 2/2, 3s/0u
+  plain: 3 runs, 9 calls, 149569–151571 bytes, 84320–87453 input tokens, $0.005–$0.005 cost, checks 2/2, 2/2, 2/2, 3s/0u
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+charts-edit — comparison
+  form: 3 runs, 3–5 calls, 8443–9237 bytes, 28134–39863 input tokens, $0.002–$0.003 cost, checks 3/3, 3/3, 3/3, 3s/0u
+  plain: 3 runs, 4–5 calls, 34442–39099 bytes, 69457–71361 input tokens, $0.005–$0.005 cost, checks 3/3, 3/3, 3/3, 3s/0u
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)
+
+contact — comparison
+  form: 3 runs, 2 calls, 624 bytes, 20853–20881 input tokens, $0.001–$0.002 cost, checks 0/0, 0/0, 0/0, 3s/0u
+  plain: 3 runs, 3 calls, 402 bytes, 17067–17119 input tokens, $0.001–$0.001 cost, checks 0/0, 0/0, 0/0, 3s/0u
+  session: 3 runs, 3 calls, 645 bytes, 27946–27954 input tokens, $0.001–$0.002 cost, checks 0/0, 0/0, 0/0, 3s/0u
+  input tokens = input + cacheRead + cacheWrite (what the model actually read)

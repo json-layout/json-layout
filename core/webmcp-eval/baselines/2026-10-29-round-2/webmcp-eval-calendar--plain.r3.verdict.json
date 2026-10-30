@@ -1,0 +1,14 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "Agent searched the dataset by name, described it to get the real column nomevenement, read the empty document and the schema, then wrote datasets, the full column object as labelField, and crowdSourcing:true; the final read-back matches. All values came from tool responses. Writing the full schema column (including icon, capabilities) is what the picker would store. 6 calls, no wasted retries.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "readSchema",
+      "observed": "labelField is declared only as {type:object,title:Champ de libelle} with a getItems url ending in /schema?calculated=false, itemKey key, itemTitle label; no properties; datasets[0] lists schema/timePeriod/userPermissions as untyped arrays/objects.",
+      "inferred": "The agent had to guess what to store for an object picked from a remote list (the whole column object vs a partial one) and which dataset fields to keep; nothing in the tools said.",
+      "severity": "low"
+    }
+  ]
+}

@@ -210,7 +210,9 @@ function getPartialCompObject (layoutKeyword) {
  */
 function looksPure (expression) {
   const expr = typeof expression === 'string' ? expression : expression.expr
-  return !expr.includes('rootData.') && !expr.includes('rootData[') && !expr.includes('parent.data') && !expr.includes('parent.parent')
+  // a cheap text check, so it also lists the optional-chaining and bracket spellings
+  return !['rootData.', 'rootData[', 'rootData?.', 'parent.data', 'parent?.data', "parent['data']", 'parent["data"]', 'parent.parent', 'parent?.parent']
+    .some((read) => expr.includes(read))
 }
 
 /**

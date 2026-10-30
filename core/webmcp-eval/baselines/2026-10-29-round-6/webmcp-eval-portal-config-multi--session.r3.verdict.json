@@ -1,0 +1,14 @@
+{
+  "case": "portal-config-multi",
+  "verdict": "satisfactory",
+  "reasoning": "All four changes were made and saved: department hidden on dataset cards, socialShares restricted to bluesky/facebook/linkedin, breadcrumb above-footer, and a new generic footer link to the Contact presse page chosen via getFieldSuggestions (slug contact-presse), not invented. Three verification reads confirmed the writes. Only friction was the quoted-string coercion on the breadcrumb write.",
+  "friction": [
+    {
+      "call": 8,
+      "tool": "setFieldValue",
+      "observed": "value passed as \"\\\"above-footer\\\"\" (extra quotes); tool replied \"coerced: /$comp-5/breadcrumb/position quoted text → text\" and saved",
+      "inferred": "The agent double-quoted a plain string value; the tool silently repaired it and noted the coercion, so no harm, but the agent had no earlier hint on how to pass string values.",
+      "severity": "low"
+    }
+  ]
+}

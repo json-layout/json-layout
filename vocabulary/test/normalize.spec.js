@@ -166,6 +166,15 @@ describe('normalize schema fragment function', () => {
     )
   })
 
+  it('should mark impure the expressions reading parent or root data in other spellings', () => {
+    for (const expr of ['parent?.data.code', "parent['data'].code", 'rootData?.code', 'parent?.parent.data', 'parent.data.code', 'rootData.code']) {
+      const getItems = normalize('prop', { type: 'string', layout: { getItems: { url: 'http://test.com', itemsResults: expr } } }, '/prop', options).layout.getItems
+      assert.equal(getItems.itemsResults.pure, false, expr)
+    }
+    const getItems = normalize('prop', { type: 'string', layout: { getItems: { url: 'http://test.com', itemsResults: 'data.results' } } }, '/prop', options).layout.getItems
+    assert.equal(getItems.itemsResults.pure, true)
+  })
+
   it('should manage select on arrays with enums and oneOf', () => {
     assert.deepEqual(
       normalize('prop', { type: 'array', items: { type: 'string', enum: ['val1', 'val2'] } }, '/prop', options).layout,

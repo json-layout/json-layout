@@ -383,4 +383,36 @@ describe('get select items', () => {
       { title: 'val2', key: 'val2', value: 'val2' }
     ])
   })
+  it('should reshape a fetched list again when the data its reshaping reads changes, without fetching again', async () => {
+    // catalog-melodi: the values offered depend on a sibling field, the URL does not
+    const compiledLayout = await compile({
+      type: 'object',
+      properties: {
+        selectedConcept: { type: 'string' },
+        selectedValue: {
+          type: 'string',
+          layout: {
+            comp: 'autocomplete',
+            getItems: {
+              url: 'http://test.com/range',
+              itemsResults: '(data.range.find(c => c.code === parent.data.selectedConcept)?.values || [])',
+              itemTitle: 'item.label',
+              itemValue: 'item.code'
+            }
+          }
+        }
+      }
+    })
+    let fetches = 0
+    const range = { range: [{ code: 'A', values: [{ code: 'a1', label: 'A 1' }] }, { code: 'B', values: [{ code: 'b1', label: 'B 1' }] }] }
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+      ...defaultOptions,
+      fetch: async () => { fetches++; return range }
+    }, { selectedConcept: 'A' })
+    const node = () => /** @type {any} */(statefulLayout.stateTree.root.children?.find(c => c.key === 'selectedValue'))
+    assert.deepEqual((await statefulLayout.getItems(node())).map(i => i.value), ['a1'])
+    statefulLayout.input(/** @type {any} */(statefulLayout.stateTree.root.children?.find(c => c.key === 'selectedConcept')), 'B')
+    assert.deepEqual((await statefulLayout.getItems(node())).map(i => i.value), ['b1'])
+    assert.equal(fetches, 1)
+  })
 })

@@ -1,0 +1,14 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The agent searched the commune referential, got Saint-Sébastien-sur-Loire (44190) from the tool output, and wrote a complete, schema-conformant document in one call. Value mapping (phone format, ISO date, closed-list activities/publics, SIRET) was correct and traceable to the mail. The code was surfaced by the lookup, so not invented; choosing among three candidates relied on the Nantes hint. One call was wasted on the 'dataset:' prefix.",
+  "friction": [
+    {
+      "call": 3,
+      "tool": "get_field_values",
+      "observed": "404 Not Found: dataset dataset:communes",
+      "inferred": "The id as written in x-master.remoteService was refused; the agent dropped the prefix on the next call, but nothing in the error said that was the fix.",
+      "severity": "medium"
+    }
+  ]
+}

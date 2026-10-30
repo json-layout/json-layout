@@ -1,0 +1,14 @@
+{
+  "case": "data-fair-line",
+  "verdict": "satisfactory",
+  "reasoning": "The agent looked up the commune, then wrote all other data in one setData call (which correctly reported only /commune missing) and applied the suggestion, reaching a valid form in 4 calls. Values all come from the email; the commune pick used outside knowledge to disambiguate among three same-name communes.",
+  "friction": [
+    {
+      "call": 2,
+      "tool": "getFieldSuggestions",
+      "observed": "3 suggestions: 23239 (Saint-Sébastien), 27602 (Saint-Sébastien-de-Morsent), 44190 (Saint-Sébastien-sur-Loire), with no département or other disambiguating info",
+      "inferred": "Picked 44190 by outside knowledge that Saint-Sébastien-sur-Loire is next to Nantes; the tool output alone could not confirm the choice",
+      "severity": "low"
+    }
+  ]
+}

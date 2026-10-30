@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected Agenda-manifestations, which revealed the crowd sourcing field, tried an English query for the label column, got no match, listed all 27 columns without a query, and picked Nom de l'évenement (nomevenement) by its visible label and key. It then enabled crowdSourcing. Every write was valid and saved, and the final data contains the dataset, the label field and crowdSourcing true. The label column was surfaced by the tool, not invented.",
+  "friction": [
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.",
+      "inferred": "The English query did not match French labels; the message told the agent to omit the query, which it did, costing one round-trip.",
+      "severity": "low"
+    },
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "27 suggestion(s) including raw technical columns and calculated-looking entries like _coords.lat",
+      "inferred": "The unfiltered list is long, but sufficient to locate the right column.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "describeState",
+      "observed": "crowdSourcing value=true ... valid",
+      "inferred": "Redundant verification of a write already confirmed by call 9, as was call 11.",
+      "severity": "low"
+    }
+  ]
+}

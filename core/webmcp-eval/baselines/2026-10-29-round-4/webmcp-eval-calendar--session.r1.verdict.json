@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected Agenda-manifestations via a name search, which was the only way to unlock the hidden crowdSourcing field (call 3 correctly said it is hidden until the dataset is REST). It then picked the event-name column (nomevenement, labelled Nom de l'évenement) from the suggestions and enabled crowdSourcing; every write returned valid and saved, and the final data holds all three. The label column was surfaced by the tool, not guessed. The session was short and direct, with only a few redundant verification reads.",
+  "friction": [
+    {
+      "call": 7,
+      "tool": "getFieldSuggestions",
+      "observed": "27 suggestion(s) ... [3] Type demandeur (type_demandeur) ... [19] Nom de l'évenement (nomevenement) — apply with suggestionIndex=19",
+      "inferred": "Indices continue from the previous query (the list starts at 3, after the 0-2 of the call 6 query) rather than from 0; the agent had to use the new numbering, which worked but is surprising and could mislead after a re-query.",
+      "severity": "medium"
+    },
+    {
+      "call": 4,
+      "tool": "setFieldValue",
+      "observed": "= <object, 12508 chars — call getData with this path to read it>",
+      "inferred": "The agent could not see what was stored for the dataset but trusted the saved/valid result.",
+      "severity": "low"
+    },
+    {
+      "call": 10,
+      "tool": "describeState",
+      "observed": "crowdSourcing value=true ... valid",
+      "inferred": "Redundant verification of a write already confirmed by call 9, as was call 11.",
+      "severity": "low"
+    }
+  ]
+}

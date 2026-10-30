@@ -1,0 +1,21 @@
+{
+  "case": "portal-config-edit",
+  "verdict": "satisfactory",
+  "reasoning": "The agent searched 'principale', found the assisted-mode primary colour picker and set it to #1B5E20 (a dark green); the response said 'saved'. It then added a menu item, chose the 'Page libre' variant, found the page through getFieldSuggestions('jeunesse'), applied suggestion 0 and got 'form is valid / saved'. The final data contains the generic menu item with the jeunesse pageRef and theme.assistedModeColors.primary is #1B5E20. theme.colors.primary is unchanged in the saved data, but the schema states that in assisted mode the palettes are recomputed from assistedModeColors at draft save, so setting assistedModeColors was the right lever. Both changes were saved; the page value came from a suggestion list, not guesswork.",
+  "friction": [
+    {
+      "call": 6,
+      "tool": "getFieldSuggestions",
+      "observed": "6 suggestion(s) ... [1] Page libre — value=1 (the list of variants of the one-of selector)",
+      "inferred": "Asked for suggestions of 'Nos actions pour la jeunesse' on an existing item's variant selector; the query was ignored and it got the variant list, which only reconfirmed call 5. Bought no new information.",
+      "severity": "low"
+    },
+    {
+      "call": 12,
+      "tool": "getData",
+      "observed": "Error: node not found at path: /theme/colors/primary. The value exists in the data but its field is not shown in the form right now ... Look for the field the form shows instead with describeState.",
+      "inferred": "Tried to verify the colour in the palette data and was told the field is hidden by assisted mode; the error was clear and it fell back to describeState on assistedModeColors (call 13). One wasted verification call.",
+      "severity": "low"
+    }
+  ]
+}

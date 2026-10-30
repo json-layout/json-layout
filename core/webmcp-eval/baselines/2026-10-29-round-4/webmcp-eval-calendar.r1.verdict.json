@@ -1,0 +1,28 @@
+{
+  "case": "calendar",
+  "verdict": "satisfactory",
+  "reasoning": "The agent selected Agenda-manifestations through a suggestion, discovering that the crowdSourcing field was hidden until a REST dataset was chosen (call 3 told it so explicitly). It then picked the event name column (nomevenement) from a list the tool surfaced, and set crowdSourcing to true; the form ended valid. No value was invented. Ten calls for a three-part goal is reasonable, with a couple of redundant reads.",
+  "friction": [
+    {
+      "call": 5,
+      "tool": "describeState",
+      "observed": "- /$allOf-1/labelField (select, suggestions) label=\"Champ de libellé\" value=undefined ... no error here\nform is valid",
+      "inferred": "Confirmed the label field was now fillable; the setFieldValue result of call 4 already announced newly available fields, so this bought little.",
+      "severity": "low"
+    },
+    {
+      "call": 6,
+      "tool": "describeState",
+      "observed": "- /$allOf-3/crowdSourcing (boolean) label=\"Activer le crowd sourcing\" value=undefined",
+      "inferred": "Checked the crowd sourcing field before writing it; information already known from calls 3 and 4.",
+      "severity": "low"
+    },
+    {
+      "call": 9,
+      "tool": "setFieldValue",
+      "observed": "4 field(s) became available: /$allOf-0/datasets/1, /$allOf-3/contribsDataset, ...",
+      "inferred": "The same contribs dataset appears under two paths, which could suggest a second required step; the agent correctly left it alone.",
+      "severity": "low"
+    }
+  ]
+}

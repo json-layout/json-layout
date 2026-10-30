@@ -1,13 +1,13 @@
 /**
- * @file Projection functions for webmcp tools
+ * @file Projection of fields and nodes for webmcp tools: values, variants, suggestions
  */
 
 import { SECTION_CONTAINERS } from '../state/index.js'
 import { variantShapes } from './form-schema.js'
 import { isItemsLayout } from '@json-layout/vocabulary'
-
 import { visibleChildren, resolveNode } from './resolve.js'
-import { projectDeclaredFields } from './schema.js'
+import { projectDeclaredFields, resolveNodeSchema } from './schema.js'
+import { indexErrorsByPath, collectErrors, nodeError } from './errors.js'
 
 /**
  * Suggestion values can be arbitrarily large objects (a whole dataset definition for example),
@@ -272,7 +272,7 @@ function isEditableListItemSummary (node, statefulLayout) {
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
  * @returns {boolean}
  */
-function isReadOnly (node, statefulLayout) {
+export function isReadOnly (node, statefulLayout) {
   if (!node.options.readOnly) return false
   /** @type {import('../state/types.js').StateNode|undefined} */
   let current = node
@@ -283,36 +283,6 @@ function isReadOnly (node, statefulLayout) {
     current = resolveNode(statefulLayout.stateTree.root, parentFullKey)
   }
   return true
-}
-
-/**
- * Validation errors of the whole state tree indexed by node path.
- * Only the first of the two occurrences of an activated list item captures the errors, so a
- * node reached through the editable occurrence has to look its own error up by path.
- * @param {import('../state/types.js').StateNode} root
- * @returns {Record<string, string>}
- */
-function indexErrorsByPath (root) {
-  /** @type {Record<string, string>} */
-  const byPath = {}
-  /** @type {Array<[string, string]>} */
-  const hidden = []
-  /** @param {import('../state/types.js').StateNode} node */
-  const recurse = (node) => {
-    if (node.error) {
-      if (node.layout.comp === 'none') hidden.push([node.fullKey, node.error])
-      else if (byPath[node.fullKey] === undefined) byPath[node.fullKey] = node.error
-    }
-    for (const child of node.children ?? []) recurse(child)
-  }
-  recurse(root)
-  // same rule as collectErrors: a hidden node's echo of an error a visible node reports is
-  // not another error, one only a hidden node carries is kept
-  const visibleMessages = new Set(Object.values(byPath))
-  for (const [path, message] of hidden) {
-    if (!visibleMessages.has(message) && byPath[path] === undefined) byPath[path] = message
-  }
-  return byPath
 }
 
 /**
@@ -395,15 +365,6 @@ function hasSuggestions (node, statefulLayout) {
 }
 
 /**
- * @param {import('../state/types.js').StateNode} node
- * @param {Record<string, string>} [errorsByPath]
- * @returns {string|undefined}
- */
-function nodeError (node, errorsByPath) {
-  return node.error ?? errorsByPath?.[node.fullKey]
-}
-
-/**
  * Project a single field result for slim mutation responses
  * @param {import('../state/types.js').StateNode} node
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -421,6 +382,74 @@ export function projectFieldResult (node, statefulLayout) {
   return out
 }
 
+/** @type {Record<string, string>} */
+const schemaTypeToType = { string: 'text', number: 'number', integer: 'integer', boolean: 'boolean' }
+
+/**
+ * Whether a field holds several values in one component: an array of scalars, a select
+ * with `multiple`, a string joined by a `separator`. The normalization sets `multiple` on
+ * all three. Shown as a select with its values, round 2's agents wrote one scalar to
+ * « Activités » and « Publics » and got "must be array" (data-fair-line r1, r2 #12–#13).
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {boolean}
+ */
+export function isMultiValued (node) {
+  return /** @type {any} */(node.layout).multiple === true && node.layout.comp !== 'list'
+}
+
+/**
+ * The type of each value of a multi-valued field.
+ * @param {import('../state/types.js').StateNode} node
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {string}
+ */
+export function multiValuedItemType (node, statefulLayout) {
+  if (node.layout.comp === 'number-combobox') return 'number'
+  const schema = /** @type {any} */(resolveNodeSchema(node, statefulLayout))
+  const type = schema?.type === 'array' ? schema.items?.type : schema?.type
+  return (typeof type === 'string' && schemaTypeToType[type]) || 'text'
+}
+
+/**
+ * The value of a multi-valued field as the list it is: an unset one is an empty list. A
+ * separator-joined string stays as stored, the schema wants a string.
+ * @param {import('../state/types.js').StateNode} node
+ * @returns {unknown}
+ */
+export function multiValuedData (node) {
+  return node.data === undefined ? [] : node.data
+}
+
+/**
+ * The variant selector that tells an item of a list apart: the item itself, or one of its
+ * direct fields (a portal page element is a section holding a `$oneOf`).
+ * @param {import('../state/types.js').StateNode} item
+ * @returns {import('../state/types.js').StateNode | undefined}
+ */
+export function itemSelector (item) {
+  if (item.layout.comp === 'one-of-select') return item
+  return visibleChildren(item).find((child) => child.layout.comp === 'one-of-select')
+}
+
+/**
+ * @param {import('../state/types.js').StateNode} selector
+ * @returns {Array<{ key: number, title: string }>}
+ */
+export function variantsOf (selector) {
+  const oneOfItems = /** @type {any} */(selector.layout).oneOfItems
+  return Array.isArray(oneOfItems) ? oneOfItems.filter((item) => !item.header) : []
+}
+
+/**
+ * The option a selector has active: its first child is the activated branch.
+ * @param {import('../state/types.js').StateNode} selector
+ * @returns {{ key: number, title: string } | undefined}
+ */
+export function activeVariant (selector) {
+  const activeKey = selector.children?.[0]?.key
+  return variantsOf(selector).find((v) => v.key === activeKey)
+}
+
 /**
  * Format a projected node as a markdown line for LLM-readable output.
  * @param {import('../state/types.js').StateNode} node
@@ -435,7 +464,8 @@ export function projectFieldResult (node, statefulLayout) {
  */
 export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root), variantsMemo, screen = true, potential = false) {
   const indent = '  '.repeat(depth)
-  const type = compToType[node.layout.comp] || node.layout.comp
+  const multiValued = isMultiValued(node)
+  const type = multiValued ? `list of ${multiValuedItemType(node, statefulLayout)}` : (compToType[node.layout.comp] || node.layout.comp)
   const layout = /** @type {Record<string, unknown>} */(node.layout)
 
   // build metadata tags
@@ -491,7 +521,8 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 
   // value for leaf nodes (no children or empty children)
   if (children.length === 0) {
-    line += ` value=${abbreviateValue(node.data)}`
+    const value = abbreviateValue(multiValued ? multiValuedData(node) : node.data)
+    line += value === undefined ? ' not set' : ` value=${value}`
   }
 
   // Help is the guidance a model cannot infer — that a negative height means automatic
@@ -519,11 +550,15 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
     const listedAt = variantsMemo?.listedAt(node.skeleton.pointer)
     if (listedAt === undefined) {
       variantsMemo?.record(node.skeleton.pointer, path)
-      const shapes = potential ? variantShapes(statefulLayout.compiledLayout, node.skeleton.pointer) : {}
-      for (const v of variants) {
-        const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
-        lines.push(`${indent}  - variant ${v.key}: ${variantTitle(node, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}${shape}`)
-      }
+      lines.push(...variantLines(node, statefulLayout, `${indent}  `, potential, activeKey))
+    } else if (variantsMemo?.listedUnderList(node.skeleton.pointer)) {
+      // every item of a list holds the same union: its options are given once, under the
+      // list, and an item only says which one it holds (round 2: 91 KB for 11 page blocks)
+      const active = variants.find((v) => v.key === activeKey)
+      const options = optionsListedAt(variantsMemo, node, variants.length, listedAt)
+      lines.push(active
+        ? `${indent}  - variant ${active.key}: ${active.title} (active), ${options}`
+        : `${indent}  - no option chosen yet, ${options}`)
     } else {
       // a recursive schema reaches the same union at many paths; the list is a constant,
       // so name where it was given rather than repeat it — but which branch is active is
@@ -533,6 +568,8 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
       lines.push(`${indent}  - ${variants.length} variants${activeLabel}, the same list already given for ${listedAt} — call describeState on ${path} to see them again`)
     }
   }
+
+  if (node.layout.comp === 'list' && variantsMemo) lines.push(...listOptionsLines(node, statefulLayout, `${indent}  `, variantsMemo, children, potential))
 
   // recurse children; in a container that shows one section at a time, say which one is open:
   // the sub-agent told people a tab was open that was not, having no way to know
@@ -564,6 +601,84 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
 }
 
 /**
+ * Where the options of a choice were listed, earlier in the same answer, when they are not
+ * listed again. An item read alone prints them nowhere: it names the selector that lists them.
+ * @param {import('./variants-memo.js').VariantsMemo | undefined} variantsMemo
+ * @param {import('../state/types.js').StateNode} selector
+ * @param {number} count
+ * @param {string} listedAt
+ * @returns {string}
+ */
+export function optionsListedAt (variantsMemo, selector, count, listedAt) {
+  if (variantsMemo?.unprinted(selector.skeleton.pointer)) return `one of ${count} options (describeState ${selector.fullKey} to list them)`
+  return `one of the ${count} options listed under ${listedAt}`
+}
+
+/**
+ * One line per option of a variant selector, with the fields each brings when asked.
+ * @param {import('../state/types.js').StateNode} selector
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} indent
+ * @param {boolean} potential
+ * @param {unknown} [activeKey]
+ * @returns {string[]}
+ */
+export function variantLines (selector, statefulLayout, indent, potential, activeKey) {
+  const shapes = potential ? variantShapes(statefulLayout.compiledLayout, selector.skeleton.pointer) : {}
+  return variantsOf(selector).map((v) => {
+    const shape = shapes[String(v.key)] ? ` — ${shapes[String(v.key)]}` : ''
+    return `${indent}- variant ${v.key}: ${variantTitle(selector, statefulLayout, v)}${v.key === activeKey ? ' (active)' : ''}${shape}`
+  })
+}
+
+/**
+ * The options of the union every item of a list holds, given once under the list. Each item's
+ * selector then names only the option it holds. Nothing when the items hold no union, or when
+ * the same union was already listed (a nested list of the same elements).
+ * @param {import('../state/types.js').StateNode} list
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} indent
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
+ * @param {import('../state/types.js').StateNode[]} items
+ * @param {boolean} potential
+ * @returns {string[]}
+ */
+export function listOptionsLines (list, statefulLayout, indent, variantsMemo, items, potential) {
+  for (const item of items) {
+    const selector = itemSelector(item)
+    if (!selector) continue
+    if (variantsMemo.listedAt(selector.skeleton.pointer) !== undefined) return []
+    const path = list.fullKey || '/'
+    variantsMemo.record(selector.skeleton.pointer, path, true)
+    const at = `${path}/<index>${selector.fullKey.slice(item.fullKey.length)}`
+    return [
+      `${indent}- options of each item, chosen at ${at} (describeState on ${at}/<option> to see what an option holds):`,
+      ...variantLines(selector, statefulLayout, `${indent}  `, potential)
+    ]
+  }
+  return []
+}
+
+/**
+ * An item of a list of unions asked for alone holds one option of the union every item holds:
+ * record the options as named but printed nowhere, so the item says which one it holds, names
+ * its selector to list the others, and shows only that option's fields, as the outline does.
+ * Round 3: one page block answered its 40 options again before its fields, 6.2 KB judged
+ * bulky. An item with no option chosen yet still lists them, it is where one is chosen.
+ * @param {import('../state/types.js').StateNode} item
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('./variants-memo.js').VariantsMemo} variantsMemo
+ */
+export function recordItemOptionsUnderList (item, statefulLayout, variantsMemo) {
+  if (typeof item.key !== 'number' || item.parentFullKey == null) return
+  const list = resolveNode(statefulLayout.stateTree.root, item.parentFullKey)
+  if (!list || list.layout.comp !== 'list') return
+  const selector = itemSelector(item)
+  if (!selector || !activeVariant(selector)) return
+  variantsMemo.recordUnprinted(selector.skeleton.pointer, list.fullKey || '/')
+}
+
+/**
  * Format a state tree as markdown for LLM-readable output.
  * @param {import('../state/types.js').StateTree} stateTree
  * @param {import('../state/index.js').StatefulLayout} statefulLayout
@@ -573,6 +688,20 @@ export function projectNodeToMarkdown (node, statefulLayout, depth = 0, errorsBy
  * @returns {string}
  */
 export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsMemo, screen = true, potential = false) {
+  return [
+    ...stateHeaderLines(stateTree, statefulLayout),
+    'Fields:',
+    projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen, potential)
+  ].join('\n')
+}
+
+/**
+ * Validity and errors of the whole form, the head of a description of its whole state.
+ * @param {import('../state/types.js').StateTree} stateTree
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {string[]}
+ */
+export function stateHeaderLines (stateTree, statefulLayout) {
   const errors = collectErrors(statefulLayout)
   const validLine = stateTree.valid
     ? 'valid: true, no errors'
@@ -587,57 +716,7 @@ export function projectStateTreeToMarkdown (stateTree, statefulLayout, variantsM
     }
     lines.push('')
   }
-
-  lines.push('Fields:')
-  lines.push(projectNodeToMarkdown(stateTree.root, statefulLayout, 0, undefined, variantsMemo, screen, potential))
-
-  return lines.join('\n')
-}
-
-/**
- * Format a mutation result as concise text for LLM-readable output.
- * @param {boolean} valid
- * @param {Array<{path: string, message: string}>} errors - errors of the mutated subtree
- * @param {string} [prefix] - optional prefix line (e.g. field info)
- * @param {number} [otherErrors] - number of errors of the form outside of the mutated subtree
- * @returns {string}
- */
-export function formatMutationResult (valid, errors, prefix, otherErrors) {
-  const lines = []
-  if (prefix) lines.push(prefix)
-
-  // scoped mode, the errors are the ones of the mutated subtree only
-  if (otherErrors !== undefined) {
-    if (errors.length === 0) lines.push('no error here')
-    else {
-      lines.push(`${errors.length} error(s) here:`)
-      for (const e of errors) {
-        lines.push(`- ${e.path}: ${e.message}`)
-      }
-    }
-    if (otherErrors > 0) {
-      lines.push(`form has ${otherErrors} other error(s) elsewhere, use describeState to list them`)
-    } else if (!valid) {
-      lines.push('form is invalid')
-    } else {
-      lines.push('form is valid')
-    }
-    return lines.join('\n')
-  }
-
-  if (valid) {
-    lines.push('valid, no errors')
-  } else {
-    lines.push(`invalid, ${errors.length} error(s)`)
-    if (errors.length > 0) {
-      lines.push('Errors:')
-      for (const e of errors) {
-        lines.push(`- ${e.path}: ${e.message}`)
-      }
-    }
-  }
-
-  return lines.join('\n')
+  return lines
 }
 
 /**
@@ -654,7 +733,7 @@ export function formatMutationResult (valid, errors, prefix, otherErrors) {
 export function projectSuggestions (items, baseIndex = 0) {
   return items.map((item, index) => {
     /** @type {ProjectedSuggestion} */
-    const out = { index: baseIndex + index, title: item.title }
+    const out = { index: baseIndex + index, title: suggestionTitle(item) }
     // only a plain key identifies anything: an object key (a page reference picked whole)
     // printed as "[object Object]" next to its title
     const key = /** @type {unknown} */(item.key)
@@ -675,18 +754,40 @@ export function projectSuggestions (items, baseIndex = 0) {
   })
 }
 
+/** Longest JSON of an object value standing in for a suggestion's missing title. */
+const SUGGESTION_JSON_TITLE_MAX_LENGTH = 80
+
+/**
+ * The title of a suggestion as a person would read it: its own when it has one, else the value,
+ * an object as a short JSON — never "[object Object]".
+ * @param {{value: unknown, title: string}} item
+ * @returns {string}
+ */
+function suggestionTitle (item) {
+  if (typeof item.title === 'string' && item.title && !/^\[object \w+\]$/.test(item.title)) return item.title
+  if (typeof item.title === 'number') return String(item.title)
+  const value = item.value
+  if (value === null || typeof value !== 'object') return String(value)
+  const json = JSON.stringify(value)
+  return json.length > SUGGESTION_JSON_TITLE_MAX_LENGTH ? `${json.slice(0, SUGGESTION_JSON_TITLE_MAX_LENGTH - 1)}…` : json
+}
+
 /**
  * Format field suggestions as markdown for LLM-readable output.
  * @param {ProjectedSuggestion[]} suggestions
  * @param {string} [blockedOn] - the expression the list is waiting on, when it has one
+ * @param {string} [unmatchedQuery] - the query, when none of the suggestions holds a word of it
  * @returns {string}
  */
-export function formatSuggestions (suggestions, blockedOn) {
+export function formatSuggestions (suggestions, blockedOn, unmatchedQuery) {
   if (suggestions.length === 0) {
     if (blockedOn) return `No options yet: this field's list comes from \`${blockedOn}\`, and that cannot be resolved until the data it reads is set. Fill that field first, then ask again.`
     return 'No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.'
   }
-  const lines = [`${suggestions.length} suggestion(s), apply one with setFieldValue and its suggestionIndex (or copy a short value):`]
+  const apply = 'apply one with setFieldValue and its suggestionIndex (or copy a short value):'
+  const lines = [unmatchedQuery
+    ? `No suggestion matches ${JSON.stringify(unmatchedQuery)} closely; ${suggestions.length} other option(s), ${apply}`
+    : `${suggestions.length} suggestion(s), ${apply}`]
   for (const suggestion of suggestions) {
     const title = suggestion.key ? `${suggestion.title} (${suggestion.key})` : suggestion.title
     if (suggestion.valueOmitted) {
@@ -696,128 +797,4 @@ export function formatSuggestions (suggestions, blockedOn) {
     }
   }
   return lines.join('\n')
-}
-
-/**
- * The data pointer an ajv error applies to.
- *
- * ajv-errors wraps the original error, and a `required` error reports the parent's
- * pointer with the missing key in its params — so the naive instancePath would be the
- * object, not the field.
- * @param {any} error
- * @returns {string}
- */
-function dataPointerOf (error) {
-  const original = error?.params?.errors?.[0] ?? error
-  if (original?.keyword === 'required' && original.params?.missingProperty) {
-    return `${original.instancePath}/${original.params.missingProperty}`
-  }
-  return original?.instancePath ?? ''
-}
-
-/**
- * Whether an error belongs to a branch of a union the form is actually showing.
- *
- * ajv validates every branch of a `oneOf` and reports the failures of all of them, so
- * while the chosen branch is still incomplete the losing branches complain too. Those
- * complaints name properties of a shape that was not chosen: there is no node for them,
- * no way to write them and no way to clear them. The state tree already draws this line —
- * it matches an error to a node by schema pointer, so only the active branch's errors
- * ever land on one — and this keeps the raw list that is appended afterwards to the same
- * line rather than undoing the work.
- *
- * The test is per `oneOf` crossed on the way down, not on the error's path as a whole: an
- * error below an unhydrated list item has no node either, and that one must survive.
- * @param {any} error
- * @param {Set<string>} renderedPointers - skeleton pointers of the nodes the form has built
- * @returns {boolean}
- */
-function isRenderedBranch (error, renderedPointers) {
-  for (const schemaPath of [error?.schemaPath, error?.params?.errors?.[0]?.schemaPath]) {
-    if (typeof schemaPath !== 'string') continue
-    const branches = /\/oneOf\/\d+/g
-    let match
-    while ((match = branches.exec(schemaPath)) !== null) {
-      if (!renderedPointers.has(schemaPath.slice(0, match.index + match[0].length))) return false
-    }
-  }
-  return true
-}
-
-/**
- * Errors of the whole form, each named by the location it actually applies to.
- *
- * A node only carries an error while it is hydrated. A list shows its items in summary
- * mode, so nothing below an unedited item exists as a node, and every error under it
- * collapses onto the list — one message, on a path that is not the faulty one. An agent
- * told "/sections must be integer" knows it is wrong and not where, and retries blind.
- *
- * So a node error that is standing in for deeper errors nobody names is replaced by
- * those errors, addressed by data pointer. Errors a hydrated node does name keep their
- * form path, which is what the mutation tools expect.
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @returns {Array<{path: string, message: string}>}
- */
-export function collectErrors (statefulLayout) {
-  /** @type {Array<{fullKey: string, dataPath: string, message: string, hidden: boolean}>} */
-  const nodeErrors = []
-  /** @type {Set<string>} */
-  const renderedPointers = new Set()
-  /** @param {import('../state/types.js').StateNode} node */
-  const recurse = (node) => {
-    if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: node.error, hidden: node.layout.comp === 'none' })
-    if (node.skeleton?.pointer) renderedPointers.add(node.skeleton.pointer)
-    // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
-    // occurrences of an activated item do not carry the same errors, and deduplicating
-    // here silently drops them (verified: 2 errors became 0).
-    for (const child of node.children ?? []) recurse(child)
-  }
-  recurse(statefulLayout.stateTree.root)
-
-  const named = new Set(nodeErrors.map((e) => e.dataPath))
-  const unnamed = statefulLayout.validationErrors
-    .filter((error) => isRenderedBranch(error, renderedPointers))
-    .map((error) => ({ pointer: dataPointerOf(error), message: error.message ?? 'invalid' }))
-    .filter((error) => !named.has(error.pointer))
-
-  // a hidden node (comp "none") can carry an echo of an error a visible node already reports:
-  // a new menu item's error was also reported on three hidden nodes of data-fair's portal
-  // editor, announced as "3 other error(s) elsewhere". An error only a hidden node carries is
-  // kept, so an invalid form always says why.
-  const visibleMessages = new Set(nodeErrors.filter((e) => !e.hidden).map((e) => e.message))
-  /** @type {Array<{path: string, message: string}>} */
-  const errors = []
-  for (const nodeError of nodeErrors) {
-    if (nodeError.hidden && visibleMessages.has(nodeError.message)) continue
-    const prefix = nodeError.dataPath === '' ? '/' : `${nodeError.dataPath}/`
-    const standsInForDeeperErrors = unnamed.some((e) => e.pointer.startsWith(prefix))
-    if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })
-  }
-  for (const error of unnamed) errors.push({ path: error.pointer, message: error.message })
-  return errors
-}
-
-/**
- * Errors of the subtree of a node, and count of the errors of the rest of the form.
- * @param {import('../state/index.js').StatefulLayout} statefulLayout
- * @param {import('../state/types.js').StateNode} node
- * @returns {{ errors: Array<{path: string, message: string}>, otherErrors: number }}
- */
-export function collectScopedErrors (statefulLayout, node) {
-  // the path index is used rather than a walk of the subtree: an activated list item is kept
-  // twice and the tools resolve to the editable occurrence, which carries no error at all,
-  // neither on the item nor on anything below it. Indexing by path merges the two.
-  const errorsByPath = indexErrorsByPath(statefulLayout.stateTree.root)
-  const prefix = node.fullKey
-  const isInScope = (/** @type {string} */path) =>
-    prefix === '' || path === prefix || path.startsWith(`${prefix}/`)
-
-  /** @type {Array<{path: string, message: string}>} */
-  const errors = []
-  let otherErrors = 0
-  for (const [path, message] of Object.entries(errorsByPath)) {
-    if (isInScope(path)) errors.push({ path, message })
-    else otherErrors++
-  }
-  return { errors, otherErrors }
 }
