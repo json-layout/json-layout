@@ -1,13 +1,14 @@
 /**
- * @file fillFormSkill tool
+ * @file The fill-form skill: the guide to a form's tools, published as an Agent Skill beside them.
  */
 
 /**
+ * The skill's description: always shown to the agent, so it says when to load the skill.
  * @param {string} dataTitle
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Get guidance on how to interact with the form "${dataTitle}" using the available tools.`
+  return `How to read and fill the "${dataTitle}" form with its tools. Load it before using them.`
 }
 
 /**
@@ -35,6 +36,10 @@ export function generateSkill (dataTitle, prefixName, options = {}) {
     ? `A form laid out in tabs or steps shows one at a time: describeState marks the one on the person's screen (open), and writing a field opens the one that holds it and says what is now on screen. To show the person another part of the form without changing it, call ${prefixName}openSection with its path or the path of a field it holds.
 
 `
+    : ''
+  // judged runs described the open tab, or what a card showed, which no tool reports
+  const seeing = screen
+    ? ' You do not see the screen: of what is visible, say only which section describeState marks (open), or which one a write reports as now on screen, never what a card or a preview shows.'
     : ''
   const about = typeof guide === 'string' && guide.trim()
     ? `
@@ -65,6 +70,6 @@ ${sections}${prefixName}getData returns the data document itself, whole or one p
 
 The errors returned by ${prefixName}setFieldValue and ${prefixName}editArray are scoped to the node you just modified, other errors of the form are counted, and the first ones listed when this node has none.
 
-When you report what you did, say only what the data now holds: a field still empty is not something the form does.
+When you report what you did, say only what the data now holds: a field still empty is not something the form does. Report only what the tool results confirmed, never a setting you did not write. If a value asked for is not accepted or not offered (a page missing from a field's suggestions, say), never put another value in its place: leave that field, and say what could not be done and what the tools answered.${seeing}
 `
 }

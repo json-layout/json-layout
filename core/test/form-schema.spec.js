@@ -284,8 +284,9 @@ describe('what describeState says the form can hold', () => {
   it('names describeState, never a tool that is not there, in the guide and the errors', async () => {
     const compiled = compile(menuSchema)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], {}, { title: 'Portail', menu: [] })
-    const tools = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_', includeSubAgent: true }).getTools()
-    const { prompt } = JSON.parse((await /** @type {any} */(tools.find(tool => tool.name === 'subagent_p_form')).execute({ task: 'x' })).content[0].text)
+    const webmcp = new WebMCP(layout, { dataTitle: 'portal', prefixName: 'p_' })
+    const tools = webmcp.getTools()
+    const prompt = webmcp.getSkill().body
     assert.match(prompt, /describeState on a branch not chosen/)
     assert.doesNotMatch(prompt, /describeSchema/)
     const error = await call(tools, 'p_setFieldValue', { path: '/nope', value: 1 })

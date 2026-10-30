@@ -116,8 +116,12 @@ input tokens, now a tie with plain. The round-3 baseline lists what remains.
 
 ## The tools
 
-Six, and one guide. The guide is not a tool — production pages pass it to the agent as its
-prompt via `includeSubAgent`.
+Six, and one guide. The guide is not a tool: it is the form's skill (`webmcp.getSkill()`), an
+Agent Skill the agent loads before using the tools. `registerTools()` publishes it beside them as a
+`skill://<name>/SKILL.md` resource where the model context serves resources (MCP-B), and an MCP
+server serving the same tools publishes the same text as its own skill. A page used to hand it to a
+sub-agent instead (`includeSubAgent`); that went with sub-agents, measured in
+`core/webmcp-eval/baselines/2026-10-28-subagent-conversations/`.
 
 | tool | what it is for |
 |---|---|

@@ -48,11 +48,6 @@ export interface SessionSpec {
   // prefix for every tool name, for a consumer that registers several sessions in one
   // namespace
   prefixName?: string
-  // include the guide-as-a-tool from core (default false; production pages pass the
-  // guide to a sub-agent instead)
-  includeFillFormSkill?: boolean
-  // include core's sub-agent entry tool (default false)
-  includeSubAgent?: boolean
 }
 
 // the part of a session spec the layout cache needs
