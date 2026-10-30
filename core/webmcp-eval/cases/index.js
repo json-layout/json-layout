@@ -215,7 +215,8 @@ const eventNameColumn = calendarCapture('agenda-manifestations-schema.json')
  * must be a column OF that dataset, and the crowd sourcing flag sits in a section that
  * only opens for a REST dataset. Its pickers are served offline from a capture of
  * koumoul.com (cases/data/calendar-remote/, see capture-remote.js), kept whole: the
- * picked dataset object carries its column schema, some 14 KB the form stores as is.
+ * picked dataset object carries its column schema, some 12 KB the form stores as is
+ * (13.1 KB before the sample values were anonymized, for the baselines up to round 6).
  * @type {EvalCase}
  */
 const calendar = {

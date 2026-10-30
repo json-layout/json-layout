@@ -57,3 +57,23 @@ export function remoteKey (url) {
     .sort(([a, va], [b, vb]) => a === b ? va.localeCompare(vb) : a.localeCompare(b))
   return params.length ? `${path}?${new URLSearchParams(params)}` : path
 }
+
+/**
+ * A captured response with the sample values of its column schemas replaced: data-fair
+ * lists a column's distinct values in its `enum`, which for the datasets of a real
+ * account carries names, phone numbers and e-mail addresses. Each string becomes
+ * `value <n>`, so the schema keeps its shape and roughly its size; other values (numbers,
+ * booleans) are not personal and stay.
+ * @param {unknown} body
+ * @returns {unknown}
+ */
+export function anonymizeCapture (body) {
+  if (Array.isArray(body)) return body.map(anonymizeCapture)
+  if (!body || typeof body !== 'object') return body
+  return Object.fromEntries(Object.entries(body).map(([key, value]) => [
+    key,
+    key === 'enum' && Array.isArray(value)
+      ? value.map((item, i) => typeof item === 'string' ? `value ${i + 1}` : item)
+      : anonymizeCapture(value)
+  ]))
+}

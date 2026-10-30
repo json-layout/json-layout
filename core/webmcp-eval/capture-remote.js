@@ -8,7 +8,8 @@
  * mapping each URL's key (see `remoteKey`) to its file. The case's `remote` serves them.
  *
  * Responses are kept whole: the dataset object a picker stores carries the dataset's whole
- * column schema, and that size is part of what the case measures.
+ * column schema, and that size is part of what the case measures. Only the columns' sample
+ * values are replaced (see `anonymizeCapture`): they hold the personal data of real records.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -17,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 
 import { EvalSession } from './session.js'
 import { getCase } from './cases/index.js'
-import { remoteKey } from './remote.js'
+import { anonymizeCapture, remoteKey } from './remote.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -114,7 +115,7 @@ async function main () {
       const key = remoteKey(new URL(url))
       if (index[key]) continue
       const basename = `${file}${i ? `-${i}` : ''}.json`
-      writeFileSync(join(dir, basename), JSON.stringify(body) + '\n')
+      writeFileSync(join(dir, basename), JSON.stringify(anonymizeCapture(body)) + '\n')
       index[key] = basename
       console.log(`${key} → ${basename}`)
     }
