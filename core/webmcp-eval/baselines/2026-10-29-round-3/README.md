@@ -41,9 +41,9 @@ Third comparison of the three tool surfaces (spec:
   matter more than in round 2: the plain arm's whole-document writes cost 4–13k output
   tokens, which are priced far above the cache reads that make up most input tokens.
 
-Files: `<case>[--arm][.r<n>].json` (evidence), `.run.json` (runner sidecar), `.verdict.json`,
-`report.txt` (the printed `webmcp-eval:report`; its exit code 1 reflects the two
-unsatisfactory runs and failed checks).
+Files: `<case>[--arm][.r<n>].verdict.json` and `report.txt` (the printed `webmcp-eval:report`,
+with each run's calls, tokens and cost; its exit code 1 reflects the two unsatisfactory runs
+and failed checks). Transcripts and runner sidecars are not kept, as in earlier baselines: they weighed some 21 MB over rounds 2 to 6, and the verdicts quote the responses their findings rest on.
 
 ## Comparison
 

@@ -45,9 +45,9 @@ since round 1:
 - Cost is priced with caching and parallel runs share a cache, so dollars are indicative;
   input tokens (input + cache read + cache write) are the steadier measure.
 
-Files: `<case>[--arm].r<n>.json` (evidence), `.run.json` (runner sidecar), `.verdict.json`,
-`report.txt` (the printed `webmcp-eval:report`; its exit code 1 reflects the unsatisfactory
-runs and failed checks). As-seen schemas and the judges' working copies are not kept.
+Files: `<case>[--arm].r<n>.verdict.json` and `report.txt` (the printed `webmcp-eval:report`,
+with each run's calls, tokens and cost; its exit code 1 reflects the unsatisfactory runs and
+failed checks). Transcripts and runner sidecars are not kept, as in earlier baselines: they weighed some 21 MB over rounds 2 to 6, and the verdicts quote the responses their findings rest on.
 
 ## Comparison
 
