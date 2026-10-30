@@ -481,4 +481,83 @@ describe('get select items', () => {
     await Promise.all([searchLayout.getItems(searchLayout.stateTree.root, 'x'), searchLayout.getItems(searchLayout.stateTree.root, 'y'), searchLayout.getItems(searchLayout.stateTree.root, 'x')])
     assert.deepEqual(urls, ['http://test.com/search?q=x', 'http://test.com/search?q=y'])
   })
+
+  describe('itemsFingerprint', () => {
+    const conceptSchema = {
+      type: 'object',
+      properties: {
+        other: { type: 'string' },
+        selectedConcept: { type: 'string' },
+        selectedValue: {
+          type: 'string',
+          layout: {
+            comp: 'autocomplete',
+            getItems: {
+              url: 'http://test.com/range',
+              itemsResults: '(data.range.find(c => c.code === parent.data.selectedConcept)?.values || [])',
+              itemTitle: 'item.label',
+              itemValue: 'item.code'
+            }
+          }
+        }
+      }
+    }
+    const range = { range: [{ code: 'A', values: [{ code: 'a1', label: 'A 1' }] }, { code: 'B', values: [{ code: 'b1', label: 'B 1' }] }, { code: 'C', values: [{ code: 'b1', label: 'B 1' }] }] }
+
+    it('is the same value while the items are, for a list that only depends on its URL', async () => {
+      const compiledLayout = await compile({
+        type: 'object',
+        properties: {
+          other: { type: 'string' },
+          dep: { type: 'string' },
+          value: { type: 'string', layout: { getItems: { url: 'http://test.com/items?dep=${parent.data.dep}' } } }
+        }
+      })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { dep: 'a' })
+      const child = (/** @type {string} */key) => /** @type {any} */(statefulLayout.stateTree.root.children?.find(c => c.key === key))
+      const fingerprint = statefulLayout.itemsFingerprint(child('value'))
+      statefulLayout.input(child('other'), 'x')
+      statefulLayout.input(child('value'), 'picked')
+      assert.equal(statefulLayout.itemsFingerprint(child('value')), fingerprint)
+      statefulLayout.input(child('dep'), 'b')
+      assert.notDeepEqual(statefulLayout.itemsFingerprint(child('value')), fingerprint)
+    })
+
+    it('follows the items of a list reshaped from other data, without a request', async () => {
+      const compiledLayout = await compile(conceptSchema)
+      let fetches = 0
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+        ...defaultOptions,
+        fetch: async () => { fetches++; return range }
+      }, { selectedConcept: 'A' })
+      const child = (/** @type {string} */key) => /** @type {any} */(statefulLayout.stateTree.root.children?.find(c => c.key === key))
+      await statefulLayout.getItems(child('selectedValue'))
+      const fingerprintA = statefulLayout.itemsFingerprint(child('selectedValue'))
+      statefulLayout.input(child('other'), 'x')
+      statefulLayout.input(child('selectedValue'), 'a1')
+      assert.equal(statefulLayout.itemsFingerprint(child('selectedValue')), fingerprintA)
+      statefulLayout.input(child('selectedConcept'), 'B')
+      const fingerprintB = statefulLayout.itemsFingerprint(child('selectedValue'))
+      assert.notDeepEqual(fingerprintB, fingerprintA)
+      // B and C list the same items
+      statefulLayout.input(child('selectedConcept'), 'C')
+      assert.equal(statefulLayout.itemsFingerprint(child('selectedValue')), fingerprintB)
+      assert.equal(fetches, 1)
+    })
+
+    it('changes with any other data for a list reshaped from other data and not downloaded yet', async () => {
+      const compiledLayout = await compile(conceptSchema)
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], {
+        ...defaultOptions,
+        fetch: async () => range
+      }, { selectedConcept: 'A' })
+      const child = (/** @type {string} */key) => /** @type {any} */(statefulLayout.stateTree.root.children?.find(c => c.key === key))
+      const fingerprint = statefulLayout.itemsFingerprint(child('selectedValue'))
+      // the list's own value is not what its items depend on
+      statefulLayout.input(child('selectedValue'), 'a1')
+      assert.equal(statefulLayout.itemsFingerprint(child('selectedValue')), fingerprint)
+      statefulLayout.input(child('other'), 'x')
+      assert.notDeepEqual(statefulLayout.itemsFingerprint(child('selectedValue')), fingerprint)
+    })
+  })
 })

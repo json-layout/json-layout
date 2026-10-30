@@ -64,6 +64,27 @@ export const reshapesFromOtherData = (layout) => {
     .some((name) => getItems[name] && getItems[name].pure === false)
 }
 
+/**
+ * The data with the value at a data path left out: a list's own value is not what its
+ * items depend on, or picking one would change the fingerprint of the list it came from.
+ * @param {unknown} data
+ * @param {string[]} segments
+ * @returns {unknown}
+ */
+function withoutValueAt (data, segments) {
+  if (!segments.length || data === null || typeof data !== 'object') return data
+  const [segment, ...rest] = segments
+  if (!(segment in data)) return data
+  const copy = /** @type {Record<string, unknown>} */(Array.isArray(data) ? [...data] : { ...data })
+  // left out, not set to undefined: a deep comparison tells a missing key from an undefined one
+  if (!rest.length) {
+    // an item keeps its place: removing it would shift the items after it
+    if (Array.isArray(copy)) copy[/** @type {any} */(segment)] = null
+    else delete copy[segment]
+  } else copy[segment] = withoutValueAt(copy[segment], rest)
+  return copy
+}
+
 const logDataBinding = debug('jl:data-binding')
 const logSelectItems = debug('jl:select-items')
 const logGetItems = debug('jl:get-items')
@@ -692,6 +713,55 @@ export class StatefulLayout {
   _itemsRequests = {}
 
   /**
+   * @private
+   * @type {Record<string, unknown>}
+   */
+  _itemsFingerprints = {}
+
+  /**
+   * A value that stays the same while getItems would give the same items, computed without a
+   * request: the same value, so a caller can compare it with `===` (a Vue watch, a memo). It
+   * may change while the items did not, never the other way round.
+   *
+   * It is where the items come from (the resolved URL, the evaluated items), and for a list
+   * reshaped from other data (catalog-melodi's values of the selected concept, read from one
+   * same URL) the items it lists now, reshaped from its download. Without a download to
+   * reshape (never asked for, or searched only with a query the request applied), the data
+   * its expressions can read stands in for them, the node's own value aside: any change of it
+   * then counts as one, in the safe direction.
+   * @param {StateNode} node
+   * @returns {unknown}
+   */
+  itemsFingerprint (node) {
+    const fingerprint = this.computeItemsFingerprint(node)
+    const previous = this._itemsFingerprints[node.fullKey]
+    if (previous !== undefined && equal(previous, fingerprint)) return previous
+    this._itemsFingerprints[node.fullKey] = fingerprint
+    return fingerprint
+  }
+
+  /**
+   * @private
+   * @param {StateNode} node
+   * @returns {unknown}
+   */
+  computeItemsFingerprint (node) {
+    if (!reshapesFromOtherData(node.layout)) return node.itemsCacheKey
+    try {
+      const items = this.cachedItems(node)
+      // the key alone does not tell two lists apart: two concepts can share codes, with other ids and labels
+      if (items) return { items: node.itemsCacheKey, listed: items.map((item) => [item.key, item.value, item.title]) }
+    } catch {
+      // an expression that fails on the current data: fall back to the data itself
+    }
+    return {
+      items: node.itemsCacheKey,
+      data: withoutValueAt(this.data, node.dataPath.split('/').filter(Boolean)),
+      context: node.options.context
+    }
+  }
+
+  /**
    * The items a node would list now, without a request: undefined when its list was not
    * downloaded whole for its current itemsCacheKey (never asked for, or searched only with a
    * query the request applied).
@@ -838,7 +908,8 @@ export class StatefulLayout {
   /**
    * The items a node lists now. Callers call it whenever they need the items (a menu opening,
    * a search): it answers from a cache while nothing they depend on changed, with the same
-   * array, and shares a request still pending for the same list and search.
+   * array, and shares a request still pending for the same list and search. To tell whether
+   * the items changed without a request, compare `itemsFingerprint`.
    * @param {StateNode} node
    * @param {string} q
    * @returns {Promise<import('@json-layout/vocabulary').SelectItems>}

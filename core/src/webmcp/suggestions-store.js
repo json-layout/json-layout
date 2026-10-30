@@ -53,7 +53,7 @@ export class SuggestionsStore {
   /**
    * Every value a search answered, per field and per list: never dropped by a write, since
    * a value offered from a list stays one of its values. Keyed by the node path with its
-   * item indexes left out, and by the list (the itemsCacheKey, a resolved URL for a remote
+   * item indexes left out, and by the list (its items fingerprint, a resolved URL for a remote
    * picker): a value stays offered to its item wherever a move or a removal takes it, and
    * stops being one when the list the field reads changes. See `wasOffered`.
    * @private
@@ -66,7 +66,7 @@ export class SuggestionsStore {
    * absolute per path, so an index handed out earlier keeps meaning what the agent saw.
    * @param {string} path
    * @param {SuggestionItem[]} items
-   * @param {unknown} [cacheKey] - the node's itemsCacheKey, what its options depend on
+   * @param {unknown} [cacheKey] - the node's items fingerprint, what its options depend on
    * @returns {number} the index of the first of these items
    */
   add (path, items, cacheKey) {
@@ -98,10 +98,10 @@ export class SuggestionsStore {
    * guarded: writing one field cannot change the options of a field whose list does not
    * depend on it, and the eval caught the cost twice on the same case — once recovered in
    * one call, once in three. `isFresh` is given the key recorded at `add` time so the
-   * caller can compare it with the node's current `itemsCacheKey`, which is what the state
-   * layer itself uses to decide whether to re-fetch: a resolved URL for a remote picker, so
-   * the comparison is exact where it matters, and a value that simply differs for an
-   * expression-based list, which over-invalidates in the safe direction.
+   * caller can compare it with the node's current items fingerprint
+   * (`StatefulLayout#itemsFingerprint`): a resolved URL for a remote picker, so the
+   * comparison is exact where it matters, and a value that may differ while the items did
+   * not, which over-invalidates in the safe direction.
    * @param {(path: string, cacheKey: unknown) => boolean} isFresh
    */
   retainFresh (isFresh) {
@@ -222,7 +222,7 @@ export class SuggestionsStore {
    * Whether a value was among the suggestions some search listed for this field, from the
    * list it reads now.
    * @param {string} path
-   * @param {unknown} cacheKey - the node's current itemsCacheKey
+   * @param {unknown} cacheKey - the node's current items fingerprint
    * @param {unknown} value
    * @param {unknown} [itemKey] - the value's item key, for an object value the form stores
    * trimmed to its schema (a data-fair dataset loses its owner, id, slug...): the key is how

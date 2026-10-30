@@ -60,7 +60,8 @@ export interface StateNode {
   /**
    * @deprecated internal to the state layer: where the items come from (a resolved URL, the
    * evaluated items), not a signal that they changed — a list reshaped from other data changes
-   * while it stays the same. Call `StatefulLayout.getItems` whenever the items are needed.
+   * while it stays the same. Call `StatefulLayout.getItems` when the items are needed, and
+   * compare `StatefulLayout.itemsFingerprint` to tell whether they changed.
    */
   itemsCacheKey: any
   children?: StateNode[]
