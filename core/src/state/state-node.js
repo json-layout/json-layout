@@ -242,6 +242,31 @@ const matchChildError = (compiledLayout, error, skeleton, dataPath, parentDataPa
 }
 
 /**
+ * the keys of the properties a layout-only child (composite or slot) renders, at any depth
+ * @param {import('@json-layout/vocabulary').Child} child
+ * @returns {string[]}
+ */
+const layoutChildDataKeys = (child) => {
+  if (childIsSlotCompObject(child)) return []
+  if (childIsCompositeCompObject(child)) return child.children.flatMap(layoutChildDataKeys)
+  return [child.key + '']
+}
+
+/**
+ * should match an error on one of the given properties of the data node
+ * @param {import('ajv').ErrorObject} error
+ * @param {string[]} keys
+ * @param {string} dataPath
+ * @returns {boolean}
+ */
+const matchKeysError = (error, keys, dataPath) => {
+  const originalError = error.params?.errors?.[0] ?? error
+  return keys.some(key => originalError.instancePath === `${dataPath}/${key}` ||
+    originalError.instancePath.startsWith(`${dataPath}/${key}/`) ||
+    (originalError.instancePath === dataPath && originalError.params?.missingProperty === key))
+}
+
+/**
  * should match any error related to the data node no matter the origin in the schema
  * @param {import('ajv').ErrorObject} error
  * @param {string} dataPath
@@ -448,7 +473,9 @@ export function createStateNode (
     if (context._debugCache) context._debugCache[fullKey] = (context._debugCache[fullKey] ?? []).concat(['skip'])
   }
 
-  const normalizedLayout = childDefinition && (childIsCompositeCompObject(childDefinition) || childIsSlotCompObject(childDefinition))
+  // a composite or slot child of a layout has no schema of its own, only its parent's pointer
+  const layoutOnlyChild = !!childDefinition && (childIsCompositeCompObject(childDefinition) || childIsSlotCompObject(childDefinition))
+  const normalizedLayout = layoutOnlyChild
     ? childDefinition
     : compiledLayout.normalizedLayouts[skeleton.pointer]
   const layout = getCompObject(normalizedLayout, childDefinition, parentOptions, compiledLayout, parentDisplay, data, context.rootData, parentContext)
@@ -854,12 +881,19 @@ export function createStateNode (
 
   let error = context.errors?.find(e => matchLocalError(e, skeleton, dataPath, parentDataPath))
 
+  // a layout-only child hidden by its "if" gets the none comp, but it shares its parent's pointer:
+  // it must only match the errors of the properties it contains, not those of the whole parent schema
+  const hiddenLayoutKeys = layoutOnlyChild && layout.comp === 'none' ? layoutChildDataKeys(/** @type {import('@json-layout/vocabulary').Child} */(childDefinition)) : null
+  /** @param {import('ajv').ErrorObject} e */
+  const matchNodeChildError = (e) => matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath) &&
+    (!hiddenLayoutKeys || matchKeysError(e, hiddenLayoutKeys, dataPath))
+
   // findLast in following lines is important because we want to keep the error of the highest child (deepest errors are listed first)
   if (!error && !isCompositeLayout(layout, compiledLayout.components) && layout.comp !== 'slot') {
-    error = context.errors?.findLast(e => matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath))
+    error = context.errors?.findLast(matchNodeChildError)
   }
   if (!error && context.rehydrate && context.rehydrateErrors) {
-    error = context.rehydrateErrors?.findLast(e => matchChildError(compiledLayout, e, skeleton, dataPath, parentDataPath))
+    error = context.rehydrateErrors?.findLast(matchNodeChildError)
   }
 
   // capture errors so that they are not repeated in parent nodes
