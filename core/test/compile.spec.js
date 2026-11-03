@@ -66,6 +66,27 @@ describe('compile schema function', () => {
     assert.deepEqual(serializedLayout.normalizedLayouts, compiledLayout.normalizedLayouts)
   })
 
+  // the ajv runtime helpers (ucs2length for minLength/maxLength, equal for uniqueItems) are CJS
+  // modules, their default import is the exports object here (node) and the function in a rollup
+  // build: the serialized code must work with both interops
+  it('should serialize validates that use the ajv runtime helpers', async () => {
+    const compiledLayout = compile({
+      type: 'object',
+      properties: {
+        str1: { type: 'string', minLength: 2 },
+        arr1: { type: 'array', uniqueItems: true, items: { type: 'object' } }
+      }
+    })
+    const code = await serialize(compiledLayout)
+    const filePath = resolve('tmp/compiled-runtime.js')
+    await writeFile(filePath, code + '\nexport default compiledLayout;')
+    const serializedLayout = (await import(filePath)).default
+    const validate = serializedLayout.validates[compiledLayout.mainTree]
+    assert.equal(validate({ str1: 'ab', arr1: [{ a: 1 }, { a: 2 }] }), true)
+    assert.equal(validate({ str1: 'a' }), false)
+    assert.equal(validate({ arr1: [{ a: 1 }, { a: 1 }] }), false)
+  })
+
   it('should manage help as markdown content', async () => {
     const compiled = compile({ type: 'string', layout: { help: 'Please **help**!!' } })
     const layout = compiled.normalizedLayouts['_jl#']

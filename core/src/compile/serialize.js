@@ -60,13 +60,14 @@ export async function serialize (compiledLayout) {
     code = 'import { fullFormats } from "ajv-formats/dist/formats.js";\n' + code
     code = code.replace(/require\("ajv-formats\/dist\/formats"\)\.fullFormats/g, 'fullFormats')
   }
-  if (code.includes('require("ajv/dist/runtime/ucs2length")')) {
-    code = 'import ucs2length from "ajv/dist/runtime/ucs2length.js";\n' + code
-    code = code.replace(/require\("ajv\/dist\/runtime\/ucs2length"\)/g, 'ucs2length')
-  }
-  if (code.includes('require("ajv/dist/runtime/equal")')) {
-    code = 'import equal from "ajv/dist/runtime/equal.js";\n' + code
-    code = code.replace(/require\("ajv\/dist\/runtime\/equal"\)\.default/g, 'equal')
+  // the ajv runtime helpers are CJS modules flagged __esModule, the function being exports.default:
+  // depending on the bundler's interop, the default import is that function (rollup) or the exports
+  // object (node, vite dev pre-bundling), so we accept both
+  for (const name of ['ucs2length', 'equal']) {
+    const req = `require("ajv/dist/runtime/${name}")`
+    if (!code.includes(req)) continue
+    code = `import ${name}Module from "ajv/dist/runtime/${name}.js";\nconst ${name} = ${name}Module.default ?? ${name}Module;\n` + code
+    code = code.replaceAll(req + '.default', name).replaceAll(req, name)
   }
 
   // import only the current locale from ajv-i18n
