@@ -1,9 +1,11 @@
 const origin = typeof window === 'undefined' ? 'http://test.com' : window.location.origin
 
-export const pathURL = (/** @type {string} */url, /** @type {string} */baseURL) => {
-  if (url.startsWith('http://') || url.startsWith('https://')) return new URL(url)
-  if (url.startsWith('/')) return new URL(origin + url)
-  // an absolute base (a Node process pointed at a remote API) must not be glued onto the origin
-  if (baseURL.startsWith('http://') || baseURL.startsWith('https://')) return new URL(baseURL + url)
-  return new URL(origin + baseURL + url)
-}
+/**
+ * Standard URL resolution: the base is resolved against the page origin (a placeholder outside
+ * a browser), then the url against the base. An absolute url ignores the base, a root path
+ * ("/x") keeps only its host, a relative path is resolved under it (end the base with "/").
+ * @param {string} url
+ * @param {string} [baseURL]
+ * @returns {URL}
+ */
+export const pathURL = (url, baseURL) => new URL(url, new URL(baseURL ?? '', origin))
