@@ -26,24 +26,68 @@ export const inputSchema = {
  * @returns {string}
  */
 export function getDescription (dataTitle) {
-  return `Set all "${dataTitle}" data at once, for when you already know every value. Prefer setFieldValue to change one field. Check the errors in the response.`
+  // Said plainly because an approval reviewer sees this text and the input, never the
+  // code: "set all data at once" read as a replacement, and a person refused a partial
+  // write the reviewer said "may remove" blocks it kept.
+  return `Write several "${dataTitle}" fields at once: the given keys are merged into the current data, nested objects included; arrays you pass replace the existing ones. Prefer setFieldValue to change one field. Check the errors and warnings in the response.`
 }
 
 /**
- * Root-level data keys the form actually carries.
+ * Data paths the form carries, and the paths that have carried paths below them.
  *
- * Read from each node's dataPath rather than from the root's children, because the
- * children of a composed schema are synthetic ($allOf-1, $comp-1) and carry no data
- * key of their own — the real property sits below them.
+ * Read from each node's dataPath rather than from the tree's shape, because the children
+ * of a composed schema are synthetic ($allOf-1, $comp-1) and share their parent's path —
+ * the real property sits below them.
  * @param {import('../../state/types.js').StateNode} node
- * @param {Set<string>} [keys]
- * @returns {Set<string>}
+ * @param {{ nodes: Set<string>, containers: Set<string> }} [paths]
+ * @returns {{ nodes: Set<string>, containers: Set<string> }}
  */
-function collectRootDataKeys (node, keys = new Set()) {
-  const segments = (node.dataPath ?? '').split('/').filter(Boolean)
-  if (segments.length === 1) keys.add(segments[0])
-  for (const child of node.children ?? []) collectRootDataKeys(child, keys)
-  return keys
+function collectDataPaths (node, paths = { nodes: new Set(), containers: new Set() }) {
+  const dataPath = node.dataPath ?? ''
+  paths.nodes.add(dataPath)
+  const segments = dataPath.split('/')
+  for (let i = 1; i < segments.length; i++) paths.containers.add(segments.slice(0, i).join('/'))
+  for (const child of node.children ?? []) collectDataPaths(child, paths)
+  return paths
+}
+
+/**
+ * @param {unknown} data
+ * @param {string} path
+ * @returns {boolean}
+ */
+function hasPath (data, path) {
+  let current = data
+  for (const segment of path.split('/').slice(1)) {
+    if (!current || typeof current !== 'object' || !(segment in current)) return false
+    current = /** @type {Record<string, unknown>} */(current)[segment]
+  }
+  return true
+}
+
+/**
+ * Paths of the given data that no field of the form carries, split by what became of
+ * them: removed from the data by the form (additionalProperties: false), or kept with
+ * nothing to show or edit them. Descends only where the form has fields below, so the
+ * value of a field held whole (a list of strings, a dataset object) is not inspected.
+ * @param {unknown} given
+ * @param {unknown} kept
+ * @param {{ nodes: Set<string>, containers: Set<string> }} paths
+ * @param {string} [path]
+ * @param {{ unknown: string[], dropped: string[] }} [found]
+ * @returns {{ unknown: string[], dropped: string[] }}
+ */
+function findOrphanPaths (given, kept, paths, path = '', found = { unknown: [], dropped: [] }) {
+  if (!given || typeof given !== 'object') return found
+  for (const [key, value] of Object.entries(given)) {
+    const childPath = `${path}/${key}`
+    if (!paths.nodes.has(childPath)) {
+      found[hasPath(kept, childPath) ? 'unknown' : 'dropped'].push(childPath)
+    } else if (paths.containers.has(childPath)) {
+      findOrphanPaths(value, kept, paths, childPath, found)
+    }
+  }
+  return found
 }
 
 /**
@@ -76,7 +120,7 @@ function deepMerge (target, source) {
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
  * @param {{ data: unknown, merge?: boolean }} args
- * @returns {{ valid: boolean, written: string[], removed: string[], unknownKeys: string[], coerced?: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
+ * @returns {{ valid: boolean, written: string[], removed: string[], unknownPaths: string[], droppedPaths: string[], coerced?: string[], visibility?: { revealed: string[], hidden: string[] }, errors: Array<{path: string, message: string}> }}
  */
 export function execute (statefulLayout, args) {
   const current = statefulLayout.data
@@ -127,10 +171,11 @@ export function execute (statefulLayout, args) {
   // oneOf branch is only hydrated once written, and flagging it before would cry wolf.
   // A warning rather than a rejection — ajv accepts the key because the schema does not
   // close additionalProperties, and the form stays valid, so nothing else would say so.
-  const knownKeys = collectRootDataKeys(statefulLayout.stateTree.root)
-  const unknownKeys = isPlainObject(args.data)
-    ? Object.keys(/** @type {Record<string, unknown>} */(args.data)).filter((key) => !knownKeys.has(key))
-    : []
+  // Every depth, not only the root: an array item written with a misnamed key passed as
+  // "valid, stored elements" and the saved block had no text.
+  const orphans = isPlainObject(given)
+    ? findOrphanPaths(given, statefulLayout.data, collectDataPaths(statefulLayout.stateTree.root))
+    : { unknown: [], dropped: [] }
 
   const visibility = diffVisibility(visibleBefore, visibilitySnapshot(statefulLayout.stateTree.root))
 
@@ -141,7 +186,8 @@ export function execute (statefulLayout, args) {
     // to see its own write. Keys only: the values can be a 12 KB dataset object.
     written: isPlainObject(args.data) ? Object.keys(/** @type {Record<string, unknown>} */(args.data)) : [],
     removed,
-    unknownKeys,
+    unknownPaths: orphans.unknown,
+    droppedPaths: orphans.dropped,
     ...(coerced.length ? { coerced } : {}),
     ...(visibility.revealed.length || visibility.hidden.length ? { visibility } : {}),
     errors: collectErrors(statefulLayout)

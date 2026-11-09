@@ -442,8 +442,11 @@ export class WebMCP {
             if (result.removed.length) {
               warnings.push(`removed ${result.removed.length} key(s) not present in the data you passed: ${result.removed.join(', ')} — pass merge=true to keep them`)
             }
-            if (result.unknownKeys.length) {
-              warnings.push(`${result.unknownKeys.length} key(s) match no field of this form and were ignored by it: ${result.unknownKeys.join(', ')} — check for a typo with describeState`)
+            if (result.droppedPaths.length) {
+              warnings.push(`${result.droppedPaths.length} key(s) match no field of this form and were NOT stored: ${result.droppedPaths.join(', ')} — check the field names with describeState`)
+            }
+            if (result.unknownPaths.length) {
+              warnings.push(`${result.unknownPaths.length} key(s) match no field of this form and were ignored by it: ${result.unknownPaths.join(', ')} — check for a typo with describeState`)
             }
             warnings.push(...this._unpickedWarnings(referentialBefore))
             const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''

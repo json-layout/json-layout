@@ -1540,8 +1540,51 @@ describe('webmcp setData merge semantics', () => {
 
     const result = setData.execute(layout, { data: { sectionz: [{ title: 'Démographie' }] } })
 
-    assert.deepEqual(result.unknownKeys, ['sectionz'])
+    assert.deepEqual(result.unknownPaths, ['/sectionz'])
     assert.equal(result.valid, true, 'the form is still valid — which is why the warning is needed')
+  })
+
+  it('should signal nested keys that match no node in the form', () => {
+    // portals page-de-contenu: a title block written { type: 'title', title: '…' } where
+    // the field is content. Only root keys were checked, so the answer was "valid, stored
+    // elements" and the saved block had no text.
+    const layout = dashboard({ title: 'Mon tableau' })
+
+    const result = setData.execute(layout, { data: { sections: [{ title: 'Démographie' }, { titre: 'Emploi' }] } })
+
+    assert.deepEqual(result.unknownPaths, ['/sections/1/titre'])
+    assert.deepEqual(result.droppedPaths, [])
+  })
+
+  it('should signal nested keys the form removed from the data', () => {
+    // With additionalProperties: false the key is not merely orphaned, it is gone from
+    // the data — the loss the portals agent only found with a getData read-back.
+    const compiled = compile({
+      type: 'object',
+      properties: {
+        elements: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: false, properties: { type: { type: 'string' }, content: { type: 'string' } } }
+        }
+      }
+    })
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
+
+    const result = setData.execute(layout, { data: { elements: [{ type: 'title', title: "Horaires d'été" }] } })
+
+    assert.deepEqual(/** @type {any} */(layout.data).elements, [{ type: 'title' }])
+    assert.deepEqual(result.droppedPaths, ['/elements/0/title'])
+    assert.deepEqual(result.unknownPaths, [])
+  })
+
+  it('should not look inside a value that a single field holds whole', () => {
+    // A list of strings is one field: its items are values, not keys to check.
+    const layout = dashboard({ title: 'Mon tableau' })
+
+    const result = setData.execute(layout, { data: { datasets: ['air-quality', 'emploi'] } })
+
+    assert.deepEqual(result.unknownPaths, [])
+    assert.deepEqual(result.droppedPaths, [])
   })
 
   it('should not signal keys the form does carry', () => {
@@ -1550,7 +1593,8 @@ describe('webmcp setData merge semantics', () => {
 
     const result = setData.execute(layout, { data: { sections: [{ title: 'Démographie' }], showSources: true } })
 
-    assert.deepEqual(result.unknownKeys, [])
+    assert.deepEqual(result.unknownPaths, [])
+    assert.deepEqual(result.droppedPaths, [])
   })
 
   it('should surface dropped and unknown keys in the text, not only in structuredContent', async () => {
@@ -1566,6 +1610,9 @@ describe('webmcp setData merge semantics', () => {
 
     const unknown = await tool.execute({ data: { sectionz: [{ title: 'Démographie' }] } })
     assert.ok(unknown.content[0].text.includes('sectionz'), `expected the typo in the text, got: ${unknown.content[0].text}`)
+
+    const nested = await tool.execute({ data: { sections: [{ titre: 'Emploi' }] } })
+    assert.ok(nested.content[0].text.includes('/sections/0/titre'), `expected the nested path in the text, got: ${nested.content[0].text}`)
 
     const replaced = await tool.execute({ data: { title: 'Autre' }, merge: false })
     assert.ok(replaced.content[0].text.includes('datasets'), `expected the dropped key in the text, got: ${replaced.content[0].text}`)
