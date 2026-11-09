@@ -15,6 +15,14 @@ import { resolveCompiledLayout } from './layout-cache.js'
 /** @typedef {import('./types.js').FormTool} FormTool */
 /** @typedef {import('./types.js').SessionSpec} SessionSpec */
 /** @typedef {import('./types.js').SessionStatus} SessionStatus */
+/**
+ * @typedef {object} SaveOutcome
+ * @property {unknown} version - the version the save reported, if any
+ * @property {boolean} [emptied] - a session creating records emptied its form for the next one
+ * @property {boolean} [dropped] - an edit landed during the save was emptied with it
+ * @property {string[]} [serverChanged] - the paths the server's copy changed from what was sent
+ * @property {boolean} [serverCopyPending] - an edit landed during the save, so the form kept it and not the server's copy
+ */
 
 /**
  * How a session persists its document: `explicit`, only when the agent asks (`saveForm`, or
@@ -46,13 +54,71 @@ function unpickedPhrase (unpicked) {
   return `${named} ${values.length > 1 ? 'were' : 'was'} not picked from the field's suggestions`
 }
 
+/** how many changed paths a save answer names before it counts the rest */
+const MAX_NAMED_PATHS = 10
+
 /**
- * @param {{ version: unknown, emptied?: boolean, dropped?: boolean }} result
+ * The document a save function returned as the copy the server stored: `{ data }` or
+ * `{ data, version }`. Anything else, `{ version }` included, carries no document.
+ * @param {unknown} result
+ * @returns {{ data: unknown } | undefined}
+ */
+function serverCopyOf (result) {
+  if (result === null || typeof result !== 'object' || Array.isArray(result) || !('data' in result)) return
+  if (!Object.keys(result).every((key) => key === 'data' || key === 'version')) return
+  return { data: /** @type {{ data: unknown }} */(result).data }
+}
+
+/**
+ * JSON pointers to the values that differ between two documents, at the deepest level both
+ * still hold an object or an array.
+ * @param {unknown} sent
+ * @param {unknown} stored
+ * @param {string} [path]
+ * @param {string[]} [paths]
+ * @returns {string[]}
+ */
+function changedPaths (sent, stored, path = '', paths = []) {
+  if (isDeepStrictEqual(sent, stored)) return paths
+  const bothArrays = Array.isArray(sent) && Array.isArray(stored)
+  const bothObjects = !!sent && !!stored && typeof sent === 'object' && typeof stored === 'object' &&
+    !Array.isArray(sent) && !Array.isArray(stored)
+  if (!bothArrays && !bothObjects) {
+    paths.push(path || '/')
+    return paths
+  }
+  const a = /** @type {Record<string, unknown>} */(sent)
+  const b = /** @type {Record<string, unknown>} */(stored)
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    changedPaths(a[key], b[key], `${path}/${key}`, paths)
+  }
+  return paths
+}
+
+/**
+ * @param {SaveOutcome} result
+ * @param {string} prefix
  * @returns {string}
  */
-function savedLine (result) {
+function serverChangedPhrase (result, prefix) {
+  const changed = result.serverChanged
+  if (!changed?.length) return ''
+  const named = changed.slice(0, MAX_NAMED_PATHS).join(', ')
+  const more = changed.length > MAX_NAMED_PATHS ? ` and ${changed.length - MAX_NAMED_PATHS} more` : ''
+  const after = result.serverCopyPending
+    ? `; an edit made while it was being saved is kept, so the form does not show them: ${prefix}reloadForm reads the server's copy and discards that edit`
+    : '; the form now holds the server\'s copy'
+  return `; the server changed ${changed.length} field(s) while saving: ${named}${more}${after}`
+}
+
+/**
+ * @param {SaveOutcome} result
+ * @param {string} prefix - the tool name prefix
+ * @returns {string}
+ */
+function savedLine (result, prefix) {
   const version = result.version === undefined ? '' : `, version ${String(result.version)}`
-  return `saved${version}${emptiedPhrase(result)}`
+  return `saved${version}${emptiedPhrase(result)}${serverChangedPhrase(result, prefix)}`
 }
 
 /**
@@ -173,7 +239,7 @@ export class FormSession {
   /**
    * In auto mode, the latest valid document waiting for the save in flight to settle, and
    * the save that will persist it: writes landing during a save coalesce into one.
-   * @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }> } | undefined}
+   * @type {{ snapshot: unknown, promise: Promise<SaveOutcome> } | undefined}
    */
   _queuedSave
 
@@ -278,7 +344,7 @@ export class FormSession {
    * records emptied its form for the next one, `dropped` that an edit landed during the save
    * was emptied with it.
    * @param {{ allowInvalid?: boolean }} [options]
-   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
+   * @returns {Promise<SaveOutcome>}
    */
   async save (options = {}) {
     if (!this._layout) throw sessionError(`"${this.title}" is not open`, 'closed')
@@ -301,7 +367,7 @@ export class FormSession {
   /**
    * @param {StatefulLayout} layout
    * @param {unknown} snapshot
-   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
+   * @returns {Promise<SaveOutcome>}
    */
   async _startSave (layout, snapshot) {
     this._status = 'saving'
@@ -318,7 +384,7 @@ export class FormSession {
    * Auto mode: persist the document as it now stands. A save in flight is never overlapped:
    * the document waits for it, and the writes landing meanwhile share one save of the last
    * of them.
-   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
+   * @returns {Promise<SaveOutcome>}
    */
   _autoSave () {
     const layout = /** @type {StatefulLayout} */(this._layout)
@@ -332,7 +398,7 @@ export class FormSession {
     }
     if (!this._savePromise) return this._startSave(layout, snapshot)
     const generation = this._generation
-    /** @type {{ snapshot: unknown, promise: Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }> }} */
+    /** @type {{ snapshot: unknown, promise: Promise<SaveOutcome> }} */
     const queued = {
       snapshot,
       promise: this._savePromise.catch(() => {}).then(() => {
@@ -351,7 +417,7 @@ export class FormSession {
    * @param {StatefulLayout} layout - the layout the save was started from
    * @param {unknown} snapshot - the document handed to the consumer
    * @param {number} generation - the session generation the save was started in
-   * @returns {Promise<{ version: unknown, emptied?: boolean, dropped?: boolean }>}
+   * @returns {Promise<SaveOutcome>}
    */
   async _save (layout, snapshot, generation) {
     /** @param {SessionStatus} status */
@@ -372,8 +438,14 @@ export class FormSession {
         // has moved past, so forget it rather than send a stale precondition
         this._version = undefined
       }
+      // A consumer that returns the stored document says what the source holds: a server
+      // that derives fields on save (portals derives theme.colors from the assisted-mode
+      // colours) would otherwise leave the form showing values the source no longer has,
+      // and nothing would tell the agent to reload.
+      const serverCopy = serverCopyOf(result)
+      const stored = serverCopy ? serverCopy.data : snapshot
       // what the source now holds is the baseline; this clears the modified markers
-      layout.savedData = snapshot
+      layout.savedData = stored
       setStatus('ready')
       if (generation !== this._generation || layout !== this._layout) return { version: this._version }
       // a record being created is done: the next one starts from an empty form, without
@@ -386,9 +458,19 @@ export class FormSession {
         this._version = this._loadedVersion
         return { version, emptied: true, ...(dropped ? { dropped } : {}) }
       }
+      const serverChanged = serverCopy ? changedPaths(snapshot, serverCopy.data) : []
+      if (serverChanged.length && isDeepStrictEqual(layout.data, snapshot)) {
+        layout.data = structuredClone(serverCopy?.data)
+        // a value the server set counts as loaded, the agent did not type it
+        this._webmcp?.resetBaseline(serverCopy?.data)
+        return { version: this._version, serverChanged }
+      }
       // what was saved counts as loaded: a value saved despite the warning does not hold
       // every later save
       this._webmcp?.resetBaseline(snapshot)
+      // an edit landed during the save: replacing the data would lose it, so the form keeps
+      // it and the answer says where the server's copy is
+      if (serverChanged.length) return { version: this._version, serverChanged, serverCopyPending: true }
       return { version: this._version }
     } catch (/** @type {any} */err) {
       if (err?.status === 409 || err?.code === 'conflict') {
@@ -531,7 +613,7 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
                 const unpicked = this._webmcp?.unpickedValues() ?? []
                 const result = await this.save()
                 const suffix = result.version === undefined ? '' : ` (version ${String(result.version)})`
-                const lines = [`Saved "${title}"${suffix}${emptiedPhrase(result)}.`]
+                const lines = [`Saved "${title}"${suffix}${emptiedPhrase(result)}${serverChangedPhrase(result, prefix)}.`]
                 if (unpicked.length) lines.push(`warning: ${unpickedPhrase(unpicked)}; saved anyway`)
                 return { content: [{ type: 'text', text: lines.join('\n') }] }
               } catch (err) {
@@ -567,7 +649,7 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
       // allowInvalid is not read here: auto mode persists only what leaves the form valid
       if (!this.valid) return ['not saved yet: the form is invalid']
       try {
-        return [savedLine(await this._autoSave())]
+        return [savedLine(await this._autoSave(), prefix)]
       } catch (err) {
         return [`not saved: ${message(err)}`]
       }
@@ -582,7 +664,7 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
       return [`not saved: ${unpickedPhrase(unpicked)}; pick them with ${prefix}getFieldSuggestions, or ${prefix}saveForm saves anyway`]
     }
     try {
-      return [savedLine(await this.save())]
+      return [savedLine(await this.save(), prefix)]
     } catch (err) {
       return [`not saved: ${message(err)}`]
     }

@@ -326,6 +326,115 @@ describe('FormSession create', () => {
   })
 })
 
+describe('FormSession server copy after a save', () => {
+  /**
+   * A save function that stores what it is given after the server's own derivation, the
+   * way the portals API derives theme colours from the assisted-mode ones.
+   * @param {(data: any) => any} derive
+   * @param {{ withVersion?: boolean }} [opts]
+   * @returns {Partial<import('../src/session.js').SessionSpec>}
+   */
+  const deriving = (derive, opts = {}) => {
+    let version = 1
+    return {
+      save: async (data) => {
+        version += 1
+        const stored = derive(structuredClone(data))
+        return opts.withVersion === false ? { data: stored } : { data: stored, version }
+      }
+    }
+  }
+
+  it('should adopt the copy the server returned and name the fields it changed', async () => {
+    // portals parametres-du-portail: the API derived theme.colors from assistedModeColors
+    // on save, getData kept the old colour until reloadForm, and a person lost a turn.
+    const { session } = makeSession(deriving((data) => ({ ...data, commune: '44109' })))
+    await session.open()
+
+    const text = textOf(await call(session, 'setFieldValue', { path: '/nom', value: 'Judo club', save: true }))
+
+    assert.deepEqual(session.data, { nom: 'Judo club', commune: '44109' })
+    assert.match(text, /server changed 1 field\(s\) while saving: \/commune/)
+    assert.equal(session.modified, false, 'the server copy is what the source holds')
+    assert.equal(session.version, 2)
+  })
+
+  it('should count a value the server set as loaded, not as typed', async () => {
+    // commune has remote suggestions: a value the agent never picked would hold the next
+    // save, but this one came from the server
+    const { session } = makeSession(deriving((data) => ({ ...data, commune: '44109' })))
+    await session.open()
+    await call(session, 'saveForm')
+
+    const text = textOf(await call(session, 'setFieldValue', { path: '/nom', value: 'Autre', save: true }))
+
+    assert.doesNotMatch(text, /not picked/)
+  })
+
+  it('should say nothing more when the server kept the document as sent', async () => {
+    const { session } = makeSession(deriving((data) => data))
+    await session.open()
+
+    const text = textOf(await call(session, 'saveForm'))
+
+    assert.doesNotMatch(text, /server changed/)
+  })
+
+  it('should accept a server copy without a version', async () => {
+    const { session } = makeSession(deriving((data) => ({ ...data, commune: '44109' }), { withVersion: false }))
+    await session.open()
+
+    const text = textOf(await call(session, 'saveForm'))
+
+    assert.deepEqual(session.data, { nom: 'Dojo', commune: '44109' })
+    assert.match(text, /\/commune/)
+    assert.equal(session.version, undefined)
+  })
+
+  it('should keep an edit made during the save and point to reloadForm for the server copy', async () => {
+    /** @type {(value: unknown) => void} */
+    let release = () => {}
+    const { session } = makeSession({
+      save: async (data) => {
+        await new Promise((resolve) => { release = resolve })
+        return { data: { .../** @type {object} */(data), commune: '44109' }, version: 2 }
+      }
+    })
+    await session.open()
+
+    const saving = call(session, 'saveForm')
+    await waitUntil(() => session.status === 'saving', 'the save to start')
+    await call(session, 'setFieldValue', { path: '/nom', value: 'Edited meanwhile' })
+    release(undefined)
+    const text = textOf(await saving)
+
+    assert.deepEqual(session.data, { nom: 'Edited meanwhile' })
+    assert.match(text, /\/commune/)
+    assert.match(text, /reloadForm/)
+  })
+
+  it('should cap the changed paths it names', async () => {
+    const many = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [`f${i}`, i]))
+    const { session } = makeSession(deriving((data) => ({ ...data, activites: [{ label: 'x' }], ...many })))
+    await session.open()
+
+    const text = textOf(await call(session, 'saveForm'))
+
+    assert.match(text, /server changed 15 field\(s\)/)
+    assert.match(text, /and 5 more/)
+  })
+
+  it('should still empty a create session, whatever the server returned', async () => {
+    const { session } = makeSession({ load: async () => undefined, ...deriving((data) => ({ ...data, id: 'abc' })) })
+    await session.open()
+
+    const text = textOf(await call(session, 'setFieldValue', { path: '/nom', value: 'Dojo', save: true }))
+
+    assert.match(text, /the form is empty again for a new record/)
+    assert.doesNotMatch(text, /server changed/)
+  })
+})
+
 /**
  * @param {() => boolean} predicate
  * @param {string} what

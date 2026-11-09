@@ -28,7 +28,10 @@ export interface SessionSpec {
   // returns the resource document, or `{ data, version }`; absent, or returning no
   // document, for a session that creates records: its form empties after each save
   load?: () => unknown
-  // persists the document; absent means the session is read-only
+  // persists the document; absent means the session is read-only. May return `{ version }`,
+  // or `{ data, version }` / `{ data }` with the document as the source stored it: a server
+  // that changes fields on save then has its copy adopted by the form, and the save answer
+  // names the paths it changed
   save?: (data: unknown, context: SaveContext) => unknown
   // returns a JSON Schema, or `{ schema, version }`
   schema?: () => unknown

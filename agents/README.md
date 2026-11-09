@@ -32,6 +32,17 @@ and loads again, to resolve a save conflict).
 
 A session without `save` is read-only.
 
+## The server's copy
+
+`save` may return `{ version }`, or the document as the source stored it: `{ data, version }`
+or `{ data }`. Return the stored document when the server changes fields on save (derived
+values, normalization). The form then holds the server's copy, and the save answer names
+the paths that changed (`the server changed 2 field(s) while saving: /theme/colors/primary,
+…`), so `getData` never shows values the source no longer has. If an edit landed while the
+save was in flight, the form keeps that edit, and the answer names the changed paths and
+points to `reloadForm`. Return the document only when it is the document: an
+acknowledgement or a wrapped response is not.
+
 ## Creating records
 
 A session with no `load`, or whose `load` returns no document, creates records. After each
