@@ -851,7 +851,10 @@ export function createStateNode (
         }
 
         // duplicate active child at the end of the list in case of dialog/menu edition
-        if (context.activatedItems[fullKey] !== undefined && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
+        // not when the list no longer has that item (the data was replaced by a shorter
+        // array): its node would fill the item's defaults and put it back in the data
+        const activeIndex = context.activatedItems[fullKey]
+        if (typeof activeIndex === 'number' && activeIndex < arrayData.length && (layout.listEditMode === 'menu' || layout.listEditMode === 'dialog')) {
           const i = /** @type {number} */(context.activatedItems[fullKey])
           const activeChild = createStateNode(
             context,
