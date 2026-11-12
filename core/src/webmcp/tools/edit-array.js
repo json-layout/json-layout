@@ -8,6 +8,7 @@ import { projectListItems, describeListItem } from '../outline.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
 import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
+import { collectDataPaths, findOrphanPaths } from './set-data.js'
 
 export const inputSchema = {
   type: 'object',
@@ -80,7 +81,7 @@ function assertKnownVariant (statefulLayout, listNode, value) {
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
- * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[] }}
+ * @returns {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, coerced?: string[], unknownPaths?: string[], droppedPaths?: string[] }}
  */
 export function execute (statefulLayout, args, variantsMemo) {
   const node = resolveNodeForEdit(statefulLayout, args.path)
@@ -176,7 +177,14 @@ export function execute (statefulLayout, args, variantsMemo) {
   const listNode = resolveNode(statefulLayout.stateTree.root, args.path) ?? node
   const { errors, otherErrors, elsewhere } = collectScopedErrors(statefulLayout, listNode)
 
-  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}> }} */
+  // The keys of an added item that no field carries, as setData reports them: a title block
+  // added as { type: 'title', text } answered "form is valid" and was saved with no content.
+  // Read once the item is activated, as its fields are only hydrated then.
+  const orphans = args.action === 'add' && args.value && typeof args.value === 'object' && !Array.isArray(args.value)
+    ? findOrphanPaths(args.value, statefulLayout.data, collectDataPaths(statefulLayout.stateTree.root), `${listNode.dataPath}/${index}`)
+    : { unknown: [], dropped: [] }
+
+  /** @type {{ valid: boolean, itemCount: number, index: number, moved?: 'same', itemMarkdown?: string, removed?: string, items?: string[], coerced?: string[], errors: Array<{path: string, message: string}>, otherErrors: number, elsewhere?: Array<{path: string, message: string}>, unknownPaths?: string[], droppedPaths?: string[] }} */
   const result = {
     valid: statefulLayout.valid,
     itemCount: currentData.length,
@@ -187,17 +195,46 @@ export function execute (statefulLayout, args, variantsMemo) {
     otherErrors,
     ...(elsewhere ? { elsewhere } : {}),
     ...(coerced ? { coerced } : {}),
-    ...(removed ? { removed } : {})
+    ...(removed ? { removed } : {}),
+    ...(orphans.unknown.length ? { unknownPaths: orphans.unknown } : {}),
+    ...(orphans.dropped.length ? { droppedPaths: orphans.dropped } : {})
   }
 
   if (args.action === 'add') {
     const itemNode = resolveNode(statefulLayout.stateTree.root, `${args.path}/${index}`)
     if (itemNode) {
-      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, variantsMemo, undefined, true)
+      const memo = itemMemo(itemNode, args.value, variantsMemo)
+      result.itemMarkdown = projectNodeToMarkdown(itemNode, statefulLayout, 0, undefined, memo, undefined, true)
+      // the lists this answer did print are recorded as given
+      if (memo !== variantsMemo) variantsMemo?.merge(/** @type {import('../variants-memo.js').VariantsMemo} */(memo))
     }
   }
 
   return result
+}
+
+/**
+ * The memo an added item is projected with. An item added with its option chosen by the
+ * value only names that option: the whole list (40 options of a portal page block, printed
+ * with each add) was most of the answer, for an agent that had just picked one of them.
+ * Without a chosen option the list is printed as usual, the agent has one to choose.
+ * @param {import('../../state/types.js').StateNode} itemNode
+ * @param {unknown} value
+ * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo]
+ * @returns {import('../variants-memo.js').VariantsMemo | undefined}
+ */
+function itemMemo (itemNode, value, variantsMemo) {
+  if (!variantsMemo || !value || typeof value !== 'object' || Array.isArray(value)) return variantsMemo
+  const selector = itemNode.layout.comp === 'one-of-select'
+    ? itemNode
+    : itemNode.children?.find((child) => child.layout.comp === 'one-of-select')
+  const discriminator = selector?.skeleton.discriminator
+  if (!selector?.children?.length || discriminator === undefined || !(discriminator in value)) return variantsMemo
+  if (variantsMemo.listedAt(selector.skeleton.pointer) !== undefined) return variantsMemo
+  // unprinted pointers are not merged back: a later answer still prints the list
+  const memo = variantsMemo.clone()
+  memo.recordUnprinted(selector.skeleton.pointer, itemNode.parentFullKey ?? '/')
+  return memo
 }
 
 /**

@@ -385,7 +385,12 @@ function renderFormSchema (compiledLayout, options) {
         const treePointer = node.childrenTrees?.[item.key]
         const branchRoot = treePointer ? nodes[trees[treePointer]?.root] : undefined
         const shape = branchRoot && !shapeless ? shapeOf(branchRoot.pointer) : ''
-        push(`${indent}  - variant ${item.key}: ${item.title}${shape ? ` — ${shape}` : ''}`)
+        // the discriminator value as describeState gives it for a hydrated selector: without it
+        // agents wrote the variant's index or its label as the type ({ type: "0" }, { type:
+        // "Deux colonnes" }) and were refused
+        const value = node.discriminator !== undefined && treePointer ? trees[treePointer]?.discriminatorValue : undefined
+        const discriminated = value === undefined ? '' : ` (${node.discriminator}=${JSON.stringify(value)})`
+        push(`${indent}  - variant ${item.key}: ${item.title}${discriminated}${shape ? ` — ${shape}` : ''}`)
       }
       return
     }

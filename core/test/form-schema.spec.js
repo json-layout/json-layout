@@ -209,7 +209,7 @@ describe('what describeState says the form can hold', () => {
   it('describes an item of a list still empty', async () => {
     const text = await call(menuTools({ title: 'Portail', menu: [] }), 'p_describeState', { path: '/menu/0' })
     assert.match(text, /not in the form yet/)
-    assert.match(text, /variant 2: Lien — \{ href\*: text \}/)
+    assert.match(text, /variant 2: Lien \(type="external"\) — \{ href\*: text \}/)
   })
 
   it('details one option of a list item that does not exist yet', async () => {
@@ -250,7 +250,7 @@ describe('what describeState says the form can hold', () => {
       }
     }
     const text = overviewOf(schema)
-    assert.match(text, /variant 0: Standard — \{ .*subtype: select \["t0" \(Type 0\), .*"t13" \(Type 13\)\]/)
+    assert.match(text, /variant 0: Standard \(type="standard"\) — \{ .*subtype: select \["t0" \(Type 0\), .*"t13" \(Type 13\)\]/)
   })
 
   it('says in its description how to choose the option of an item it adds', () => {

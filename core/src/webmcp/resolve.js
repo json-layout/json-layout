@@ -215,7 +215,9 @@ function hasValueAt (data, path) {
  */
 export function nodeNotFoundError (statefulLayout, path) {
   if (path && hasValueAt(statefulLayout.data, path)) {
-    return new Error(`node not found at path: ${path}. The value exists in the data but its field is not shown in the form right now: a condition hides it, another setting replaces it or must change first. Look for the field the form shows instead with describeState.`)
+    // "node not found" read as a wrong path, and the agent's script stopped on it right
+    // after a save that had worked: the field is there, hidden
+    return new Error(`hidden field at path: ${path}. The value exists in the data but its field is not shown in the form right now: a condition hides it, another setting replaces it or must change first. Look for the field the form shows instead with describeState.`)
   }
   const root = statefulLayout.stateTree.root
   const segments = (path ?? '').replace(/^\//, '').split('/').filter(Boolean)

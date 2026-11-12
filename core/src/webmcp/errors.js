@@ -177,6 +177,171 @@ function isRenderedBranch (error, renderedPointers) {
 }
 
 /**
+ * Whether an error belongs to the branch of each discriminated union it crosses that the
+ * data chose. The rendered-branch test compares schema pointers, which every item of a list
+ * shares: an item not hydrated (a dataset-table block still without its dataset) had the
+ * failures of the title and text branches reported against it — "must NOT have additional
+ * properties: interactions" — because other items rendered those branches, and an agent
+ * offered to remove the property. The discriminator says which branch is the item's.
+ * @param {any} error
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @returns {boolean}
+ */
+function isChosenBranch (error, statefulLayout) {
+  if (!statefulLayout.compiledLayout) return true
+  const original = error?.params?.errors?.[0] ?? error
+  // "must match exactly one schema" of a union whose data chose its branch: the branch's own
+  // errors say what is missing, this one only repeats that it is
+  if (original?.keyword === 'oneOf' && typeof original.schemaPath === 'string') {
+    const selector = statefulLayout.compiledLayout.skeletonNodes[original.schemaPath]
+    const discriminator = selector?.discriminator
+    if (discriminator !== undefined && selector?.childrenTrees) {
+      const values = selector.childrenTrees.map((tree) => statefulLayout.compiledLayout.skeletonTrees[tree]?.discriminatorValue)
+      /** @type {any} */
+      let data = statefulLayout.data
+      for (const segment of String(original.instancePath ?? '').split('/').slice(1)) data = data?.[segment]
+      if (data && typeof data === 'object' && values.includes(data[discriminator])) return false
+    }
+  }
+  const schemaPath = error?.schemaPath
+  if (typeof schemaPath !== 'string' || !schemaPath.includes('/oneOf/')) return true
+  const compiled = statefulLayout.compiledLayout
+  const instancePath = typeof error.instancePath === 'string' ? error.instancePath : ''
+  const segments = instancePath.split('/').slice(1)
+  // the depth of the data the next union applies to cannot be above the last one's
+  let depth = 0
+  const branches = /\/oneOf\/(\d+)/g
+  let match
+  while ((match = branches.exec(schemaPath)) !== null) {
+    const selectorPointer = schemaPath.slice(0, match.index + '/oneOf'.length)
+    const selector = compiled.skeletonNodes[selectorPointer]
+    const discriminator = selector?.discriminator
+    if (discriminator === undefined || !selector?.childrenTrees) continue
+    /** @type {Map<string, unknown>} */
+    const valueOf = new Map()
+    for (const tree of selector.childrenTrees) {
+      const skeletonTree = compiled.skeletonTrees[tree]
+      if (skeletonTree) valueOf.set(skeletonTree.root, skeletonTree.discriminatorValue)
+    }
+    const values = [...valueOf.values()]
+    /** @type {any} */
+    let data = statefulLayout.data
+    for (let i = 0; i < depth; i++) data = data?.[segments[i]]
+    for (let i = depth; i <= segments.length; i++) {
+      if (data && typeof data === 'object' && !Array.isArray(data) && values.includes(data[discriminator])) {
+        const branchValue = valueOf.get(`${selectorPointer}/${match[1]}`)
+        if (branchValue !== undefined && branchValue !== data[discriminator]) return false
+        depth = i + 1
+        break
+      }
+      if (i < segments.length) data = data?.[segments[i]]
+    }
+  }
+  return true
+}
+
+/**
+ * @typedef {{ dataPath: string, active: string[], inactive: string[] }} Selector - a union the
+ * form shows at a data path, with the schema pointers of its active branch and of the others:
+ * each branch's own pointer and, for a branch that is a $ref, the pointer of its target
+ */
+
+/**
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {import('../state/types.js').StateNode} node - a variant selector
+ * @returns {Selector|undefined}
+ */
+function selectorOf (statefulLayout, node) {
+  const compiled = statefulLayout.compiledLayout
+  const activePointer = node.children?.[0]?.skeleton.pointer
+  if (!activePointer || !node.skeleton.childrenTrees) return undefined
+  /** @type {Selector} */
+  const selector = { dataPath: node.dataPath, active: [], inactive: [] }
+  for (const tree of node.skeleton.childrenTrees) {
+    const root = compiled.skeletonNodes[compiled.skeletonTrees[tree]?.root]
+    if (!root) continue
+    const pointers = [root.pointer, root.refPointer].filter((p) => typeof p === 'string' && p !== '')
+    // and the definitions the branch reaches through $ref, where ajv reports their errors
+    for (const pointer of [...pointers]) pointers.push(...reachableRefs(statefulLayout, pointer))
+    selector[root.pointer === activePointer ? 'active' : 'inactive'].push(...pointers)
+  }
+  return selector
+}
+
+/** @type {WeakMap<object, Map<string, string[]>>} */
+const reachableRefsCache = new WeakMap()
+
+/**
+ * The schema pointers reachable from a skeleton node: those of the nodes below it and of the
+ * branches of the unions and items they hold, with the $ref targets they were reached
+ * through ("_jl#/definitions/aggsDataMultiple"), where ajv reports their errors. Read from the
+ * skeleton rather than the schema, which a build-time compiled layout does not carry. A
+ * constant of the layout: cached per compiled layout.
+ * @param {import('../state/index.js').StatefulLayout} statefulLayout
+ * @param {string} pointer - a skeleton node's pointer
+ * @returns {string[]}
+ */
+function reachableRefs (statefulLayout, pointer) {
+  const compiled = statefulLayout.compiledLayout
+  if (!compiled?.skeletonNodes) return []
+  let cache = reachableRefsCache.get(compiled)
+  if (!cache) reachableRefsCache.set(compiled, (cache = new Map()))
+  const known = cache.get(pointer)
+  if (known) return known
+  /** @type {Set<string>} */
+  const found = new Set()
+  /** @type {Set<string>} */
+  const visited = new Set()
+  /** @type {string[]} */
+  const queue = [pointer]
+  while (queue.length) {
+    const current = /** @type {string} */(queue.shift())
+    if (visited.has(current)) continue
+    visited.add(current)
+    const node = compiled.skeletonNodes[current]
+    if (!node) continue
+    if (current !== pointer) found.add(current)
+    if (node.refPointer && node.refPointer !== pointer) found.add(node.refPointer)
+    queue.push(...(node.children ?? []))
+    for (const tree of node.childrenTrees ?? []) {
+      const skeletonTree = compiled.skeletonTrees[tree]
+      if (!skeletonTree) continue
+      if (skeletonTree.refPointer) found.add(skeletonTree.refPointer)
+      queue.push(skeletonTree.root)
+    }
+  }
+  const result = [...found]
+  cache.set(pointer, result)
+  return result
+}
+
+/**
+ * Whether an error comes from a branch of a union the data did not choose, when that branch
+ * is a $ref: ajv then reports the error at the referenced definition
+ * (`#/definitions/rowsDataSingle`), so the oneOf it went through appears nowhere in its path
+ * and the tests above cannot see it. charts reported "form has 140 other error(s)" and
+ * "/chart/config: must NOT have additional properties: groupBy" while one field was missing.
+ * The union deciding is the deepest one at or above the error's data that has a branch the
+ * error's schema path is in: a definition can be an unchosen branch here and the chosen one
+ * of a union nested below.
+ * @param {any} error
+ * @param {Selector[]} selectors
+ * @returns {boolean}
+ */
+function isInactiveReferencedBranch (error, selectors) {
+  const schemaPath = error?.schemaPath
+  if (typeof schemaPath !== 'string') return false
+  const instancePath = typeof error.instancePath === 'string' ? error.instancePath : ''
+  /** @param {string} pointer */
+  const inBranch = (pointer) => schemaPath === pointer || schemaPath.startsWith(pointer + '/')
+  const deciding = selectors
+    .filter((s) => s.dataPath === '' || instancePath === s.dataPath || instancePath.startsWith(s.dataPath + '/'))
+    .sort((a, b) => b.dataPath.length - a.dataPath.length)
+    .find((s) => s.active.some(inBranch) || s.inactive.some(inBranch))
+  return !!deciding && !deciding.active.some(inBranch)
+}
+
+/**
  * Errors of the whole form, each named by the location it actually applies to.
  *
  * A node only carries an error while it is hydrated. A list shows its items in summary
@@ -195,10 +360,16 @@ export function collectErrors (statefulLayout) {
   const nodeErrors = []
   /** @type {Set<string>} */
   const renderedPointers = new Set()
+  /** @type {Selector[]} */
+  const selectors = []
   /** @param {import('../state/types.js').StateNode} node */
   const recurse = (node) => {
     if (node.error) nodeErrors.push({ fullKey: node.fullKey, dataPath: node.dataPath, message: /** @type {string} */(errorMessageOf(node)), raw: node.error, hidden: node.layout.comp === 'none' })
     if (node.skeleton?.pointer) renderedPointers.add(node.skeleton.pointer)
+    if (node.layout.comp === 'one-of-select') {
+      const selector = selectorOf(statefulLayout, node)
+      if (selector) selectors.push(selector)
+    }
     // all children, not visibleChildren: in "menu"/"dialog" list edit modes the two
     // occurrences of an activated item do not carry the same errors, and deduplicating
     // here silently drops them (verified: 2 errors became 0).
@@ -207,10 +378,26 @@ export function collectErrors (statefulLayout) {
   recurse(statefulLayout.stateTree.root)
 
   const named = new Set(nodeErrors.map((e) => e.dataPath))
+  /** @param {any} error */
+  const kept = (error) => isRenderedBranch(error, renderedPointers) && isChosenBranch(error, statefulLayout) &&
+    !isInactiveReferencedBranch(error, selectors) && !isInactiveReferencedBranch(error?.params?.errors?.[0], selectors)
+  /** @type {Array<{instancePath: string, message: string}>} */
+  const droppedUnions = []
   const unnamed = statefulLayout.validationErrors
-    .filter((error) => isRenderedBranch(error, renderedPointers))
+    .filter((error) => {
+      if (kept(error)) return true
+      const original = /** @type {any} */(error)?.params?.errors?.[0] ?? error
+      if (original?.keyword === 'oneOf') droppedUnions.push({ instancePath: String(original.instancePath ?? ''), message: messageOf(error) })
+      return false
+    })
     .map((error) => ({ pointer: dataPointerOf(error), message: messageOf(error) }))
     .filter((error) => !named.has(error.pointer))
+  // a node can carry the failure of a union below it ("chose one" on the root of charts, for
+  // the chart type that was chosen but is incomplete): the union's own error was dropped as
+  // repeating its branch's errors, and so is the node's echo of it
+  /** @param {{ dataPath: string, raw: string }} nodeError */
+  const echoesDroppedUnion = (nodeError) => droppedUnions.some((u) => u.message === nodeError.raw &&
+    (nodeError.dataPath === '' || u.instancePath === nodeError.dataPath || u.instancePath.startsWith(nodeError.dataPath + '/')))
 
   // a hidden node (comp "none") can carry an echo of an error a visible node already reports:
   // a new menu item's error was also reported on three hidden nodes of data-fair's portal
@@ -221,6 +408,7 @@ export function collectErrors (statefulLayout) {
   const errors = []
   for (const nodeError of nodeErrors) {
     if (nodeError.hidden && visibleMessages.has(nodeError.raw)) continue
+    if (echoesDroppedUnion(nodeError) && !unnamed.some((e) => e.message === nodeError.raw)) continue
     const prefix = nodeError.dataPath === '' ? '/' : `${nodeError.dataPath}/`
     const standsInForDeeperErrors = unnamed.some((e) => e.pointer.startsWith(prefix))
     if (!standsInForDeeperErrors) errors.push({ path: nodeError.fullKey, message: nodeError.message })
@@ -270,7 +458,9 @@ export function collectScopedErrors (statefulLayout, node) {
   if (errors.length === 0 && !statefulLayout.valid) {
     const others = collectErrors(statefulLayout)
     if (others.length) {
-      return { errors, otherErrors: Math.max(otherErrors, others.length), elsewhere: others.slice(0, ELSEWHERE_MAX) }
+      // the count is the list's: the path index also counts node errors the list drops as
+      // echoes, and "3 other error(s)" above two listed ones sent the agent looking for a third
+      return { errors, otherErrors: others.length, elsewhere: others.slice(0, ELSEWHERE_MAX) }
     }
   }
   return { errors, otherErrors }

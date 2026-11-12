@@ -93,6 +93,17 @@ export class VariantsMemo {
     }
   }
 
+  /**
+   * @returns {VariantsMemo} a copy, to project an answer that must not record into this one
+   */
+  clone () {
+    const copy = new VariantsMemo()
+    for (const [pointer, path] of this._listedAt) copy._listedAt.set(pointer, path)
+    for (const pointer of this._underList) copy._underList.add(pointer)
+    for (const pointer of this._unprinted) copy._unprinted.add(pointer)
+    return copy
+  }
+
   clear () {
     this._listedAt.clear()
     this._underList.clear()

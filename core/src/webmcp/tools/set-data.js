@@ -29,7 +29,7 @@ export function getDescription (dataTitle) {
   // Said plainly because an approval reviewer sees this text and the input, never the
   // code: "set all data at once" read as a replacement, and a person refused a partial
   // write the reviewer said "may remove" blocks it kept.
-  return `Write several "${dataTitle}" fields at once: the given keys are merged into the current data, nested objects included; arrays you pass replace the existing ones. Prefer setFieldValue to change one field. Check the errors and warnings in the response.`
+  return `Write several "${dataTitle}" fields at once: the given keys are merged into the current data, nested objects included; arrays you pass replace the existing ones. Pass only the keys that change: the ones you leave out stay as they are, and data re-sent unchanged reads, to whoever approves the call, as content being replaced. To change one item of a list, use setFieldValue on its field rather than re-sending the list. Check the errors and warnings in the response.`
 }
 
 /**
@@ -39,12 +39,16 @@ export function getDescription (dataTitle) {
  * of a composed schema are synthetic ($allOf-1, $comp-1) and share their parent's path —
  * the real property sits below them.
  * @param {import('../../state/types.js').StateNode} node
- * @param {{ nodes: Set<string>, containers: Set<string> }} [paths]
- * @returns {{ nodes: Set<string>, containers: Set<string> }}
+ * @param {{ nodes: Set<string>, containers: Set<string>, declared?: Set<string> }} [paths]
+ * @returns {{ nodes: Set<string>, containers: Set<string>, declared?: Set<string> }}
  */
-function collectDataPaths (node, paths = { nodes: new Set(), containers: new Set() }) {
+export function collectDataPaths (node, paths = { nodes: new Set(), containers: new Set(), declared: new Set() }) {
   const dataPath = node.dataPath ?? ''
   paths.nodes.add(dataPath)
+  // the properties the schema declares where the form shows an object, whether or not they
+  // have a field on screen: one hidden by a condition (a title's anchor.inToc while the anchor
+  // is off) or with no component (a block's uuid) is a key of the form, not a typo
+  for (const key of [...(node.skeleton?.propertyKeys ?? []), ...(node.skeleton?.roPropertyKeys ?? [])]) paths.declared?.add(`${dataPath}/${key}`)
   const segments = dataPath.split('/')
   for (let i = 1; i < segments.length; i++) paths.containers.add(segments.slice(0, i).join('/'))
   for (const child of node.children ?? []) collectDataPaths(child, paths)
@@ -72,17 +76,19 @@ function hasPath (data, path) {
  * value of a field held whole (a list of strings, a dataset object) is not inspected.
  * @param {unknown} given
  * @param {unknown} kept
- * @param {{ nodes: Set<string>, containers: Set<string> }} paths
+ * @param {{ nodes: Set<string>, containers: Set<string>, declared?: Set<string> }} paths
  * @param {string} [path]
  * @param {{ unknown: string[], dropped: string[] }} [found]
  * @returns {{ unknown: string[], dropped: string[] }}
  */
-function findOrphanPaths (given, kept, paths, path = '', found = { unknown: [], dropped: [] }) {
+export function findOrphanPaths (given, kept, paths, path = '', found = { unknown: [], dropped: [] }) {
   if (!given || typeof given !== 'object') return found
   for (const [key, value] of Object.entries(given)) {
     const childPath = `${path}/${key}`
     if (!paths.nodes.has(childPath)) {
-      found[hasPath(kept, childPath) ? 'unknown' : 'dropped'].push(childPath)
+      const isKept = hasPath(kept, childPath)
+      // a key the schema declares, kept: written where it belongs, only not shown
+      if (!(isKept && paths.declared?.has(childPath))) found[isKept ? 'unknown' : 'dropped'].push(childPath)
     } else if (paths.containers.has(childPath)) {
       findOrphanPaths(value, kept, paths, childPath, found)
     }
@@ -184,7 +190,9 @@ export function execute (statefulLayout, args) {
     // Which keys landed. "valid, no errors" says the form is happy but nothing about what
     // was stored, and contact's agent read that as a reason to spend a call on getData
     // to see its own write. Keys only: the values can be a 12 KB dataset object.
-    written: isPlainObject(args.data) ? Object.keys(/** @type {Record<string, unknown>} */(args.data)) : [],
+    // not a key the form dropped whole: "NOT STORED: /comp-1" then "stored 1 key(s): comp-1"
+    // left the agent reading the document back to learn which was true
+    written: isPlainObject(args.data) ? Object.keys(/** @type {Record<string, unknown>} */(args.data)).filter((key) => !orphans.dropped.includes(`/${key}`)) : [],
     removed,
     unknownPaths: orphans.unknown,
     droppedPaths: orphans.dropped,

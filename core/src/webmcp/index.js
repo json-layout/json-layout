@@ -124,9 +124,15 @@ function isEmpty (value) {
 function referentialNodes (root) {
   /** @type {import('../state/types.js').StateNode[]} */
   const found = []
+  // an item edited in a dialog is in the tree twice: its fields are one field each
+  /** @type {Set<string>} */
+  const seen = new Set()
   /** @param {import('../state/types.js').StateNode} node */
   const visit = (node) => {
-    if (/** @type {any} */(node.layout).getItems?.url && node.layout.comp !== 'list') found.push(node)
+    if (/** @type {any} */(node.layout).getItems?.url && node.layout.comp !== 'list' && !seen.has(node.fullKey)) {
+      seen.add(node.fullKey)
+      found.push(node)
+    }
     for (const child of node.children ?? []) visit(child)
   }
   visit(root)
@@ -166,6 +172,25 @@ function loadedValuesAt (data, dataPath) {
 /**
  * WebMCP class that provides MCP tool descriptors for a StatefulLayout instance
  */
+/**
+ * The lines a write's answer starts with about the keys it was given that no field of the
+ * form carries.
+ * @param {string[]} [dropped] - removed from the data by the form
+ * @param {string[]} [unknown] - kept in the data with no field to show or check them
+ * @returns {string[]}
+ */
+function notStoredLines (dropped = [], unknown = []) {
+  const lines = []
+  if (dropped.length) {
+    lines.push(`NOT STORED: ${dropped.length} key(s) match no field of this form and were dropped: ${dropped.join(', ')} — check the field names with describeState`)
+  }
+  if (unknown.length) {
+    // "ignored by it" read as "not stored", and the key was saved with the rest
+    lines.push(`${unknown.length} key(s) match no field of this form: they are kept in the data as given and saved with it, but no field shows or checks them: ${unknown.join(', ')} — check for a typo with describeState`)
+  }
+  return lines
+}
+
 export class WebMCP {
   /**
    * @readonly
@@ -348,6 +373,35 @@ export class WebMCP {
   }
 
   /**
+   * `_unpickedWarnings`, once the values that name themselves are checked against their
+   * field's list. A column key typed as "nom" is the item titled "nom": nothing about it can
+   * be a code typed from memory, and the warning made the agent call getFieldSuggestions to
+   * find the three values it had written (data-fair portal, a dataset table's columns). A
+   * value whose item has another title (a commune code) is still told.
+   * @param {Map<string, {data: unknown, cacheKey: unknown}>} before
+   * @param {(fullKey: string) => boolean} [eligible]
+   * @returns {Promise<string[]>}
+   */
+  async _checkedUnpickedWarnings (before, eligible) {
+    for (const node of referentialNodes(this._statefulLayout.stateTree.root)) {
+      if (eligible && !eligible(node.fullKey)) continue
+      const value = this._unpicked(node)
+      if (value === undefined) continue
+      const values = Array.isArray(value) ? value : [value]
+      if (!values.every((v) => typeof v === 'string' || typeof v === 'number')) continue
+      let items
+      try {
+        items = await this._statefulLayout.getItems(node)
+      } catch {
+        continue
+      }
+      const selfNamed = values.every((v) => items.some((item) => !item.header && equal(item.value, v) && String(item.title) === String(v)))
+      if (selfNamed) this._suggestionsStore.markOffered(node.fullKey, this._statefulLayout.itemsFingerprint(node), values)
+    }
+    return this._unpickedWarnings(before, eligible)
+  }
+
+  /**
    * The data each memorized path holds before a write, for `_retainFresh`.
    * @param {string} [under] - only the paths strictly under this node path
    * @returns {Map<string, unknown>}
@@ -442,16 +496,12 @@ export class WebMCP {
             if (result.removed.length) {
               warnings.push(`removed ${result.removed.length} key(s) not present in the data you passed: ${result.removed.join(', ')} — pass merge=true to keep them`)
             }
-            if (result.droppedPaths.length) {
-              warnings.push(`${result.droppedPaths.length} key(s) match no field of this form and were NOT stored: ${result.droppedPaths.join(', ')} — check the field names with describeState`)
-            }
-            if (result.unknownPaths.length) {
-              warnings.push(`${result.unknownPaths.length} key(s) match no field of this form and were ignored by it: ${result.unknownPaths.join(', ')} — check for a typo with describeState`)
-            }
-            warnings.push(...this._unpickedWarnings(referentialBefore))
+            warnings.push(...await this._checkedUnpickedWarnings(referentialBefore))
             const visibilityInfo = result.visibility ? formatVisibilityDiff(result.visibility).replace(/^\n/, '') : ''
             const stored = result.written.length ? `stored ${result.written.length} key(s): ${result.written.join(', ')}` : ''
-            const text = [formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(result.coerced ? [`coerced: ${result.coerced.join('; ')}`] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
+            // what was not stored first: read after "valid, no errors", a save went ahead
+            // with blocks that had lost their text
+            const text = [...notStoredLines(result.droppedPaths, result.unknownPaths), formatMutationResult(result.valid, result.errors), ...(stored ? [stored] : []), ...(result.coerced ? [`coerced: ${result.coerced.join('; ')}`] : []), ...(visibilityInfo ? [visibilityInfo] : []), ...warnings].join('\n')
             return {
               content: [{ type: 'text', text }]
             }
@@ -538,7 +588,7 @@ export class WebMCP {
             }
             if (this._screen) fieldInfo += revealWritten(this._statefulLayout, result.field.path)
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(this._unpickedWarnings(referentialBefore)) }]
+              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, fieldInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(await this._checkedUnpickedWarnings(referentialBefore)) }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -626,8 +676,9 @@ export class WebMCP {
               actionInfo += `\nFields of the new item (activated for edition):\n${result.itemMarkdown}`
             }
             if (this._screen) actionInfo += revealWritten(this._statefulLayout, /** @type {string} */(args.path))
+            const notStored = notStoredLines(result.droppedPaths, result.unknownPaths)
             return {
-              content: [{ type: 'text', text: formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(this._unpickedWarnings(referentialBefore, editArrayEligible(listPath, args.action === 'add' ? result.index : undefined))) + (result.items ? `\nThe list now:\n${result.items.join('\n')}` : '') }]
+              content: [{ type: 'text', text: (notStored.length ? notStored.join('\n') + '\n' : '') + formatMutationResult(result.valid, result.errors, actionInfo, result.otherErrors, result.elsewhere) + coercedLine(result.coerced) + warningLines(await this._checkedUnpickedWarnings(referentialBefore, editArrayEligible(listPath, args.action === 'add' ? result.index : undefined))) + (result.items ? `\nThe list now:\n${result.items.join('\n')}` : '') }]
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)

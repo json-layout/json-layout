@@ -1728,11 +1728,20 @@ describe('webmcp errors of a variant that is not the active one', () => {
 
   it('should still report the whole union failing to resolve', () => {
     // Dropping the losing branches must not drop the one message that is about the union
-    // itself, which sits on a node and is the agent's signal that no branch is satisfied.
+    // itself while the data chose none of its options: it is the agent's signal that no
+    // branch is satisfied.
+    const compiled = compile(schema)
+    const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, { shape: { kind: 'oval' } })
+    assert.ok(collectErrors(layout).some((e) => e.path.startsWith('/shape')), `the union-level error stays: ${JSON.stringify(collectErrors(layout))}`)
+  })
+
+  it('should not repeat the union failing once the data chose its option', () => {
+    // the chosen branch's own errors say what is missing; "/shape: chose one" beside them
+    // only repeated it
     const compiled = compile(schema)
     const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { validateOn: 'input' }, {})
     setFieldValue.execute(layout, { path: '/shape/$oneOf', value: 1 })
-    assert.ok(collectErrors(layout).some((e) => e.path === '/shape'), 'the union-level error is on a real node and stays')
+    assert.deepEqual(collectErrors(layout).map((e) => e.path), ['/shape/$oneOf/1/w', '/shape/$oneOf/1/h'])
   })
 
   it('should clear once the active branch is complete', () => {
@@ -3061,7 +3070,13 @@ describe('webmcp review of rounds 4-6', () => {
     const run = async (name, args) => textOf(await /** @type {any} */(tools.find((t) => t.name === name)).execute(args))
     await run('describeState', { path: '/$comp-2/elements/7' })
     const added = await run('editArray', { path: '/$comp-2/elements', action: 'add', value: { type: 'title', content: 'x' } })
-    assert.match(added, /variant 39: /, added)
+    // the value chose its option: the answer names it and where the others are listed, the
+    // 40 options printed with each add were most of the answer (portals, 300k token runs)
+    assert.doesNotMatch(added, /variant 39: /, added)
+    assert.match(added, /variant 0: [^\n]*\(active\), one of 40 options \(describeState \/\$comp-2\/elements\/\d+\/\$oneOf to list them\)/, added)
+    // without a value the agent has an option to choose: they are all listed
+    const bare = await run('editArray', { path: '/$comp-2/elements', action: 'add' })
+    assert.match(bare, /variant 39: /, bare)
   })
 })
 

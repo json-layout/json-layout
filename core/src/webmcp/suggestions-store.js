@@ -92,6 +92,20 @@ export class SuggestionsStore {
   }
 
   /**
+   * Count values as offered without memorizing a list: values the agent typed that the
+   * field's list holds under their own name (a column key titled by itself).
+   * @param {string} path
+   * @param {unknown} cacheKey - the node's items fingerprint
+   * @param {unknown[]} values
+   */
+  markOffered (path, cacheKey, values) {
+    const offeredKey = offeredKeyOf(path, cacheKey)
+    const offered = this._offered.get(offeredKey) ?? { values: [], keys: new Set() }
+    offered.values.push(...values)
+    this._offered.set(offeredKey, offered)
+  }
+
+  /**
    * Drop only the paths a write actually invalidated.
    *
    * Clearing everything on every write was correct but far broader than the hazard it
