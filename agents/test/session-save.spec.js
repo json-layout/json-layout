@@ -101,7 +101,8 @@ describe('FormSession explicit save with a write', () => {
     await session.open()
     const text = textOf(await call(session, 'setFieldValue', { path: '/nom', value: 'Judo club' }))
     assert.equal(saved.length, 0)
-    assert.doesNotMatch(text, /saved/)
+    // but it says the edit is not saved yet: "form is valid" alone read as done
+    assert.match(text, /\nnot saved: your edits stay in this session until you save them \(save: true on a write, or saveForm\)$/)
   })
 
   it('should save a valid write that asks for it', async () => {
@@ -414,14 +415,25 @@ describe('FormSession server copy after a save', () => {
   })
 
   it('should cap the changed paths it names', async () => {
-    const many = Object.fromEntries(Array.from({ length: 14 }, (_, i) => [`f${i}`, i]))
+    const many = Object.fromEntries(Array.from({ length: 44 }, (_, i) => [`f${i}`, i]))
     const { session } = makeSession(deriving((data) => ({ ...data, activites: [{ label: 'x' }], ...many })))
     await session.open()
 
     const text = textOf(await call(session, 'saveForm'))
 
-    assert.match(text, /server changed 15 field\(s\)/)
-    assert.match(text, /and 5 more/)
+    assert.match(text, /server changed 45 field\(s\)/)
+    assert.match(text, /and 5 more under \/f39, \/f40, \/f41, \/f42, \/f43/)
+  })
+
+  it('should name the value the server put at each changed path', async () => {
+    // portals' save added topics synced from the organization: named by path alone ("and 4
+    // more"), the agent could not say what they were and the person discarded the draft
+    const { session } = makeSession(deriving((data) => ({ ...data, activites: [{ label: 'Sport et loisirs' }] })))
+    await session.open()
+
+    const text = textOf(await call(session, 'saveForm'))
+
+    assert.match(text, /\/activites = \[\{"label":"Sport et loisirs"\}\]/)
   })
 
   it('should still empty a create session, whatever the server returned', async () => {

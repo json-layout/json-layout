@@ -21,6 +21,7 @@ import { resolveCompiledLayout } from './layout-cache.js'
  * @property {boolean} [emptied] - a session creating records emptied its form for the next one
  * @property {boolean} [dropped] - an edit landed during the save was emptied with it
  * @property {string[]} [serverChanged] - the paths the server's copy changed from what was sent
+ * @property {unknown} [serverCopy] - the server's copy, which the answer reads the changed values from
  * @property {boolean} [serverCopyPending] - an edit landed during the save, so the form kept it and not the server's copy
  */
 
@@ -54,8 +55,24 @@ function unpickedPhrase (unpicked) {
   return `${named} ${values.length > 1 ? 'were' : 'was'} not picked from the field's suggestions`
 }
 
-/** how many changed paths a save answer names before it counts the rest */
-const MAX_NAMED_PATHS = 10
+/**
+ * How many changed paths a save answer names before it counts the rest. Ten hid three topics a
+ * portal's save added ("… and 4 more"): the agent could not explain them, and the person
+ * discarded the draft.
+ */
+const MAX_NAMED_PATHS = 40
+
+/**
+ * @param {unknown} data
+ * @param {string} path - a JSON pointer
+ * @returns {unknown}
+ */
+function valueAt (data, path) {
+  /** @type {any} */
+  let current = data
+  for (const segment of path.split('/').slice(1)) current = current?.[segment]
+  return current
+}
 
 /**
  * The document a save function returned as the copy the server stored: `{ data }` or
@@ -103,8 +120,13 @@ function changedPaths (sent, stored, path = '', paths = []) {
 function serverChangedPhrase (result, prefix) {
   const changed = result.serverChanged
   if (!changed?.length) return ''
-  const named = changed.slice(0, MAX_NAMED_PATHS).join(', ')
-  const more = changed.length > MAX_NAMED_PATHS ? ` and ${changed.length - MAX_NAMED_PATHS} more` : ''
+  // with the value the server put there: a path alone does not say what was added
+  const named = changed.slice(0, MAX_NAMED_PATHS).map((path) => {
+    const value = valueAt(result.serverCopy, path)
+    return `${path} ${value === undefined ? 'removed' : `= ${abbreviate(value)}`}`
+  }).join(', ')
+  const rest = changed.slice(MAX_NAMED_PATHS)
+  const more = rest.length ? ` and ${rest.length} more under ${[...new Set(rest.map((path) => path.split('/').slice(0, 2).join('/')))].join(', ')}` : ''
   const after = result.serverCopyPending
     ? `; an edit made while it was being saved is kept, so the form does not show them: ${prefix}reloadForm reads the server's copy and discards that edit`
     : '; the form now holds the server\'s copy'
@@ -463,14 +485,14 @@ export class FormSession {
         layout.data = structuredClone(serverCopy?.data)
         // a value the server set counts as loaded, the agent did not type it
         this._webmcp?.resetBaseline(serverCopy?.data)
-        return { version: this._version, serverChanged }
+        return { version: this._version, serverChanged, serverCopy: serverCopy?.data }
       }
       // what was saved counts as loaded: a value saved despite the warning does not hold
       // every later save
       this._webmcp?.resetBaseline(snapshot)
       // an edit landed during the save: replacing the data would lose it, so the form keeps
       // it and the answer says where the server's copy is
-      if (serverChanged.length) return { version: this._version, serverChanged, serverCopyPending: true }
+      if (serverChanged.length) return { version: this._version, serverChanged, serverCopy: serverCopy?.data, serverCopyPending: true }
       return { version: this._version }
     } catch (/** @type {any} */err) {
       if (err?.status === 409 || err?.code === 'conflict') {
@@ -654,7 +676,11 @@ Your edits stay in this session until you save them: pass save: true to ${prefix
         return [`not saved: ${message(err)}`]
       }
     }
-    if (!requested) return []
+    if (!requested) {
+      // "form is valid" alone read as done: an agent told the person a button was added to
+      // the draft that nothing had saved
+      return this.modified ? [`not saved: your edits stay in this session until you save them (save: true on a write, or ${prefix}saveForm)`] : []
+    }
     const allowInvalid = this._spec.allowInvalid ?? false
     // the write's answer above lists the errors
     if (!this.valid && !allowInvalid) return ['not saved: the form is invalid, see the errors above']
