@@ -58,6 +58,8 @@ Start with ${prefixName}describeState. It lists every field with its path, its c
 
 Then write. If the goal already tells you every value, set them in one call with ${prefixName}setData. Otherwise change one field at a time with ${prefixName}setFieldValue, which is also what you need when a value has to be looked up first or when a field only exists once another has been set. Every write reports whether the form is valid and lists what is wrong, so you rarely need to read anything back.
 
+A write's arguments should say what it changes and nothing else: whoever approves it may see only them. Pass ${prefixName}setData only the keys that change (objects are merged, the keys you leave out stay as they are), never data re-sent unchanged; an array you pass replaces the whole list, so to change one item write its field with ${prefixName}setFieldValue rather than re-sending the list. A write on a list item names it by position (/elements/1): add "item" with a key that identifies it ({ "uuid": "..." }, or its "type"), which the tool checks.
+
 Never invent a value for a field that has a fixed set of accepted ones. ${prefixName}describeState tells you which case you are in: it either states them on the field's line as values=[...], and you write one of those directly, or it marks the field "suggestions", and the list exists only behind a request — then call ${prefixName}getFieldSuggestions, whose description says how to apply what it returns.
 
 Values of fields whose options come from a list are picked from ${prefixName}getFieldSuggestions, never typed from memory.

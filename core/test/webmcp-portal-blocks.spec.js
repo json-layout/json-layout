@@ -224,6 +224,56 @@ describe('webmcp typed values of a list of suggestions', () => {
   })
 })
 
+describe('webmcp writes an approval reviewer can read', () => {
+  const pickSchema = {
+    type: 'object',
+    properties: {
+      // an object value, which no call can spell: only the index picks it
+      dataset: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' } }, layout: { getItems: { url: 'http://example.com/datasets', itemsResults: 'data.results', itemKey: 'item.id', itemTitle: 'item.title' } } }
+    }
+  }
+  const fetch = async () => ({ results: [{ id: 'sim-suivi', title: 'Suivi des demandes' }, { id: 'sim-equip', title: 'Équipements sportifs' }] })
+
+  it('should check the title given with a suggestionIndex', async () => {
+    // portals rev-r1: `suggestionIndex: 0` alone was judged unsure twice, "nothing proves
+    // index 0 is Équipements sportifs": the reviewer never sees getFieldSuggestions' answer
+    const { layout, run } = setup({}, pickSchema, { fetch })
+    const listed = await run('getFieldSuggestions', { path: '/dataset' })
+    assert.match(listed, /apply with suggestionIndex=1, suggestionTitle="Équipements sportifs"/, listed)
+    const wrong = await run('setFieldValue', { path: '/dataset', suggestionIndex: 0, suggestionTitle: 'Équipements sportifs' })
+    assert.match(wrong, /^Error: suggestion 0 of \/dataset is "Suivi des demandes", not "Équipements sportifs"; nothing was written/, wrong)
+    assert.equal(/** @type {any} */(layout.data).dataset?.id, undefined)
+    await run('setFieldValue', { path: '/dataset', suggestionIndex: 1, suggestionTitle: 'Équipements sportifs' })
+    assert.equal(/** @type {any} */(layout.data).dataset.id, 'sim-equip')
+  })
+
+  it('should check the item a positional path names', async () => {
+    // portals rev-r1/r2: a write on /elements/1 right after an add was judged "could name
+    // another item", and a person refused a correct one
+    const { layout, run } = setup({ elements: [{ type: 'title', uuid: 'u0', content: 'a' }, { type: 'text', uuid: 'u1', content: 'b' }] })
+    const wrong = await run('setFieldValue', { path: '/elements/1/content', value: 'x', item: { uuid: 'u0' } })
+    assert.match(wrong, /^Error: the item at \/elements\/1 does not match "item": uuid is "u1", not "u0"\. Nothing was written/, wrong)
+    assert.equal(/** @type {any} */(layout.data).elements[1].content, 'b')
+    await run('setFieldValue', { path: '/elements/1/content', value: 'x', item: { uuid: 'u1', type: 'text' } })
+    assert.equal(/** @type {any} */(layout.data).elements[1].content, 'x')
+  })
+
+  it('should check the item editArray removes or moves', async () => {
+    const { layout, run } = setup({ elements: [{ type: 'title', uuid: 'u0' }, { type: 'text', uuid: 'u1' }] })
+    const wrong = await run('editArray', { path: '/elements', action: 'remove', index: 0, item: { uuid: 'u1' } })
+    assert.match(wrong, /^Error: the item at \/elements\/0 does not match "item"/, wrong)
+    assert.equal(/** @type {any} */(layout.data).elements.length, 2)
+    await run('editArray', { path: '/elements', action: 'move', from: 1, to: 0, item: { uuid: 'u1' } })
+    assert.deepEqual(/** @type {any} */(layout.data).elements.map((/** @type {any} */ e) => e.uuid), ['u1', 'u0'])
+  })
+
+  it('should refuse a guard on a path in no list item', async () => {
+    const { run } = setup({ name: 'x' }, { type: 'object', properties: { name: { type: 'string' } } })
+    const text = await run('setFieldValue', { path: '/name', value: 'y', item: { uuid: 'u0' } })
+    assert.match(text, /^Error: "item" checks the list item a write applies to, and \/name is in no list item/, text)
+  })
+})
+
 /**
  * The layout as production ships it: compiled at build time, serialized, without the raw schema.
  * @param {any} schema

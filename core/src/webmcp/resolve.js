@@ -2,6 +2,8 @@
  * @file Node resolution for webmcp tools
  */
 
+import equal from 'fast-deep-equal'
+
 /**
  * In "menu" and "dialog" list edit modes the activated item is duplicated at the end
  * of the children, the first occurrence being a read-only summary. Tools should always
@@ -397,4 +399,54 @@ export function assertNoStructuralKey (value, what) {
     (key === '$oneOf'
       ? 'To choose the variant of an item, add the item first, then call setFieldValue on its path followed by /$oneOf with the variant number describeState lists.'
       : 'Write the data itself; such segments only belong in a path.'))
+}
+
+/** what the write tools say of their `item` argument */
+export const ITEM_GUARD_DESCRIPTION = 'Optional check of the list item this write applies to: keys and values that item must hold, e.g. { "uuid": "a1b2" } or { "type": "title" }. The write is refused, and nothing written, if the item at that position does not hold them. It makes a positional path such as /elements/1 say which item it means.'
+
+/**
+ * Refuse a write whose `item` guard the item at its position does not satisfy.
+ *
+ * A path names a list item by position, and an approval reviewer who sees only the write's
+ * arguments cannot tell which item /elements/1 is: portals' reviewer judged such writes
+ * "could name another item" and people refused correct ones. A guard the tool checks reads
+ * as what the write means, and cannot claim an item that is not there.
+ * @param {unknown} data - the form's data
+ * @param {string} itemPath - the data path of the item checked
+ * @param {unknown} guard - the `item` argument
+ */
+export function assertItemGuard (data, itemPath, guard) {
+  if (guard === undefined) return
+  if (!guard || typeof guard !== 'object' || Array.isArray(guard)) {
+    throw new Error('"item" must be an object of keys the list item holds, e.g. { "uuid": "a1b2" }; nothing was written')
+  }
+  /** @type {any} */
+  let item = data
+  for (const segment of itemPath.split('/').slice(1)) item = item?.[segment]
+  if (!item || typeof item !== 'object' || Array.isArray(item)) {
+    throw new Error(`"item" checks a list item, and ${itemPath || '/'} holds no object item; nothing was written`)
+  }
+  const mismatches = Object.entries(guard)
+    .filter(([key, value]) => !equal(item[key], value))
+    .map(([key, value]) => `${key} is ${item[key] === undefined ? 'not set' : JSON.stringify(item[key])}, not ${JSON.stringify(value)}`)
+  if (mismatches.length) {
+    throw new Error(`the item at ${itemPath} does not match "item": ${mismatches.join('; ')}. Nothing was written; describeState on the list shows each item at its index.`)
+  }
+}
+
+/**
+ * The data path of the deepest list item a data path is in, undefined when it is in none.
+ * @param {unknown} data
+ * @param {string} dataPath
+ * @returns {string|undefined}
+ */
+export function enclosingItemPath (data, dataPath) {
+  const segments = dataPath.split('/').slice(1)
+  /** @type {any[]} */
+  const values = [data]
+  for (const segment of segments) values.push(values[values.length - 1]?.[segment])
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (Array.isArray(values[i]) && /^\d+$/.test(segments[i])) return '/' + segments.slice(0, i + 1).join('/')
+  }
+  return undefined
 }

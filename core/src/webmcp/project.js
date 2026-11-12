@@ -784,14 +784,15 @@ export function formatSuggestions (suggestions, blockedOn, unmatchedQuery) {
     if (blockedOn) return `No options yet: this field's list comes from \`${blockedOn}\`, and that cannot be resolved until the data it reads is set. Fill that field first, then ask again.`
     return 'No option matched. The list exists but nothing came back for this query — try a broader one, or omit the query to see what there is.'
   }
-  const apply = 'apply one with setFieldValue and its suggestionIndex (or copy a short value):'
+  const apply = 'apply one with setFieldValue and its suggestionIndex and suggestionTitle (or copy a short value):'
   const lines = [unmatchedQuery
     ? `No suggestion matches ${JSON.stringify(unmatchedQuery)} closely; ${suggestions.length} other option(s), ${apply}`
     : `${suggestions.length} suggestion(s), ${apply}`]
   for (const suggestion of suggestions) {
     const title = suggestion.key ? `${suggestion.title} (${suggestion.key})` : suggestion.title
     if (suggestion.valueOmitted) {
-      lines.push(`- [${suggestion.index}] ${title} — apply with suggestionIndex=${suggestion.index}`)
+      // the title comes with the index: a call carrying both says which option it picks
+      lines.push(`- [${suggestion.index}] ${title} — apply with suggestionIndex=${suggestion.index}${suggestion.title ? `, suggestionTitle=${JSON.stringify(suggestion.title)}` : ''}`)
     } else {
       lines.push(`- [${suggestion.index}] ${title} — value=${JSON.stringify(suggestion.value)}`)
     }

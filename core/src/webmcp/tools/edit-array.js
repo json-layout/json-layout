@@ -7,7 +7,7 @@ import { projectNodeToMarkdown } from '../project.js'
 import { projectListItems, describeListItem } from '../outline.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
-import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey, assertItemGuard, enclosingItemPath, ITEM_GUARD_DESCRIPTION } from '../resolve.js'
 import { collectDataPaths, findOrphanPaths } from './set-data.js'
 
 export const inputSchema = {
@@ -33,6 +33,10 @@ export const inputSchema = {
     to: {
       type: 'number',
       description: 'Index the item should have afterwards (move only, required)'
+    },
+    item: {
+      type: 'object',
+      description: `${ITEM_GUARD_DESCRIPTION} For remove and move it checks the item removed or moved; for add, the list item the array is in, if any.`
     },
     value: {
       description: 'Value for the new item (for add action). For an item that is a choice between options, choose its option by the discriminator value describeState lists for it, e.g. { "type": "..." }: "$oneOf" is a path segment, not a data key. Or omit the value and choose the option afterwards with setFieldValue on the item\'s $oneOf.'
@@ -77,7 +81,7 @@ function assertKnownVariant (statefulLayout, listNode, value) {
 
 /**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
- * @param {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown }} args
+ * @param {{ path: string, action: 'add'|'remove'|'move', index?: number, from?: number, to?: number, value?: unknown, item?: unknown }} args
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - a new item of a
  * recursive schema carries the same union as the item that contains it; the memo keeps the
  * response from printing it again
@@ -105,6 +109,11 @@ export function execute (statefulLayout, args, variantsMemo) {
   if (args.action === 'add') {
     assertNoStructuralKey(args.value, 'value')
     assertKnownVariant(statefulLayout, node, args.value)
+    if (args.item !== undefined) {
+      const itemPath = enclosingItemPath(statefulLayout.data, node.dataPath)
+      if (itemPath === undefined) throw new Error(`"item" checks the list item a write applies to, and ${args.path} is in no list item; nothing was written`)
+      assertItemGuard(statefulLayout.data, itemPath, args.item)
+    }
     index = args.index !== undefined ? args.index : currentData.length
     // splice() would silently clamp an out of bounds index, but the reported index and the
     // item activated below would then designate an item that does not exist
@@ -129,6 +138,7 @@ export function execute (statefulLayout, args, variantsMemo) {
       throw new Error(`index ${index} out of bounds (array length: ${currentData.length})`)
     }
     // named before it goes: what the item held, for the agent to check it was the right one
+    assertItemGuard(statefulLayout.data, `${node.dataPath}/${index}`, args.item)
     removed = describeListItem(node, index)
     currentData.splice(index, 1)
   } else if (args.action === 'move') {
@@ -141,6 +151,7 @@ export function execute (statefulLayout, args, variantsMemo) {
         throw new Error(`index ${given} out of bounds (array length: ${currentData.length}${last >= 0 ? `, items are at 0 to ${last}` : ''})`)
       }
     }
+    assertItemGuard(statefulLayout.data, `${node.dataPath}/${args.from}`, args.item)
     index = args.to
     if (args.from === args.to) return unchangedMove(statefulLayout, node, args.path, currentData.length, index)
     const [item] = currentData.splice(args.from, 1)

@@ -6,7 +6,7 @@ import { projectFieldResult, projectNodeToMarkdown, visibilitySnapshot, diffVisi
 import { collectScopedErrors } from '../errors.js'
 import { coerceForNode } from '../coerce.js'
 import { resolveNodeSchema } from '../schema.js'
-import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey } from '../resolve.js'
+import { resolveNode, resolveNodeForEdit, nodeNotFoundError, assertNoStructuralKey, assertItemGuard, enclosingItemPath, ITEM_GUARD_DESCRIPTION } from '../resolve.js'
 
 export const inputSchema = {
   type: 'object',
@@ -21,6 +21,14 @@ export const inputSchema = {
     suggestionIndex: {
       type: 'number',
       description: 'Index from the last getFieldSuggestions call on this same path. Exclusive with "value".'
+    },
+    suggestionTitle: {
+      type: 'string',
+      description: 'The title getFieldSuggestions gave the suggestion at "suggestionIndex", copied as listed. Checked: the write is refused if it is not that suggestion\'s title. Pass it with every suggestionIndex, so that the call says which option it picks.'
+    },
+    item: {
+      type: 'object',
+      description: ITEM_GUARD_DESCRIPTION
     }
   },
   required: ['path']
@@ -60,8 +68,29 @@ function listVariants (node) {
 }
 
 /**
+ * Refuse a suggestionIndex whose suggestion is not the one the call names. An index alone
+ * says nothing to whoever reads only the call: portals' approval reviewer judged
+ * `suggestionIndex: 0` unsure twice, "nothing proves index 0 is Équipements sportifs".
+ * @param {import('../suggestions-store.js').SuggestionsStore} store
+ * @param {string} path
+ * @param {number} index
+ * @param {string} title
+ */
+function assertSuggestionTitle (store, path, index, title) {
+  const item = store.get(path)?.[index]
+  if (!item) return
+  /** @param {unknown} text */
+  const normalize = (text) => String(text ?? '').trim().replace(/\s+/g, ' ')
+  // as listed too: getFieldSuggestions shows "title (key)"
+  const names = [item.title, item.key, item.key ? `${item.title} (${item.key})` : undefined, typeof item.value === 'object' ? undefined : item.value].filter((n) => n !== undefined && n !== '').map(normalize)
+  if (!names.includes(normalize(title))) {
+    throw new Error(`suggestion ${index} of ${path} is ${JSON.stringify(item.title || item.key || item.value)}, not ${JSON.stringify(title)}; nothing was written. Pick the index getFieldSuggestions listed for that title.`)
+  }
+}
+
+/**
  * @param {import('../../state/index.js').StatefulLayout} statefulLayout
- * @param {{ path: string, value?: unknown, suggestionIndex?: number }} args
+ * @param {{ path: string, value?: unknown, suggestionIndex?: number, suggestionTitle?: string, item?: unknown }} args
  * @param {import('../suggestions-store.js').SuggestionsStore} [store]
  * @param {import('../variants-memo.js').VariantsMemo} [variantsMemo] - the activated branch
  * may nest the same union again; the memo keeps the response from printing it twice
@@ -82,8 +111,16 @@ export function execute (statefulLayout, args, store, variantsMemo) {
       throw new Error('no suggestion memorized, call getFieldSuggestions first')
     }
     value = store.getValue(node.fullKey, args.suggestionIndex)
+    if (args.suggestionTitle !== undefined) assertSuggestionTitle(store, node.fullKey, args.suggestionIndex, args.suggestionTitle)
+  } else if (args.suggestionTitle !== undefined) {
+    throw new Error('suggestionTitle goes with suggestionIndex, it names the suggestion the index picks; nothing was written')
   } else if (args.value === undefined && !('value' in args)) {
     throw new Error('value or suggestionIndex is required')
+  }
+  if (args.item !== undefined) {
+    const itemPath = enclosingItemPath(statefulLayout.data, node.dataPath)
+    if (itemPath === undefined) throw new Error(`"item" checks the list item a write applies to, and ${args.path} is in no list item; nothing was written`)
+    assertItemGuard(statefulLayout.data, itemPath, args.item)
   }
 
   // A write can turn a condition true and unhide a whole section. Nothing else in the
