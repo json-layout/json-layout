@@ -258,6 +258,16 @@ describe('webmcp writes an approval reviewer can read', () => {
     assert.equal(/** @type {any} */(layout.data).elements[1].content, 'x')
   })
 
+  it('should hand back the guard of an added item', async () => {
+    // portals lab-r1: writes into a just-added button, by position and without a guard, were
+    // judged "maybe not the added button" three times; the add answer gives the guard to repeat
+    const { run } = setup({ elements: [{ type: 'text', uuid: 'u0', content: 'a' }] })
+    const text = await run('editArray', { path: '/elements', action: 'add', value: { type: 'title', uuid: 'u1' } })
+    assert.ok(text.includes('added item at index 1, 2 total; on each write into it, pass "item": {"type":"title","uuid":"u1"}'), text)
+    const bare = await run('editArray', { path: '/elements', action: 'add', value: { type: 'text' } })
+    assert.ok(bare.includes('added item at index 2, 3 total; on each write into it, pass "item": {"type":"text"}'), bare)
+  })
+
   it('should check the item editArray removes or moves', async () => {
     const { layout, run } = setup({ elements: [{ type: 'title', uuid: 'u0' }, { type: 'text', uuid: 'u1' }] })
     const wrong = await run('editArray', { path: '/elements', action: 'remove', index: 0, item: { uuid: 'u1' } })

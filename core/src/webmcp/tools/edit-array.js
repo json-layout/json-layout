@@ -36,7 +36,8 @@ export const inputSchema = {
     },
     item: {
       type: 'object',
-      description: `${ITEM_GUARD_DESCRIPTION} For remove and move it checks the item removed or moved; for add, the list item the array is in, if any.`
+      description: `${ITEM_GUARD_DESCRIPTION} For remove and move it checks the item removed or moved; for add, the list item the array is in, if any.`,
+      'x-checked': { against: 'path', field: '' }
     },
     value: {
       description: 'Value for the new item (for add action). For an item that is a choice between options, choose its option by the discriminator value describeState lists for it, e.g. { "type": "..." }: "$oneOf" is a path segment, not a data key. Or omit the value and choose the option afterwards with setFieldValue on the item\'s $oneOf.'

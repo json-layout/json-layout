@@ -24,11 +24,15 @@ export const inputSchema = {
     },
     suggestionTitle: {
       type: 'string',
-      description: 'The title getFieldSuggestions gave the suggestion at "suggestionIndex", copied as listed. Checked: the write is refused if it is not that suggestion\'s title. Pass it with every suggestionIndex, so that the call says which option it picks.'
+      description: 'The title getFieldSuggestions gave the suggestion at "suggestionIndex", copied as listed. Checked: the write is refused if it is not that suggestion\'s title. Pass it with every suggestionIndex, so that the call says which option it picks.',
+      // a reader of the call (an approval card, a reviewer) shows it as a fact the tool checked, not the model's claim
+      'x-checked': { against: 'suggestionIndex', field: '/title' }
     },
     item: {
       type: 'object',
-      description: ITEM_GUARD_DESCRIPTION
+      description: ITEM_GUARD_DESCRIPTION,
+      // field '': the item's own keys, not one property of it
+      'x-checked': { against: 'path', field: '' }
     }
   },
   required: ['path']

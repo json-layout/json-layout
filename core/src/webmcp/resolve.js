@@ -404,6 +404,29 @@ export function assertNoStructuralKey (value, what) {
 /** what the write tools say of their `item` argument */
 export const ITEM_GUARD_DESCRIPTION = 'Optional check of the list item this write applies to: keys and values that item must hold, e.g. { "uuid": "a1b2" } or { "type": "title" }. The write is refused, and nothing written, if the item at that position does not hold them. It makes a positional path such as /elements/1 say which item it means.'
 
+// the keys that identify a list item, best first, and the discriminator that says what it is: a write
+// into the item repeats them as its `item` guard (the id pins the item, the type tells a reviewer what it is)
+const ITEM_IDENTITY_KEYS = ['uuid', 'id', '_id', 'key']
+
+/**
+ * The `item` guard that names the item at an index of a list, to hand back with an add: undefined when
+ * the item holds none of the identifying keys as a scalar.
+ * @param {unknown} data - the form's data
+ * @param {string} listPath - the data path of the list
+ * @param {number} index
+ * @returns {Record<string, unknown> | undefined}
+ */
+export function itemGuardOf (data, listPath, index) {
+  /** @type {any} */
+  let item = data
+  for (const segment of [...listPath.split('/').slice(1), String(index)]) item = item?.[segment]
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return
+  const scalar = (/** @type {string} */ k) => ['string', 'number'].includes(typeof item[k])
+  const key = ITEM_IDENTITY_KEYS.find(scalar)
+  const guard = { ...(scalar('type') ? { type: item.type } : {}), ...(key ? { [key]: item[key] } : {}) }
+  return Object.keys(guard).length ? guard : undefined
+}
+
 /**
  * Refuse a write whose `item` guard the item at its position does not satisfy.
  *

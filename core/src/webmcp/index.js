@@ -18,7 +18,7 @@ import equal from 'fast-deep-equal'
 import { formatMutationResult } from './errors.js'
 import { formatSuggestions, projectSuggestions, abbreviateValue, formatVisibilityDiff, suggestionsBlocked, suggestionsSource } from './project.js'
 import { suggestionsMatchQuery } from './query.js'
-import { resolveNode } from './resolve.js'
+import { resolveNode, itemGuardOf } from './resolve.js'
 import { coerceForNode } from './coerce.js'
 import { resolveNodeSchema } from './schema.js'
 import { SuggestionsStore } from './suggestions-store.js'
@@ -666,8 +666,12 @@ export class WebMCP {
             }
             this._retainFresh()
             let actionInfo
-            if (args.action === 'add') actionInfo = `added item at index ${result.index}, ${result.itemCount} total`
-            else if (args.action === 'move') {
+            if (args.action === 'add') {
+              actionInfo = `added item at index ${result.index}, ${result.itemCount} total`
+              // a write into it names it by position: the guard a reviewer of that write can rely on
+              const guard = listPath !== undefined ? itemGuardOf(this._statefulLayout.data, listPath, result.index) : undefined
+              if (guard) actionInfo += `; on each write into it, pass "item": ${JSON.stringify(guard)}`
+            } else if (args.action === 'move') {
               actionInfo = result.moved
                 ? `item ${args.from} is already at ${args.to}, nothing moved, ${result.itemCount} total`
                 : `moved item from ${args.from} to ${args.to}, ${result.itemCount} total`
