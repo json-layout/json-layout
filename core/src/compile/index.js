@@ -2,6 +2,7 @@
 
 // import { Parser as ExprEvalParser } from 'expr-eval'
 import ajvLocalizeModule from 'ajv-i18n'
+import errorsLocalize from '../i18n/errors/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import { resolveXI18n } from './utils/x-i18n.js'
@@ -25,6 +26,16 @@ export { produceCompileOptions } from './options.js'
 const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalizeModule)
 
 // const exprEvalParser = new ExprEvalParser()
+
+/**
+ * the validation messages written by json-layout when it has them for this locale, ajv-i18n's otherwise
+ * @param {string} locale
+ * @returns {(errors: import('ajv').ErrorObject[] | null | undefined) => void}
+ */
+function getLocalizeErrors (locale) {
+  // @ts-ignore
+  return errorsLocalize[locale] ?? ajvLocalize[locale] ?? errorsLocalize.en
+}
 
 /**
  * @param {object} _schema
@@ -148,7 +159,6 @@ export function compile (_schema, partialOptions = {}) {
     locale: options.locale,
     messages: options.messages,
     components: options.components,
-    // @ts-ignore
-    localizeErrors: ajvLocalize[options.locale] || ajvLocalize.en
+    localizeErrors: getLocalizeErrors(options.locale)
   }
 }

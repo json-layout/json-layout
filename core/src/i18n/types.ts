@@ -3,6 +3,8 @@ import { type NormalizeMessages } from '@json-layout/vocabulary'
 export interface CompileOptionsMessages {
   errorOneOf: string
   errorRequired: string
+  /** a required error shown on a section because its field is not rendered: "{message}" and "{field}" are replaced */
+  errorWithField: string
 }
 
 export interface StateOptionsMessages {

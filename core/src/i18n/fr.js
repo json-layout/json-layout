@@ -1,10 +1,11 @@
 /** @type {import('./types.js').LocaleMessages} */
 export default {
-  errorOneOf: 'choisissez une valeur',
-  errorRequired: 'information obligatoire',
+  errorOneOf: 'Choisissez une valeur',
+  errorRequired: 'Information obligatoire',
+  errorWithField: '{message} : {field}',
   addItem: 'Ajouter un élément',
   delete: 'Supprimer',
-  edit: 'Éditer',
+  edit: 'Modifier',
   confirm: 'Confirmer',
   close: 'Fermer',
   actions: 'Actions',
@@ -13,13 +14,13 @@ export default {
   copy: 'Copier',
   paste: 'Coller',
   sort: 'Trier',
-  up: 'Décaler vers le haut',
-  down: 'Décaler vers le bas',
-  showHelp: 'Afficher un message d\'aide',
+  up: 'Déplacer vers le haut',
+  down: 'Déplacer vers le bas',
+  showHelp: 'Afficher l\'aide',
   default: 'défaut : ',
   name: 'nom : ',
   examples: 'Exemples : ',
-  deprecated: 'Attention, cette information est obsolète.',
+  deprecated: 'Attention, cette information est dépréciée.',
   // see L and LT format https://github.com/iamkun/dayjs/blob/dev/src/locale/fr.js
   keyboardDate: 'JJ/MM/AAAA',
   keyboardDateTime: 'JJ/MM/AAAA HH:mm'

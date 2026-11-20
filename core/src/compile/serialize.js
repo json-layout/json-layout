@@ -6,6 +6,7 @@ import { ok } from 'assert/strict'
 import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
 import { clone } from '../utils/clone.js'
+import errorsLocalize from '../i18n/errors/index.js'
 
 // @ts-ignore
 const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
@@ -70,16 +71,21 @@ export async function serialize (compiledLayout) {
     code = code.replaceAll(req + '.default', name).replaceAll(req, name)
   }
 
-  // import only the current locale from ajv-i18n
-  let ajvI18nPath = `ajv-i18n/localize/${compiledLayout.locale}/index.js`
-  try {
-    await import(ajvI18nPath)
-  } catch (er) {
-    console.warn(`failed to load ${ajvI18nPath}, fallback to en`)
-    ajvI18nPath = 'ajv-i18n/localize/en/index.js'
+  // the validation messages written by json-layout are self-contained functions inlined as is,
+  // for the other locales only the current one is imported from ajv-i18n
+  const ownLocalizeErrors = errorsLocalize[compiledLayout.locale]
+  if (ownLocalizeErrors) {
+    code = `const localizeErrors = ${ownLocalizeErrors.toString()};\n` + code
+  } else {
+    const ajvI18nPath = `ajv-i18n/localize/${compiledLayout.locale}/index.js`
+    try {
+      await import(ajvI18nPath)
+      code = `import localizeErrors from "${ajvI18nPath}";\n` + code
+    } catch (er) {
+      console.warn(`failed to load ${ajvI18nPath}, fallback to en`)
+      code = `const localizeErrors = ${errorsLocalize.en.toString()};\n` + code
+    }
   }
-
-  code = `import localizeErrors from "${ajvI18nPath}";\n` + code
 
   i = 0
   const expressionsNodes = []

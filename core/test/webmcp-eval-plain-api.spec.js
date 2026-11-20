@@ -243,7 +243,7 @@ describe('PlainApiSession', () => {
     const partial = text(await session.call('writeDocument', { document: { name: 'Ada Lovelace' } }))
     assert.match(partial, /^400 Bad Request\n/)
     assert.match(partial, /email/)
-    assert.ok(!partial.includes('required information'), partial)
+    assert.ok(!partial.includes('Required information'), partial)
     const empty = /** @type {string[]} */ (text(await session.call('writeDocument', { document: {} })).split('\n').slice(1))
     assert.equal(empty.length, 2, empty.join('\n'))
     assert.ok(empty.some((line) => line.includes('name')) && empty.some((line) => line.includes('email')), empty.join('\n'))

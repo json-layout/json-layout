@@ -193,7 +193,7 @@ describe('conditional schema support', () => {
 
     // input that satisfies the dependency
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
-    assert.equal(statefulLayout.stateTree.root.children[1].error, 'required information')
+    assert.equal(statefulLayout.stateTree.root.children[1].error, 'Required information')
   })
 
   // TODO: dependentRequired should be managed strictly by ajv, but add a test to be sure
