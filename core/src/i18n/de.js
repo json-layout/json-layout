@@ -1,7 +1,7 @@
 /** @type {import('./types.js').LocaleMessages} */
 export default {
-  errorOneOf: 'Wählen Sie eine Option',
-  errorRequired: 'Erforderliche Information',
+  errorOneOf: 'Bitte eine Option wählen',
+  errorRequired: 'Pflichtangabe',
   errorWithField: '{message}: {field}',
   addItem: 'Element hinzufügen',
   delete: 'Löschen',
@@ -16,11 +16,11 @@ export default {
   sort: 'Sortieren',
   up: 'Nach oben verschieben',
   down: 'Nach unten verschieben',
-  showHelp: 'Hilfemeldung anzeigen',
-  default: 'standard: ',
-  name: 'name: ',
+  showHelp: 'Hilfe anzeigen',
+  default: 'Standard: ',
+  name: 'Name: ',
   examples: 'Beispiele: ',
-  deprecated: 'Achtung, diese Information ist veraltet.',
+  deprecated: 'Achtung, diese Angabe ist veraltet.',
   // see L and LT format https://github.com/iamkun/dayjs/blob/dev/src/locale/de.js
   keyboardDate: 'TT.MM.JJJJ',
   keyboardDateTime: 'TT.MM.JJJJ HH:mm'
