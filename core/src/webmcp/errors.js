@@ -136,7 +136,8 @@ function dataPointerOf (error) {
 
 /**
  * The message of an ajv error, naming the refused property of an additional properties error:
- * ajv's own message ("must NOT have additional properties") does not say which one.
+ * ajv-i18n's message ("must NOT have additional properties") does not say which one, the
+ * messages json-layout writes for its own locales already do.
  * @param {any} error
  * @returns {string}
  */
@@ -144,7 +145,7 @@ function messageOf (error) {
   const message = error?.message ?? 'invalid'
   const original = error?.params?.errors?.[0] ?? error
   const property = original?.params?.additionalProperty ?? original?.params?.unevaluatedProperty
-  return property !== undefined ? `${message}: ${property}` : message
+  return property !== undefined && !message.endsWith(String(property)) ? `${message}: ${property}` : message
 }
 
 /**
@@ -392,7 +393,7 @@ export function collectErrors (statefulLayout) {
     })
     .map((error) => ({ pointer: dataPointerOf(error), message: messageOf(error) }))
     .filter((error) => !named.has(error.pointer))
-  // a node can carry the failure of a union below it ("chose one" on the root of charts, for
+  // a node can carry the failure of a union below it ("Choose one" on the root of charts, for
   // the chart type that was chosen but is incomplete): the union's own error was dropped as
   // repeating its branch's errors, and so is the node's echo of it
   /** @param {{ dataPath: string, raw: string }} nodeError */

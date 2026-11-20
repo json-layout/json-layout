@@ -2,6 +2,7 @@
 export default {
   errorOneOf: 'Wählen Sie eine Option',
   errorRequired: 'Erforderliche Information',
+  errorWithField: '{message}: {field}',
   addItem: 'Element hinzufügen',
   delete: 'Löschen',
   edit: 'Bearbeiten',
@@ -10,8 +11,8 @@ export default {
   actions: 'Aktionen',
   duplicate: 'Duplizieren',
   insertAfter: 'Danach einfügen',
-  copy: 'Kopie',
-  paste: 'Paste',
+  copy: 'Kopieren',
+  paste: 'Einfügen',
   sort: 'Sortieren',
   up: 'Nach oben verschieben',
   down: 'Nach unten verschieben',

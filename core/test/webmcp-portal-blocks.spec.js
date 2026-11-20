@@ -152,7 +152,7 @@ describe('webmcp errors of a discriminated union in a list', () => {
     await run('editArray', { path: '/elements', action: 'add', value: { type: 'dataset-table' } })
     const text = await run('setFieldValue', { path: '/elements/0/content', value: 'x' })
     const errors = collectErrors(layout)
-    assert.deepEqual(errors.map((e) => e.message), ['required information'], JSON.stringify(errors))
+    assert.deepEqual(errors.map((e) => e.message), ['Required information'], JSON.stringify(errors))
     assert.doesNotMatch(text, /additional properties|chose one/, text)
   })
 })
@@ -314,8 +314,8 @@ describe('webmcp errors of union branches reached through $ref', () => {
       const layout = new StatefulLayout(compiled, compiled.skeletonTrees[compiled.mainTree], { context: evalCase.context ?? {}, validateOn: 'input', fetch: async () => { throw new Error('offline') } }, data)
       assert.ok(layout.validationErrors.length > 100, 'ajv reports every branch of every union')
       assert.deepEqual(collectErrors(layout), [
-        { path: '/$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf', message: 'required information' },
-        { path: '/$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/field', message: 'required information' }
+        { path: '/$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf', message: 'Required information' },
+        { path: '/$allOf-1/chart/$oneOf/1/config/$oneOf/2/valueCalc/$oneOf/1/field', message: 'Required information' }
       ])
       // a write elsewhere counts the errors it lists: "3 other error(s)" above two listed ones
       // came from a node echo the list drops

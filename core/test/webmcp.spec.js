@@ -99,7 +99,7 @@ describe('webmcp project functions', () => {
 
     assert.equal(errors.length, 1)
     assert.equal(errors[0].path, '/name')
-    assert.equal(errors[0].message, 'required information')
+    assert.equal(errors[0].message, 'Required information')
   })
 
   it('should include modified flag when savedData is provided', () => {
@@ -1431,16 +1431,20 @@ describe('webmcp invalid form always located', () => {
   it('should locate by its data pointer an error no node carries', () => {
     // the state tree can fail to attach an error to a node (round 2: a property the new
     // option of a nested union refused); the form is then invalid with nothing on any node
-    const error = { instancePath: '/elements/3/children2/1', schemaPath: '#/additionalProperties', keyword: 'additionalProperties', params: { additionalProperty: 'centered' }, message: 'must NOT have additional properties' }
+    const error = { instancePath: '/elements/3/children2/1', schemaPath: '#/additionalProperties', keyword: 'additionalProperties', params: { additionalProperty: 'centered' }, message: 'Must NOT have additional properties' }
     const root = { fullKey: '', dataPath: '', key: '', children: [], layout: { comp: 'section' }, skeleton: { pointer: '#' } }
     const layout = /** @type {any} */ ({ valid: false, stateTree: { root, valid: false }, validationErrors: [error] })
     const { errors, elsewhere } = collectScopedErrors(layout, /** @type {any} */ (root).children[0] ?? { fullKey: '/elements/0' })
     assert.deepEqual(errors, [])
-    assert.deepEqual(elsewhere, [{ path: '/elements/3/children2/1', message: 'must NOT have additional properties: centered' }])
+    assert.deepEqual(elsewhere, [{ path: '/elements/3/children2/1', message: 'Must NOT have additional properties: centered' }])
 
     // the same error from a union branch the form does not show is still given, rather than nothing
     const hiddenBranch = /** @type {any} */ ({ ...layout, validationErrors: [{ ...error, schemaPath: '#/oneOf/1/additionalProperties' }] })
-    assert.deepEqual(collectErrors(hiddenBranch), [{ path: '/elements/3/children2/1', message: 'must NOT have additional properties: centered' }])
+    assert.deepEqual(collectErrors(hiddenBranch), [{ path: '/elements/3/children2/1', message: 'Must NOT have additional properties: centered' }])
+
+    // the messages json-layout writes already name the property, it is not repeated
+    const named = /** @type {any} */ ({ ...layout, validationErrors: [{ ...error, message: 'Property not allowed: centered' }] })
+    assert.deepEqual(collectErrors(named), [{ path: '/elements/3/children2/1', message: 'Property not allowed: centered' }])
   })
 })
 
@@ -1796,11 +1800,11 @@ describe('webmcp errors below an unhydrated list item', () => {
     const paths = result.errors.map((e) => e.path)
 
     assert.ok(
-      result.errors.some((e) => e.path.endsWith('/sections/0/title') && e.message === 'must be string'),
+      result.errors.some((e) => e.path.endsWith('/sections/0/title') && e.message === 'Must be a text'),
       `the title error must survive and name its path, got ${JSON.stringify(result.errors)}`
     )
     assert.ok(
-      result.errors.some((e) => e.path.endsWith('/sections/0/rows/0/height') && e.message === 'must be integer'),
+      result.errors.some((e) => e.path.endsWith('/sections/0/rows/0/height') && e.message === 'Must be an integer'),
       `the height error must name its path, got ${JSON.stringify(result.errors)}`
     )
     assert.ok(

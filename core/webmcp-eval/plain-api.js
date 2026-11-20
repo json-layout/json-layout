@@ -124,8 +124,8 @@ function errorLine (error) {
 /**
  * The lines of a 400 answer, from ajv's errors as the form's validate function reports them.
  *
- * json-layout's `errorMessage` keyword replaces errors with its own short texts ("required
- * information", "chose one") and no property, which suits a field under the form's eye but
+ * json-layout's `errorMessage` keyword replaces errors with its own short texts ("Required
+ * information", "Choose one") and no property, which suits a field under the form's eye but
  * tells an API caller nothing; the errors it wraps are reported instead. A closed list
  * written as `oneOf` of `const` fails once per option ("must be equal to constant") and
  * once on the `oneOf`: those fold into one line listing the allowed values, the generic

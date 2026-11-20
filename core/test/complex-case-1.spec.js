@@ -66,6 +66,6 @@ describe('A complex case from a data-fair processing', () => {
     assert.equal(parametersNode.children?.length, 5)
 
     const urlNode = parametersNode.children[0]
-    assert.equal(urlNode.error, 'required information')
+    assert.equal(urlNode.error, 'Required information')
   })
 })

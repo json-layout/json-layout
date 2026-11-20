@@ -1,14 +1,15 @@
 /** @type {import('./types.js').LocaleMessages} */
 export default {
   errorOneOf: 'Kies er een',
-  errorRequired: 'benodigde informatie',
+  errorRequired: 'Verplichte informatie',
+  errorWithField: '{message}: {field}',
   addItem: 'Item toevoegen',
   delete: 'Verwijderen',
   confirm: 'Bevestigen',
   edit: 'Bewerken',
   close: 'Sluiten',
   actions: 'Acties',
-  duplicate: 'Verveelvoudigen',
+  duplicate: 'Dupliceren',
   insertAfter: 'Hierna invoegen',
   copy: 'Kopiëren',
   paste: 'Plakken',

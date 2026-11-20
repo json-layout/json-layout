@@ -1,7 +1,8 @@
 /** @type {import('./types.js').LocaleMessages} */
 export default {
-  errorOneOf: 'chose one',
-  errorRequired: 'required information',
+  errorOneOf: 'Choose one',
+  errorRequired: 'Required information',
+  errorWithField: '{message}: {field}',
   addItem: 'Add item',
   delete: 'Delete',
   edit: 'Edit',

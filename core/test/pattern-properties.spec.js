@@ -82,7 +82,7 @@ describe('Management of pattern properties', () => {
     assert.equal(getNode(['$patternProperties', 'prefix1_ok'])?.layout.comp, 'text-field')
     assert.equal(getNode(['$patternProperties', 'prefix2_ok'])?.layout.comp, 'number-field')
     assert.equal(getNode(['$patternProperties', 'prefix2_ko'])?.layout.comp, 'number-field')
-    assert.equal(getNode(['$patternProperties', 'prefix2_ko'])?.error, 'must be number')
+    assert.equal(getNode(['$patternProperties', 'prefix2_ko'])?.error, 'Must be a number')
     statefulLayout.input(getNode(['$patternProperties', 'prefix2_ko']), 22)
     assert.equal(statefulLayout.valid, true)
     assert.deepEqual(statefulLayout.data, {

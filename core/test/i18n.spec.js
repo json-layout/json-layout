@@ -74,7 +74,36 @@ describe('internationalization', () => {
   it('should return validation errors internationalized by ajv', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
+    assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
+  })
+
+  it('should write its own validation messages for fr and keep ajv-i18n for other locales', async () => {
+    /** @type {(schema: any, data: unknown, locale: string) => string | undefined} */
+    const errorOf = (schema, data, locale) => {
+      const compiledLayout = compile(schema, { locale })
+      return new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, data).stateTree.root.error
+    }
+    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'fr'), 'Doit faire au moins 3 caractères')
+    assert.equal(errorOf({ type: 'string', maxLength: 1 }, 'ab', 'fr'), 'Doit faire au plus 1 caractère')
+    assert.equal(errorOf({ type: 'string', format: 'email' }, 'x', 'fr'), 'Doit être au format email')
+    assert.equal(errorOf({ type: 'string', pattern: '^[0-9]{5}$' }, 'x', 'fr'), 'Doit être au format ^[0-9]{5}$')
+    assert.equal(errorOf({ type: 'integer', maximum: 100 }, 101, 'fr'), 'Doit être <= 100')
+    assert.equal(errorOf({ type: 'number' }, 'x', 'fr'), 'Doit être un nombre')
+    assert.equal(errorOf({ type: 'string', enum: ['a', 'b'] }, 'c', 'fr'), 'Doit être une des valeurs proposées')
+    assert.equal(errorOf({ type: 'array', items: { type: 'string' }, uniqueItems: true }, ['a', 'a'], 'fr'), 'Doit contenir des valeurs distinctes')
+    assert.equal(errorOf({ type: 'array', items: { type: 'string' }, maxItems: 2 }, ['a', 'b', 'c'], 'fr'), 'Doit contenir au plus 2 éléments')
+    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'de'), 'Darf nicht kürzer als 3 Zeichen sein')
+  })
+
+  it('should capitalize custom error messages and survive an invalid locale', async () => {
+    const custom = compile({ type: 'integer', minimum: 0, errorMessage: { minimum: 'au moins zéro' } }, { locale: 'fr' })
+    const customLayout = new StatefulLayout(custom, custom.skeletonTrees[custom.mainTree], defaultOptions, -10)
+    assert.equal(customLayout.stateTree.root.error, 'Au moins zéro')
+
+    // an invalid language tag must not break validation
+    const invalidLocale = compile({ type: 'integer', minimum: 0 }, { locale: 'not a locale' })
+    const invalidLayout = new StatefulLayout(invalidLocale, invalidLocale.skeletonTrees[invalidLocale.mainTree], defaultOptions, -10)
+    assert.equal(invalidLayout.stateTree.root.error, 'Must be >= 0')
   })
 
   it('should return internationalized errors in compiled mode too', async () => {
@@ -85,7 +114,7 @@ describe('internationalization', () => {
     const serializedLayout = (await import(filePath)).default
 
     const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
+    assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
   })
 
   it('should let ajv-i18n fallback to en in compiled mode', async () => {
@@ -96,7 +125,7 @@ describe('internationalization', () => {
     const serializedLayout = (await import(filePath)).default
 
     const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'must be >= 0')
+    assert.equal(statefulLayout.stateTree.root.error, 'Must be >= 0')
   })
 
   it('names the menu of a list item\'s actions in every locale', () => {
