@@ -81,8 +81,9 @@ export function createStateTree (
     logValidation(`${skeleton.root} new state tree initial validation errors`, validate.errors, validationState)
     for (const error of validate.errors) {
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
-      // ajv-i18n messages are fragments meant to follow a data path ("must be >= 18"),
-      // shown alone under a field they must read as a sentence
+      // the messages of the locales left to ajv-i18n are fragments meant to follow a data path
+      // ("must be >= 18") and a custom errorMessage can start lowercase: shown alone under a
+      // field, they must read as a sentence
       if (error.message) error.message = capitalize(error.message, compiledLayout.locale)
     }
     context.errors = context.allErrors = validate.errors
