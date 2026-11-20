@@ -34,7 +34,7 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Required information')
     assert.equal(statefulLayout.stateTree.root.children?.[1].data, 'test')
-    assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'Must match ^[A-Z]+$')
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'ok')
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, undefined)
@@ -64,7 +64,7 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[0].data, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Required information')
     assert.equal(statefulLayout.stateTree.root.children?.[1].data, 'test')
-    assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].error, 'Must match ^[A-Z]+$')
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'ok')
     assert.equal(statefulLayout.stateTree.root.children?.[0].error, undefined)
@@ -97,7 +97,7 @@ describe('stateful layout validation state', () => {
     assert.equal(getNode('obj1.str1').data, undefined)
     assert.equal(getNode('obj1.str1').error, 'Required information')
     statefulLayout.input(getNode('obj1.str2'), 'test')
-    assert.equal(getNode('obj1.str2').error, 'Must be in format ^[A-Z]+$')
+    assert.equal(getNode('obj1.str2').error, 'Must match ^[A-Z]+$')
 
     statefulLayout.input(getNode('obj1.str1'), 'ok')
     assert.equal(getNode('obj1.str1').error, undefined)
@@ -133,7 +133,7 @@ describe('stateful layout validation state', () => {
     assert.equal(getNode('obj1.str1').data, undefined)
     assert.equal(getNode('obj1.str1').error, 'Required information')
     statefulLayout.input(getNode('obj1.str2'), 'test')
-    assert.equal(getNode('obj1.str2').error, 'Must be in format ^[A-Z]+$')
+    assert.equal(getNode('obj1.str2').error, 'Must match ^[A-Z]+$')
 
     statefulLayout.input(getNode('obj1.str1'), 'ok')
     assert.equal(getNode('obj1.str1').error, undefined)
@@ -175,7 +175,7 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].data, undefined)
     assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].error, 'Required information')
     assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[1].data, 'test')
-    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[1].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[1].error, 'Must match ^[A-Z]+$')
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[1].children?.[0], 'ok')
     assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].error, undefined)
@@ -216,10 +216,10 @@ describe('stateful layout validation state', () => {
     assert.equal(statefulLayout.stateTree.root.children?.[1].children?.[0].error, 'Required information')
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0].children?.[0], 'ko')
-    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.error, undefined)
     statefulLayout.input(statefulLayout.stateTree.root.children[0].children[0], 'koo')
-    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.error, undefined)
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0].children?.[0], 'OK')

@@ -20,7 +20,7 @@ describe('errors of hidden composite children', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { initialValidation: 'always' }, { str2: 'abc' })
     const [section1, section2] = statefulLayout.stateTree.root.children ?? []
     assert.equal(section2.childError, true)
-    assert.equal(section2.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(section2.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.ok(!section1.childError, 'the section holding only a hidden composite and a valid field has no error')
     assert.ok(!section1.children?.[0].error)
   })

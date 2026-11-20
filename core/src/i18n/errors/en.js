@@ -12,9 +12,13 @@ export default function localizeErrorsEn (errors) {
   /** @type {(n: number, singular: string, plural: string) => string} */
   const count = (n, singular, plural) => `${n} ${n === 1 ? singular : plural}`
   /** @type {Record<string, string>} */
-  const typeLabels = { string: 'a text', number: 'a number', integer: 'an integer', boolean: 'true or false', array: 'a list', object: 'an object', null: 'empty' }
+  const typeLabels = { string: 'text', number: 'a number', integer: 'an integer', boolean: 'true or false', array: 'a list', object: 'an object', null: 'empty' }
   /** @type {(value: unknown) => string} */
-  const show = (value) => typeof value === 'string' ? value : JSON.stringify(value)
+  const show = (value) => {
+    if (typeof value === 'string') return value
+    if (value === null) return 'empty'
+    return JSON.stringify(value)
+  }
   for (const error of errors) {
     const p = /** @type {Record<string, any>} */(error.params ?? {})
     let message
@@ -25,10 +29,10 @@ export default function localizeErrorsEn (errors) {
         message = `Required information: ${p.missingProperty}`
         break
       case 'minLength':
-        message = `Must be at least ${count(p.limit, 'character', 'characters')}`
+        message = `Must be at least ${count(p.limit, 'character', 'characters')} long`
         break
       case 'maxLength':
-        message = `Must be at most ${count(p.limit, 'character', 'characters')}`
+        message = `Must be at most ${count(p.limit, 'character', 'characters')} long`
         break
       case 'minimum':
       case 'maximum':
@@ -47,7 +51,7 @@ export default function localizeErrorsEn (errors) {
         message = `Must be in ${p.format} format`
         break
       case 'pattern':
-        message = `Must be in format ${p.pattern}`
+        message = `Must match ${p.pattern}`
         break
       case 'type':
         message = `Must be ${String(p.type).split(',').map(type => typeLabels[type] ?? type).join(' or ')}`
@@ -71,9 +75,9 @@ export default function localizeErrorsEn (errors) {
         message = 'Must have distinct values'
         break
       case 'contains':
-        message = p.maxContains === undefined
-          ? `Must have at least ${count(p.minContains ?? 1, 'valid item', 'valid items')}`
-          : `Must have between ${p.minContains ?? 0} and ${count(p.maxContains, 'valid item', 'valid items')}`
+        if (p.maxContains === undefined) message = `Must have at least ${count(p.minContains ?? 1, 'valid item', 'valid items')}`
+        else if (p.minContains === p.maxContains) message = `Must have exactly ${count(p.maxContains, 'valid item', 'valid items')}`
+        else message = `Must have between ${p.minContains ?? 0} and ${count(p.maxContains, 'valid item', 'valid items')}`
         break
       case 'minProperties':
         message = `Must have at least ${count(p.limit, 'property', 'properties')}`
@@ -91,7 +95,7 @@ export default function localizeErrorsEn (errors) {
         message = `Invalid property name: ${p.propertyName}`
         break
       case 'patternRequired':
-        message = `Must have a property in format ${p.missingPattern}`
+        message = `Must have a property matching ${p.missingPattern}`
         break
       case 'oneOf':
       case 'discriminator':

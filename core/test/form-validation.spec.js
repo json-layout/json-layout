@@ -22,7 +22,7 @@ describe('stateful layout validation state', () => {
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test1')
     assert.deepEqual(statefulLayout._lastCreateStateTreeContext._debugCache['/str2'], ['miss', 'miss'])
     assert.equal(statefulLayout.stateTree.root.validated, true)
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
   })
 
@@ -42,12 +42,12 @@ describe('stateful layout validation state', () => {
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test1')
     assert.equal(statefulLayout.stateTree.root.validated, false)
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
 
     statefulLayout.blur(statefulLayout.stateTree.root.children?.[0])
     assert.deepEqual(statefulLayout._lastCreateStateTreeContext._debugCache['/str2'], ['miss', 'miss', 'hit'])
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
   })
 
@@ -66,19 +66,19 @@ describe('stateful layout validation state', () => {
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], 'test1')
     assert.equal(statefulLayout.stateTree.root.validated, false)
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
 
     statefulLayout.blur(statefulLayout.stateTree.root.children?.[0])
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
 
     statefulLayout.validate()
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
 
     statefulLayout.resetValidation()
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
 
     statefulLayout.input(statefulLayout.stateTree.root.children?.[0], '')
@@ -97,7 +97,7 @@ describe('stateful layout validation state', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str1: 'test1' })
     assert.equal(statefulLayout.stateTree.root.validated, true)
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, true)
   })
 
@@ -125,7 +125,7 @@ describe('stateful layout validation state', () => {
     })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'never' }, { str1: 'test1' })
     assert.equal(statefulLayout.stateTree.root.validated, false)
-    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].validated, false)
   })
 
@@ -146,7 +146,7 @@ describe('stateful layout validation state', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'never' }, { obj1: { str1: 'test1' } })
     assert.equal(statefulLayout.stateTree.root.childError, true)
     assert.equal(statefulLayout.stateTree.root.children?.[0].childError, true)
-    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].error, 'Must match ^[A-Z]+$')
     assert.equal(statefulLayout.stateTree.root.children?.[0].children?.[0].childError, undefined)
   })
 

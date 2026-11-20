@@ -67,7 +67,7 @@ describe('Management of pattern properties', () => {
     statefulLayout.input(statefulLayout.stateTree.root.children[0], 'test')
     assert.deepEqual(statefulLayout.stateTree.root.data, { str1: 'test' })
     assert.equal(statefulLayout.stateTree.valid, false)
-    assert.equal(statefulLayout.stateTree.root.children[0].error, 'Must be in format ^[A-Z]+$')
+    assert.equal(statefulLayout.stateTree.root.children[0].error, 'Must match ^[A-Z]+$')
   })
 
   it('should manage a nullable array', async () => {

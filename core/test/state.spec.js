@@ -309,7 +309,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.deepEqual(arrNode.data, ['Str 1', 'Str 2', 'a'])
       assert.ok(!arrNode.children)
       assert.equal(statefulLayout.stateTree.valid, false)
-      assert.equal(arrNode.error, 'Must be at least 2 characters')
+      assert.equal(arrNode.error, 'Must be at least 2 characters long')
 
       statefulLayout.input(arrNode, ['test'])
       assert.equal(statefulLayout.stateTree.valid, true)

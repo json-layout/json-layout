@@ -1800,7 +1800,7 @@ describe('webmcp errors below an unhydrated list item', () => {
     const paths = result.errors.map((e) => e.path)
 
     assert.ok(
-      result.errors.some((e) => e.path.endsWith('/sections/0/title') && e.message === 'Must be a text'),
+      result.errors.some((e) => e.path.endsWith('/sections/0/title') && e.message === 'Must be text'),
       `the title error must survive and name its path, got ${JSON.stringify(result.errors)}`
     )
     assert.ok(

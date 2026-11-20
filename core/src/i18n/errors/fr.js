@@ -14,7 +14,15 @@ export default function localizeErrorsFr (errors) {
   /** @type {Record<string, string>} */
   const typeLabels = { string: 'un texte', number: 'un nombre', integer: 'un nombre entier', boolean: 'vrai ou faux', array: 'une liste', object: 'un objet', null: 'vide' }
   /** @type {(value: unknown) => string} */
-  const show = (value) => typeof value === 'string' ? value : JSON.stringify(value)
+  const show = (value) => {
+    if (typeof value === 'string') return value
+    if (value === true) return 'oui'
+    if (value === false) return 'non'
+    if (value === null) return 'vide'
+    return JSON.stringify(value)
+  }
+  /** @type {(value: unknown) => unknown} */
+  const num = (value) => typeof value === 'number' ? String(value).replace('.', ',') : value
   for (const error of errors) {
     const p = /** @type {Record<string, any>} */(error.params ?? {})
     let message
@@ -38,10 +46,10 @@ export default function localizeErrorsFr (errors) {
       case 'formatMaximum':
       case 'formatExclusiveMinimum':
       case 'formatExclusiveMaximum':
-        message = `Doit être ${p.comparison} ${p.limit}`
+        message = `Doit être ${p.comparison} ${num(p.limit)}`
         break
       case 'multipleOf':
-        message = `Doit être un multiple de ${p.multipleOf}`
+        message = `Doit être un multiple de ${num(p.multipleOf)}`
         break
       case 'format':
         message = `Doit être au format ${p.format}`
@@ -71,9 +79,9 @@ export default function localizeErrorsFr (errors) {
         message = 'Doit contenir des valeurs distinctes'
         break
       case 'contains':
-        message = p.maxContains === undefined
-          ? `Doit contenir au moins ${count(p.minContains ?? 1, 'élément valide', 'éléments valides')}`
-          : `Doit contenir entre ${p.minContains ?? 0} et ${count(p.maxContains, 'élément valide', 'éléments valides')}`
+        if (p.maxContains === undefined) message = `Doit contenir au moins ${count(p.minContains ?? 1, 'élément valide', 'éléments valides')}`
+        else if (p.minContains === p.maxContains) message = `Doit contenir exactement ${count(p.maxContains, 'élément valide', 'éléments valides')}`
+        else message = `Doit contenir entre ${p.minContains ?? 0} et ${count(p.maxContains, 'élément valide', 'éléments valides')}`
         break
       case 'minProperties':
         message = `Doit contenir au moins ${count(p.limit, 'propriété', 'propriétés')}`
@@ -91,7 +99,7 @@ export default function localizeErrorsFr (errors) {
         message = `Nom de propriété non valide : ${p.propertyName}`
         break
       case 'patternRequired':
-        message = `Doit avoir une propriété au format ${p.missingPattern}`
+        message = `Doit contenir une propriété au format ${p.missingPattern}`
         break
       case 'oneOf':
       case 'discriminator':

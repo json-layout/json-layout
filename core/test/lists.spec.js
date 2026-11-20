@@ -33,7 +33,7 @@ describe('Lists management', () => {
     assert.equal(arrNode.children?.[1].data, 'Str 2')
 
     assert.equal(statefulLayout.stateTree.valid, false)
-    assert.equal(arrNode.children?.[2].error, 'Must be at least 2 characters')
+    assert.equal(arrNode.children?.[2].error, 'Must be at least 2 characters long')
 
     statefulLayout.input(arrNode.children[0], 'test')
     const arrNode2 = statefulLayout.stateTree.root.children?.[0]
@@ -57,7 +57,7 @@ describe('Lists management', () => {
     statefulLayout.input(getNode('arr1'), [undefined])
     assert.deepEqual(statefulLayout.data, { arr1: [null] })
     assert.equal(statefulLayout.valid, false)
-    assert.equal(getNode('arr1.0').error, 'Must be a text')
+    assert.equal(getNode('arr1.0').error, 'Must be text')
     assert.equal(getNode('arr1.0').layout.label, '')
   })
 
