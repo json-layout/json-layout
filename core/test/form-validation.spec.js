@@ -195,4 +195,29 @@ describe('stateful layout validation state', () => {
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'always' }, {})
     assert.equal(statefulLayout.stateTree.root.error, 'Information obligatoire : N° de TVA')
   })
+
+  it('should name the field with a title containing $ as written', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['price'],
+      layout: { children: [] },
+      properties: { price: { type: 'string', title: "Price ($') $&" } }
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'always' }, {})
+    assert.equal(statefulLayout.stateTree.root.error, "Required information: Price ($') $&")
+  })
+
+  it('should name a required field declared in a oneOf branch by its title', async () => {
+    const compiledLayout = await compile({
+      type: 'object',
+      required: ['vat'],
+      properties: { kind: { type: 'string' } },
+      oneOf: [
+        { title: 'Pro', properties: { vat: { type: 'string', title: 'VAT number', layout: { if: 'false' } } } },
+        { title: 'Private', properties: { other: { type: 'string' } } }
+      ]
+    })
+    const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], { ...defaultOptions, initialValidation: 'always' }, {})
+    assert.equal(statefulLayout.stateTree.root.error, 'Required information: VAT number')
+  })
 })

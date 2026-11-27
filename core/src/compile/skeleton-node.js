@@ -46,7 +46,7 @@ function renderedPropertyKeys (node, skeletonNodes, seen = new Set()) {
     }
     const childPointer = propertyKey.slice(1)
     const child = skeletonNodes[childPointer]
-    // a oneOf branch is a tree of its own, and a node still being built is the string 'recursing'
+    // a node still being built is the string 'recursing'
     if (typeof child !== 'object' || seen.has(childPointer)) continue
     seen.add(childPointer)
     keys.push(...renderedPropertyKeys(child, skeletonNodes, seen))

@@ -208,6 +208,15 @@ const propertyTitle = (compiledLayout, skeleton, propertyKey, seen = new Set()) 
       if (title) return title
     }
   }
+  // a property declared in a oneOf branch is the root of a tree of its own
+  for (const treePointer of skeleton.childrenTrees ?? []) {
+    const tree = compiledLayout.skeletonTrees[treePointer]
+    const root = typeof tree === 'object' && compiledLayout.skeletonNodes[tree.root]
+    if (!root || seen.has(tree.root)) continue
+    seen.add(tree.root)
+    const title = propertyTitle(compiledLayout, root, propertyKey, seen)
+    if (title) return title
+  }
 }
 
 /**
@@ -239,9 +248,11 @@ const nodeErrorMessage = (compiledLayout, skeleton, children, error) => {
   // a field rendered below the node shows the error itself
   if (rendersDataPath(children, `${originalError.instancePath}/${missingProperty}`)) return message
   const template = compiledLayout.messages?.errorWithField ?? '{message}: {field}'
+  const field = propertyTitle(compiledLayout, skeleton, missingProperty) ?? missingProperty
+  // replacer functions, a string would read $& or $' in the texts as replacement patterns
   return template
-    .replace('{message}', message)
-    .replace('{field}', propertyTitle(compiledLayout, skeleton, missingProperty) ?? missingProperty)
+    .replace('{message}', () => message)
+    .replace('{field}', () => field)
 }
 
 /**
