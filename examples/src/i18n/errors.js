@@ -2,7 +2,7 @@
 const example = {
   title: 'Translated errors',
   id: 'errors',
-  description: 'Error messages are translated using [ajv-i18n](https://github.com/ajv-validator/ajv-i18n).',
+  description: 'Error messages are written by json-layout in English, French, German, Dutch, Spanish, Italian and Portuguese. The other languages fallback to English, like the other messages of the form.',
   schema: {
     type: 'object',
     required: ['str1'],

@@ -29,6 +29,32 @@ function collectConstraints (schema) {
 }
 
 /**
+ * the keys of the properties rendered for the data of a node: its own properties and those its
+ * allOf, if/then/else and dependentSchemas children declare on the same data object
+ * @param {import('./types.js').SkeletonNode} node
+ * @param {Record<string, import('./types.js').SkeletonNode>} skeletonNodes
+ * @param {Set<string>} [seen]
+ * @returns {string[]}
+ */
+function renderedPropertyKeys (node, skeletonNodes, seen = new Set()) {
+  /** @type {string[]} */
+  const keys = []
+  for (const propertyKey of node.propertyKeys) {
+    if (!propertyKey.startsWith('$')) {
+      keys.push(propertyKey)
+      continue
+    }
+    const childPointer = propertyKey.slice(1)
+    const child = skeletonNodes[childPointer]
+    // a node still being built is the string 'recursing'
+    if (typeof child !== 'object' || seen.has(childPointer)) continue
+    seen.add(childPointer)
+    keys.push(...renderedPropertyKeys(child, skeletonNodes, seen))
+  }
+  return keys
+}
+
+/**
  * @param {any} rawSchema
  * @param {string} sourceSchemaId
  * @param {import('./index.js').CompileOptions} options
@@ -550,7 +576,7 @@ export function makeSkeletonNode (
       }
     }
 
-    for (const propertyKey of node.propertyKeys) {
+    for (const propertyKey of renderedPropertyKeys(node, skeletonNodes)) {
       if (schema?.required?.includes(propertyKey)) {
         errorMessage.required = rawSchema.errorMessage.required ?? {}
         errorMessage.required[propertyKey] = errorMessage.required[propertyKey] ?? options.messages.errorRequired

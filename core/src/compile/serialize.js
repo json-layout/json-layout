@@ -70,16 +70,8 @@ export async function serialize (compiledLayout) {
     code = code.replaceAll(req + '.default', name).replaceAll(req, name)
   }
 
-  // import only the current locale from ajv-i18n
-  let ajvI18nPath = `ajv-i18n/localize/${compiledLayout.locale}/index.js`
-  try {
-    await import(ajvI18nPath)
-  } catch (er) {
-    console.warn(`failed to load ${ajvI18nPath}, fallback to en`)
-    ajvI18nPath = 'ajv-i18n/localize/en/index.js'
-  }
-
-  code = `import localizeErrors from "${ajvI18nPath}";\n` + code
+  // the validation messages written by json-layout are self-contained functions inlined as is
+  code = `const localizeErrors = ${compiledLayout.localizeErrors.toString()};\n` + code
 
   i = 0
   const expressionsNodes = []

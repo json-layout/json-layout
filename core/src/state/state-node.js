@@ -189,6 +189,73 @@ const produceReadonlyArrayItemOptions = produce((draft) => {
 })
 
 /**
+ * the title of a property of the node's data, looked for in its own properties and in the
+ * children that share its data (allOf, then/else…)
+ * @param {import('../index.js').CompiledLayout} compiledLayout
+ * @param {import('../index.js').SkeletonNode} skeleton
+ * @param {string} propertyKey
+ * @param {Set<string>} [seen]
+ * @returns {string | undefined}
+ */
+const propertyTitle = (compiledLayout, skeleton, propertyKey, seen = new Set()) => {
+  for (const childPointer of skeleton.children ?? []) {
+    const child = compiledLayout.skeletonNodes[childPointer]
+    if (!child || seen.has(childPointer)) continue
+    seen.add(childPointer)
+    if (child.key === propertyKey) return child.title ?? propertyKey
+    if (typeof child.key === 'string' && child.key.startsWith('$')) {
+      const title = propertyTitle(compiledLayout, child, propertyKey, seen)
+      if (title) return title
+    }
+  }
+  // a property declared in a oneOf branch is the root of a tree of its own
+  for (const treePointer of skeleton.childrenTrees ?? []) {
+    const tree = compiledLayout.skeletonTrees[treePointer]
+    const root = typeof tree === 'object' && compiledLayout.skeletonNodes[tree.root]
+    if (!root || seen.has(tree.root)) continue
+    seen.add(tree.root)
+    const title = propertyTitle(compiledLayout, root, propertyKey, seen)
+    if (title) return title
+  }
+}
+
+/**
+ * should be true if one of the nodes, or of their descendants, renders the data at this path
+ * @param {import('./types.js').StateNode[] | undefined} nodes
+ * @param {string} dataPath
+ * @returns {boolean}
+ */
+const rendersDataPath = (nodes, dataPath) => !!nodes?.some(node => {
+  if (node.dataPath === dataPath) return node.layout.comp !== 'none'
+  return (dataPath.startsWith(node.dataPath + '/') || node.dataPath === '') && rendersDataPath(node.children, dataPath)
+})
+
+/**
+ * the message of an error shown on a node: a required error reaches the node of the object
+ * when its field is not rendered (left out of the layout, hidden by an if), it names the field
+ * @param {import('../index.js').CompiledLayout} compiledLayout
+ * @param {import('../index.js').SkeletonNode} skeleton
+ * @param {import('./types.js').StateNode[] | undefined} children
+ * @param {import('ajv').ErrorObject} error
+ * @returns {string | undefined}
+ */
+const nodeErrorMessage = (compiledLayout, skeleton, children, error) => {
+  const message = error.message
+  if (!message || error.keyword !== 'errorMessage') return message
+  const originalError = error.params?.errors?.[0]
+  const missingProperty = originalError?.params?.missingProperty
+  if (!missingProperty || originalError.keyword !== 'required' || missingProperty === skeleton.key) return message
+  // a field rendered below the node shows the error itself
+  if (rendersDataPath(children, `${originalError.instancePath}/${missingProperty}`)) return message
+  const template = compiledLayout.messages?.errorWithField ?? '{message}: {field}'
+  const field = propertyTitle(compiledLayout, skeleton, missingProperty) ?? missingProperty
+  // replacer functions, a string would read $& or $' in the texts as replacement patterns
+  return template
+    .replace('{message}', () => message)
+    .replace('{field}', () => field)
+}
+
+/**
  * should match if an error belongs to this exact node
  * @param {import('ajv').ErrorObject} error
  * @param {import('../index.js').SkeletonNode} skeleton
@@ -1064,7 +1131,7 @@ export function createStateNode (
     display.width,
     cols,
     nodeData,
-    error?.message,
+    error && nodeErrorMessage(compiledLayout, skeleton, children, error),
     validated,
     options,
     titleDepth,

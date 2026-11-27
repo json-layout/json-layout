@@ -104,7 +104,7 @@ describe('Special cases of oneOfs', () => {
     )
     assert.equal(statefulLayout.stateTree.root.children?.length, 2)
     assert.equal(statefulLayout.stateTree.root.children[0].children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].children[0].error, 'chose one')
+    assert.equal(statefulLayout.stateTree.root.children[0].children[0].error, 'Choose one')
     statefulLayout.activateItem(statefulLayout.stateTree.root.children[0].children[0], 0)
 
     assert.ok(!statefulLayout.valid)
@@ -121,7 +121,7 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children?.length, 2)
     assert.ok(!statefulLayout.stateTree.root.children[0].children[0].children[0].children[0].error)
     assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children[1].children?.length, 1)
-    assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children[1].children[0].error, 'required information')
+    assert.equal(statefulLayout.stateTree.root.children[0].children[0].children[0].children[1].children[0].error, 'Required information')
   })
 
   it('should manage error of a shared information across oneOf elements', async () => {
@@ -279,7 +279,7 @@ describe('Special cases of oneOfs', () => {
     assert.deepEqual(item1.data, { type: 'weekly', dayOfWeek: '*', hour: 0 })
     assert.equal(statefulLayout.valid, false)
     assert.equal(item1.children?.[0]?.children?.[0].children?.[1]?.key, 'dayOfWeek')
-    assert.equal(item1.children?.[0]?.children?.[0].children?.[1]?.error, 'chose one')
+    assert.equal(item1.children?.[0]?.children?.[0].children?.[1]?.error, 'Choose one')
   })
 
   it('should manage active element in a oneOf', async () => {
@@ -575,7 +575,7 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.valid, false)
     assert.equal(getNode('$oneOf.0').error, undefined)
     assert.equal(getNode('$oneOf.0').childError, true)
-    assert.equal(getNode('$oneOf.0.content').error, 'required information')
+    assert.equal(getNode('$oneOf.0.content').error, 'Required information')
     assert.equal(getNode('$oneOf.0.titleSize').data, 'h3')
     statefulLayout.input(getNode('$oneOf.0.content'), 'Content')
     assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', titleSize: 'h3', content: 'Content' })
@@ -629,7 +629,7 @@ describe('Special cases of oneOfs', () => {
     assert.equal(statefulLayout.valid, false)
     assert.equal(getNode('$oneOf.0').error, undefined)
     assert.equal(getNode('$oneOf.0').childError, true)
-    assert.equal(getNode('$oneOf.0.content').error, 'required information')
+    assert.equal(getNode('$oneOf.0.content').error, 'Required information')
     assert.equal(getNode('$oneOf.0.titleSize').data, 'h3')
     statefulLayout.input(getNode('$oneOf.0.content'), 'Content')
     assert.deepEqual(statefulLayout.stateTree.root.data, { type: 'title', titleSize: 'h3', content: 'Content' })
@@ -719,7 +719,7 @@ describe('Special cases of oneOfs', () => {
       statefulLayout.input(getNode('elements'), [undefined])
       assert.deepEqual(statefulLayout.stateTree.root.data, { elements: [{}] })
       assert.equal(statefulLayout.activatedItems['/elements/0/$oneOf'], undefined)
-      assert.equal(getNode('elements.0.$oneOf').error, 'chose one')
+      assert.equal(getNode('elements.0.$oneOf').error, 'Choose one')
 
       statefulLayout.activateItem(getNode('elements.0.$oneOf'), 0)
       assert.equal(statefulLayout.activatedItems['/elements/0/$oneOf'], 0)
@@ -730,7 +730,7 @@ describe('Special cases of oneOfs', () => {
       assert.equal(getNode('elements.0.$oneOf').childError, true)
       assert.equal(getNode('elements.0.$oneOf.0').error, undefined)
       assert.equal(getNode('elements.0.$oneOf.0').childError, true)
-      assert.equal(getNode('elements.0.$oneOf.0.content').error, 'required information')
+      assert.equal(getNode('elements.0.$oneOf.0.content').error, 'Required information')
       assert.equal(getNode('elements.0.$oneOf.0.titleSize').data, 'h3')
       statefulLayout.input(getNode('elements.0.$oneOf.0.content'), 'Content')
       assert.equal(getNode('elements.0.$oneOf').childError, false)
@@ -742,7 +742,7 @@ describe('Special cases of oneOfs', () => {
       assert.equal(statefulLayout.valid, false)
       assert.equal(getNode('elements.0.$oneOf').error, undefined)
       assert.equal(getNode('elements.0.$oneOf').childError, false)
-      assert.equal(getNode('elements.1.$oneOf').error, 'chose one')
+      assert.equal(getNode('elements.1.$oneOf').error, 'Choose one')
       statefulLayout.activateItem(getNode('elements.1.$oneOf'), 0)
       assert.equal(statefulLayout.valid, false)
       assert.equal(getNode('elements.0.$oneOf').error, undefined)

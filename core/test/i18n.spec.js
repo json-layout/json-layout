@@ -5,6 +5,8 @@ import { writeFile } from 'node:fs/promises'
 import { compile, StatefulLayout } from '../src/index.js'
 import { serialize } from '../src/compile/serialize.js'
 import { isCompObject } from '@json-layout/vocabulary'
+import i18n from '../src/i18n/index.js'
+import errorsLocalize from '../src/i18n/errors/index.js'
 
 describe('internationalization', () => {
   const defaultOptions = { debounceInputMs: 0 }
@@ -71,10 +73,66 @@ describe('internationalization', () => {
     assert.equal(compiledFr.normalizedLayouts['_jl#/properties/str4']?.label, 'Texte 4')
   })
 
-  it('should return validation errors internationalized by ajv', async () => {
+  it('should return internationalized validation errors', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
+    assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
+  })
+
+  it('should write its own validation messages and fallback to en for the other locales', async () => {
+    /** @type {(schema: any, data: unknown, locale: string) => string | undefined} */
+    const errorOf = (schema, data, locale) => {
+      const compiledLayout = compile(schema, { locale })
+      return new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, data).stateTree.root.error
+    }
+    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'fr'), 'Doit faire au moins 3 caractères')
+    assert.equal(errorOf({ type: 'string', maxLength: 1 }, 'ab', 'fr'), 'Doit faire au plus 1 caractère')
+    assert.equal(errorOf({ type: 'string', format: 'email' }, 'x', 'fr'), 'Doit être au format email')
+    assert.equal(errorOf({ type: 'string', pattern: '^[0-9]{5}$' }, 'x', 'fr'), 'Doit être au format ^[0-9]{5}$')
+    assert.equal(errorOf({ type: 'integer', maximum: 100 }, 101, 'fr'), 'Doit être <= 100')
+    assert.equal(errorOf({ type: 'number' }, 'x', 'fr'), 'Doit être un nombre')
+    assert.equal(errorOf({ type: 'string', enum: ['a', 'b'] }, 'c', 'fr'), 'Doit être une des valeurs proposées')
+    assert.equal(errorOf({ type: 'array', items: { type: 'string' }, uniqueItems: true }, ['a', 'a'], 'fr'), 'Doit contenir des valeurs distinctes')
+    assert.equal(errorOf({ type: 'array', items: { type: 'string' }, maxItems: 2 }, ['a', 'b', 'c'], 'fr'), 'Doit contenir au plus 2 éléments')
+    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'de'), 'Muss mindestens 3 Zeichen lang sein')
+    assert.equal(errorOf({ type: 'number', maximum: 1.5 }, 2, 'fr'), 'Doit être <= 1,5')
+    const constError = [{ keyword: 'const', params: { allowedValue: true } }]
+    errorsLocalize.fr(/** @type {any} */(constError))
+    assert.equal(constError[0].message, 'Doit valoir oui')
+    // a locale json-layout does not write falls back to en, like the UI messages
+    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'ja'), 'Must be at least 3 characters long')
+  })
+
+  it('should give every locale all the messages and self-contained validation messages', async () => {
+    assert.deepEqual(Object.keys(errorsLocalize).sort(), Object.keys(i18n).sort())
+    const keywords = ['required', 'dependentRequired', 'minLength', 'maxLength', 'minimum', 'exclusiveMaximum', 'formatMinimum', 'multipleOf',
+      'format', 'pattern', 'type', 'enum', 'const', 'minItems', 'maxItems', 'unevaluatedItems', 'uniqueItems', 'contains', 'minProperties',
+      'maxProperties', 'additionalProperties', 'unevaluatedProperties', 'propertyNames', 'patternRequired', 'oneOf', 'anyOf', 'if', 'not', 'false schema']
+    const params = { missingProperty: 'p', limit: 2, comparison: '>=', multipleOf: 0.5, format: 'email', pattern: '^a$', type: 'string,null', allowedValue: true, minContains: 1, maxContains: 1, additionalProperty: 'x', unevaluatedProperty: 'x', propertyName: 'X', missingPattern: '^a$' }
+    for (const [locale, localize] of Object.entries(errorsLocalize)) {
+      assert.deepEqual(Object.keys(i18n[locale]).sort(), Object.keys(i18n.en).sort(), `messages of ${locale}`)
+      // serialize.js inlines the function source: it must not depend on anything outside its body
+      // eslint-disable-next-line no-new-func
+      const inlined = new Function(`return (${localize.toString()})`)()
+      const errors = keywords.map(keyword => ({ keyword, params }))
+      inlined(errors)
+      const defaultMessage = (() => { const e = [{ keyword: 'unknown', params }]; inlined(e); return e[0].message })()
+      for (const error of errors) {
+        assert.ok(error.message && error.message !== defaultMessage, `${locale} ${error.keyword}: ${error.message}`)
+        assert.ok(!/undefined|\{\$|NaN/.test(error.message), `${locale} ${error.keyword}: ${error.message}`)
+      }
+    }
+  })
+
+  it('should keep custom error messages as written and survive an invalid locale', async () => {
+    const custom = compile({ type: 'integer', minimum: 0, errorMessage: { minimum: 'au moins zéro' } }, { locale: 'fr' })
+    const customLayout = new StatefulLayout(custom, custom.skeletonTrees[custom.mainTree], defaultOptions, -10)
+    assert.equal(customLayout.stateTree.root.error, 'au moins zéro')
+
+    // an invalid language tag must not break validation
+    const invalidLocale = compile({ type: 'integer', minimum: 0 }, { locale: 'not a locale' })
+    const invalidLayout = new StatefulLayout(invalidLocale, invalidLocale.skeletonTrees[invalidLocale.mainTree], defaultOptions, -10)
+    assert.equal(invalidLayout.stateTree.root.error, 'Must be >= 0')
   })
 
   it('should return internationalized errors in compiled mode too', async () => {
@@ -85,24 +143,41 @@ describe('internationalization', () => {
     const serializedLayout = (await import(filePath)).default
 
     const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'doit être >= 0')
+    assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
   })
 
-  it('should let ajv-i18n fallback to en in compiled mode', async () => {
-    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'pt' })
-    const code = await serialize(compiledLayout)
-    const filePath = resolve('tmp/compiled-i18n2.js')
-    await writeFile(filePath, code + '\nexport default compiledLayout;')
-    const serializedLayout = (await import(filePath)).default
+  it('should fallback to defaultLocale then en for every message of a locale json-layout does not write', async () => {
+    const schema = { type: 'string', minLength: 3, 'x-i18n-title': { fr: 'Nom' } }
+    for (const [defaultLocale, addItem, error, title] of [
+      ['fr', 'Ajouter un élément', 'Doit faire au moins 3 caractères', 'Nom'],
+      ['ru', 'Add item', 'Must be at least 3 characters long', '']
+    ]) {
+      const compiledLayout = compile(schema, { locale: 'ru', defaultLocale, xI18n: true })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, 'a')
+      assert.equal(statefulLayout.stateTree.root.messages.addItem, addItem, defaultLocale)
+      assert.equal(statefulLayout.stateTree.root.error, error, defaultLocale)
+      assert.equal(statefulLayout.stateTree.root.layout.label, title, defaultLocale)
+    }
+  })
 
-    const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'must be >= 0')
+  it('should fallback the same way in compiled mode', async () => {
+    for (const [defaultLocale, error] of [['fr', 'Doit être >= 0'], ['ja', 'Must be >= 0']]) {
+      const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'ja', defaultLocale })
+      const code = await serialize(compiledLayout)
+      assert.ok(!code.includes('ajv-i18n'))
+      const filePath = resolve(`tmp/compiled-i18n-${defaultLocale}.js`)
+      await writeFile(filePath, code + '\nexport default compiledLayout;')
+      const serializedLayout = (await import(filePath)).default
+
+      const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
+      assert.equal(statefulLayout.stateTree.root.error, error, defaultLocale)
+    }
   })
 
   it('names the menu of a list item\'s actions in every locale', () => {
     // the button opening a row's actions (edit, duplicate, delete…) is an icon: without a
     // name, neither a screen reader nor an assistant guiding the person can point to it
-    for (const [locale, expected] of [['fr', 'Actions'], ['en', 'Actions'], ['de', 'Aktionen'], ['nl', 'Acties']]) {
+    for (const [locale, expected] of [['fr', 'Actions'], ['en', 'Actions'], ['de', 'Aktionen'], ['nl', 'Acties'], ['es', 'Acciones'], ['it', 'Azioni'], ['pt', 'Ações']]) {
       const compiledLayout = compile({ type: 'array', items: { type: 'string' }, layout: { comp: 'list' } }, { locale })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, [])
       assert.equal(statefulLayout.stateTree.root.messages.actions, expected, locale)

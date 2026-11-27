@@ -116,7 +116,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, { str2: 'test' })
       assert.equal(statefulLayout.stateTree.valid, false)
-      assert.equal(statefulLayout.stateTree.root.error, 'must have required property missingProp')
+      assert.equal(statefulLayout.stateTree.root.error, 'Required information: missingProp')
     })
 
     it('should merge info from references', async () => {
@@ -263,7 +263,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.ok(!statefulLayout.stateTree.root.error)
       assert.equal(statefulLayout.stateTree.root.children?.length, 2)
       assert.equal(statefulLayout.stateTree.root.children[1].skeleton.key, '$oneOf')
-      assert.equal(statefulLayout.stateTree.root.children[1].error, 'chose one')
+      assert.equal(statefulLayout.stateTree.root.children[1].error, 'Choose one')
     })
 
     it('should manage a allOf in an object', async () => {
@@ -282,11 +282,11 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.equal(statefulLayout.stateTree.root.children[1].skeleton.key, '$allOf-0')
       assert.ok(!statefulLayout.stateTree.root.children[1].error)
       assert.equal(statefulLayout.stateTree.root.children[1]?.children?.length, 1)
-      assert.equal(statefulLayout.stateTree.root.children[1].children[0].error, 'required information')
+      assert.equal(statefulLayout.stateTree.root.children[1].children[0].error, 'Required information')
       assert.equal(statefulLayout.stateTree.root.children[2].skeleton.key, '$allOf-1')
       assert.ok(!statefulLayout.stateTree.root.children[2].error)
       assert.equal(statefulLayout.stateTree.root.children[2]?.children?.length, 1)
-      assert.equal(statefulLayout.stateTree.root.children[2].children[0].error, 'required information')
+      assert.equal(statefulLayout.stateTree.root.children[2].children[0].error, 'Required information')
     })
 
     it('should manage arrays of strings as comboboxes', async () => {
@@ -309,7 +309,7 @@ for (const compileMode of ['runtime', 'build-time']) {
       assert.deepEqual(arrNode.data, ['Str 1', 'Str 2', 'a'])
       assert.ok(!arrNode.children)
       assert.equal(statefulLayout.stateTree.valid, false)
-      assert.equal(arrNode.error, 'must NOT be shorter than 2 characters')
+      assert.equal(arrNode.error, 'Must be at least 2 characters long')
 
       statefulLayout.input(arrNode, ['test'])
       assert.equal(statefulLayout.stateTree.valid, true)

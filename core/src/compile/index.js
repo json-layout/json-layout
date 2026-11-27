@@ -1,7 +1,8 @@
 // compileStatic is meant to produce a serializable result
 
 // import { Parser as ExprEvalParser } from 'expr-eval'
-import ajvLocalizeModule from 'ajv-i18n'
+import errorsLocalize from '../i18n/errors/index.js'
+import { messagesLocale } from '../i18n/index.js'
 import { makeSkeletonTree } from './skeleton-tree.js'
 import { resolveLocaleRefs } from './utils/resolve-refs.js'
 import { resolveXI18n } from './utils/x-i18n.js'
@@ -22,9 +23,16 @@ export { produceCompileOptions } from './options.js'
  */
 
 // @ts-ignore
-const ajvLocalize = /** @type {typeof ajvLocalizeModule.default} */ (ajvLocalizeModule)
-
 // const exprEvalParser = new ExprEvalParser()
+
+/**
+ * @param {string} locale
+ * @param {string} defaultLocale
+ * @returns {(errors: import('ajv').ErrorObject[] | null | undefined) => void}
+ */
+function getLocalizeErrors (locale, defaultLocale) {
+  return errorsLocalize[messagesLocale(locale, defaultLocale)]
+}
 
 /**
  * @param {object} _schema
@@ -148,7 +156,6 @@ export function compile (_schema, partialOptions = {}) {
     locale: options.locale,
     messages: options.messages,
     components: options.components,
-    // @ts-ignore
-    localizeErrors: ajvLocalize[options.locale] || ajvLocalize.en
+    localizeErrors: getLocalizeErrors(options.locale, options.defaultLocale)
   }
 }
