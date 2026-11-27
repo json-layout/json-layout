@@ -42,7 +42,8 @@ export const fillOptions = (partialOptions) => {
 
   const defaultLocale = partialOptions.defaultLocale || 'en'
   const locale = partialOptions.locale || defaultLocale
-  const messages = { ...i18n[locale] || i18n[defaultLocale] }
+  // json-layout's own messages fallback to en, defaultLocale is the language of the schema's texts
+  const messages = { ...i18n[locale] ?? i18n.en }
   if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
 
   const components = standardComponents.reduce((acc, component) => {

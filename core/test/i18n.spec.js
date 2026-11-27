@@ -146,6 +146,15 @@ describe('internationalization', () => {
     assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
   })
 
+  it('should fallback to en for every message of a locale json-layout does not write, whatever the defaultLocale', async () => {
+    for (const defaultLocale of ['fr', 'ru']) {
+      const compiledLayout = compile({ type: 'string', minLength: 3 }, { locale: 'ru', defaultLocale })
+      const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, 'a')
+      assert.equal(statefulLayout.stateTree.root.messages.addItem, 'Add item', defaultLocale)
+      assert.equal(statefulLayout.stateTree.root.error, 'Must be at least 3 characters long', defaultLocale)
+    }
+  })
+
   it('should fallback to en in compiled mode for a locale json-layout does not write', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'ja' })
     const code = await serialize(compiledLayout)
