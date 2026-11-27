@@ -146,25 +146,32 @@ describe('internationalization', () => {
     assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
   })
 
-  it('should fallback to en for every message of a locale json-layout does not write, whatever the defaultLocale', async () => {
-    for (const defaultLocale of ['fr', 'ru']) {
-      const compiledLayout = compile({ type: 'string', minLength: 3 }, { locale: 'ru', defaultLocale })
+  it('should fallback to defaultLocale then en for every message of a locale json-layout does not write', async () => {
+    const schema = { type: 'string', minLength: 3, 'x-i18n-title': { fr: 'Nom' } }
+    for (const [defaultLocale, addItem, error, title] of [
+      ['fr', 'Ajouter un élément', 'Doit faire au moins 3 caractères', 'Nom'],
+      ['ru', 'Add item', 'Must be at least 3 characters long', '']
+    ]) {
+      const compiledLayout = compile(schema, { locale: 'ru', defaultLocale, xI18n: true })
       const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, 'a')
-      assert.equal(statefulLayout.stateTree.root.messages.addItem, 'Add item', defaultLocale)
-      assert.equal(statefulLayout.stateTree.root.error, 'Must be at least 3 characters long', defaultLocale)
+      assert.equal(statefulLayout.stateTree.root.messages.addItem, addItem, defaultLocale)
+      assert.equal(statefulLayout.stateTree.root.error, error, defaultLocale)
+      assert.equal(statefulLayout.stateTree.root.layout.label, title, defaultLocale)
     }
   })
 
-  it('should fallback to en in compiled mode for a locale json-layout does not write', async () => {
-    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'ja' })
-    const code = await serialize(compiledLayout)
-    assert.ok(!code.includes('ajv-i18n'))
-    const filePath = resolve('tmp/compiled-i18n2.js')
-    await writeFile(filePath, code + '\nexport default compiledLayout;')
-    const serializedLayout = (await import(filePath)).default
+  it('should fallback the same way in compiled mode', async () => {
+    for (const [defaultLocale, error] of [['fr', 'Doit être >= 0'], ['ja', 'Must be >= 0']]) {
+      const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'ja', defaultLocale })
+      const code = await serialize(compiledLayout)
+      assert.ok(!code.includes('ajv-i18n'))
+      const filePath = resolve(`tmp/compiled-i18n-${defaultLocale}.js`)
+      await writeFile(filePath, code + '\nexport default compiledLayout;')
+      const serializedLayout = (await import(filePath)).default
 
-    const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
-    assert.equal(statefulLayout.stateTree.root.error, 'Must be >= 0')
+      const statefulLayout = new StatefulLayout(serializedLayout, serializedLayout.skeletonTrees[serializedLayout.mainTree], defaultOptions, -10)
+      assert.equal(statefulLayout.stateTree.root.error, error, defaultLocale)
+    }
   })
 
   it('names the menu of a list item\'s actions in every locale', () => {

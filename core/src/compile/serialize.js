@@ -6,7 +6,6 @@ import { ok } from 'assert/strict'
 import standaloneCode from 'ajv/dist/standalone/index.js'
 import { parseModule, generateCode, builders } from 'magicast'
 import { clone } from '../utils/clone.js'
-import errorsLocalize from '../i18n/errors/index.js'
 
 // @ts-ignore
 const Ajv = /** @type {typeof ajvModule.default} */ (ajvModule)
@@ -72,8 +71,7 @@ export async function serialize (compiledLayout) {
   }
 
   // the validation messages written by json-layout are self-contained functions inlined as is
-  const localizeErrors = errorsLocalize[compiledLayout.locale] ?? errorsLocalize.en
-  code = `const localizeErrors = ${localizeErrors.toString()};\n` + code
+  code = `const localizeErrors = ${compiledLayout.localizeErrors.toString()};\n` + code
 
   i = 0
   const expressionsNodes = []

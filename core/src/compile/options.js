@@ -3,7 +3,7 @@ import addFormats from 'ajv-formats'
 import ajvErrors from 'ajv-errors'
 import { marked } from 'marked'
 import { produce } from 'immer'
-import i18n from '../i18n/index.js'
+import i18n, { messagesLocale } from '../i18n/index.js'
 import { standardComponents } from '@json-layout/vocabulary'
 import { shallowEqualArray } from '../state/utils/immutable.js'
 
@@ -42,8 +42,7 @@ export const fillOptions = (partialOptions) => {
 
   const defaultLocale = partialOptions.defaultLocale || 'en'
   const locale = partialOptions.locale || defaultLocale
-  // json-layout's own messages fallback to en, defaultLocale is the language of the schema's texts
-  const messages = { ...i18n[locale] ?? i18n.en }
+  const messages = { ...i18n[messagesLocale(locale, defaultLocale)] }
   if (partialOptions.messages) Object.assign(messages, partialOptions.messages)
 
   const components = standardComponents.reduce((acc, component) => {
