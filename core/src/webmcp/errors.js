@@ -136,8 +136,7 @@ function dataPointerOf (error) {
 
 /**
  * The message of an ajv error, naming the refused property of an additional properties error:
- * ajv-i18n's message ("must NOT have additional properties") does not say which one, the
- * messages json-layout writes for its own locales already do.
+ * a custom errorMessage may not say which one, the messages json-layout writes already do.
  * @param {any} error
  * @returns {string}
  */

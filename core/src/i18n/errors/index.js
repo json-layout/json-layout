@@ -7,7 +7,7 @@ import it from './it.js'
 import pt from './pt.js'
 
 /**
- * the locales whose validation messages are written here, the others still come from ajv-i18n
+ * the validation messages of every locale json-layout writes, the others fallback to en
  * @type {Record<string, (errors: import('ajv').ErrorObject[] | null | undefined) => void>}
  */
 export default {

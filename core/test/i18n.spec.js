@@ -73,13 +73,13 @@ describe('internationalization', () => {
     assert.equal(compiledFr.normalizedLayouts['_jl#/properties/str4']?.label, 'Texte 4')
   })
 
-  it('should return validation errors internationalized by ajv', async () => {
+  it('should return internationalized validation errors', async () => {
     const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'fr' })
     const statefulLayout = new StatefulLayout(compiledLayout, compiledLayout.skeletonTrees[compiledLayout.mainTree], defaultOptions, -10)
     assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
   })
 
-  it('should write its own validation messages and keep ajv-i18n for the other locales', async () => {
+  it('should write its own validation messages and fallback to en for the other locales', async () => {
     /** @type {(schema: any, data: unknown, locale: string) => string | undefined} */
     const errorOf = (schema, data, locale) => {
       const compiledLayout = compile(schema, { locale })
@@ -99,8 +99,8 @@ describe('internationalization', () => {
     const constError = [{ keyword: 'const', params: { allowedValue: true } }]
     errorsLocalize.fr(/** @type {any} */(constError))
     assert.equal(constError[0].message, 'Doit valoir oui')
-    // a locale json-layout does not write keeps ajv-i18n
-    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'ja'), 'は3文字以下であってはいけない')
+    // a locale json-layout does not write falls back to en, like the UI messages
+    assert.equal(errorOf({ type: 'string', minLength: 3 }, 'a', 'ja'), 'Must be at least 3 characters long')
   })
 
   it('should give every locale all the messages and self-contained validation messages', async () => {
@@ -146,9 +146,10 @@ describe('internationalization', () => {
     assert.equal(statefulLayout.stateTree.root.error, 'Doit être >= 0')
   })
 
-  it('should let ajv-i18n fallback to en in compiled mode', async () => {
-    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'xx' })
+  it('should fallback to en in compiled mode for a locale json-layout does not write', async () => {
+    const compiledLayout = compile({ type: 'integer', minimum: 0 }, { locale: 'ja' })
     const code = await serialize(compiledLayout)
+    assert.ok(!code.includes('ajv-i18n'))
     const filePath = resolve('tmp/compiled-i18n2.js')
     await writeFile(filePath, code + '\nexport default compiledLayout;')
     const serializedLayout = (await import(filePath)).default

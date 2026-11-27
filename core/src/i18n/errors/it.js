@@ -1,4 +1,4 @@
-// Italian messages for the ajv validation errors, replacing ajv-i18n for this locale.
+// Italian messages for the ajv validation errors.
 // Short, positive and starting with "Deve" so that they read alike under any field.
 // The function must stay self-contained (no import, no outer variable): serialize.js
 // inlines its source in the compiled layouts.
