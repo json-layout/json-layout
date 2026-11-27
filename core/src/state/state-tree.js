@@ -14,22 +14,6 @@ const produceStateTree = produce(
 )
 
 /**
- * @param {string} message
- * @param {string} locale
- * @returns {string}
- */
-const capitalize = (message, locale) => {
-  let first
-  try {
-    first = message.charAt(0).toLocaleUpperCase(locale)
-  } catch {
-    // an invalid language tag makes toLocaleUpperCase throw a RangeError
-    first = message.charAt(0).toUpperCase()
-  }
-  return first + message.slice(1)
-}
-
-/**
  * @generator
  * @param {import('./types.js').StateNode} node
  * @yields {import('./types.js').StateNode}
@@ -81,9 +65,6 @@ export function createStateTree (
     logValidation(`${skeleton.root} new state tree initial validation errors`, validate.errors, validationState)
     for (const error of validate.errors) {
       if (error.keyword !== 'errorMessage') compiledLayout.localizeErrors([error])
-      // json-layout's own messages are sentences already, a custom errorMessage can start
-      // lowercase: shown alone under a field, it must read as a sentence too
-      else if (error.message) error.message = capitalize(error.message, compiledLayout.locale)
     }
     context.errors = context.allErrors = validate.errors
     if (context.errors.length) {

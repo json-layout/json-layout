@@ -124,10 +124,10 @@ describe('internationalization', () => {
     }
   })
 
-  it('should capitalize custom error messages and survive an invalid locale', async () => {
+  it('should keep custom error messages as written and survive an invalid locale', async () => {
     const custom = compile({ type: 'integer', minimum: 0, errorMessage: { minimum: 'au moins zéro' } }, { locale: 'fr' })
     const customLayout = new StatefulLayout(custom, custom.skeletonTrees[custom.mainTree], defaultOptions, -10)
-    assert.equal(customLayout.stateTree.root.error, 'Au moins zéro')
+    assert.equal(customLayout.stateTree.root.error, 'au moins zéro')
 
     // an invalid language tag must not break validation
     const invalidLocale = compile({ type: 'integer', minimum: 0 }, { locale: 'not a locale' })
