@@ -588,11 +588,17 @@ export class StatefulLayout {
   debouncedInput = null
 
   applyDebouncedInput () {
-    if (this.debouncedInput) {
-      clearTimeout(this.debouncedInput[4])
-      this.applyInput(this.debouncedInput[0], this.debouncedInput[1], this.debouncedInput[2], this.debouncedInput[3])
-      this.debouncedInput = null
+    if (!this.debouncedInput) return
+    const [node, data, validated, activateKey, timeout] = this.debouncedInput
+    this.debouncedInput = null
+    clearTimeout(timeout)
+    // the tree may have been rebuilt since the input was received, possibly without this node
+    const currentNode = this._lastCreateStateTreeContext.nodesMap.get(node.fullKey)
+    if (!currentNode) {
+      logDataBinding('drop debounced input from a node that left the tree', node.fullKey)
+      return
     }
+    this.applyInput(currentNode, data, validated, activateKey)
   }
 
   /**
@@ -603,16 +609,28 @@ export class StatefulLayout {
   input (node, data, activateKey) {
     logDataBinding('received input event from node', node, data, activateKey)
 
-    if (node.layout.comp === 'list') {
-      // a input of the whole list signals potential reordering, deactivate all items otherwise the keys might be mixed up
-      this.deactivateItem(node, true)
-    }
-
     // debounced data from the same node is cancelled if a new input is received
     // debounced data from another node is applied immediately
     if (this.debouncedInput) {
-      if (this.debouncedInput[0] === node) clearTimeout(this.debouncedInput[4])
-      else this.applyDebouncedInput()
+      if (this.debouncedInput[0] === node) {
+        clearTimeout(this.debouncedInput[4])
+      } else {
+        const previousData = this._lastCreateStateTreeContext.nodesMap.get(node.fullKey)?.data
+        this.applyDebouncedInput()
+        const currentData = this._lastCreateStateTreeContext.nodesMap.get(node.fullKey)?.data
+        if (Array.isArray(data) && Array.isArray(previousData) && Array.isArray(currentData) && currentData.length === previousData.length) {
+          // the array was built by the caller before the debounced data changed one of its items (found back by object reference, so only arrays of distinct objects)
+          data = data.map(item => {
+            const i = item && typeof item === 'object' ? previousData.indexOf(item) : -1
+            return i === -1 ? item : currentData[i]
+          })
+        }
+      }
+    }
+
+    if (node.layout.comp === 'list') {
+      // a input of the whole list signals potential reordering, deactivate all items otherwise the keys might be mixed up
+      this.deactivateItem(node, true)
     }
 
     const emitsBlur = this.compiledLayout.components[node.layout.comp]?.emitsBlur
@@ -644,9 +662,11 @@ export class StatefulLayout {
     if (this.debouncedInput) {
       this.applyDebouncedInput()
     } else {
+      // the blurred node can be stale (emitted on unmount after the tree changed): read the current one
+      const currentNode = this._lastCreateStateTreeContext.nodesMap.get(node.fullKey)
       // re-apply once now that _currentInput was emptied to add default data
-      if (node.layout.getDefaultData && useDefaultData(node.data, node.layout, node.options)) {
-        this.applyInput(node, node.data, true)
+      if (currentNode?.layout.getDefaultData && useDefaultData(currentNode.data, currentNode.layout, currentNode.options)) {
+        this.applyInput(currentNode, currentNode.data, true)
       }
     }
 
@@ -1018,6 +1038,8 @@ export class StatefulLayout {
    * @param {number | string} key
    */
   activateItem (node, key) {
+    // debounced data is applied while its node is still in the tree
+    this.applyDebouncedInput()
     logActivatedItems(node.fullKey, 'activate item explicitly', key)
     this.activatedItems = produce(this.activatedItems, draft => { draft[node.fullKey] = key })
     this._explicitActivatedItems.add(node.fullKey)
@@ -1058,6 +1080,8 @@ export class StatefulLayout {
    * @param {boolean} skipUpdateState
    */
   deactivateItem (node, skipUpdateState = false) {
+    // debounced data is applied while its node is still in the tree
+    this.applyDebouncedInput()
     logActivatedItems(node.fullKey, 'deactivate item explicitly')
     // also deactivate children oneOf for example
     this.activatedItems = produce(this.activatedItems, draft => {
